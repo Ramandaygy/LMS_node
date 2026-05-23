@@ -1,0 +1,160 @@
+.assignments-compact {
+  padding: 20px;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.compact-header h2 { font-size: 24px; margin: 0; }
+
+.compact-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.compact-actions select, .compact-actions button {
+  padding: 6px 12px;
+  border-radius: 30px;
+  border: 1px solid #ccc;
+  background: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.compact-alert {
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  position: relative;
+}
+.compact-alert.error { background: #fee2e2; color: #b91c1c; }
+.compact-alert.success { background: #dcfce7; color: #15803d; }
+.compact-alert button { position: absolute; right: 8px; top: 4px; background: none; border: none; font-size: 18px; cursor: pointer; }
+
+.compact-table-wrapper {
+  overflow-x: auto;
+}
+
+.compact-schedule {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.compact-schedule th, .compact-schedule td {
+  border: 1px solid #e2e8f0;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.compact-schedule th {
+  background: #f1f5f9;
+  font-weight: 600;
+  text-align: center;
+  font-size: 12px;
+}
+
+.time-col {
+  width: 100px;
+  background: #f1f5f9;
+  position: sticky;
+  left: 0;
+}
+
+.class-col {
+  min-width: 80px;
+  text-align: center;
+}
+
+.time-cell {
+  text-align: center;
+  background: #f1f5f9;
+  cursor: pointer;
+  transition: 0.1s;
+}
+.time-cell:hover { background: #e2e8f0; }
+
+.day-name { font-weight: 700; font-size: 12px; }
+.time-range { font-size: 10px; color: #475569; }
+
+.assignment-cell {
+  cursor: pointer;
+  text-align: center;
+  transition: 0.1s;
+  min-width: 70px;
+}
+.assignment-cell:hover { filter: brightness(0.95); }
+
+.cell-subject {
+  font-weight: 700;
+  font-size: 11px;
+  background: rgba(0,0,0,0.05);
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.cell-teacher {
+  font-size: 10px;
+  color: #1e293b;
+}
+
+.note-row .note-cell {
+  background: #fff9e6;
+  padding: 4px 8px;
+}
+.note-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  margin-right: 8px;
+}
+.note-text {
+  font-size: 11px;
+  color: #6b4b00;
+}
+
+.modal-overlay {
+  position: fixed;
+  top:0; left:0; right:0; bottom:0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.compact-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  width: 320px;
+  max-width: 90%;
+}
+.compact-modal h3 { margin: 0 0 12px 0; font-size: 18px; }
+.compact-modal select {
+  width: 100%;
+  padding: 8px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.modal-buttons button {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+.modal-buttons button:first-child { background: #e2e8f0; }
+.modal-buttons button:last-child { background: #0040a1; color: white; }

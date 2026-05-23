@@ -1,0 +1,542 @@
+/* ============================================ */
+/* ADMIN DASHBOARD MODERN STYLES               */
+/* ============================================ */
+
+.admin-dashboard-modern {
+  padding: 32px;
+  background: #f7f9fb;
+  min-height: 100vh;
+}
+
+/* ========== HEADER SECTION ========== */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.header-badge {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #0040a1;
+  opacity: 0.7;
+}
+
+.header-title {
+  font-size: 36px;
+  font-weight: 800;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #1e3a5f;
+  margin-top: 8px;
+  line-height: 1.2;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  color: #6c757d;
+  max-width: 400px;
+  margin-top: 8px;
+}
+
+.broadcast-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #feb700;
+  color: #6b4b00;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.broadcast-btn:hover {
+  background: #ffcd4a;
+  transform: scale(0.98);
+}
+
+/* ========== BENTO GRID METRICS ========== */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* Large Metric Card */
+.metric-large {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 280px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.metric-large-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.metric-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metric-icon.primary {
+  background: rgba(0,86,210,0.1);
+  color: #0040a1;
+}
+
+.metric-icon.primary span {
+  font-size: 28px;
+}
+
+.metric-trend {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.metric-trend.positive {
+  background: #e8f5e9;
+  color: #28a745;
+}
+
+.metric-large-value h4 {
+  font-size: 48px;
+  font-weight: 800;
+  color: #1e3a5f;
+  margin-bottom: 8px;
+}
+
+.metric-large-value p {
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #0040a1;
+  border-radius: 3px;
+}
+
+/* Small Metrics Cluster */
+.metrics-small-cluster {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.metric-small {
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.metric-small span {
+  font-size: 32px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
+.metric-small span.primary {
+  color: #0040a1;
+}
+
+.metric-small span.secondary {
+  color: #7c5800;
+}
+
+.metric-small h4 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1e3a5f;
+}
+
+.metric-small p {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+/* System Status Card */
+.system-status {
+  grid-column: span 3;
+  background: linear-gradient(135deg, #0040a1, #0056d2);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.system-status-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.system-status-icon {
+  background: rgba(255,255,255,0.2);
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.system-status-label {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.system-status-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.system-status-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.system-status-avatars .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid white;
+  margin-left: -8px;
+  object-fit: cover;
+}
+
+.system-status-avatars .avatar:first-child {
+  margin-left: 0;
+}
+
+.avatar-more {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #feb700;
+  color: #6b4b00;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: -8px;
+  border: 2px solid white;
+}
+
+/* ========== COMMAND CENTER ========== */
+.command-center {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+}
+
+/* Alerts Section */
+.alerts-card {
+  background: #eceef0;
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.alerts-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.alerts-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.alerts-badge {
+  background: #ffdad6;
+  color: #940010;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.alert-item {
+  display: flex;
+  gap: 16px;
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+}
+
+.alert-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-icon.tertiary {
+  background: rgba(148,0,16,0.1);
+  color: #940010;
+}
+
+.alert-icon.secondary {
+  background: rgba(124,88,0,0.1);
+  color: #7c5800;
+}
+
+.alert-icon.primary {
+  background: rgba(0,64,161,0.1);
+  color: #0040a1;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e3a5f;
+}
+
+.alert-message {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+}
+
+.alert-action {
+  background: none;
+  border: none;
+  color: #0040a1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* Commands Section */
+.commands-card {
+  background: white;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.commands-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 24px;
+}
+
+.commands-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.command-card {
+  background: #f8f9fa;
+  border-radius: 20px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.command-card:hover {
+  background: #0040a1;
+  color: white;
+  transform: translateY(-4px);
+}
+
+.command-card:hover .command-icon {
+  background: rgba(255,255,255,0.2);
+  color: white;
+}
+
+.command-card:hover .command-description {
+  color: rgba(255,255,255,0.8);
+}
+
+.command-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.command-icon {
+  width: 48px;
+  height: 48px;
+  background: rgba(0,86,210,0.1);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0040a1;
+  transition: all 0.3s;
+}
+
+.command-arrow {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.command-card:hover .command-arrow {
+  opacity: 1;
+}
+
+.command-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.command-description {
+  font-size: 12px;
+  color: #6c757d;
+  transition: color 0.3s;
+}
+
+/* Quote Section */
+.quote-section {
+  background: #1a1a2e;
+  border-radius: 24px;
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.quote-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.quote-icon {
+  font-size: 48px;
+  color: #feb700;
+  opacity: 0.5;
+}
+
+.quote-text {
+  font-size: 16px;
+  font-style: italic;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.quote-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: #feb700;
+}
+
+.quote-bg-blur {
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 160px;
+  height: 160px;
+  background: rgba(0,86,210,0.2);
+  border-radius: 50%;
+  filter: blur(60px);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1200px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .command-center {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-small-cluster {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-modern {
+    padding: 20px;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .metrics-small-cluster {
+    grid-template-columns: 1fr;
+  }
+  
+  .system-status {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .system-status-content {
+    flex-direction: column;
+  }
+  
+  .commands-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quote-content {
+    flex-direction: column;
+  }
+}

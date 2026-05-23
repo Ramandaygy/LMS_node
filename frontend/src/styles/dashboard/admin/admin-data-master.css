@@ -1,0 +1,55 @@
+/* admin-data-master.css */
+.admin-data-master-container {
+  padding: 0;
+}
+
+.admin-data-master-header {
+  margin-bottom: 24px;
+}
+
+.admin-data-master-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.admin-data-master-header p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.admin-data-master-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s;
+}
+
+.tab-btn:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.tab-btn.active {
+  color: #0040a1;
+  border-bottom: 2px solid #0040a1;
+  background: none;
+}
+
+.admin-data-master-content {
+  background: transparent;
+}
