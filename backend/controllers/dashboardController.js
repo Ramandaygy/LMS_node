@@ -2,13 +2,11 @@ const UserSiswa = require('../models/UserSiswa');
 const UserGuru = require('../models/UserGuru');
 const UserOrtu = require('../models/UserOrtu');
 const UserAdmin = require('../models/UserAdmin');
-const Subject = require('../models/Subject');       // sebagai pengganti courses
-const Class = require('../models/Class');           // fallback untuk total_courses
+const Subject = require('../models/Subject');
+const Class = require('../models/Class');
 const Assignment = require('../models/Assignment');
 const Progress = require('../models/Progress');
-const Enrollment = require('../models/Enrollment'); // opsional, jika ada
 const { getStudentsByParent } = require('../utils/userHelper');
-const { ObjectId } = require('mongoose').Types;
 
 // GET /dashboard/stats
 exports.getStats = async (req, res) => {
@@ -23,32 +21,48 @@ exports.getStats = async (req, res) => {
       const totalParents = await UserOrtu.countDocuments();
       const totalAdmins = await UserAdmin.countDocuments();
       let totalCourses = await Subject.countDocuments();
-      if (totalCourses === 0) totalCourses = await Class.countDocuments(); // fallback
+      if (totalCourses === 0) totalCourses = await Class.countDocuments(); // fallback jika subject kosong
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       const activeToday = await Progress.countDocuments({ last_activity: { $gte: oneDayAgo } });
-      stats = { totalStudents, totalTeachers, totalParents, totalAdmins, totalCourses, activeToday };
-    }
+      stats = {
+        totalStudents,
+        totalTeachers,
+        totalParents,
+        totalAdmins,
+        totalCourses,
+        activeToday
+      };
+    } 
     else if (userRole === 'guru') {
       const teacher = await UserGuru.findById(userId).lean();
       const classIds = teacher?.classes || [];
       let totalStudents = 0;
       if (classIds.length) {
-        totalStudents = await UserSiswa.countDocuments({ class_id: { $in: classIds }, status: 'active' });
+        totalStudents = await UserSiswa.countDocuments({
+          class_id: { $in: classIds },
+          status: 'active'
+        });
       }
       const totalCourses = await Assignment.countDocuments({ teacher_id: userId });
-      const pendingAssignments = 0; // dapat dihitung dari submissions yang belum dinilai
+      const pendingAssignments = 0; // nanti bisa dihitung dari submissions yang belum dinilai
       stats = { totalStudents, totalCourses, pendingAssignments };
-    }
+    } 
     else if (userRole === 'siswa') {
+      const student = await UserSiswa.findById(userId).lean();
       let enrolledCourses = 0;
-      try {
-        enrolledCourses = await Enrollment.countDocuments({ student_id: userId, status: 'active' });
-      } catch (err) { enrolledCourses = 0; }
+      if (student && student.class_id) {
+        // Hitung mata pelajaran yang terkait dengan kelas siswa (asumsi subject ada class_id)
+        enrolledCourses = await Subject.countDocuments({ class_id: student.class_id });
+      }
       const progress = await Progress.findOne({ student_id: userId });
       const overallProgress = progress ? progress.overall_progress : 0;
       const upcomingDeadlines = 0;
-      stats = { enrolled_courses: enrolledCourses, overall_progress: overallProgress, upcoming_deadlines: upcomingDeadlines };
-    }
+      stats = {
+        enrolled_courses: enrolledCourses,
+        overall_progress: overallProgress,
+        upcoming_deadlines: upcomingDeadlines
+      };
+    } 
     else if (userRole === 'ortu') {
       const students = await getStudentsByParent(userId);
       const totalChildren = students.length;
@@ -57,8 +71,13 @@ exports.getStats = async (req, res) => {
         const progress = await Progress.findOne({ student_id: student._id });
         if (progress) totalProgress += progress.overall_progress || 0;
       }
-      const averageProgress = totalChildren ? Math.round((totalProgress / totalChildren) * 10) / 10 : 0;
-      stats = { total_children: totalChildren, average_progress: averageProgress };
+      const averageProgress = totalChildren
+        ? Math.round((totalProgress / totalChildren) * 10) / 10
+        : 0;
+      stats = {
+        total_children: totalChildren,
+        average_progress: averageProgress
+      };
     }
 
     res.json(stats);
@@ -82,7 +101,7 @@ exports.getActivity = async (req, res) => {
         .lean();
       for (const activity of progresses) {
         let courseTitle = 'Course';
-        let courseId = activity.subject_id; // asumsi field subject_id
+        const courseId = activity.subject_id; // asumsikan ada field subject_id di Progress
         if (courseId) {
           const subject = await Subject.findById(courseId).lean();
           courseTitle = subject ? subject.name : 'Unknown';
@@ -94,7 +113,7 @@ exports.getActivity = async (req, res) => {
           last_activity: activity.last_activity ? activity.last_activity.toISOString() : null
         });
       }
-    }
+    } 
     else if (userRole === 'ortu') {
       const students = await getStudentsByParent(userId);
       for (const student of students) {
@@ -102,7 +121,7 @@ exports.getActivity = async (req, res) => {
         activities.push({
           student_name: student.full_name,
           student_nis: student.nis,
-          progress: progress ? (progress.overall_progress || 0) : 0,
+          progress: progress ? progress.overall_progress || 0 : 0,
           last_activity: progress && progress.last_activity ? progress.last_activity.toISOString() : null
         });
       }

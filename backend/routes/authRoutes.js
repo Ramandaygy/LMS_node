@@ -6,6 +6,6 @@ const auth = require('../middleware/authMiddleware');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', auth, authController.getCurrentUser);
-router.post('/register/admin', authController.registerAdmin); // sebaiknya dilindungi
+router.post('/register/admin', authController.registerAdmin);
 
 module.exports = router;

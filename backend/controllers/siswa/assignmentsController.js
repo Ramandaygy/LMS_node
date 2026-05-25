@@ -6,7 +6,6 @@ const Subject = require('../../models/Subject');
 const { saveSubmissionFile, UPLOAD_FOLDER } = require('../../utils/submissionUpload');
 const path = require('path');
 const fs = require('fs');
-const { ObjectId } = require('mongoose').Types;
 const jwt = require('jsonwebtoken');
 
 // GET /assignments
@@ -16,31 +15,26 @@ exports.getMyAssignments = async (req, res) => {
     const student = await UserSiswa.findById(studentId).lean();
     if (!student) return res.status(404).json({ error: 'Siswa tidak ditemukan' });
 
-    let classId = null;
-    if (student.class_id) {
-      classId = student.class_id;
-    } else {
-      // fallback: cari kelas berdasarkan nama (jika pakai field 'class')
-      if (student.class) {
-        const classDoc = await Class.findOne({ name: student.class }).lean();
-        if (classDoc) classId = classDoc._id;
-      }
+    // Dapatkan class_id siswa
+    let classId = student.class_id;
+    // Fallback jika masih menggunakan field 'class' (string) untuk kompatibilitas
+    if (!classId && student.class) {
+      const classDoc = await Class.findOne({ name: student.class }).lean();
+      if (classDoc) classId = classDoc._id;
     }
     if (!classId) {
       return res.status(400).json({ error: 'Siswa belum memiliki kelas' });
     }
 
-    // Ambil assignments berdasarkan class_id
+    // Cari tugas berdasarkan class_id
     const assignments = await Assignment.find({ class_id: classId })
       .sort({ created_at: -1 })
       .lean();
 
-    // Pre-fetch subjects
     const subjectIds = assignments.map(a => a.subject_id).filter(id => id);
     const subjects = await Subject.find({ _id: { $in: subjectIds } }).lean();
     const subjectMap = new Map(subjects.map(s => [s._id.toString(), s.name]));
 
-    // Ambil semua submissions untuk student ini
     const assignmentIds = assignments.map(a => a._id);
     const submissions = await Submission.find({
       assignment_id: { $in: assignmentIds },
@@ -52,18 +46,22 @@ exports.getMyAssignments = async (req, res) => {
     const result = assignments.map(a => {
       const sub = submissionMap.get(a._id.toString());
       return {
-        ...a,
         _id: a._id.toString(),
+        title: a.title,
+        description: a.description,
         class_id: a.class_id?.toString(),
         subject_id: a.subject_id?.toString(),
         teacher_id: a.teacher_id?.toString(),
         deadline: a.deadline ? a.deadline.toISOString() : null,
-        created_at: a.created_at ? a.created_at.toISOString() : null,
+        max_score: a.max_score,
+        attachments: a.attachments,
+        status: a.status,
         subject_name: subjectMap.get(a.subject_id?.toString()) || 'Unknown',
         submitted: !!sub,
         submitted_at: sub?.submitted_at ? sub.submitted_at.toISOString() : null,
         score: sub?.score || null,
-        feedback: sub?.feedback || null
+        feedback: sub?.feedback || null,
+        created_at: a.created_at ? a.created_at.toISOString() : null
       };
     });
     res.json({ assignments: result });
@@ -82,13 +80,12 @@ exports.submitAssignment = async (req, res) => {
     const assignment = await Assignment.findById(assignmentId).lean();
     if (!assignment) return res.status(404).json({ error: 'Tugas tidak ditemukan' });
 
-    // Cek sudah submit
+    // Cek duplikasi submission
     const existing = await Submission.findOne({ assignment_id: assignmentId, student_id: studentId });
     if (existing) return res.status(400).json({ error: 'Anda sudah mengumpulkan tugas ini' });
 
     // Cek deadline
-    const deadline = assignment.deadline;
-    if (deadline && new Date() > new Date(deadline)) {
+    if (assignment.deadline && new Date() > new Date(assignment.deadline)) {
       return res.status(400).json({ error: 'Melewati batas waktu pengumpulan' });
     }
 
@@ -130,6 +127,7 @@ exports.serveAssignmentFile = async (req, res) => {
     } catch (err) {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    // Bisa diperluas: guru atau admin juga boleh akses, tapi di sini hanya siswa
     if (decoded.user.role !== 'siswa') {
       return res.status(403).json({ error: 'Access forbidden' });
     }

@@ -7,7 +7,6 @@ const Submission = require('../../models/Submission');
 const { saveUploadedFiles, UPLOAD_FOLDER } = require('../../utils/fileUpload');
 const path = require('path');
 const fs = require('fs');
-const { ObjectId } = require('mongoose').Types;
 
 // GET /assignments
 exports.getAssignments = async (req, res) => {
@@ -17,7 +16,6 @@ exports.getAssignments = async (req, res) => {
       .sort({ created_at: -1 })
       .lean();
 
-    // Pre-fetch class, subject, dan statistik
     const classIds = assignments.map(a => a.class_id).filter(id => id);
     const subjectIds = assignments.map(a => a.subject_id).filter(id => id);
     const classes = await Class.find({ _id: { $in: classIds } }).lean();
@@ -26,10 +24,9 @@ exports.getAssignments = async (req, res) => {
     const classMap = new Map(classes.map(c => [c._id.toString(), c]));
     const subjectMap = new Map(subjects.map(s => [s._id.toString(), s]));
 
-    // Hitung jumlah siswa per kelas (cached)
     const classStudentCount = new Map();
     for (let cls of classes) {
-      const count = await UserSiswa.countDocuments({ class_id: cls._id, role: 'siswa', status: 'active' });
+      const count = await UserSiswa.countDocuments({ class_id: cls._id, status: 'active' });
       classStudentCount.set(cls._id.toString(), count);
     }
 
@@ -65,7 +62,7 @@ exports.getAssignments = async (req, res) => {
   }
 };
 
-// POST /assignments (dengan upload file via middleware)
+// POST /assignments
 exports.createAssignment = async (req, res) => {
   try {
     const teacherId = req.user.id;
@@ -74,13 +71,11 @@ exports.createAssignment = async (req, res) => {
       return res.status(400).json({ error: 'Judul, kelas, mapel, deadline wajib diisi' });
     }
 
-    // Validasi class dan subject
     const classDoc = await Class.findById(class_id);
     if (!classDoc) return res.status(404).json({ error: 'Kelas tidak ditemukan' });
     const subjectDoc = await Subject.findById(subject_id);
     if (!subjectDoc) return res.status(404).json({ error: 'Mata pelajaran tidak ditemukan' });
 
-    // Validasi guru: apakah guru mengampu mapel dan kelas?
     const teacher = await UserGuru.findById(teacherId);
     if (!teacher) return res.status(404).json({ error: 'Guru tidak ditemukan' });
     const teacherSubjects = teacher.subjects.map(id => id.toString());
@@ -92,8 +87,7 @@ exports.createAssignment = async (req, res) => {
       return res.status(403).json({ error: 'Anda tidak diperbolehkan membuat tugas untuk kelas ini' });
     }
 
-    // Upload file
-    const files = req.files; // dari multer.array
+    const files = req.files;
     const attachments = saveUploadedFiles(files);
 
     const newAssignment = new Assignment({
@@ -141,7 +135,6 @@ exports.updateAssignment = async (req, res) => {
     if (!teacherSubjects.includes(subject_id)) return res.status(403).json({ error: 'Anda tidak diperbolehkan mengupdate tugas untuk mapel ini' });
     if (!teacherClasses.includes(class_id)) return res.status(403).json({ error: 'Anda tidak diperbolehkan mengupdate tugas untuk kelas ini' });
 
-    // File upload: file baru ditambahkan, file lama tetap (bisa dihapus nanti jika perlu)
     const newFiles = req.files;
     const newAttachments = saveUploadedFiles(newFiles);
     const attachments = [...(assignment.attachments || []), ...newAttachments];
@@ -170,7 +163,6 @@ exports.deleteAssignment = async (req, res) => {
     const assignmentId = req.params.assignment_id;
     const result = await Assignment.findOneAndDelete({ _id: assignmentId, teacher_id: teacherId });
     if (!result) return res.status(404).json({ error: 'Tugas tidak ditemukan atau bukan milik Anda' });
-    // Opsional: hapus file fisik attachment? Bisa dilakukan nanti
     res.json({ message: 'Tugas berhasil dihapus' });
   } catch (err) {
     console.error(err);
@@ -187,9 +179,7 @@ exports.getSubmissions = async (req, res) => {
     if (!assignment) return res.status(404).json({ error: 'Tugas tidak ditemukan atau bukan milik Anda' });
 
     const classId = assignment.class_id;
-    // Ambil semua siswa aktif di kelas tersebut
-    const students = await UserSiswa.find({ class_id: classId, role: 'siswa', status: 'active' }).lean();
-    // Ambil semua submission untuk assignment ini
+    const students = await UserSiswa.find({ class_id: classId, status: 'active' }).lean();
     const submissions = await Submission.find({ assignment_id: assignmentId }).lean();
     const submissionMap = new Map();
     submissions.forEach(sub => submissionMap.set(sub.student_id.toString(), sub));
@@ -252,12 +242,10 @@ exports.getTeacherProfile = async (req, res) => {
     const teacher = await UserGuru.findById(teacherId).lean();
     if (!teacher) return res.status(404).json({ error: 'Guru tidak ditemukan' });
 
-    // Ambil nama subjects
     const subjectIds = teacher.subjects || [];
     const subjects = await Subject.find({ _id: { $in: subjectIds } }).lean();
     const subjectList = subjects.map(s => ({ _id: s._id.toString(), name: s.name }));
 
-    // Ambil nama classes
     const classIds = teacher.classes || [];
     const classes = await Class.find({ _id: { $in: classIds } }).lean();
     const classList = classes.map(c => ({ _id: c._id.toString(), name: c.name }));
@@ -275,12 +263,10 @@ exports.getTeacherProfile = async (req, res) => {
   }
 };
 
-// GET /uploads/assignments/:filename (serve file)
+// GET /uploads/assignments/:filename
 exports.serveAssignmentFile = (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(UPLOAD_FOLDER, filename);
-  // Optional: tambahkan pengecekan apakah file milik assignment yang dibuat guru ini?
-  // Untuk keamanan sederhana, kita bisa verifikasi bahwa file ada dan user login (auth sudah di middleware)
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ error: 'File tidak ditemukan' });
   }
