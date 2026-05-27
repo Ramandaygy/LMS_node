@@ -1,14 +1,46 @@
 const mongoose = require('mongoose');
 
-const ClassSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  grade_level: { type: Number, required: true },
-  homeroom_teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'UserGuru', default: null },
-  academic_year_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AcademicYear', required: true },
-  description: String,
-  is_active: { type: Boolean, default: true },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
-});
+const classSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+    },
 
-module.exports = mongoose.model('Class', ClassSchema, 'classes');
+    grade: {
+      type: String,
+      required: true,
+    },
+
+    major: {
+      type: String,
+      default: '',
+    },
+
+    homeroom_teacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+
+    academic_year: {
+      type: String,
+      default: '2025/2026',
+    },
+
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: {
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  }
+);
+
+module.exports =
+  mongoose.model('Class', classSchema);

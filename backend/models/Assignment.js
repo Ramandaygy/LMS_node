@@ -1,20 +1,67 @@
 const mongoose = require('mongoose');
 
-const AssignmentSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: String,
-  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
-  subject_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
-  teacher_id: { type: mongoose.Schema.Types.ObjectId, ref: 'UserGuru', required: true },
-  deadline: { type: Date, required: true },
-  max_score: { type: Number, required: true },
-  status: String,
-  attachments: [{
-    filename: String,
-    path: String
-  }],
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now }
-});
+const assignmentSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: true,
+    },
 
-module.exports = mongoose.model('Assignment', AssignmentSchema, 'assignments');
+    description: {
+      type: String,
+      default: '',
+    },
+
+    module: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Module',
+      required: true,
+    },
+
+    class: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Class',
+      required: true,
+    },
+
+    subject: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Subject',
+      required: true,
+    },
+
+    teacher: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    deadline: {
+      type: Date,
+      required: true,
+    },
+
+    total_score: {
+      type: Number,
+      default: 100,
+    },
+
+    attachment: {
+      type: String,
+      default: '',
+    },
+
+    is_active: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+module.exports = mongoose.model(
+  'Assignment',
+  assignmentSchema
+);

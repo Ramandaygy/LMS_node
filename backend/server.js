@@ -1,52 +1,158 @@
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+
 const connectDB = require('./config/db');
 
 const app = express();
 
-// Koneksi ke MongoDB Atlas
+// =====================================
+// CONNECT DATABASE
+// =====================================
 connectDB();
 
-// Middleware global
+// =====================================
+// MIDDLEWARE
+// =====================================
 app.use(cors());
+
 app.use(express.json());
 
-// Routes (pasang setelah middleware)
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/dashboard', require('./routes/dashboardRoutes'));
-//app.use('/api/monitoring', require('./routes/monitoringRoutes'));
-app.use('/api/profile', require('./routes/profileRoutes'));
+app.use(
+  express.urlencoded({
+    extended: true,
+  })
+);
 
-//routes folder admin
-app.use('/api/admin/users', require('./routes/admin/usersRoutes'));
-app.use('/api/admin/subjects', require('./routes/admin/subjectsRoutes'));
-app.use('/api/admin/export-import', require('./routes/admin/exportImportRoutes'));
-app.use('/api/admin/schedule', require('./routes/admin/scheduleRoutes'));
-app.use('/api/admin/reports', require('./routes/admin/reportsRoutes'));
-app.use('/api/admin/settings', require('./routes/admin/settingsRoutes'));
-app.use('/api/admin/academic', require('./routes/admin/academicRoutes'));
+// =====================================
+// STATIC FILES
+// =====================================
+app.use(
+  '/uploads',
+  express.static(
+    path.join(__dirname, 'uploads')
+  )
+);
 
+// =====================================
+// ROUTES
+// =====================================
 
+// AUTH
+app.use(
+  '/api/auth',
+  require('./routes/authRoutes')
+);
 
-//routes folder guru
-app.use('/api/guru/students', require('./routes/guru/studentsRoutes'));
-app.use('/api/guru/assignments', require('./routes/guru/assignmentsRoutes'));
-app.use('/api/guru/materials', require('./routes/guru/materialsRoutes'));
-app.use('/api/guru/grades', require('./routes/guru/gradesRoutes'));
-app.use('/api/guru/attendance', require('./routes/guru/attendanceRoutes'));
+// DASHBOARD
+app.use(
+  '/api/dashboard',
+  require('./routes/dashboardRoutes')
+);
 
+// USERS
+app.use(
+  '/api/users',
+  require('./routes/userRoutes')
+);
 
-//routes folder siswa
-app.use('/api/siswa/assignments', require('./routes/siswa/assignmentsRoutes'));
+// CLASSES
+app.use(
+  '/api/classes',
+  require('./routes/classRoutes')
+);
 
+// SUBJECTS
+app.use(
+  '/api/subjects',
+  require('./routes/subjectRoutes')
+);
 
-// Route test
+// MODULES
+app.use(
+  '/api/modules',
+  require('./routes/moduleRoutes')
+);
+
+// MATERIALS
+app.use(
+  '/api/materials',
+  require('./routes/materialRoutes')
+);
+
+// ASSIGNMENTS
+app.use(
+  '/api/assignments',
+  require('./routes/assignmentRoutes')
+);
+
+// SUBMISSIONS
+app.use(
+  '/api/submissions',
+  require('./routes/submissionRoutes')
+);
+
+// ATTENDANCE
+app.use(
+  '/api/attendance',
+  require('./routes/attendanceRoutes')
+);
+
+// GRADES
+app.use(
+  '/api/grades',
+  require('./routes/gradeRoutes')
+);
+
+// SCHEDULES
+app.use(
+  '/api/schedules',
+  require('./routes/scheduleRoutes')
+);
+
+// SETTINGS
+app.use(
+  '/api/settings',
+  require('./routes/settingRoutes')
+);
+
+// =====================================
+// ROOT TEST
+// =====================================
 app.get('/', (req, res) => {
-    res.send('Backend jalan');
+
+  return res.json({
+    success: true,
+    message:
+      'LMS Backend Running',
+  });
 });
 
-const PORT = process.env.PORT || 5000;
+// =====================================
+// ERROR HANDLER
+// =====================================
+app.use((err, req, res, next) => {
+
+  console.error(err.stack);
+
+  return res.status(500).json({
+    success: false,
+    message:
+      'Internal Server Error',
+  });
+});
+
+// =====================================
+// SERVER
+// =====================================
+const PORT =
+  process.env.PORT || 5000;
+
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+
+  console.log(
+    `Server running on port ${PORT}`
+  );
 });

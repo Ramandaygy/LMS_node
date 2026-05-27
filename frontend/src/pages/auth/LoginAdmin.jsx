@@ -16,22 +16,52 @@ const LoginAdmin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setLoading(true);
     setError('');
 
     try {
+
       const response = await authService.login(formData);
+
+      console.log('LOGIN RESPONSE:', response);
+
       const user = response.user;
-      
+
+      if (!user) {
+        setError('User data not found');
+        return;
+      }
+
       if (user.role !== 'admin') {
         setError('Akun ini bukan akun admin. Akses ditolak.');
         setLoading(false);
         return;
       }
-      
-      navigate('/dashboard/admin');
+
+      // DEBUG
+      console.log(
+        'LOCAL USER:',
+        localStorage.getItem('user')
+      );
+
+      console.log(
+        'LOCAL TOKEN:',
+        localStorage.getItem('token')
+      );
+
+      // FORCE RELOAD
+      window.location.href = '/dashboard/admin';
+
     } catch (error) {
-      setError(error.response?.data?.error || 'Login failed');
+
+      console.error(error);
+
+      setError(
+        error.response?.data?.message ||
+        'Login failed'
+      );
+
     } finally {
       setLoading(false);
     }

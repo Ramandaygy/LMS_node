@@ -8,7 +8,9 @@ import {
 
 import { authService } from './services/auth';
 
-// Import styles
+// ============================================
+// STYLES
+// ============================================
 import './styles/global.css';
 import './App.css';
 
@@ -84,20 +86,23 @@ import Sidebar from './components/Layout/Sidebar';
 // PROTECTED ROUTE
 // ============================================
 const ProtectedRoute = ({ children, allowedRole }) => {
-
   const currentUser = authService.getCurrentUser();
 
+  console.log('🔐 ProtectedRoute User:', currentUser);
 
   // Belum login
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }
 
+  // Token hilang
+  if (!authService.getToken()) {
+    authService.logout();
+    return <Navigate to="/login" replace />;
+  }
+
   // Role tidak sesuai
-  if (
-    allowedRole &&
-    currentUser.role !== allowedRole
-  ) {
+  if (allowedRole && currentUser.role !== allowedRole) {
     return (
       <Navigate
         to={`/dashboard/${currentUser.role}`}
@@ -110,48 +115,59 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   return children;
 };
 
+// ============================================
+// REDIRECT DASHBOARD
+// ============================================
+const DashboardRedirect = () => {
+  const currentUser = authService.getCurrentUser();
+
+  if (currentUser && currentUser.role) {
+    return (
+      <Navigate
+        to={`/dashboard/${currentUser.role}`}
+        replace
+      />
+    );
+  }
+
+  return <Navigate to="/login" replace />;
+};
+
 function App() {
 
-  const [user, setUser] = useState(null);
+  // ============================================
+  // STATE
+  // ============================================
   const [activeMenu, setActiveMenu] = useState('dashboard');
-  const [loading, setLoading] = useState(true);
 
   // ============================================
-  // CHECK AUTH ON APP LOAD
+  // USER
+  // ============================================
+  const currentUser = authService.getCurrentUser();
+
+  // ============================================
+  // DEBUG
   // ============================================
   useEffect(() => {
-
-    const currentUser = authService.getCurrentUser();
-
-    if (currentUser) {
-      setUser(currentUser);
-    }
-
-    setLoading(false);
-
-  }, []);
+    console.log('🚀 App Current User:', currentUser);
+  }, [currentUser]);
 
   // ============================================
   // LOGOUT
   // ============================================
   const handleLogout = () => {
-
     authService.logout();
 
-    setUser(null);
-
+    // Hard refresh supaya state reset total
     window.location.href = '/login';
-
   };
 
   // ============================================
   // DASHBOARD LAYOUT
   // ============================================
   const DashboardLayout = ({ children, role }) => {
-
     return (
       <div className="dashboard-container">
-
         <Sidebar
           role={role}
           activeMenu={activeMenu}
@@ -161,7 +177,6 @@ function App() {
         <div className="main-content">
           {children}
         </div>
-
       </div>
     );
   };
@@ -170,10 +185,13 @@ function App() {
   // PUBLIC LAYOUT
   // ============================================
   const PublicLayout = ({ children }) => {
-
     return (
       <>
-        <Navbar user={user} onLogout={handleLogout} />
+        <Navbar
+          user={currentUser}
+          onLogout={handleLogout}
+        />
+
         {children}
       </>
     );
@@ -183,28 +201,14 @@ function App() {
   // AUTH LAYOUT
   // ============================================
   const AuthLayout = ({ children }) => {
-
-    return (
-      <>
-        {children}
-      </>
-    );
+    return <>{children}</>;
   };
 
   // ============================================
-  // LOADING SCREEN
-  // ============================================
-  if (loading) {
-    return <div className="loading">Loading...</div>;
-  }
-
-  // ============================================
-  // APP ROUTES
+  // ROUTES
   // ============================================
   return (
-
     <Router>
-
       <Routes>
 
         {/* ============================================ */}
@@ -581,7 +585,7 @@ function App() {
           path="/profile"
           element={
             <ProtectedRoute>
-              <DashboardLayout role={user?.role}>
+              <DashboardLayout role={currentUser?.role}>
                 <Profile />
               </DashboardLayout>
             </ProtectedRoute>
@@ -589,26 +593,12 @@ function App() {
         />
 
         {/* ============================================ */}
-        {/* REDIRECT DASHBOARD */}
+        {/* DASHBOARD REDIRECT */}
         {/* ============================================ */}
 
         <Route
           path="/dashboard"
-          element={
-            user && user.role
-              ? (
-                <Navigate
-                  to={`/dashboard/${user.role}`}
-                  replace
-                />
-              )
-              : (
-                <Navigate
-                  to="/login"
-                  replace
-                />
-              )
-          }
+          element={<DashboardRedirect />}
         />
 
         {/* ============================================ */}
@@ -621,8 +611,8 @@ function App() {
         />
 
       </Routes>
-
     </Router>
   );
 }
+
 export default App;

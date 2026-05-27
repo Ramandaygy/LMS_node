@@ -1,18 +1,60 @@
 const mongoose = require('mongoose');
 
-const SubmissionSchema = new mongoose.Schema({
-  assignment_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Assignment', required: true },
-  student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'UserSiswa', required: true },
-  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
-  subject_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
-  teacher_id: { type: mongoose.Schema.Types.ObjectId, ref: 'UserGuru', required: true },
-  status: String, // submitted, graded, etc.
-  content: String,
-  file: { type: String, default: null },
-  score: { type: Number, default: null },
-  feedback: String,
-  submitted_at: { type: Date, default: Date.now },
-  graded_at: Date
-});
+const submissionSchema = new mongoose.Schema(
+  {
+    assignment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Assignment',
+      required: true,
+    },
 
-module.exports = mongoose.model('Submission', SubmissionSchema, 'submissions');
+    student: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    file_url: {
+      type: String,
+      default: '',
+    },
+
+    note: {
+      type: String,
+      default: '',
+    },
+
+    score: {
+      type: Number,
+      default: 0,
+    },
+
+    feedback: {
+      type: String,
+      default: '',
+    },
+
+    submitted_at: {
+      type: Date,
+      default: Date.now,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        'submitted',
+        'graded',
+        'late',
+      ],
+      default: 'submitted',
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+module.exports = mongoose.model(
+  'Submission',
+  submissionSchema
+);
