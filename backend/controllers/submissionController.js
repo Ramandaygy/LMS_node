@@ -1,23 +1,23 @@
-const assignmentService = require(
-  '../services/assignmentService'
+const submissionService = require(
+  '../services/submissionService'
 );
 
 // ======================================
-// CREATE ASSIGNMENT
+// CREATE SUBMISSION
 // ======================================
-exports.createAssignment =
+exports.createSubmission =
   async (req, res) => {
 
     try {
 
-      const newAssignment =
-        await assignmentService.createAssignment(
+      const submission =
+        await submissionService.createSubmission(
           req.body
         );
 
       return res.status(201).json({
         success: true,
-        data: newAssignment,
+        data: submission,
       });
 
     } catch (err) {
@@ -27,25 +27,25 @@ exports.createAssignment =
       return res.status(500).json({
         success: false,
         message:
-          'Failed to create assignment',
+          'Failed to create submission',
       });
     }
   };
 
 // ======================================
-// GET ALL ASSIGNMENTS
+// GET ALL SUBMISSIONS
 // ======================================
-exports.getAllAssignments =
+exports.getAllSubmissions =
   async (req, res) => {
 
     try {
 
-      const assignments =
-        await assignmentService.getAllAssignments();
+      const submissions =
+        await submissionService.getAllSubmissions();
 
       return res.status(200).json({
         success: true,
-        data: assignments,
+        data: submissions,
       });
 
     } catch (err) {
@@ -55,7 +55,98 @@ exports.getAllAssignments =
       return res.status(500).json({
         success: false,
         message:
-          'Failed to fetch assignments',
+          'Failed to fetch submissions',
+      });
+    }
+  };
+
+// ======================================
+// GET SUBMISSION BY ID
+// ======================================
+exports.getSubmissionById =
+  async (req, res) => {
+
+    try {
+
+      const submission =
+        await submissionService.getSubmissionById(
+          req.params.id
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: submission,
+      });
+
+    } catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          'Failed to fetch submission',
+      });
+    }
+  };
+
+// ======================================
+// UPDATE SUBMISSION
+// ======================================
+exports.updateSubmission =
+  async (req, res) => {
+
+    try {
+
+      const submission =
+        await submissionService.updateSubmission(
+          req.params.id,
+          req.body
+        );
+
+      return res.status(200).json({
+        success: true,
+        data: submission,
+      });
+
+    } catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          'Failed to update submission',
+      });
+    }
+  };
+
+// ======================================
+// DELETE SUBMISSION
+// ======================================
+exports.deleteSubmission =
+  async (req, res) => {
+
+    try {
+
+      await submissionService.deleteSubmission(
+        req.params.id
+      );
+
+      return res.status(200).json({
+        success: true,
+        message:
+          'Submission deleted successfully',
+      });
+
+    } catch (err) {
+
+      console.error(err);
+
+      return res.status(500).json({
+        success: false,
+        message:
+          'Failed to delete submission',
       });
     }
   };

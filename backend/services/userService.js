@@ -1,114 +1,233 @@
-const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
-const User = require('../models/User');
+// ======================================
+// COLLECTION REFERENCES
+// ======================================
+
+const siswaCollection =
+  mongoose.connection.collection(
+    'users_siswa'
+  );
+
+const guruCollection =
+  mongoose.connection.collection(
+    'users_guru'
+  );
+
+const adminCollection =
+  mongoose.connection.collection(
+    'users_admin'
+  );
+
+const ortuCollection =
+  mongoose.connection.collection(
+    'users_ortu'
+  );
 
 // ======================================
 // GET ALL USERS
 // ======================================
+
 exports.getAllUsers = async () => {
 
-  return await User.find()
-    .select('-password')
-    .sort({ created_at: -1 });
+  const siswa =
+    await siswaCollection.find({}).toArray();
 
+  const guru =
+    await guruCollection.find({}).toArray();
+
+  const admin =
+    await adminCollection.find({}).toArray();
+
+  const ortu =
+    await ortuCollection.find({}).toArray();
+
+  return [
+    ...siswa,
+    ...guru,
+    ...admin,
+    ...ortu
+  ];
 };
 
 // ======================================
 // GET USER BY ID
 // ======================================
+
 exports.getUserById = async (id) => {
 
-  return await User.findById(id)
-    .select('-password');
+  const objectId =
+    new mongoose.Types.ObjectId(id);
 
-};
+  let user =
+    await siswaCollection.findOne({
+      _id: objectId
+    });
 
-// ======================================
-// GET USERS BY ROLE
-// ======================================
-exports.getUsersByRole = async (
-  role
-) => {
-
-  return await User.find({
-    role,
-  })
-    .select('-password')
-    .sort({ created_at: -1 });
-
-};
-// ======================================
-// CREATE USER
-// ======================================
-exports.createUser = async (body) => {
-
-  const {
-    username,
-    email,
-    password,
-    role,
-    full_name,
-    phone,
-  } = body;
-
-  const existingEmail =
-    await User.findOne({ email });
-
-  if (existingEmail) {
-    throw new Error(
-      'Email already registered'
-    );
+  if (!user) {
+    user = await guruCollection.findOne({
+      _id: objectId
+    });
   }
 
-  const existingUsername =
-    await User.findOne({ username });
-
-  if (existingUsername) {
-    throw new Error(
-      'Username already used'
-    );
+  if (!user) {
+    user = await adminCollection.findOne({
+      _id: objectId
+    });
   }
 
-  const hashedPassword =
-    await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    username,
-    email,
-    password: hashedPassword,
-    role,
-    full_name,
-    phone,
-  });
+  if (!user) {
+    user = await ortuCollection.findOne({
+      _id: objectId
+    });
+  }
 
   return user;
 };
 
 // ======================================
+// GET USERS BY ROLE
+// ======================================
+
+exports.getUsersByRole = async (role) => {
+
+  switch (role) {
+
+    case 'siswa':
+      return await siswaCollection
+        .find({})
+        .toArray();
+
+    case 'guru':
+      return await guruCollection
+        .find({})
+        .toArray();
+
+    case 'admin':
+      return await adminCollection
+        .find({})
+        .toArray();
+
+    case 'ortu':
+      return await ortuCollection
+        .find({})
+        .toArray();
+
+    default:
+      return [];
+  }
+};
+
+// ======================================
+// CREATE USER
+// ======================================
+
+exports.createUser = async (userData) => {
+
+  let collection;
+
+  switch (userData.role) {
+
+    case 'siswa':
+      collection = siswaCollection;
+      break;
+
+    case 'guru':
+      collection = guruCollection;
+      break;
+
+    case 'admin':
+      collection = adminCollection;
+      break;
+
+    case 'ortu':
+      collection = ortuCollection;
+      break;
+
+    default:
+      throw new Error('Role tidak valid');
+  }
+
+  const result =
+    await collection.insertOne(userData);
+
+  return result;
+};
+
+// ======================================
 // UPDATE USER
 // ======================================
+
 exports.updateUser = async (
   id,
-  body
+  updateData
 ) => {
 
-  const updatedUser =
-    await User.findByIdAndUpdate(
-      id,
-      body,
-      {
-        new: true,
-      }
-    ).select('-password');
+  const objectId =
+    new mongoose.Types.ObjectId(id);
 
-  return updatedUser;
+  const collections = [
+    siswaCollection,
+    guruCollection,
+    adminCollection,
+    ortuCollection
+  ];
+
+  for (const collection of collections) {
+
+    const user =
+      await collection.findOne({
+        _id: objectId
+      });
+
+    if (user) {
+
+      await collection.updateOne(
+        { _id: objectId },
+        {
+          $set: updateData
+        }
+      );
+
+      return true;
+    }
+  }
+
+  throw new Error('User tidak ditemukan');
 };
 
 // ======================================
 // DELETE USER
 // ======================================
+
 exports.deleteUser = async (id) => {
 
-  await User.findByIdAndDelete(id);
+  const objectId =
+    new mongoose.Types.ObjectId(id);
 
+  const collections = [
+    siswaCollection,
+    guruCollection,
+    adminCollection,
+    ortuCollection
+  ];
+
+  for (const collection of collections) {
+
+    const user =
+      await collection.findOne({
+        _id: objectId
+      });
+
+    if (user) {
+
+      await collection.deleteOne({
+        _id: objectId
+      });
+
+      return true;
+    }
+  }
+
+  throw new Error('User tidak ditemukan');
 };

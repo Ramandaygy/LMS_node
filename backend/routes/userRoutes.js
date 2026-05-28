@@ -9,24 +9,6 @@ const authMiddleware =
   require('../middleware/authMiddleware');
 
 // ======================================
-// GET ALL USERS
-// ======================================
-router.get(
-  '/',
-  authMiddleware,
-  userController.getAllUsers
-);
-
-// ======================================
-// GET USER BY ID
-// ======================================
-router.get(
-  '/:id',
-  authMiddleware,
-  userController.getUserById
-);
-
-// ======================================
 // GET STUDENTS
 // ======================================
 router.get(
@@ -42,6 +24,24 @@ router.get(
   '/teachers/all',
   authMiddleware,
   userController.getTeachers
+);
+
+// ======================================
+// GET ALL USERS
+// ======================================
+router.get(
+  '/',
+  authMiddleware,
+  userController.getAllUsers
+);
+
+// ======================================
+// GET USER BY ID
+// ======================================
+router.get(
+  '/:id',
+  authMiddleware,
+  userController.getUserById
 );
 
 // ======================================

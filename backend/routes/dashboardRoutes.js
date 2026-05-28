@@ -9,7 +9,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.get(
   '/stats',
   authMiddleware,
-  dashboardController.getStats
+  dashboardController.getDashboardStats
 );
 
 module.exports = router;

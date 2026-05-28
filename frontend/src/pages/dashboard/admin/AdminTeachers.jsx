@@ -59,14 +59,29 @@ const AdminTeachers = () => {
 
   const fetchMasterData = async () => {
     try {
-      const [subjectsRes, classesRes] = await Promise.all([
-        api.get('/admin/subjects/options'),
-        api.get('/admin/classes/options'),
+
+      const [
+        subjectsRes,
+        classesRes
+      ] = await Promise.all([
+        api.get('/subjects'),
+        api.get('/classes'),
       ]);
-      setAllSubjects(subjectsRes.data.subjects || []);
-      setAllClasses(classesRes.data.classes || []);
+
+      setAllSubjects(
+        subjectsRes.data.data || []
+      );
+
+      setAllClasses(
+        classesRes.data.data || []
+      );
+
     } catch (error) {
-      console.error('Error fetching master data:', error);
+
+      console.error(
+        'Error fetching master data:',
+        error
+      );
     }
   };
 
@@ -81,29 +96,77 @@ const AdminTeachers = () => {
 
   const fetchTeachers = async () => {
     try {
-      const response = await api.get('/admin/users/teachers?limit=200');
-      const teachersRaw = response.data.teachers || [];
 
-      const teachersData = teachersRaw.map((teacher) => ({
-        ...teacher,
-        id: teacher._id,
-        full_name: teacher.full_name,
-        email: teacher.email,
-        username: teacher.username,
-        nip: teacher.nip,
-        teacher_code: teacher.teacher_code || teacher.username || '',
-        subjects: teacher.subjects || [],
-        classes: teacher.classes || [],
-        subject_ids: teacher.subject_ids || [],
-        class_ids: teacher.class_ids || [],
-        phone: teacher.phone || '',
-        is_active: teacher.is_active !== undefined ? teacher.is_active : true,
-      }));
+      const response =
+        await api.get(
+          '/users/teachers/all'
+        );
+
+      console.log(
+        'TEACHERS:',
+        response.data
+      );
+
+      const teachersRaw =
+        response.data.data || [];
+
+      const teachersData =
+        teachersRaw.map((teacher) => ({
+          id:
+            teacher._id || teacher.id,
+
+          full_name:
+            teacher.full_name || '',
+
+          email:
+            teacher.email || '',
+
+          username:
+            teacher.username || '',
+
+          nip:
+            teacher.nip || '',
+
+          teacher_code:
+            teacher.teacher_code || '',
+
+          phone:
+            teacher.phone || '',
+
+          role:
+            teacher.role || 'guru',
+
+          is_active:
+            teacher.is_active !== false,
+
+          subjects:
+            teacher.subjects || [],
+
+          classes:
+            teacher.classes || [],
+
+          subject_ids:
+            teacher.subject_ids || [],
+
+          class_ids:
+            teacher.class_ids || [],
+        }));
+
       setTeachers(teachersData);
-      setLoading(false);
+
     } catch (error) {
-      console.error('Error fetching teachers:', error);
-      setErrorMsg('Gagal memuat data guru');
+
+      console.error(
+        'Error fetching teachers:',
+        error
+      );
+
+      setErrorMsg(
+        'Gagal memuat data guru'
+      );
+
+    } finally {
+
       setLoading(false);
     }
   };
@@ -173,14 +236,32 @@ const AdminTeachers = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus guru ini?')) {
+    if (
+      window.confirm(
+        'Apakah Anda yakin ingin menghapus guru ini?'
+      )
+    ) {
+
       try {
-        await api.delete(`/admin/users/teachers/${id}`);
-        setSuccessMsg('Guru berhasil dihapus');
+
+        await api.delete(
+          `/users/${id}`
+        );
+
+        setSuccessMsg(
+          'Guru berhasil dihapus'
+        );
+
         fetchTeachers();
         fetchStats();
+
       } catch (error) {
-        setErrorMsg('Gagal menghapus guru');
+
+        console.error(error);
+
+        setErrorMsg(
+          'Gagal menghapus guru'
+        );
       }
     }
   };
