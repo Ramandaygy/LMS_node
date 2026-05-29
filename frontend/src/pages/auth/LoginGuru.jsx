@@ -16,31 +16,58 @@ const LoginGuru = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
     setLoading(true);
     setError('');
-
+  
     try {
-      const response = await authService.login(formData);
+  
+      const response =
+        await authService.login(formData);
+  
+      console.log(
+        'LOGIN RESPONSE:',
+        response
+      );
+  
       const user = response.user;
-      
-      console.log('Login response:', response);
-      console.log('User role:', user.role);
-      
+  
+      if (!user) {
+        setError('User data not found');
+        return;
+      }
+  
       if (user.role !== 'guru') {
-        setError('Akun ini bukan akun guru. Silakan login di halaman yang sesuai.');
+        setError(
+          'Akun ini bukan akun guru. Akses ditolak.'
+        );
         setLoading(false);
         return;
       }
-      
-      const token = localStorage.getItem('token');
-      console.log('Token saved:', token ? 'Yes' : 'No');
-      console.log('Redirecting to /dashboard/guru');
-      
-      navigate('/dashboard/guru', { replace: true });
-      
+  
+      console.log(
+        'LOCAL USER:',
+        localStorage.getItem('user')
+      );
+  
+      console.log(
+        'LOCAL TOKEN:',
+        localStorage.getItem('token')
+      );
+  
+      // Sama seperti LoginAdmin
+      window.location.href =
+        '/dashboard/guru';
+  
     } catch (error) {
-      console.error('Login error:', error);
-      setError(error.response?.data?.error || 'Login failed');
+  
+      console.error(error);
+  
+      setError(
+        error.response?.data?.message ||
+        'Login failed'
+      );
+  
     } finally {
       setLoading(false);
     }

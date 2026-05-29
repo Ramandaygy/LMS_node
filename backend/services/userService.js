@@ -25,6 +25,20 @@ const ortuCollection =
   );
 
 // ======================================
+// MASTER COLLECTIONS
+// ======================================
+
+const subjectCollection =
+  mongoose.connection.collection(
+    'subjects'
+  );
+
+const classCollection =
+  mongoose.connection.collection(
+    'classes'
+  );
+
+// ======================================
 // GET ALL USERS
 // ======================================
 
@@ -91,31 +105,153 @@ exports.getUserById = async (id) => {
 
 exports.getUsersByRole = async (role) => {
 
+  let users = [];
+
   switch (role) {
 
     case 'siswa':
-      return await siswaCollection
+      users = await siswaCollection
         .find({})
         .toArray();
+      break;
 
     case 'guru':
-      return await guruCollection
+      users = await guruCollection
         .find({})
         .toArray();
+      break;
 
     case 'admin':
-      return await adminCollection
+      users = await adminCollection
         .find({})
         .toArray();
+      break;
 
     case 'ortu':
-      return await ortuCollection
+      users = await ortuCollection
         .find({})
         .toArray();
+      break;
 
     default:
       return [];
   }
+
+  // ======================================
+  // GET MASTER DATA
+  // ======================================
+
+  const subjects =
+    await subjectCollection
+      .find({})
+      .toArray();
+
+  const classes =
+    await classCollection
+      .find({})
+      .toArray();
+
+  // ======================================
+  // FORMAT DATA
+  // ======================================
+
+  return users.map(user => {
+
+    // ======================================
+    // MAP SUBJECTS (GURU)
+    // ======================================
+
+    let subjectNames = [];
+
+    if (Array.isArray(user.subjects)) {
+
+      subjectNames = user.subjects.map(id => {
+
+        const subject = subjects.find(
+          s =>
+            s._id.toString() ===
+            id.toString()
+        );
+
+        return subject?.name || '-';
+      });
+    }
+
+    // ======================================
+    // MAP CLASSES (GURU)
+    // ======================================
+
+    let classNames = [];
+
+    if (Array.isArray(user.classes)) {
+
+      classNames = user.classes.map(id => {
+
+        const kelas = classes.find(
+          c =>
+            c._id.toString() ===
+            id.toString()
+        );
+
+        return kelas?.name || '-';
+      });
+    }
+
+    // ======================================
+    // MAP CLASS (SISWA)
+    // ======================================
+
+    let className = '-';
+
+    if (user.class_id) {
+
+      const kelas = classes.find(
+        c =>
+          c._id.toString() ===
+          user.class_id.toString()
+      );
+
+      className = kelas?.name || '-';
+    }
+
+    return {
+
+      ...user,
+
+      // ======================================
+      // GURU
+      // ======================================
+
+      subjects: subjectNames,
+      classes: classNames,
+
+      // id asli untuk edit form
+      subject_ids:
+        Array.isArray(user.subjects)
+          ? user.subjects
+          : [],
+
+      class_ids:
+        Array.isArray(user.classes)
+          ? user.classes
+          : [],
+
+      // ======================================
+      // SISWA
+      // ======================================
+
+      class_name: className,
+
+      // ======================================
+      // STATUS
+      // ======================================
+
+      is_active:
+        user.is_active !== undefined
+          ? user.is_active
+          : true,
+    };
+  });
 };
 
 // ======================================
@@ -149,7 +285,15 @@ exports.createUser = async (userData) => {
   }
 
   const result =
-    await collection.insertOne(userData);
+    await collection.insertOne({
+
+      ...userData,
+
+      is_active:
+        userData.is_active !== undefined
+          ? userData.is_active
+          : true,
+    });
 
   return result;
 };

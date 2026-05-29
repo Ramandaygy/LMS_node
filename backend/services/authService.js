@@ -1,9 +1,37 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 
-const User = require('../models/User');
+// ======================================
+// COLLECTIONS
+// ======================================
+
+const adminCollection =
+  mongoose.connection.collection(
+    'users_admin'
+  );
+
+const guruCollection =
+  mongoose.connection.collection(
+    'users_guru'
+  );
+
+const siswaCollection =
+  mongoose.connection.collection(
+    'users_siswa'
+  );
+
+const ortuCollection =
+  mongoose.connection.collection(
+    'users_ortu'
+  );
+
+// ======================================
+// REGISTER
+// ======================================
 
 exports.register = async (body) => {
+
   const {
     username,
     email,
@@ -13,92 +41,372 @@ exports.register = async (body) => {
     phone,
   } = body;
 
-  const existingUser = await User.findOne({
-    email: email.toLowerCase(),
-  });
+  const emailLower =
+    email.toLowerCase();
 
-  if (existingUser) {
-    throw new Error('Email already registered');
+  let collection;
+
+  switch (role) {
+
+    case 'admin':
+      collection = adminCollection;
+      break;
+
+    case 'guru':
+      collection = guruCollection;
+      break;
+
+    case 'siswa':
+      collection = siswaCollection;
+      break;
+
+    case 'ortu':
+      collection = ortuCollection;
+      break;
+
+    default:
+      throw new Error(
+        'Invalid role'
+      );
   }
 
-  const hashedPassword = await bcrypt.hash(
-    password,
-    10
-  );
+  const existingUser =
+    await collection.findOne({
+      email: emailLower,
+    });
 
-  const user = await User.create({
-    username,
-    email: email.toLowerCase(),
-    password: hashedPassword,
-    role,
-    full_name,
-    phone,
-  });
+  if (existingUser) {
+    throw new Error(
+      'Email already registered'
+    );
+  }
+
+  const hashedPassword =
+    await bcrypt.hash(
+      password,
+      10
+    );
+
+  const result =
+    await collection.insertOne({
+
+      username,
+
+      email: emailLower,
+
+      password: hashedPassword,
+
+      role,
+
+      full_name:
+        full_name || '',
+
+      phone:
+        phone || '',
+
+      is_active: true,
+
+      is_verified: false,
+
+      permissions: [],
+
+      profileImage: '',
+
+      profile: {},
+
+      created_at:
+        new Date(),
+
+      updated_at:
+        new Date(),
+    });
 
   return {
-    id: user._id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
+
+    id:
+      result.insertedId,
+
+    username,
+
+    email:
+      emailLower,
+
+    role,
   };
 };
 
+// ======================================
+// LOGIN
+// ======================================
+
 exports.login = async (body) => {
-  const { email, password } = body;
 
-  console.log('LOGIN BODY:', body);
+  const {
+    email,
+    password,
+  } = body;
 
-  const user = await User.findOne({
-    email: email.toLowerCase(),
-  });
+  console.log(
+    'LOGIN BODY:',
+    body
+  );
 
-  console.log('FOUND USER:', user);
+  const emailLower =
+    email.toLowerCase();
+
+  let user = null;
+
+  // ======================================
+  // SEARCH ADMIN
+  // ======================================
+
+  user =
+    await adminCollection.findOne({
+      email: emailLower,
+    });
+
+  // ======================================
+  // SEARCH GURU
+  // ======================================
 
   if (!user) {
-    throw new Error('User not found');
+
+    user =
+      await guruCollection.findOne({
+        email: emailLower,
+      });
   }
 
-  if (!user.is_active) {
-    throw new Error('User account disabled');
+  // ======================================
+  // SEARCH SISWA
+  // ======================================
+
+  if (!user) {
+
+    user =
+      await siswaCollection.findOne({
+        email: emailLower,
+      });
   }
 
-  const isMatch = await bcrypt.compare(
-    password,
+  // ======================================
+  // SEARCH ORTU
+  // ======================================
+
+  if (!user) {
+
+    user =
+      await ortuCollection.findOne({
+        email: emailLower,
+      });
+  }
+
+  console.log(
+    'FOUND USER:',
+    user
+  );
+
+  if (!user) {
+    throw new Error(
+      'User not found'
+    );
+  }
+
+  if (
+    user.is_active === false
+  ) {
+    throw new Error(
+      'User account disabled'
+    );
+  }
+
+  // ======================================
+  // PASSWORD DEBUG
+  // ======================================
+
+  console.log(
+    'PASSWORD TYPE:',
+    typeof user.password
+  );
+
+  console.log(
+    'PASSWORD RAW:',
     user.password
   );
 
-  console.log('PASSWORD MATCH:', isMatch);
+  let hashedPassword =
+    user.password;
 
-  if (!isMatch) {
-    throw new Error('Invalid password');
+  try {
+
+    if (
+      user.password &&
+      typeof user.password !==
+        'string'
+    ) {
+
+      // BSON Binary
+      if (
+        user.password.buffer
+      ) {
+
+        hashedPassword =
+          Buffer.from(
+            user.password.buffer
+          ).toString('utf8');
+
+        console.log(
+          'CONVERTED HASH:',
+          hashedPassword
+        );
+      }
+
+      // Mongo Binary value()
+      else if (
+        typeof user.password.value ===
+        'function'
+      ) {
+
+        hashedPassword =
+          user.password
+            .value()
+            .toString();
+
+        console.log(
+          'CONVERTED HASH:',
+          hashedPassword
+        );
+      }
+    }
+
+  } catch (err) {
+
+    console.log(
+      'HASH CONVERSION ERROR:',
+      err.message
+    );
   }
 
-  user.lastLogin = new Date();
+  // ======================================
+  // CHECK PASSWORD
+  // ======================================
 
-  await user.save();
+  const isMatch =
+    await bcrypt.compare(
+      password,
+      hashedPassword
+    );
 
-  const token = jwt.sign(
-    {
-      id: user._id,
-      role: user.role,
-      email: user.email,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: '7d',
-    }
+  console.log(
+    'PASSWORD MATCH:',
+    isMatch
   );
 
+  if (!isMatch) {
+
+    throw new Error(
+      'Invalid password'
+    );
+  }
+
+  // ======================================
+  // UPDATE LAST LOGIN
+  // ======================================
+
+  try {
+
+    let collection;
+
+    switch (user.role) {
+
+      case 'admin':
+        collection =
+          adminCollection;
+        break;
+
+      case 'guru':
+        collection =
+          guruCollection;
+        break;
+
+      case 'siswa':
+        collection =
+          siswaCollection;
+        break;
+
+      case 'ortu':
+        collection =
+          ortuCollection;
+        break;
+    }
+
+    if (collection) {
+
+      await collection.updateOne(
+        {
+          _id: user._id,
+        },
+        {
+          $set: {
+            lastLogin:
+              new Date(),
+          },
+        }
+      );
+    }
+
+  } catch (err) {
+
+    console.log(
+      'LAST LOGIN UPDATE ERROR:',
+      err.message
+    );
+  }
+
+  // ======================================
+  // GENERATE TOKEN
+  // ======================================
+
+  const token =
+    jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        email: user.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '7d',
+      }
+    );
+
   return {
+
     token,
+
     user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      full_name: user.full_name,
-      phone: user.phone,
-      profileImage: user.profileImage,
+
+      id:
+        user._id,
+
+      username:
+        user.username,
+
+      email:
+        user.email,
+
+      role:
+        user.role,
+
+      full_name:
+        user.full_name,
+
+      phone:
+        user.phone,
+
+      profileImage:
+        user.profileImage ||
+        '',
     },
   };
 };
