@@ -8,8 +8,8 @@ const classSchema = new mongoose.Schema(
       unique: true,
     },
 
-    grade: {
-      type: String,
+    grade_level: {
+      type: Number,
       required: true,
     },
 
@@ -20,13 +20,12 @@ const classSchema = new mongoose.Schema(
 
     homeroom_teacher: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
       default: null,
     },
 
-    academic_year: {
-      type: String,
-      default: '2025/2026',
+    academic_year_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
     },
 
     is_active: {
@@ -42,5 +41,7 @@ const classSchema = new mongoose.Schema(
   }
 );
 
-module.exports =
-  mongoose.model('Class', classSchema);
+module.exports = mongoose.model(
+  'Class',
+  classSchema
+);

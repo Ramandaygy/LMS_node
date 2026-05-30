@@ -6,6 +6,7 @@ const path = require('path');
 
 const connectDB = require('./config/db');
 
+const academicYearRoutes = require('./routes/academicYearRoutes');
 const app = express();
 
 // =====================================
@@ -104,6 +105,11 @@ app.use(
 app.use(
   '/api/grades',
   require('./routes/gradeRoutes')
+);
+
+app.use(
+  '/api/admin/academic-years',
+  academicYearRoutes
 );
 
 // SCHEDULES

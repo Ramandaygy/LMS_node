@@ -21,7 +21,7 @@ const AdminStudents = () => {
     username: '',
     password: '',
     nis: '',
-    class: '',
+    class_id: '',
     role: 'siswa',
     is_active: true,
   });
@@ -93,7 +93,7 @@ const AdminStudents = () => {
           email: formData.email,
           username: formData.username,
           nis: formData.nis,
-          class: formData.class,
+          class_id: formData.class_id,
           is_active: formData.is_active,
         };
         if (formData.password) {
@@ -114,7 +114,7 @@ const AdminStudents = () => {
         username: '',
         password: '',
         nis: '',
-        class: '',
+        class_id: '',
         role: 'siswa',
         is_active: true,
       });
@@ -133,7 +133,7 @@ const AdminStudents = () => {
       username: student.username || '',
       password: '',
       nis: student.nis || '',
-      class: student.class || '',
+      class_id: student.class_id || '',
       role: 'siswa',
       is_active: student.is_active,
     });
@@ -169,7 +169,7 @@ const AdminStudents = () => {
       student.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.nis?.includes(searchTerm);
-    const matchesClass = !selectedClass || student.class === selectedClass;
+    const matchesClass = !selectedClass || student.class_id === selectedClass;
     const matchesStatus =
       !selectedStatus ||
       (selectedStatus === 'active' && student.is_active) ||
@@ -295,11 +295,20 @@ const AdminStudents = () => {
               <span className="material-symbols-outlined">class</span>
               <select
                 value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
+                onChange={(e) =>
+                  setSelectedClass(e.target.value)
+                }
               >
-                {availableClasses.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="">
+                  Semua Kelas
+                </option>
+
+                {availableClasses.map((kelas) => (
+                  <option
+                    key={kelas._id}
+                    value={kelas._id}
+                  >
+                    {kelas.name}
                   </option>
                 ))}
               </select>
@@ -368,7 +377,7 @@ const AdminStudents = () => {
                     <td className="admin-user-id">{student.nis || '-'}</td>
                     <td className="admin-class-cell">
                       <span className="admin-class-badge">
-                        {student.class && student.class !== '-' ? student.class : '-'}
+                        {student.class_name || '-'}
                       </span>
                     </td>
                     <td className="admin-status-cell">
@@ -559,8 +568,11 @@ const AdminStudents = () => {
                     {availableClasses
                       .filter((c) => c.value !== '')
                       .map((c) => (
-                        <option key={c.value} value={c.value}>
-                          {c.label}
+                        <option
+                          key={c._id}
+                          value={c._id}
+                        >
+                          {c.name}
                         </option>
                       ))}
                   </select>
@@ -629,7 +641,7 @@ const AdminStudents = () => {
               <strong>Username:</strong> {selectedStudent.username}
             </div>
             <div className="detail-field">
-              <strong>Kelas:</strong> {selectedStudent.class || '-'}
+              <strong>Kelas:</strong> {selectedStudent.class_name || '-'}
             </div>
             <div className="detail-field">
               <strong>Status:</strong>{' '}
