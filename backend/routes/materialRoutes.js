@@ -22,4 +22,10 @@ router.post(
   materialController.createMaterial
 );
 
+router.post(
+  '/generate',
+  authMiddleware,
+  materialController.generateMaterial
+);
+
 module.exports = router;

@@ -69,3 +69,56 @@ exports.deleteMaterial =
       id
     );
   };
+
+  exports.getMaterialsByModule =
+  async (moduleId) => {
+  
+    return await Material.find()
+    .populate(
+      'class_id',
+      'name'
+    )
+    .populate(
+      'subject_id',
+      'name code'
+    )
+    .populate(
+      'module',
+      'title'
+    )
+    .populate(
+      'uploaded_by',
+      'full_name'
+    );
+  };
+
+  exports.generateMaterialAI =
+  async (data) => {
+  
+    const material =
+    await Material.create({
+  
+      module:
+        data.module,
+  
+      title:
+        data.title,
+  
+      description:
+        data.description,
+  
+      content:
+        data.content,
+  
+      source_type:
+        'ai',
+  
+      ai_prompt:
+        data.prompt,
+  
+      uploaded_by:
+        data.uploaded_by
+    });
+  
+    return material;
+  };

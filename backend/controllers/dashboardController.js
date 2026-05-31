@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const Class = require('../models/Class');
 const Subject = require('../models/Subject');
-const Module = require('../models/Module');
 
 // ======================================
 // GET DASHBOARD STATS
@@ -32,9 +31,6 @@ exports.getDashboardStats =
       const total_subjects =
         await Subject.countDocuments();
 
-      const total_modules =
-        await Module.countDocuments();
-
       return res.status(200).json({
         success: true,
 
@@ -43,7 +39,7 @@ exports.getDashboardStats =
         total_parents,
         total_classes,
         total_subjects,
-        total_modules,
+     
       });
 
     } catch (err) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-materials.css';
 
@@ -27,13 +27,15 @@ const GuruMaterials = () => {
   const fetchTeacherProfile = async () => {
     try {
       const res = await api.get('/guru/profile');
-      setTeacherSubjects(res.data.subjects || []);
-      setTeacherClasses(res.data.classes || []);
-      // Jika kosong, beri peringatan
-      if (res.data.subjects?.length === 0) {
+      // Menyesuaikan dengan berbagai kemungkinan struktur response
+      const subjects = res.data.subjects || res.data.data?.subjects || [];
+      const classes = res.data.classes || res.data.data?.classes || [];
+      setTeacherSubjects(subjects);
+      setTeacherClasses(classes);
+      if (subjects.length === 0) {
         setErrorMsg('Anda belum diassign mata pelajaran. Hubungi admin.');
       }
-      if (res.data.classes?.length === 0) {
+      if (classes.length === 0) {
         setErrorMsg(prev => prev ? prev + ' Anda belum diassign kelas.' : 'Anda belum diassign kelas. Hubungi admin.');
       }
     } catch (err) {
@@ -45,7 +47,9 @@ const GuruMaterials = () => {
   const fetchMaterials = async () => {
     try {
       const res = await api.get('/guru/materials');
-      setMaterials(res.data.materials || []);
+      // Mendukung response { materials: [] } atau { data: [] } atau { success: true, data: [] }
+      const materialsData = res.data.materials || res.data.data || [];
+      setMaterials(materialsData);
     } catch (err) {
       setErrorMsg('Gagal memuat materi');
     } finally {
@@ -69,7 +73,6 @@ const GuruMaterials = () => {
     setErrorMsg('');
     setSuccessMsg('');
 
-    // Validasi frontend
     if (!formData.title.trim()) {
       setErrorMsg('Judul materi harus diisi');
       return;
@@ -101,7 +104,7 @@ const GuruMaterials = () => {
       resetForm();
       fetchMaterials();
     } catch (err) {
-      const msg = err.response?.data?.error || 'Gagal menyimpan materi';
+      const msg = err.response?.data?.error || err.response?.data?.message || 'Gagal menyimpan materi';
       setErrorMsg(msg);
       console.error('Upload error:', err.response?.data);
     }
@@ -133,7 +136,6 @@ const GuruMaterials = () => {
       {errorMsg && <div className="error-msg">{errorMsg}</div>}
       {successMsg && <div className="success-msg">{successMsg}</div>}
 
-      {/* Form inline */}
       {showForm && (
         <div className="material-form">
           <h3>{editing ? 'Edit Materi' : 'Upload Materi Baru'}</h3>
@@ -149,14 +151,18 @@ const GuruMaterials = () => {
                 <label>Mata Pelajaran *</label>
                 <select name="subject_id" value={formData.subject_id} onChange={handleChange} required>
                   <option value="">Pilih Mapel</option>
-                  {teacherSubjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                  {teacherSubjects.map(s => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group">
                 <label>Kelas *</label>
                 <select name="class_id" value={formData.class_id} onChange={handleChange} required>
                   <option value="">Pilih Kelas</option>
-                  {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  {teacherClasses.map(c => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -182,7 +188,9 @@ const GuruMaterials = () => {
         {materials.map(mat => (
           <div key={mat._id} className="material-card">
             <div className="material-title">{mat.title}</div>
-            <div className="material-meta">{mat.subject_name} - {mat.class_name}</div>
+            <div className="material-meta">
+              {mat.subject_name || mat.subject?.name || '-'} - {mat.class_name || mat.class?.name || '-'}
+            </div>
             <div className="material-desc">{mat.description}</div>
             {mat.attachments?.length > 0 && (
               <div className="material-attachments">
@@ -190,7 +198,7 @@ const GuruMaterials = () => {
                 <ul>
                   {mat.attachments.map((att, idx) => (
                     <li key={idx}>
-                      <a href={`/api/guru/uploads/materials/${att.path}`} target="_blank" rel="noopener noreferrer">
+                      <a href={att.url || `/api/guru/uploads/materials/${att.path}`} target="_blank" rel="noopener noreferrer">
                         📎 {att.filename}
                       </a>
                     </li>

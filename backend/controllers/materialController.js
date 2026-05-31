@@ -59,3 +59,30 @@ exports.getAllMaterials =
       });
     }
   };
+
+exports.generateMaterial =
+  async (req,res)=>{
+  
+    try{
+  
+      const material =
+      await materialService.generateMaterialAI(
+        req.body
+      );
+  
+      return res.json({
+        success:true,
+        data:material
+      });
+  
+    }catch(err){
+  
+      console.error(err);
+  
+      return res.status(500).json({
+        success:false
+      });
+  
+    }
+  
+  };

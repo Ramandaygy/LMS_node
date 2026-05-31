@@ -71,11 +71,6 @@ app.use(
   require('./routes/subjectRoutes')
 );
 
-// MODULES
-app.use(
-  '/api/modules',
-  require('./routes/moduleRoutes')
-);
 
 // MATERIALS
 app.use(

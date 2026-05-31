@@ -1,4 +1,8 @@
 const scheduleService = require('../services/scheduleService');
+const Class = require('../models/Class');
+const Subject = require('../models/Subject');
+const User = require('../models/User');
+const Schedule = require('../models/Schedule');
 
 exports.createSchedule = async (req, res) => {
   try {
@@ -77,16 +81,34 @@ exports.deleteSchedule = async (req, res) => {
   }
 };
 
+// scheduleController.js
 exports.autoGenerateSchedule = async (req, res) => {
   try {
     const { academic_year_id } = req.body;
     if (!academic_year_id) {
       return res.status(400).json({ success: false, message: 'academic_year_id required' });
     }
-    // TODO: panggil service generate jika sudah ada
-    return res.json({ success: true, message: 'Generate berhasil (sementara)' });
+
+    // Ambil data master
+    const classes = await Class.find({ academic_year_id: academic_year_id });
+    const subjects = await Subject.find();
+    const teachers = await User.find({ role: 'teacher' });
+    const existingSchedules = await Schedule.find({ academic_year_id: academic_year_id });
+
+    // Generate dari AI
+    const aiSchedules = await scheduleService.generateScheduleWithAI(
+      academic_year_id,
+      classes,
+      subjects,
+      teachers,
+      existingSchedules
+    );
+
+    // Simpan hasil AI ke database
+    const saved = await scheduleService.bulkSaveSchedule(aiSchedules);
+    return res.json({ success: true, message: `Berhasil generate ${saved.length} jadwal`, data: saved });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Auto generate failed' });
+    console.error('Auto generate error:', err);
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
