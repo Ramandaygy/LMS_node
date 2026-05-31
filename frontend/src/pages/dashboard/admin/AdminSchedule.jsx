@@ -22,14 +22,7 @@ const AdminSchedule = () => {
     { slot: 6, label: '12:00-13:00' },
   ]);
 
-  const [days] = useState([
-    'SENIN',
-    'SELASA',
-    'RABU',
-    'KAMIS',
-    'JUMAT',
-    'SABTU'
-  ]);
+  const [days] = useState(['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU']);
 
   const [modal, setModal] = useState({
     open: false,
@@ -37,39 +30,24 @@ const AdminSchedule = () => {
     timeSlot: null,
     classId: null,
     subjectId: '',
-    teacherId: ''
+    teacherId: '',
+    room: ''
   });
 
-  const [message, setMessage] = useState({
-    type: '',
-    text: ''
-  });
-
+  const [message, setMessage] = useState({ type: '', text: '' });
   const [autoLoading, setAutoLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const getMapelColor = (subjectId) => {
     if (!subjectId) return '#f1f5f9';
-
     const colors = [
-      '#e8f4f8',
-      '#fce4ec',
-      '#e8f5e9',
-      '#fff3e0',
-      '#f3e5f5',
-      '#e0f7fa',
-      '#ffebee',
-      '#e0f2f1',
-      '#f9fbe7',
-      '#fde0dc'
+      '#e8f4f8', '#fce4ec', '#e8f5e9', '#fff3e0', '#f3e5f5',
+      '#e0f7fa', '#ffebee', '#e0f2f1', '#f9fbe7', '#fde0dc'
     ];
-
     let hash = 0;
-
     for (let i = 0; i < subjectId.length; i++) {
       hash = ((hash << 5) - hash) + subjectId.charCodeAt(i);
     }
-
     return colors[Math.abs(hash) % colors.length];
   };
 
@@ -78,672 +56,298 @@ const AdminSchedule = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedYear) {
-      fetchExistingSchedule();
-    }
+    if (selectedYear) fetchExistingSchedule();
   }, [selectedYear]);
 
   const fetchInitialData = async () => {
     try {
-
-      const [
-        classesRes,
-        subjectsRes,
-        teachersRes,
-        yearsRes
-      ] = await Promise.all([
-        api.get('/admin/classes/options'),
-        api.get('/admin/subjects/options'),
-        api.get('/admin/users/teachers?limit=200'),
-        api.get('/admin/academic-years'),
+      setLoading(true);
+      const [classesRes, subjectsRes, teachersRes, yearsRes] = await Promise.all([
+        api.get('/classes'),
+        api.get('/subjects'),
+        api.get('/users/teachers/all'),
+        api.get('/academic-years')
       ]);
-
-      setAllClasses(classesRes.data.classes || []);
-      setSubjects(subjectsRes.data.subjects || []);
-
-      // NORMALISASI DATA GURU
-      const teachersData = (teachersRes.data.teachers || []).map(t => ({
+      setAllClasses(classesRes.data.data || []);
+      setSubjects(subjectsRes.data.data || []);
+      const teacherData = (teachersRes.data.data || []).map(t => ({
         ...t,
-        id: t._id || t.id,
-        // Gunakan subject_ids (yang berisi ID mapel) untuk filter
+        id: t._id,
         subjects: t.subject_ids || []
       }));
-  
-
-      setTeachers(teachersData);
-
-      // =========================
-      // FIX ACADEMIC YEAR
-      // =========================
-
+      setTeachers(teacherData);
       const years = yearsRes.data.academic_years || [];
-
       setAcademicYears(years);
-
-      // sekarang pakai is_active
       const activeYear = years.find(y => y.is_active);
-
-      if (activeYear) {
-        setSelectedYear(activeYear._id);
-      }
-
-      setLoading(false);
-
-    } catch (error) {
-      console.error(error);
-
-      setMessage({
-        type: 'error',
-        text: 'Gagal memuat data master'
-      });
-
+      if (activeYear) setSelectedYear(activeYear._id);
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: 'error', text: 'Gagal memuat data master' });
+    } finally {
       setLoading(false);
     }
   };
 
   const fetchExistingSchedule = async () => {
-
     if (!selectedYear) return;
-
     try {
-
-      const res = await api.get(
-        `/admin/schedule?academic_year_id=${selectedYear}`
-      );
-
-      const schedule = res.data.schedule || [];
-
+      const res = await api.get(`/schedules?academic_year_id=${selectedYear}`);
+      const schedules = res.data.data || [];
       const newData = {};
-
-      schedule.forEach(ass => {
-
-        // fallback jika backend tidak kirim time_slot
-        let slot = ass.time_slot;
-
-        if (!slot && ass.start_time) {
-          const found = timeSlots.find(t => {
-            return t.label.split('-')[0] === ass.start_time;
-          });
-
-          slot = found?.slot;
+      schedules.forEach(item => {
+        let slot = item.time_slot;
+        if (!slot && item.start_time) {
+          const slotIndex = timeSlots.findIndex(
+            t => t.label.split('-')[0].trim() === item.start_time
+          );
+          slot = slotIndex + 1;
         }
-
-        const key = `${ass.day}_${slot}_${ass.class_id}`;
-
+        if (!slot) return;
+        const classId = item.class_id?._id || item.class_id;
+        const subjectId = item.subject_id?._id || item.subject_id;
+        const teacherId = item.teacher_id?._id || item.teacher_id;
+        if (!classId) return;
+        const key = `${item.day}_${slot}_${classId}`;
         newData[key] = {
-          subjectId: ass.subject_id,
-          teacherId: ass.teacher_id
+          subjectId: subjectId || '',
+          teacherId: teacherId || '',
+          room: item.room || ''
         };
-
       });
-
       setScheduleData(newData);
-
-    } catch (error) {
-      console.error('Error fetching schedule', error);
+    } catch (err) {
+      console.error('FETCH SCHEDULE ERROR', err);
     }
   };
 
   const classes = allClasses.filter(cls => {
-
+    const yearMatch =
+      cls.academic_year_id === selectedYear ||
+      cls.academic_year_id?._id === selectedYear ||
+      cls.academic_year?._id === selectedYear;
+    if (!yearMatch) return false;
     if (selectedGrade === 'all') return true;
-
-    const match = cls.name.match(/^\d+/);
-
-    return match && match[0] === selectedGrade;
+    return String(cls.grade_level) === selectedGrade;
   });
 
-  const handleCellClick = (
-    day,
-    timeSlot,
-    classId,
-    currentSubjectId,
-    currentTeacherId
-  ) => {
-
+  const handleCellClick = (day, timeSlot, classId, currentSubjectId, currentTeacherId, currentRoom) => {
     setModal({
-      open: true,
-      day,
-      timeSlot,
-      classId,
+      open: true, day, timeSlot, classId,
       subjectId: currentSubjectId || '',
       teacherId: currentTeacherId || '',
+      room: currentRoom || ''
     });
   };
 
   const handleModalChange = (field, value) => {
-    setModal({
-      ...modal,
-      [field]: value
-    });
+    setModal({ ...modal, [field]: value });
   };
 
-  // FILTER GURU BERDASARKAN SUBJECT
   const getAvailableTeachers = (subjectId) => {
-
     if (!subjectId) return [];
-
-    return teachers.filter(t => {
-
-      if (!t.subjects) return false;
-
-      return t.subjects.includes(subjectId);
-
+    return teachers.filter(teacher => {
+      const subs = teacher.subject_ids || teacher.subjects || [];
+      return subs.includes(subjectId);
     });
   };
 
   const saveSchedule = () => {
-
-    const {
-      day,
-      timeSlot,
-      classId,
-      subjectId,
-      teacherId
-    } = modal;
-
+    const { day, timeSlot, classId, subjectId, teacherId, room } = modal;
     const key = `${day}_${timeSlot}_${classId}`;
-
     setScheduleData(prev => ({
       ...prev,
-      [key]: {
-        subjectId,
-        teacherId
-      }
+      [key]: { subjectId, teacherId, room: room || '' }
     }));
-
-    setModal({
-      open: false,
-      day: '',
-      timeSlot: null,
-      classId: null,
-      subjectId: '',
-      teacherId: ''
-    });
+    setModal({ open: false, day: '', timeSlot: null, classId: null, subjectId: '', teacherId: '', room: '' });
   };
 
   const handleSaveAll = async () => {
-
-    if (!selectedYear) {
-
-      return setMessage({
-        type: 'error',
-        text: 'Pilih tahun ajaran'
-      });
-
-    }
-
-    setSaving(true);
-
-    const scheduleToSave = [];
-
-    for (const [key, value] of Object.entries(scheduleData)) {
-
-      if (!value.subjectId || !value.teacherId) continue;
-
-      const [day, timeSlot, classId] = key.split('_');
-
-      scheduleToSave.push({
-        day,
-        time_slot: parseInt(timeSlot),
-        class_id: classId,
-        subject_id: value.subjectId,
-        teacher_id: value.teacherId,
-        academic_year_id: selectedYear,
-      });
-
-    }
-
     try {
-
-      const response = await api.post(
-        '/admin/schedule/bulk',
-        { schedule: scheduleToSave }
-      );
-
-      if (response.status === 200) {
-
-        setMessage({
-          type: 'success',
-          text: 'Jadwal berhasil disimpan'
+      setSaving(true);
+      const schedules = [];
+      Object.entries(scheduleData).forEach(([key, value]) => {
+        if (!value.subjectId || !value.teacherId) return;
+        const [day, slot, classId] = key.split('_');
+        const time = timeSlots.find(t => t.slot === Number(slot));
+        if (!time) return;
+        const [start_time, end_time] = time.label.split('-');
+        schedules.push({
+          class_id: classId,
+          subject_id: value.subjectId,
+          teacher_id: value.teacherId,
+          academic_year_id: selectedYear,
+          day,
+          time_slot: Number(slot),
+          start_time: start_time.trim(),
+          end_time: end_time.trim(),
+          room: value.room || ''
         });
-
-        await fetchExistingSchedule();
-
-      } else {
-
-        throw new Error('Gagal simpan');
-
-      }
-
-    } catch (error) {
-
-      console.error(error);
-
-      setMessage({
-        type: 'error',
-        text: 'Gagal menyimpan jadwal'
       });
-
+      await api.post('/schedules/bulk', { schedules });
+      setMessage({ type: 'success', text: 'Jadwal berhasil disimpan' });
+      await fetchExistingSchedule();
+    } catch (err) {
+      console.error(err);
+      const errorMsg = err.response?.data?.message || err.message || 'Gagal menyimpan jadwal';
+      setMessage({ type: 'error', text: errorMsg });
     } finally {
-
       setSaving(false);
-
     }
   };
 
   const handleAutoGenerate = async () => {
-
     if (!selectedYear) {
-
-      return setMessage({
-        type: 'error',
-        text: 'Pilih tahun ajaran'
-      });
-
+      return setMessage({ type: 'error', text: 'Pilih tahun ajaran' });
     }
-
     setAutoLoading(true);
-
     try {
-
-      const response = await api.post(
-        '/admin/schedule/auto-generate',
-        {
-          academic_year_id: selectedYear
-        }
-      );
-
-      if (response.status === 200) {
-
-        await fetchExistingSchedule();
-
-        setMessage({
-          type: 'success',
-          text: 'Jadwal digenerate otomatis'
-        });
-
-      } else {
-
-        throw new Error('Gagal generate');
-
-      }
-
-    } catch (error) {
-
-      console.error(error);
-
-      setMessage({
-        type: 'error',
-        text: 'Gagal generate jadwal'
+      const response = await api.post('/schedules/auto-generate', {
+        academic_year_id: selectedYear
       });
-
+      if (response.status === 200) {
+        await fetchExistingSchedule();
+        setMessage({ type: 'success', text: 'Jadwal digenerate otomatis' });
+      } else {
+        throw new Error('Gagal generate');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Gagal generate jadwal' });
     } finally {
-
       setAutoLoading(false);
-
     }
   };
 
   const handleTimeEdit = (slotIndex) => {
-
-    const newLabel = prompt(
-      'Edit waktu:',
-      timeSlots[slotIndex].label
-    );
-
+    const newLabel = prompt('Edit waktu:', timeSlots[slotIndex].label);
     if (newLabel) {
-
       const updated = [...timeSlots];
-
       updated[slotIndex].label = newLabel;
-
       setTimeSlots(updated);
-
     }
   };
 
-  if (loading) {
-    return <div className="admin-loading">Memuat data...</div>;
-  }
+  if (loading) return <div className="admin-loading">Memuat data...</div>;
 
   return (
     <div className="schedule-compact">
-
       <div className="compact-header">
-
         <h2>Penjadwalan Mengajar</h2>
-
         <div className="compact-actions">
-
-          {/* =========================
-              FIX DROPDOWN ACADEMIC YEAR
-          ========================== */}
-
-          <select
-            value={selectedYear}
-            onChange={e => setSelectedYear(e.target.value)}
-          >
-
-            <option value="">
-              Pilih Tahun Ajaran
-            </option>
-
+          <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+            <option value="">Pilih Tahun Ajaran</option>
             {academicYears.map(y => (
-
-              <option
-                key={y._id}
-                value={y._id}
-              >
-
-                {/* sekarang pakai year + semester */}
-                {y.year} - {y.semester}
-                {y.is_active ? ' (Aktif)' : ''}
-
+              <option key={y._id} value={y._id}>
+                {y.year} - {y.semester} {y.is_active ? '(Aktif)' : ''}
               </option>
-
             ))}
-
           </select>
-
-          <select
-            value={selectedGrade}
-            onChange={e => setSelectedGrade(e.target.value)}
-          >
+          <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)}>
             <option value="7">Kelas 7</option>
             <option value="8">Kelas 8</option>
             <option value="9">Kelas 9</option>
             <option value="all">Semua</option>
           </select>
-
-          <button
-            onClick={handleAutoGenerate}
-            disabled={autoLoading}
-          >
+          <button onClick={handleAutoGenerate} disabled={autoLoading}>
             {autoLoading ? '...' : '⚡ Generate'}
           </button>
-
-          <button
-            onClick={handleSaveAll}
-            disabled={saving}
-          >
+          <button onClick={handleSaveAll} disabled={saving}>
             {saving ? '...' : '💾 Simpan'}
           </button>
-
         </div>
       </div>
 
       {message.text && (
         <div className={`compact-alert ${message.type}`}>
           {message.text}
-          <button
-            onClick={() =>
-              setMessage({
-                type: '',
-                text: ''
-              })
-            }
-          >
-            ×
-          </button>
+          <button onClick={() => setMessage({ type: '', text: '' })}>×</button>
         </div>
       )}
 
       <div className="compact-table-wrapper">
-
         <table className="compact-schedule">
-
           <thead>
             <tr>
-
-              <th className="time-col">
-                Hari / Jam
-              </th>
-
-              {classes.map(c => (
-                <th
-                  key={c._id}
-                  className="class-col"
-                >
-                  {c.name}
-                </th>
-              ))}
-
+              <th className="time-col">Hari / Jam</th>
+              {classes.map(c => <th key={c._id} className="class-col">{c.name}</th>)}
             </tr>
           </thead>
-
           <tbody>
-
             {days.map(day => (
               <React.Fragment key={day}>
-
                 {timeSlots.map((slot, idx) => (
-
                   <tr key={`${day}_${slot.slot}`}>
-
-                    <td
-                      className="time-cell"
-                      onClick={() => handleTimeEdit(idx)}
-                      title="Klik untuk edit waktu"
-                    >
-
-                      <div className="day-name">
-                        {day}
-                      </div>
-
-                      <div className="time-range">
-                        {slot.label}
-                      </div>
-
+                    <td className="time-cell" onClick={() => handleTimeEdit(idx)} title="Klik untuk edit waktu">
+                      <div className="day-name">{day}</div>
+                      <div className="time-range">{slot.label}</div>
                     </td>
-
                     {classes.map(cls => {
-
                       const key = `${day}_${slot.slot}_${cls._id}`;
-
                       const data = scheduleData[key] || {};
-
-                      const subject = subjects.find(
-                        s => s._id === data.subjectId
-                      );
-
-                      const teacher = teachers.find(
-                        t => t.id === data.teacherId
-                      );
-
-                      const subjectCode =
-                        subject?.code ||
-                        (subject?.name?.slice(0, 4) || '—');
-
-                      let teacherCode = '—';
-
+                      const subject = subjects.find(s => s._id === data.subjectId);
+                      const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
+                      const subjectCode = subject?.code || (subject?.name?.slice(0, 4) || '—');
+                      let teacherCode = '-';
                       if (teacher) {
-
-                        teacherCode =
-                          teacher.nip ||
-                          teacher.username ||
-                          teacher.teacher_code ||
-                          `G${teacher.id.slice(-4)}`;
-
+                        teacherCode = teacher.teacher_code || teacher.code || teacher.kode_guru || teacher.username || '-';
                       }
-
                       const bgColor = getMapelColor(data.subjectId);
-
                       return (
                         <td
                           key={cls._id}
                           className="assignment-cell"
-                          style={{
-                            backgroundColor:
-                              data.subjectId
-                                ? bgColor
-                                : '#fff'
-                          }}
-                          onClick={() =>
-                            handleCellClick(
-                              day,
-                              slot.slot,
-                              cls._id,
-                              data.subjectId,
-                              data.teacherId
-                            )
-                          }
+                          style={{ backgroundColor: data.subjectId ? bgColor : '#fff' }}
+                          onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
                         >
-
-                          <div className="cell-subject">
-                            {subjectCode}
-                          </div>
-
-                          <div className="cell-teacher">
-                            {teacherCode}
-                          </div>
-
+                          <div className="cell-subject">{subjectCode}</div>
+                          <div className="cell-teacher">{teacherCode}</div>
                         </td>
                       );
                     })}
-
                   </tr>
-
                 ))}
-
               </React.Fragment>
             ))}
-
           </tbody>
         </table>
       </div>
 
       {modal.open && (
-
-        <div
-          className="modal-overlay"
-          onClick={() =>
-            setModal({
-              ...modal,
-              open: false
-            })
-          }
-        >
-
-          <div
-            className="modal-content compact-modal"
-            onClick={e => e.stopPropagation()}
-          >
-
+        <div className="modal-overlay" onClick={() => setModal({ ...modal, open: false })}>
+          <div className="modal-content compact-modal" onClick={e => e.stopPropagation()}>
             <h3>Assign Jadwal</h3>
-
             <p>
-
-              <strong>
-                {modal.day} - {
-                  timeSlots.find(
-                    s => s.slot === modal.timeSlot
-                  )?.label
-                }
-              </strong>
-
-              {' '}| Kelas {
-                allClasses.find(
-                  c => c._id === modal.classId
-                )?.name
-              }
-
+              <strong>{modal.day} - {timeSlots.find(s => s.slot === modal.timeSlot)?.label}</strong>
+              {' '}| Kelas {allClasses.find(c => c._id === modal.classId)?.name}
             </p>
-
-            <select
-              value={modal.subjectId}
-              onChange={e =>
-                handleModalChange(
-                  'subjectId',
-                  e.target.value
-                )
-              }
-            >
-
-              <option value="">
-                Pilih Mata Pelajaran
-              </option>
-
-              {subjects.map(s => (
-
-                <option
-                  key={s._id}
-                  value={s._id}
-                >
-                  {s.code} - {s.name}
-                </option>
-
-              ))}
-
+            <select value={modal.subjectId} onChange={e => handleModalChange('subjectId', e.target.value)}>
+              <option value="">Pilih Mata Pelajaran</option>
+              {subjects.map(s => <option key={s._id} value={s._id}>{s.code} - {s.name}</option>)}
             </select>
-
             <select
               value={modal.teacherId}
-              onChange={e =>
-                handleModalChange(
-                  'teacherId',
-                  e.target.value
-                )
-              }
+              onChange={e => handleModalChange('teacherId', e.target.value)}
               disabled={!modal.subjectId}
             >
-
-              <option value="">
-                Pilih Guru
-              </option>
-
+              <option value="">Pilih Guru</option>
               {getAvailableTeachers(modal.subjectId).map(t => {
-
-                const displayCode =
-                  t.nip ||
-                  t.username ||
-                  t.teacher_code ||
-                  `G${t.id.slice(-4)}`;
-
-                return (
-                  <option
-                    key={t.id}
-                    value={t.id}
-                  >
-                    {displayCode} - {t.full_name}
-                  </option>
-                );
+                const displayCode = t.nip || t.username || t.teacher_code || `G${t._id.slice(-4)}`;
+                return <option key={t._id} value={t._id}>{displayCode} - {t.full_name}</option>;
               })}
-
-              {modal.subjectId &&
-                getAvailableTeachers(modal.subjectId).length === 0 && (
-                  <option disabled>
-                    Tidak ada guru untuk mapel ini
-                  </option>
+              {modal.subjectId && getAvailableTeachers(modal.subjectId).length === 0 && (
+                <option disabled>Tidak ada guru untuk mapel ini</option>
               )}
-
             </select>
-
+            <input
+              type="text"
+              placeholder="Ruang (opsional)"
+              value={modal.room}
+              onChange={e => handleModalChange('room', e.target.value)}
+            />
             <div className="modal-buttons">
-
-              <button
-                onClick={() =>
-                  setModal({
-                    ...modal,
-                    open: false
-                  })
-                }
-              >
-                Batal
-              </button>
-
-              <button
-                onClick={saveSchedule}
-                disabled={
-                  !modal.subjectId ||
-                  !modal.teacherId
-                }
-              >
-                Simpan
-              </button>
-
+              <button onClick={() => setModal({ ...modal, open: false })}>Batal</button>
+              <button onClick={saveSchedule} disabled={!modal.subjectId || !modal.teacherId}>Simpan</button>
             </div>
-
           </div>
         </div>
       )}

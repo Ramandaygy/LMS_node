@@ -1,39 +1,42 @@
 const mongoose = require('mongoose');
 
-const academicYearSchema = new mongoose.Schema(
-  {
-    year: {
-      type: String,
-      required: true,
-      unique: true,
-    },
+const academicYearSchema =
+  new mongoose.Schema(
+    {
+      year: {
+        type: String,
+        required: true,
+        unique: true,
+      },
 
-    semester: {
-      type: String,
-      enum: ['Ganjil', 'Genap'],
-      default: 'Ganjil',
-    },
+      semester: {
+        type: String,
+        enum: ['Ganjil', 'Genap'],
+        default: 'Ganjil',
+      },
 
-    start_date: {
-      type: Date,
-    },
+      start_date: {
+        type: Date,
+      },
 
-    end_date: {
-      type: Date,
-    },
+      end_date: {
+        type: Date,
+      },
 
-    is_active: {
-      type: Boolean,
-      default: false,
+      is_active: {
+        type: Boolean,
+        default: false,
+      },
     },
-  },
-  {
-    timestamps: {
-      createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
-  }
-);
+    {
+      timestamps: {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at',
+      },
+
+      collection: 'academic_years'
+    }
+  );
 
 module.exports =
   mongoose.model(

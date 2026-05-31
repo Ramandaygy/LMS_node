@@ -38,11 +38,9 @@ exports.getAllClasses =
 
     const classes =
       await Class.find()
-        .sort({ createdAt: -1 });
-
-    // =========================
-    // AMBIL MASTER DATA
-    // =========================
+        .sort({
+          created_at: -1
+        });
 
     const teachers =
       await guruCollection
@@ -54,31 +52,19 @@ exports.getAllClasses =
         .find({})
         .toArray();
 
-    // =========================
-    // MAP DATA
-    // =========================
-
     return classes.map(cls => {
-
-      // =====================
-      // WALI KELAS
-      // =====================
 
       const teacher =
         teachers.find(
-          t =>
-            t._id.toString() ===
+          teacher =>
+            teacher._id.toString() ===
             cls.homeroom_teacher?.toString()
         );
 
-      // =====================
-      // TAHUN AJARAN
-      // =====================
-
       const academicYear =
         academicYears.find(
-          a =>
-            a._id.toString() ===
+          year =>
+            year._id.toString() ===
             cls.academic_year_id?.toString()
         );
 
@@ -90,12 +76,15 @@ exports.getAllClasses =
           teacher?.full_name || '-',
 
         academic_year_name:
-          academicYear?.name || '-',
+          academicYear
+            ? `${academicYear.year}${academicYear.semester ? ` - ${academicYear.semester}` : ''}`
+            : '-',
+
+        academic_year:
+          academicYear || null,
 
         is_active:
-          cls.is_active !== undefined
-            ? cls.is_active
-            : true,
+          cls.is_active ?? true
       };
     });
   };
@@ -107,7 +96,37 @@ exports.getAllClasses =
 exports.getClassById =
   async (id) => {
 
-    return await Class.findById(id);
+    const cls =
+      await Class.findById(id);
+
+    if (!cls) {
+      return null;
+    }
+
+    const teacher =
+      await guruCollection.findOne({
+        _id: cls.homeroom_teacher
+      });
+
+    const academicYear =
+      await academicYearCollection.findOne({
+        _id: cls.academic_year_id
+      });
+
+    return {
+      ...cls.toObject(),
+
+      homeroom_teacher_name:
+        teacher?.full_name || '-',
+
+      academic_year_name:
+        academicYear
+          ? `${academicYear.year}${academicYear.semester ? ` - ${academicYear.semester}` : ''}`
+          : '-',
+
+      academic_year:
+        academicYear || null
+    };
   };
 
 // ======================================
@@ -115,12 +134,17 @@ exports.getClassById =
 // ======================================
 
 exports.updateClass =
-  async (id, data) => {
+  async (
+    id,
+    data
+  ) => {
 
     return await Class.findByIdAndUpdate(
       id,
       data,
-      { new: true }
+      {
+        new: true,
+      }
     );
   };
 

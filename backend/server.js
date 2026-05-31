@@ -108,8 +108,8 @@ app.use(
 );
 
 app.use(
-  '/api/admin/academic-years',
-  academicYearRoutes
+  '/api/academic-years',
+  require('./routes/academicYearRoutes')
 );
 
 // SCHEDULES
