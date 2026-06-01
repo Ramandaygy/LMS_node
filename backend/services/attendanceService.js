@@ -1,81 +1,65 @@
-const Attendance = require(
-  '../models/Attendance'
-);
+const mongoose = require('mongoose');
+const Attendance = require('../models/Attendance');
 
-// ======================================
-// CREATE ATTENDANCE
-// ======================================
-exports.createAttendance =
-  async (data) => {
+// Ambil semua siswa dalam satu kelas (dari koleksi users_siswa)
+exports.getStudentsByClass = async (classId) => {
+  const siswaCollection = mongoose.connection.collection('users_siswa');
+  const students = await siswaCollection
+    .find({ class_id: new mongoose.Types.ObjectId(classId) })
+    .toArray();
+  return students.map(s => ({
+    id: s._id,
+    full_name: s.full_name,
+    nis: s.nis,
+    class_id: s.class_id,
+  }));
+};
 
-    return await Attendance.create(
-      data
-    );
-  };
+// Ambil absensi untuk kelas, tanggal, dan guru tertentu
+exports.getAttendanceByClassAndDate = async (classId, date, teacherId) => {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
 
-// ======================================
-// GET ALL ATTENDANCE
-// ======================================
-exports.getAllAttendance =
-  async () => {
+  const records = await Attendance.find({
+    class_id: classId,
+    teacher_id: teacherId,
+    date: { $gte: start, $lte: end },
+  });
 
-    return await Attendance.find()
-      .populate(
-        'student',
-        'full_name'
-      )
-      .populate(
-        'class',
-        'name'
-      )
-      .populate(
-        'subject',
-        'name'
-      )
-      .sort({ createdAt: -1 });
-  };
+  const result = {};
+  records.forEach(rec => {
+    result[rec.student_id.toString()] = {
+      status: rec.status,
+      note: rec.note,
+    };
+  });
+  return result;
+};
 
-// ======================================
-// GET ATTENDANCE BY ID
-// ======================================
-exports.getAttendanceById =
-  async (id) => {
+// Simpan absensi (bulk upsert)
+exports.saveAttendance = async (attendanceList, classId, date, teacherId) => {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
 
-    return await Attendance.findById(id)
-      .populate(
-        'student',
-        'full_name'
-      )
-      .populate(
-        'class',
-        'name'
-      )
-      .populate(
-        'subject',
-        'name'
-      );
-  };
+  // Hapus semua absensi yang sudah ada untuk kelas, guru, tanggal tsb
+  await Attendance.deleteMany({
+    class_id: classId,
+    teacher_id: teacherId,
+    date: { $gte: start, $lt: new Date(start.getTime() + 24 * 60 * 60 * 1000) },
+  });
 
-// ======================================
-// UPDATE ATTENDANCE
-// ======================================
-exports.updateAttendance =
-  async (id, data) => {
+  if (attendanceList.length === 0) return;
 
-    return await Attendance.findByIdAndUpdate(
-      id,
-      data,
-      { new: true }
-    );
-  };
+  const newRecords = attendanceList.map(item => ({
+    student_id: item.student_id,
+    class_id: classId,
+    teacher_id: teacherId,
+    date: start,
+    status: item.status,
+    note: item.note || '',
+  }));
 
-// ======================================
-// DELETE ATTENDANCE
-// ======================================
-exports.deleteAttendance =
-  async (id) => {
-
-    return await Attendance.findByIdAndDelete(
-      id
-    );
-  };
+  await Attendance.insertMany(newRecords);
+};

@@ -1,25 +1,12 @@
 const express = require('express');
-
 const router = express.Router();
+const auth = require('../middleware/authMiddleware');
+const attendanceController = require('../controllers/attendanceController');
 
-const attendanceController = require(
-  '../controllers/attendanceController'
-);
-
-const authMiddleware = require(
-  '../middleware/authMiddleware'
-);
-
-router.get(
-  '/',
-  authMiddleware,
-  attendanceController.getAllAttendance
-);
-
-router.post(
-  '/',
-  authMiddleware,
-  attendanceController.createAttendance
-);
+// Semua route di bawah memerlukan autentikasi dan diasumsikan hanya guru yang mengakses
+router.get('/classes', auth, attendanceController.getTeacherClasses);
+router.get('/students/:classId', auth, attendanceController.getClassStudents);
+router.get('/', auth, attendanceController.getAttendance);
+router.post('/save', auth, attendanceController.saveAttendance);
 
 module.exports = router;

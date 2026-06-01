@@ -7,6 +7,9 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 const academicYearRoutes = require('./routes/academicYearRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const auth = require('./middleware/authMiddleware');
+
 const app = express();
 
 // =====================================
@@ -118,6 +121,16 @@ app.use(
   '/api/settings',
   require('./routes/settingRoutes')
 );
+
+app.use('/api/profile',
+  require('./routes/profileRoutes') 
+); 
+
+app.use('/api/guru/attendance', require('./routes/attendanceRoutes'));
+// Attendance routes untuk siswa & ortu
+app.get('/api/siswa/attendance', auth, attendanceController.getStudentAttendance);
+app.get('/api/ortu/children', auth, attendanceController.getOrtuChildren);
+app.get('/api/ortu/attendance', auth, attendanceController.getOrtuAttendance);
 
 // =====================================
 // ROOT TEST

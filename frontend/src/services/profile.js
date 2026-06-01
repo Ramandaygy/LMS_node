@@ -1,28 +1,25 @@
 import api from './api';
 
 export const profileService = {
-  // Get current user profile
   async getProfile() {
     const response = await api.get('/profile');
     return response.data;
   },
 
-  // Update user profile
   async updateProfile(data) {
     const response = await api.put('/profile', data);
     return response.data;
   },
 
-  // Change password
   async changePassword(oldPassword, newPassword) {
-    const response = await api.post('/change-password', {
+    // Perbaiki: tambahkan '/profile'
+    const response = await api.post('/profile/change-password', {
       old_password: oldPassword,
       new_password: newPassword
     });
     return response.data;
   },
 
-  // Upload avatar
   async uploadAvatar(file) {
     const formData = new FormData();
     formData.append('avatar', file);
@@ -32,10 +29,10 @@ export const profileService = {
     return response.data;
   },
 
-  // Logout
   async logout() {
     try {
-      await api.post('/logout');
+      // Perbaiki: tambahkan '/profile'
+      await api.post('/profile/logout');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

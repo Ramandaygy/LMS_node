@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      trim: true,
+      trim: true
     },
 
     email: {
@@ -14,65 +14,112 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true,
+      trim: true
     },
 
     password: {
       type: String,
-      default: '',
+      default: ''
     },
 
     role: {
       type: String,
       enum: ['admin', 'guru', 'siswa', 'ortu'],
-      default: 'siswa',
+      default: 'siswa'
     },
 
     full_name: {
       type: String,
-      default: '',
+      default: ''
     },
+
+    teacher_code: {
+      type: String,
+      default: ''
+    },
+
+    nip: {
+      type: String,
+      default: ''
+    },
+
+    nis: {
+      type: String,
+      default: ''
+    },
+
+    nik: {
+      type: String,
+      default: ''
+    },
+
+    subjects: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Subject'
+      }
+    ],
+
+    classes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Class'
+      }
+    ],
+
+    class_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Class',
+      default: null
+    },
+
+    children: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
+    ],
 
     phone: {
       type: String,
-      default: '',
+      default: ''
     },
 
     profile: {
       type: Object,
-      default: {},
+      default: {}
     },
 
     is_active: {
       type: Boolean,
-      default: true,
+      default: true
     },
 
     is_verified: {
       type: Boolean,
-      default: false,
+      default: false
     },
 
     permissions: {
       type: Array,
-      default: [],
+      default: []
     },
 
     profileImage: {
       type: String,
-      default: '',
+      default: ''
     },
 
     lastLogin: {
       type: Date,
-      default: null,
-    },
+      default: null
+    }
   },
   {
     timestamps: {
       createdAt: 'created_at',
-      updatedAt: 'updated_at',
-    },
+      updatedAt: 'updated_at'
+    }
   }
 );
 

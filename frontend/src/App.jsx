@@ -75,6 +75,13 @@ import GuruStudents from './pages/dashboard/guru/GuruStudents';
 // SISWA SUB PAGES
 // ============================================
 import SiswaAssignments from './pages/dashboard/siswa/SiswaAssignments';
+import SiswaAttendance from './pages/dashboard/siswa/SiswaAttendance';
+
+// ============================================
+// ORTU SUB PAGES
+// ============================================
+import OrtuAttendance from './pages/dashboard/ortu/OrtuAttendance';
+
 
 // ============================================
 // COMPONENTS
@@ -88,7 +95,7 @@ import Sidebar from './components/Layout/Sidebar';
 const ProtectedRoute = ({ children, allowedRole }) => {
   const currentUser = authService.getCurrentUser();
 
-  console.log('🔐 ProtectedRoute User:', currentUser);
+  console.log(' ProtectedRoute User:', currentUser);
 
   // Belum login
   if (!currentUser) {
@@ -149,7 +156,7 @@ function App() {
   // DEBUG
   // ============================================
   useEffect(() => {
-    console.log('🚀 App Current User:', currentUser);
+    console.log(' App Current User:', currentUser);
   }, [currentUser]);
 
   // ============================================
@@ -366,6 +373,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
+        <Route 
+          path="/dashboard/siswa/attendance" element={
+          <ProtectedRoute allowedRole="siswa">
+            <DashboardLayout role="siswa">
+              <SiswaAttendance />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
 
         {/* ============================================ */}
         {/* GURU DASHBOARD */}
@@ -576,6 +592,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route 
+            path="/dashboard/ortu/attendance" element={
+          <ProtectedRoute allowedRole="ortu">
+            <DashboardLayout role="ortu">
+              <OrtuAttendance />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
 
         {/* ============================================ */}
         {/* PROFILE */}

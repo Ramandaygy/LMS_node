@@ -16,12 +16,10 @@ const GuruAttendance = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch teacher's classes
   useEffect(() => {
     fetchClasses();
   }, []);
 
-  // Fetch students when class changes
   useEffect(() => {
     if (selectedClass) {
       fetchStudents();
@@ -31,37 +29,38 @@ const GuruAttendance = () => {
 
   const fetchClasses = async () => {
     try {
-      const response = await api.get('/guru/attendance/classes');
+      const response = await api.get('/attendance/classes'); // asumsi endpoint
       console.log('Classes response:', response.data);
-      setClasses(response.data.classes || []);
-      if (response.data.classes && response.data.classes.length > 0) {
-        setSelectedClass(response.data.classes[0].id);
-        setSelectedClassInfo(response.data.classes[0]);
+      // Asumsikan response.data.data = array kelas atau response.data.classes
+      const classesData = response.data.data || response.data.classes || [];
+      setClasses(classesData);
+      if (classesData.length > 0) {
+        setSelectedClass(classesData[0]._id || classesData[0].id);
+        setSelectedClassInfo(classesData[0]);
       }
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching classes:', error);
       setError('Gagal mengambil data kelas');
+    } finally {
       setLoading(false);
     }
   };
 
   const fetchStudents = async () => {
     try {
-      const response = await api.get(`/guru/attendance/students/${selectedClass}`);
-      console.log('Students response:', response.data);
-      setStudents(response.data.students || []);
-      
-      // Initialize attendance data
+      const response = await api.get(`/attendance/students/${selectedClass}`); // asumsi endpoint
+      // Asumsikan response.data.data = array siswa atau response.data.students
+      const studentsData = response.data.data || response.data.students || [];
+      setStudents(studentsData);
       const initialData = {};
-      (response.data.students || []).forEach(student => {
-        initialData[student.id] = {
+      studentsData.forEach(student => {
+        const studentId = student._id || student.id;
+        initialData[studentId] = {
           status: 'present',
           note: ''
         };
       });
       setAttendanceData(initialData);
-      
     } catch (error) {
       console.error('Error fetching students:', error);
     }
@@ -69,23 +68,35 @@ const GuruAttendance = () => {
 
   const fetchAttendance = async () => {
     try {
-      const response = await api.get(`/guru/attendance?class_id=${selectedClass}&date=${selectedDate}`);
-      const savedAttendance = response.data.attendance || {};
-      
+      const response = await api.get(`/attendance?class_id=${selectedClass}&date=${selectedDate}`);
+      const savedData = response.data.data || response.data.attendance || {};
       setAttendanceData(prev => {
         const newData = { ...prev };
-        Object.keys(savedAttendance).forEach(studentId => {
-          if (newData[studentId]) {
-            newData[studentId] = {
-              ...newData[studentId],
-              status: savedAttendance[studentId].status,
-              note: savedAttendance[studentId].note || ''
-            };
-          }
-        });
+        // savedData bisa berupa object dengan key student_id atau array
+        if (Array.isArray(savedData)) {
+          savedData.forEach(item => {
+            const studentId = item.student_id?._id || item.student_id;
+            if (studentId && newData[studentId]) {
+              newData[studentId] = {
+                ...newData[studentId],
+                status: item.status,
+                note: item.note || ''
+              };
+            }
+          });
+        } else {
+          Object.keys(savedData).forEach(studentId => {
+            if (newData[studentId]) {
+              newData[studentId] = {
+                ...newData[studentId],
+                status: savedData[studentId].status,
+                note: savedData[studentId].note || ''
+              };
+            }
+          });
+        }
         return newData;
       });
-      
     } catch (error) {
       console.error('Error fetching attendance:', error);
     }
@@ -114,7 +125,8 @@ const GuruAttendance = () => {
   const markAllPresent = () => {
     const newData = {};
     students.forEach(student => {
-      newData[student.id] = {
+      const studentId = student._id || student.id;
+      newData[studentId] = {
         status: 'present',
         note: ''
       };
@@ -126,20 +138,15 @@ const GuruAttendance = () => {
     setSaving(true);
     setError('');
     setSuccess('');
-    
     try {
       const attendanceList = Object.entries(attendanceData).map(([studentId, data]) => ({
         student_id: studentId,
+        class_id: selectedClass,
+        date: selectedDate,
         status: data.status,
         note: data.note
       }));
-      
-      await api.post('/guru/attendance/save', {
-        attendance: attendanceList,
-        class_id: selectedClass,
-        date: selectedDate
-      });
-      
+      await api.post('/attendance/save', { attendance: attendanceList });
       setSuccess('Absensi berhasil disimpan!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -153,21 +160,22 @@ const GuruAttendance = () => {
 
   const getFilteredStudents = () => {
     if (activeFilter === 'all') return students;
-    return students.filter(s => attendanceData[s.id]?.status === activeFilter);
+    return students.filter(s => {
+      const studentId = s._id || s.id;
+      return attendanceData[studentId]?.status === activeFilter;
+    });
   };
 
   const getSearchFilteredStudents = () => {
     const filtered = getFilteredStudents();
     if (!searchTerm) return filtered;
     return filtered.filter(s => 
-      s.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.nis?.includes(searchTerm)
+      (s.full_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (s.nis || '').includes(searchTerm)
     );
   };
 
   const displayedStudents = getSearchFilteredStudents();
-  
-  // Calculate summary stats
   const presentCount = Object.values(attendanceData).filter(a => a.status === 'present').length;
   const absentCount = Object.values(attendanceData).filter(a => a.status === 'absent').length;
   const lateCount = Object.values(attendanceData).filter(a => a.status === 'late').length;
@@ -192,10 +200,10 @@ const GuruAttendance = () => {
             </span>
           </div>
           <h1 className="attendance-title">
-            {selectedClassInfo?.name || 'Matematika'} - {selectedClassInfo?.class_name || '8A'}
+            {selectedClassInfo?.name || selectedClassInfo?.class_name || 'Kelas'} - {selectedClassInfo?.subject || 'Mata Pelajaran'}
           </h1>
           <p className="attendance-subtitle">
-            Topic: {selectedClassInfo?.subject || 'Advanced Algebraic Equations & Linear Functions'}
+            Topic: {selectedClassInfo?.topic || 'Pembelajaran'}
           </p>
         </div>
         <div className="header-actions">
@@ -206,11 +214,9 @@ const GuruAttendance = () => {
         </div>
       </div>
 
-      {/* Alert Messages */}
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      {/* Summary Cards */}
       <div className="summary-grid">
         <div className="summary-card total">
           <div className="summary-card-header">
@@ -234,7 +240,6 @@ const GuruAttendance = () => {
         </div>
       </div>
 
-      {/* Class Selector */}
       <div className="class-selector">
         <div className="selector-group">
           <label>Select Class</label>
@@ -243,16 +248,20 @@ const GuruAttendance = () => {
             <select 
               value={selectedClass} 
               onChange={(e) => {
-                setSelectedClass(e.target.value);
-                const cls = classes.find(c => c.id === e.target.value);
+                const newClassId = e.target.value;
+                setSelectedClass(newClassId);
+                const cls = classes.find(c => (c._id || c.id) === newClassId);
                 setSelectedClassInfo(cls);
               }}
             >
-              {classes.map(cls => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.name} - {cls.class_name || 'Kelas'}
-                </option>
-              ))}
+              {classes.map(cls => {
+                const clsId = cls._id || cls.id;
+                return (
+                  <option key={clsId} value={clsId}>
+                    {cls.name || cls.class_name} - {cls.subject || 'Mapel'}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -260,16 +269,11 @@ const GuruAttendance = () => {
           <label>Date</label>
           <div className="selector-input">
             <span className="material-symbols-outlined">calendar_today</span>
-            <input 
-              type="date" 
-              value={selectedDate} 
-              onChange={(e) => setSelectedDate(e.target.value)} 
-            />
+            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
           </div>
         </div>
       </div>
 
-      {/* Attendance Table */}
       <div className="attendance-table-container">
         <div className="table-header">
           <h2>Student Attendance List</h2>
@@ -279,48 +283,18 @@ const GuruAttendance = () => {
               Mark All Present
             </button>
             <div className="filter-tabs">
-              <button 
-                className={`filter-tab ${activeFilter === 'all' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('all')}
-              >
-                All Students
-              </button>
-              <button 
-                className={`filter-tab ${activeFilter === 'present' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('present')}
-              >
-                Present
-              </button>
-              <button 
-                className={`filter-tab ${activeFilter === 'absent' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('absent')}
-              >
-                Absent
-              </button>
-              <button 
-                className={`filter-tab ${activeFilter === 'late' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('late')}
-              >
-                Late
-              </button>
-              <button 
-                className={`filter-tab ${activeFilter === 'sick' ? 'active' : ''}`}
-                onClick={() => setActiveFilter('sick')}
-              >
-                Sick
-              </button>
+              <button className={`filter-tab ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>All Students</button>
+              <button className={`filter-tab ${activeFilter === 'present' ? 'active' : ''}`} onClick={() => setActiveFilter('present')}>Present</button>
+              <button className={`filter-tab ${activeFilter === 'absent' ? 'active' : ''}`} onClick={() => setActiveFilter('absent')}>Absent</button>
+              <button className={`filter-tab ${activeFilter === 'late' ? 'active' : ''}`} onClick={() => setActiveFilter('late')}>Late</button>
+              <button className={`filter-tab ${activeFilter === 'sick' ? 'active' : ''}`} onClick={() => setActiveFilter('sick')}>Sick</button>
             </div>
           </div>
         </div>
 
         <div className="search-bar">
           <span className="material-symbols-outlined">search</span>
-          <input 
-            type="text" 
-            placeholder="Search students by name or ID..." 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+          <input type="text" placeholder="Search students by name or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <div className="table-wrapper">
@@ -335,28 +309,22 @@ const GuruAttendance = () => {
             </thead>
             <tbody>
               {displayedStudents.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="empty-state">
-                    Tidak ada data siswa
-                  </td>
-                </tr>
+                <tr><td colSpan="4" className="empty-state">Tidak ada data siswa</td></tr>
               ) : (
                 displayedStudents.map((student) => {
-                  const attendance = attendanceData[student.id] || { status: 'present', note: '' };
+                  const studentId = student._id || student.id;
+                  const attendance = attendanceData[studentId] || { status: 'present', note: '' };
                   const statuses = [
                     { key: 'present', label: 'Present', icon: 'check_circle', color: 'present' },
                     { key: 'absent', label: 'Absent', icon: 'cancel', color: 'absent' },
                     { key: 'late', label: 'Late', icon: 'schedule', color: 'late' },
                     { key: 'sick', label: 'Sick', icon: 'medical_services', color: 'sick' }
                   ];
-                  
                   return (
-                    <tr key={student.id} className="attendance-row">
+                    <tr key={studentId} className="attendance-row">
                       <td>
                         <div className="student-info">
-                          <div className="student-avatar">
-                            <span className="material-symbols-outlined">account_circle</span>
-                          </div>
+                          <div className="student-avatar"><span className="material-symbols-outlined">account_circle</span></div>
                           <div>
                             <p className="student-name">{student.full_name}</p>
                             <p className="student-id">NIS: {student.nis}</p>
@@ -369,7 +337,7 @@ const GuruAttendance = () => {
                             <button
                               key={status.key}
                               className={`status-btn ${status.color} ${attendance.status === status.key ? 'active' : ''}`}
-                              onClick={() => updateStatus(student.id, status.key)}
+                              onClick={() => updateStatus(studentId, status.key)}
                               title={status.label}
                             >
                               <span className="material-symbols-outlined">{status.icon}</span>
@@ -380,19 +348,11 @@ const GuruAttendance = () => {
                       <td>
                         <div className="note-input-wrapper">
                           <span className="material-symbols-outlined">chat_bubble</span>
-                          <input
-                            type="text"
-                            value={attendance.note}
-                            onChange={(e) => updateNote(student.id, e.target.value)}
-                            placeholder="Add note..."
-                            className="note-input"
-                          />
+                          <input type="text" value={attendance.note} onChange={(e) => updateNote(studentId, e.target.value)} placeholder="Add note..." className="note-input" />
                         </div>
                       </td>
                       <td className="actions-cell">
-                        <button className="action-menu">
-                          <span className="material-symbols-outlined">more_vert</span>
-                        </button>
+                        <button className="action-menu"><span className="material-symbols-outlined">more_vert</span></button>
                       </td>
                     </tr>
                   );
@@ -403,9 +363,7 @@ const GuruAttendance = () => {
         </div>
 
         <div className="table-footer">
-          <p className="pagination-info">
-            Showing <span className="font-bold">{displayedStudents.length}</span> of <span className="font-bold">{students.length}</span> students
-          </p>
+          <p className="pagination-info">Showing {displayedStudents.length} of {students.length} students</p>
         </div>
       </div>
     </div>

@@ -1,153 +1,175 @@
-const { findUserById, userModels, verifyPassword } = require('../utils/userHelper');
+const User = require('../models/User');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const { ObjectId } = require('mongoose').Types;
 
-// GET /api/profile - Get current user profile
+// =====================================
+// GET PROFILE
+// =====================================
+
+const getCollectionByRole = (role) => {
+  switch (role) {
+    case 'admin':
+      return mongoose.connection.collection('users_admin');
+    case 'guru':
+      return mongoose.connection.collection('users_guru');
+    case 'siswa':
+      return mongoose.connection.collection('users_siswa');
+    case 'ortu':
+      return mongoose.connection.collection('users_ortu');
+    default:
+      throw new Error('Invalid role');
+  }
+};
+
 exports.getProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const role = req.user.role;
-    const user = await findUserById(userId, role);
+    // Ambil userId dari token (req.user.id)
+    const userId = req.user.id; // atau req.user._id
+    const userRole = req.user.role;
+
+    if (!userId || !userRole) {
+      return res.status(400).json({ error: 'Invalid token: missing id or role' });
+    }
+
+    const collection = getCollectionByRole(userRole);
+    const user = await collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    // Hapus password dari response
-    delete user.password;
-    res.json(user);
+
+    // Konversi ke object, hapus password
+    const result = { ...user };
+    delete result.password;
+
+    // Populasi subjects dan classes (jika diperlukan) bisa dilakukan manual
+    // Tapi karena kita pakai collection terpisah, populate tidak langsung.
+    // Untuk sementara, kirim data apa adanya. Jika perlu subjects/classes,
+    // lakukan lookup manual ke collection Subject dan Class.
+
+    // Jika ingin populate subjects (contoh untuk guru):
+    if (userRole === 'guru' && user.subjects && user.subjects.length) {
+      const Subject = require('../models/Subject'); // Model Subject normal
+      const populatedSubjects = await Subject.find({ _id: { $in: user.subjects } });
+      result.subjects = populatedSubjects;
+    }
+    if (userRole === 'guru' && user.classes && user.classes.length) {
+      const Class = require('../models/Class');
+      const populatedClasses = await Class.find({ _id: { $in: user.classes } });
+      result.classes = populatedClasses;
+    }
+    if (userRole === 'siswa' && user.class_id) {
+      const Class = require('../models/Class');
+      const populatedClass = await Class.findById(user.class_id);
+      result.class_id = populatedClass;
+    }
+
+    return res.json(result);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    console.error('Get profile error:', err);
+    return res.status(500).json({ error: err.message });
   }
 };
+// =====================================
+// UPDATE PROFILE
+// =====================================
 
-// PUT /api/profile - Update current user profile
 exports.updateProfile = async (req, res) => {
   try {
+    const { full_name, phone, bio, address } = req.body;
     const userId = req.user.id;
-    const role = req.user.role;
-    const data = req.body;
-
-    const updateData = { updated_at: new Date() };
-
-    // Update allowed fields
-    const allowedFields = ['full_name'];
-    for (let field of allowedFields) {
-      if (data[field] !== undefined) {
-        updateData[field] = data[field];
-      }
-    }
-
-    // Update profile fields (bio, phone, address)
-    const profileFields = ['bio', 'phone', 'address'];
-    for (let field of profileFields) {
-      if (data[field] !== undefined) {
-        updateData[`profile.${field}`] = data[field];
-      }
-    }
-
-    // Role-specific updates
-    if (role === 'siswa' && data.class !== undefined) {
-      updateData.class = data.class; // field 'class' di siswa (bisa class_id)
-    } else if (role === 'guru' && data.subjects !== undefined) {
-      updateData.subjects = data.subjects;
-    }
-
-    if (Object.keys(updateData).length > 1) { // selain updated_at
-      const Model = userModels[role];
-      if (!Model) {
-        return res.status(400).json({ error: 'Invalid role' });
-      }
-      await Model.findByIdAndUpdate(userId, { $set: updateData });
-    }
-
-    const user = await findUserById(userId, role);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    delete user.password;
-    res.json(user);
+    const userRole = req.user.role;
+    const collection = getCollectionByRole(userRole);
+    const updateData = {};
+    if (full_name !== undefined) updateData.full_name = full_name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (bio !== undefined) updateData['profile.bio'] = bio;
+    if (address !== undefined) updateData['profile.address'] = address;
+    await collection.updateOne({ _id: new mongoose.Types.ObjectId(userId) }, { $set: updateData });
+    // ambil data terbaru
+    const updatedUser = await collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
+    delete updatedUser.password;
+    return res.json(updatedUser);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
+// =====================================
+// CHANGE PASSWORD
+// =====================================
 
-// POST /api/profile/change-password - Change password
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const role = req.user.role;
     const { old_password, new_password } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
 
-    if (!old_password || !new_password) {
-      return res.status(400).json({ error: 'Old password and new password are required' });
-    }
-    if (new_password.length < 6) {
-      return res.status(400).json({ error: 'New password must be at least 6 characters' });
-    }
+    const collection = getCollectionByRole(userRole);
+    const user = await collection.findOne({ _id: new mongoose.Types.ObjectId(userId) });
 
-    const user = await findUserById(userId, role);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const isMatch = await verifyPassword(user, old_password);
-    if (!isMatch) {
-      return res.status(401).json({ error: 'Old password is incorrect' });
+    // Konversi password jika dalam bentuk Buffer (BSON Binary)
+    let hashedPassword = user.password;
+    if (user.password && typeof user.password !== 'string') {
+      if (user.password.buffer) {
+        hashedPassword = Buffer.from(user.password.buffer).toString('utf8');
+      }
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashed = await bcrypt.hash(new_password, salt);
+    const isMatch = await bcrypt.compare(old_password, hashedPassword);
+    if (!isMatch) return res.status(401).json({ error: 'Old password is incorrect' });
 
-    const Model = userModels[role];
-    if (!Model) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
-    await Model.findByIdAndUpdate(userId, {
-      $set: { password: hashed, updated_at: new Date() }
-    });
+    const newHashed = await bcrypt.hash(new_password, 10);
+    await collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { password: newHashed } }
+    );
 
-    res.json({ message: 'Password changed successfully' });
+    return res.json({ message: 'Password changed successfully' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// POST /api/profile/avatar - Upload profile avatar
+// =====================================
+// UPLOAD AVATAR
+// =====================================
+
 exports.uploadAvatar = async (req, res) => {
   try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
     const userId = req.user.id;
-    const role = req.user.role;
+    const userRole = req.user.role;
+    const collection = getCollectionByRole(userRole);
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    if (req.file.filename === '') {
-      return res.status(400).json({ error: 'No file selected' });
-    }
+    await collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { profileImage: avatarUrl } }
+    );
 
-    // Simpan URL avatar (misal disimpan di folder uploads)
-    // Sesuaikan dengan kebutuhan penyimpanan (local, cloud, dll)
-    const avatarUrl = `/uploads/avatars/${userId}.jpg`; // contoh
-
-    const Model = userModels[role];
-    if (!Model) {
-      return res.status(400).json({ error: 'Invalid role' });
-    }
-    await Model.findByIdAndUpdate(userId, {
-      $set: { 'profile.avatar': avatarUrl, updated_at: new Date() }
-    });
-
-    res.json({ avatar_url: avatarUrl });
+    return res.json({ success: true, avatar_url: avatarUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// POST /api/profile/logout - Logout (client-side token removal)
-exports.logout = (req, res) => {
-  // Client akan menghapus token dari localStorage
-  res.json({ message: 'Logout successful' });
+// =====================================
+// LOGOUT
+// =====================================
+
+exports.logout = (
+  req,
+  res
+) => {
+
+  return res.json({
+    message:
+      'Logout successful'
+  });
 };
