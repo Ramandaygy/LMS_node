@@ -87,11 +87,6 @@ app.use(
   require('./routes/assignmentRoutes')
 );
 
-// SUBMISSIONS
-app.use(
-  '/api/submissions',
-  require('./routes/submissionRoutes')
-);
 
 // ATTENDANCE
 app.use(
@@ -127,10 +122,6 @@ app.use('/api/profile',
 ); 
 
 app.use('/api/guru/attendance', require('./routes/attendanceRoutes'));
-// Attendance routes untuk siswa & ortu
-app.get('/api/siswa/attendance', auth, attendanceController.getStudentAttendance);
-app.get('/api/ortu/children', auth, attendanceController.getOrtuChildren);
-app.get('/api/ortu/attendance', auth, attendanceController.getOrtuAttendance);
 
 // =====================================
 // ROOT TEST

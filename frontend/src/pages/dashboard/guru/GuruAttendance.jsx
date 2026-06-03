@@ -27,16 +27,17 @@ const GuruAttendance = () => {
     }
   }, [selectedClass, selectedDate]);
 
+  // Ambil daftar kelas yang diampu guru
   const fetchClasses = async () => {
     try {
-      const response = await api.get('/attendance/classes'); // asumsi endpoint
-      console.log('Classes response:', response.data);
-      // Asumsikan response.data.data = array kelas atau response.data.classes
-      const classesData = response.data.data || response.data.classes || [];
+      const response = await api.get('/attendance/classes');
+      // Backend mengembalikan { classes: [...] }
+      const classesData = response.data.classes || [];
       setClasses(classesData);
       if (classesData.length > 0) {
-        setSelectedClass(classesData[0]._id || classesData[0].id);
-        setSelectedClassInfo(classesData[0]);
+        const firstClass = classesData[0];
+        setSelectedClass(firstClass.id || firstClass._id);
+        setSelectedClassInfo(firstClass);
       }
     } catch (error) {
       console.error('Error fetching classes:', error);
@@ -46,11 +47,12 @@ const GuruAttendance = () => {
     }
   };
 
+  // Ambil daftar siswa dalam satu kelas
   const fetchStudents = async () => {
     try {
-      const response = await api.get(`/attendance/students/${selectedClass}`); // asumsi endpoint
-      // Asumsikan response.data.data = array siswa atau response.data.students
-      const studentsData = response.data.data || response.data.students || [];
+      const response = await api.get(`/attendance/students/${selectedClass}`);
+      // Backend mengembalikan { students: [...] }
+      const studentsData = response.data.students || [];
       setStudents(studentsData);
       const initialData = {};
       studentsData.forEach(student => {
@@ -63,38 +65,27 @@ const GuruAttendance = () => {
       setAttendanceData(initialData);
     } catch (error) {
       console.error('Error fetching students:', error);
+      setError('Gagal mengambil data siswa');
     }
   };
 
+  // Ambil data absensi yang sudah ada (untuk tanggal tertentu)
   const fetchAttendance = async () => {
     try {
       const response = await api.get(`/attendance?class_id=${selectedClass}&date=${selectedDate}`);
-      const savedData = response.data.data || response.data.attendance || {};
+      // Backend mengembalikan { attendance: { [studentId]: { status, note } } }
+      const savedData = response.data.attendance || {};
       setAttendanceData(prev => {
         const newData = { ...prev };
-        // savedData bisa berupa object dengan key student_id atau array
-        if (Array.isArray(savedData)) {
-          savedData.forEach(item => {
-            const studentId = item.student_id?._id || item.student_id;
-            if (studentId && newData[studentId]) {
-              newData[studentId] = {
-                ...newData[studentId],
-                status: item.status,
-                note: item.note || ''
-              };
-            }
-          });
-        } else {
-          Object.keys(savedData).forEach(studentId => {
-            if (newData[studentId]) {
-              newData[studentId] = {
-                ...newData[studentId],
-                status: savedData[studentId].status,
-                note: savedData[studentId].note || ''
-              };
-            }
-          });
-        }
+        Object.keys(savedData).forEach(studentId => {
+          if (newData[studentId]) {
+            newData[studentId] = {
+              ...newData[studentId],
+              status: savedData[studentId].status,
+              note: savedData[studentId].note || ''
+            };
+          }
+        });
         return newData;
       });
     } catch (error) {
@@ -139,14 +130,17 @@ const GuruAttendance = () => {
     setError('');
     setSuccess('');
     try {
+      // Siapkan payload sesuai backend (attendance, class_id, date)
       const attendanceList = Object.entries(attendanceData).map(([studentId, data]) => ({
         student_id: studentId,
-        class_id: selectedClass,
-        date: selectedDate,
         status: data.status,
         note: data.note
       }));
-      await api.post('/attendance/save', { attendance: attendanceList });
+      await api.post('/attendance/save', {
+        attendance: attendanceList,
+        class_id: selectedClass,
+        date: selectedDate
+      });
       setSuccess('Absensi berhasil disimpan!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
@@ -177,9 +171,6 @@ const GuruAttendance = () => {
 
   const displayedStudents = getSearchFilteredStudents();
   const presentCount = Object.values(attendanceData).filter(a => a.status === 'present').length;
-  const absentCount = Object.values(attendanceData).filter(a => a.status === 'absent').length;
-  const lateCount = Object.values(attendanceData).filter(a => a.status === 'late').length;
-  const sickCount = Object.values(attendanceData).filter(a => a.status === 'sick').length;
   const totalStudents = students.length;
   const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
 
@@ -250,12 +241,12 @@ const GuruAttendance = () => {
               onChange={(e) => {
                 const newClassId = e.target.value;
                 setSelectedClass(newClassId);
-                const cls = classes.find(c => (c._id || c.id) === newClassId);
+                const cls = classes.find(c => (c.id || c._id) === newClassId);
                 setSelectedClassInfo(cls);
               }}
             >
               {classes.map(cls => {
-                const clsId = cls._id || cls.id;
+                const clsId = cls.id || cls._id;
                 return (
                   <option key={clsId} value={clsId}>
                     {cls.name || cls.class_name} - {cls.subject || 'Mapel'}

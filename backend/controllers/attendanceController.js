@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
+const Attendance = require('../models/Attendance'); // ← IMPORT MODEL
 const attendanceService = require('../services/attendanceService');
 
-// GET /guru/attendance/classes
+// ==================== GURU ====================
 exports.getTeacherClasses = async (req, res) => {
   try {
     const teacherId = req.user.id;
@@ -33,7 +34,6 @@ exports.getTeacherClasses = async (req, res) => {
   }
 };
 
-// GET /guru/attendance/students/:classId
 exports.getClassStudents = async (req, res) => {
   try {
     const { classId } = req.params;
@@ -45,7 +45,6 @@ exports.getClassStudents = async (req, res) => {
   }
 };
 
-// GET /guru/attendance?class_id=...&date=...
 exports.getAttendance = async (req, res) => {
   try {
     const { class_id, date } = req.query;
@@ -61,7 +60,6 @@ exports.getAttendance = async (req, res) => {
   }
 };
 
-// POST /guru/attendance/save
 exports.saveAttendance = async (req, res) => {
   try {
     const { attendance, class_id, date } = req.body;
@@ -77,10 +75,10 @@ exports.saveAttendance = async (req, res) => {
   }
 };
 
-// ========== UNTUK SISWA ==========
+// ==================== SISWA ====================
 exports.getStudentAttendance = async (req, res) => {
   try {
-    const studentId = req.user.id; // dari token JWT
+    const studentId = req.user.id;
     const { month, year } = req.query;
 
     let start, end;
@@ -106,7 +104,7 @@ exports.getStudentAttendance = async (req, res) => {
   }
 };
 
-// ========== UNTUK ORANG TUA ==========
+// ==================== ORANG TUA ====================
 exports.getOrtuChildren = async (req, res) => {
   try {
     const ortuId = req.user.id;
@@ -125,7 +123,6 @@ exports.getOrtuChildren = async (req, res) => {
       _id: { $in: childrenIds.map(id => new mongoose.Types.ObjectId(id)) }
     }).toArray();
 
-    // Ambil nama kelas untuk setiap anak
     const classCollection = mongoose.connection.collection('classes');
     const formatted = [];
     for (const child of children) {

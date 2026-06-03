@@ -3,10 +3,17 @@ const router = express.Router();
 const auth = require('../middleware/authMiddleware');
 const attendanceController = require('../controllers/attendanceController');
 
-// Semua route di bawah memerlukan autentikasi dan diasumsikan hanya guru yang mengakses
+// ===== GURU =====
 router.get('/classes', auth, attendanceController.getTeacherClasses);
 router.get('/students/:classId', auth, attendanceController.getClassStudents);
 router.get('/', auth, attendanceController.getAttendance);
 router.post('/save', auth, attendanceController.saveAttendance);
+
+// ===== SISWA =====
+router.get('/siswa/attendance', auth, attendanceController.getStudentAttendance);
+
+// ===== ORTU =====
+router.get('/ortu/children', auth, attendanceController.getOrtuChildren);
+router.get('/ortu/attendance', auth, attendanceController.getOrtuAttendance);
 
 module.exports = router;
