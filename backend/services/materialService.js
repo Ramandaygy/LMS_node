@@ -1,124 +1,120 @@
+// services/materialService.js
 const Material = require('../models/Material');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const mongoose = require('mongoose');
 
-// ======================================
-// CREATE MATERIAL
-// ======================================
-exports.createMaterial =
-  async (data) => {
+// CREATE (manual)
+exports.createMaterial = async (data) => {
+  return await Material.create(data);
+};
 
-    return await Material.create(
-      data
-    );
+// GET ALL (admin)
+exports.getAllMaterials = async () => {
+  const materials = await Material.find().sort({ order: 1 });
+  return await enrichMaterials(materials);
+};
+
+// GET BY ID
+exports.getMaterialById = async (id) => {
+  const material = await Material.findById(id);
+  if (!material) return null;
+  const enriched = await enrichMaterials([material]);
+  return enriched[0];
+};
+
+// UPDATE
+exports.updateMaterial = async (id, data) => {
+  return await Material.findByIdAndUpdate(id, data, { new: true });
+};
+
+// DELETE
+exports.deleteMaterial = async (id) => {
+  return await Material.findByIdAndDelete(id);
+};
+
+// UNTUK GURU (materi yang diupload)
+exports.getMaterialsByTeacher = async (teacherId) => {
+  const materials = await Material.find({ uploaded_by: teacherId }).sort({ order: 1 });
+  return await enrichMaterials(materials);
+};
+
+// UNTUK SISWA (materi berdasarkan kelas siswa)
+exports.getMaterialsForStudent = async (classId, subjectId = null) => {
+  if (!classId) return [];
+
+  const filter = {
+    class_id: new mongoose.Types.ObjectId(classId.toString()),
   };
+  if (subjectId) {
+    filter.subject_id = new mongoose.Types.ObjectId(subjectId.toString());
+  }
 
-// ======================================
-// GET ALL MATERIALS
-// ======================================
-exports.getAllMaterials =
-  async () => {
+  const materials = await Material.find(filter).sort({ order: 1 });
+  return await enrichMaterials(materials);
+};
 
-    return await Material.find()
-      .populate(
-        'module',
-        'title'
-      )
-      .populate(
-        'uploaded_by',
-        'full_name'
-      )
-      .sort({ order: 1 });
-  };
+// GENERATE DENGAN AI (Gemini)
+exports.generateMaterialAI = async (data) => {
+  const { prompt, titleSuggestion, class_id, subject_id, uploaded_by } = data;
+  if (!prompt) throw new Error('Prompt tidak boleh kosong');
 
-// ======================================
-// GET MATERIAL BY ID
-// ======================================
-exports.getMaterialById =
-  async (id) => {
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
-    return await Material.findById(id)
-      .populate(
-        'module',
-        'title'
-      )
-      .populate(
-        'uploaded_by',
-        'full_name'
-      );
-  };
+  const systemPrompt = `Anda adalah asisten guru pembuat materi pembelajaran. 
+Buat materi berdasarkan permintaan berikut. Output harus dalam format JSON dengan struktur:
+{
+  "title": "Judul materi",
+  "description": "Deskripsi singkat 1-2 kalimat",
+  "content": "Isi materi lengkap dalam HTML (paragraf, poin, subjudul)"
+}
+Jangan tambahkan teks lain di luar JSON.`;
 
-// ======================================
-// UPDATE MATERIAL
-// ======================================
-exports.updateMaterial =
-  async (id, data) => {
+  const fullPrompt = `${systemPrompt}\n\nPermintaan: ${prompt}\n${titleSuggestion ? `Judul yang diinginkan: ${titleSuggestion}` : ''}`;
 
-    return await Material.findByIdAndUpdate(
-      id,
-      data,
-      { new: true }
-    );
-  };
+  const result = await model.generateContent(fullPrompt);
+  let jsonString = result.response.text();
+  jsonString = jsonString.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+  const aiContent = JSON.parse(jsonString);
 
-// ======================================
-// DELETE MATERIAL
-// ======================================
-exports.deleteMaterial =
-  async (id) => {
+  const material = await Material.create({
+    title: aiContent.title,
+    description: aiContent.description,
+    content: aiContent.content,
+    class_id,
+    subject_id,
+    uploaded_by,
+    source_type: 'ai',
+    ai_prompt: prompt,
+    is_published: true
+  });
+  return material;
+};
 
-    return await Material.findByIdAndDelete(
-      id
-    );
-  };
+// ENRICHMENT: ambil nama kelas, mapel, guru
+async function enrichMaterials(materials) {
+  if (!materials.length) return [];
 
-  exports.getMaterialsByModule =
-  async (moduleId) => {
-  
-    return await Material.find()
-    .populate(
-      'class_id',
-      'name'
-    )
-    .populate(
-      'subject_id',
-      'name code'
-    )
-    .populate(
-      'module',
-      'title'
-    )
-    .populate(
-      'uploaded_by',
-      'full_name'
-    );
-  };
+  const classIds = [...new Set(materials.map(m => m.class_id?.toString()).filter(Boolean))];
+  const subjectIds = [...new Set(materials.map(m => m.subject_id?.toString()).filter(Boolean))];
+  const teacherIds = [...new Set(materials.map(m => m.uploaded_by?.toString()).filter(Boolean))];
 
-  exports.generateMaterialAI =
-  async (data) => {
-  
-    const material =
-    await Material.create({
-  
-      module:
-        data.module,
-  
-      title:
-        data.title,
-  
-      description:
-        data.description,
-  
-      content:
-        data.content,
-  
-      source_type:
-        'ai',
-  
-      ai_prompt:
-        data.prompt,
-  
-      uploaded_by:
-        data.uploaded_by
-    });
-  
-    return material;
-  };
+  const classCol = mongoose.connection.collection('classes');
+  const subjectCol = mongoose.connection.collection('subjects');
+  const guruCol = mongoose.connection.collection('users_guru');
+
+  const classes = classIds.length ? await classCol.find({ _id: { $in: classIds.map(id => new mongoose.Types.ObjectId(id)) } }).toArray() : [];
+  const subjects = subjectIds.length ? await subjectCol.find({ _id: { $in: subjectIds.map(id => new mongoose.Types.ObjectId(id)) } }).toArray() : [];
+  const teachers = teacherIds.length ? await guruCol.find({ _id: { $in: teacherIds.map(id => new mongoose.Types.ObjectId(id)) } }).toArray() : [];
+
+  const classMap = Object.fromEntries(classes.map(c => [c._id.toString(), c.name]));
+  const subjectMap = Object.fromEntries(subjects.map(s => [s._id.toString(), s.name]));
+  const teacherMap = Object.fromEntries(teachers.map(t => [t._id.toString(), t.full_name]));
+
+  return materials.map(m => ({
+    ...m.toObject(),
+    class_name: classMap[m.class_id?.toString()] || 'Tidak diketahui',
+    subject_name: subjectMap[m.subject_id?.toString()] || 'Tidak diketahui',
+    teacher_name: teacherMap[m.uploaded_by?.toString()] || 'Tidak diketahui'
+  }));
+}

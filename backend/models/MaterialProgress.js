@@ -25,6 +25,16 @@ new mongoose.Schema({
     default: 0
   },
 
+  current_slide: {
+    type: Number,
+    default: 0
+  },
+
+  total_slides: {
+    type: Number,
+    default: 1
+  },
+
   completed_at: {
     type: Date,
     default: null

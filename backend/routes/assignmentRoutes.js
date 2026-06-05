@@ -3,8 +3,8 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const assignmentController = require('../controllers/assignmentController');
 const submissionController = require('../controllers/submissionController');
-const upload = require('../middleware/uploadMiddleware'); // pastikan file ini ada
-
+const { uploadSubmission } = require('../middleware/uploadMiddleware');
+//
 // Assignment routes
 router.get('/', authMiddleware, assignmentController.getAllAssignments);
 router.post('/', authMiddleware, assignmentController.createAssignment);
@@ -19,8 +19,12 @@ router.get('/guru/me', authMiddleware, assignmentController.getTeacherAssignment
 router.get('/siswa/me', authMiddleware, assignmentController.getStudentAssignments);
 
 // ========== SUBMISSION ROUTES ==========
-router.post('/:assignmentId/submit', authMiddleware, upload.single('file'), submissionController.submitAssignment);
+// Submit tugas siswa
+router.post('/:assignmentId/submit', authMiddleware, uploadSubmission.single('file'), submissionController.submitAssignment);
+// Lihat submisi assignment
 router.get('/:assignmentId/submissions', authMiddleware, submissionController.getAssignmentSubmissions);
+
+// Beri nilai
 router.post('/:assignmentId/grade', authMiddleware, submissionController.gradeSubmission);
 
 module.exports = router;

@@ -1,61 +1,22 @@
+// models/Material.js
 const mongoose = require('mongoose');
 
 const materialSchema = new mongoose.Schema({
-  module: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Module'
-  },
+  title: { type: String, required: true },
+  description: { type: String, default: '' },
+  content: { type: String, default: '' }, // konten teks/HTML
+  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  subject_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
+  uploaded_by: { type: mongoose.Schema.Types.ObjectId, required: true }, // guru
+  file_url: { type: String, default: '' }, // path file upload
+  file_name: { type: String, default: '' },
+  file_size: { type: Number, default: 0 },
+  file_type: { type: String, default: '' },
+  external_link: { type: String, default: '' }, // link eksternal
+  is_published: { type: Boolean, default: true },
+  order: { type: Number, default: 0 },
+  source_type: { type: String, enum: ['manual', 'ai'], default: 'manual' },
+  ai_prompt: { type: String, default: '' }
+}, { timestamps: true });
 
-  class_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Class',
-    required: true
-  },
-
-  subject_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Subject',
-    required: true
-  },
-
-  title: {
-    type: String,
-    required: true
-  },
-
-  description: String,
-
-  content: String,
-
-  file_url: String,
-
-  file_name: String,
-
-  file_size: Number,
-
-  file_type: String,
-
-  external_link: String,
-
-  uploaded_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-
-  is_published: {
-    type: Boolean,
-    default: true
-  },
-
-  order: {
-    type: Number,
-    default: 0
-  }
-});
-
-module.exports =
-mongoose.model(
-  'Material',
-  materialSchema
-);
+module.exports = mongoose.model('Material', materialSchema);

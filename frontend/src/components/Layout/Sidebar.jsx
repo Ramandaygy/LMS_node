@@ -80,9 +80,15 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
 
   const getActiveKeyFromPath = () => {
     const currentPath = location.pathname;
+    const roleBasePaths = new Set([
+      '/dashboard/admin',
+      '/dashboard/guru',
+      '/dashboard/siswa',
+      '/dashboard/ortu',
+    ]);
     for (const menu of currentMenus) {
       if (currentPath === menu.path) return menu.key;
-      if (menu.path !== '/dashboard/admin' && currentPath.startsWith(menu.path)) return menu.key;
+      if (!roleBasePaths.has(menu.path) && currentPath.startsWith(menu.path)) return menu.key;
     }
     if (currentPath.startsWith('/dashboard/admin')) return 'dashboard';
     if (currentPath.startsWith('/dashboard/guru')) return 'dashboard';

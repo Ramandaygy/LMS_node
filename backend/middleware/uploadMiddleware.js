@@ -2,25 +2,33 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Pastikan folder uploads/submissions ada
-const dir = './uploads/submissions';
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true });
-}
+const ensureDir = (dir) => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+};
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/submissions/');
-  },
+const submissionsDir = 'uploads/submissions';
+const materialsDir = 'uploads/materials';
+ensureDir(submissionsDir);
+ensureDir(materialsDir);
+
+const submissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, submissionsDir),
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `submission-${uniqueSuffix}${path.extname(file.originalname)}`);
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `submission-${unique}${path.extname(file.originalname)}`);
   }
 });
 
-const upload = multer({ 
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+const materialStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, materialsDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, `material-${unique}${path.extname(file.originalname)}`);
+  }
 });
 
-module.exports = upload;
+const uploadSubmission = multer({ storage: submissionStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const uploadMaterial = multer({ storage: materialStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: submissionStorage, limits: { fileSize: 10 * 1024 * 1024 } });
+
+module.exports = { uploadSubmission, uploadMaterial, upload };

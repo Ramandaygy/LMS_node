@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-materials.css';
@@ -5,212 +6,233 @@ import '../../../styles/dashboard/guru/guru-materials.css';
 const GuruMaterials = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [formData, setFormData] = useState({
+  const [form, setForm] = useState({
     title: '',
+    description: '',
+    content: '',
     class_id: '',
     subject_id: '',
-    description: ''
+    external_link: '',
+    file: null
   });
-  const [attachments, setAttachments] = useState([]);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiTitle, setAiTitle] = useState('');
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
-    fetchTeacherProfile();
+    fetchProfile();
     fetchMaterials();
   }, []);
 
-  const fetchTeacherProfile = async () => {
+  const fetchProfile = async () => {
     try {
-      const res = await api.get('/guru/profile');
-      // Menyesuaikan dengan berbagai kemungkinan struktur response
-      const subjects = res.data.subjects || res.data.data?.subjects || [];
-      const classes = res.data.classes || res.data.data?.classes || [];
-      setTeacherSubjects(subjects);
-      setTeacherClasses(classes);
-      if (subjects.length === 0) {
-        setErrorMsg('Anda belum diassign mata pelajaran. Hubungi admin.');
-      }
-      if (classes.length === 0) {
-        setErrorMsg(prev => prev ? prev + ' Anda belum diassign kelas.' : 'Anda belum diassign kelas. Hubungi admin.');
-      }
+      const res = await api.get('/profile');
+      setTeacherSubjects(res.data.subjects || []);
+      setTeacherClasses(res.data.classes || []);
     } catch (err) {
-      console.error('Gagal ambil profil', err);
-      setErrorMsg('Gagal mengambil data profil guru');
+      console.error('Gagal ambil profil guru', err);
     }
   };
 
   const fetchMaterials = async () => {
     try {
-      const res = await api.get('/guru/materials');
-      // Mendukung response { materials: [] } atau { data: [] } atau { success: true, data: [] }
-      const materialsData = res.data.materials || res.data.data || [];
-      setMaterials(materialsData);
+      const res = await api.get('/materials/guru/me');
+      setMaterials(res.data.data || []);
     } catch (err) {
-      setErrorMsg('Gagal memuat materi');
+      console.error('Gagal ambil materi', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const resetForm = () => {
-    setFormData({ title: '', class_id: '', subject_id: '', description: '' });
-    setAttachments([]);
-    setEditing(null);
-    setShowForm(false);
+  const handleFileChange = (e) => {
+    setForm({ ...form, file: e.target.files[0] });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
-    setSuccessMsg('');
-
-    if (!formData.title.trim()) {
-      setErrorMsg('Judul materi harus diisi');
-      return;
-    }
-    if (!formData.subject_id) {
-      setErrorMsg('Pilih mata pelajaran');
-      return;
-    }
-    if (!formData.class_id) {
-      setErrorMsg('Pilih kelas');
-      return;
-    }
-
     const data = new FormData();
-    data.append('title', formData.title);
-    data.append('class_id', formData.class_id);
-    data.append('subject_id', formData.subject_id);
-    data.append('description', formData.description);
-    attachments.forEach(file => data.append('attachments', file));
-
+    data.append('title', form.title);
+    data.append('description', form.description);
+    data.append('content', form.content);
+    data.append('class_id', form.class_id);
+    data.append('subject_id', form.subject_id);
+    data.append('external_link', form.external_link);
+    if (form.file) data.append('file', form.file);
     try {
-      if (editing) {
-        await api.put(`/guru/materials/${editing._id}`, data);
-        setSuccessMsg('Materi berhasil diupdate');
-      } else {
-        await api.post('/guru/materials', data);
-        setSuccessMsg('Materi berhasil diupload');
-      }
-      resetForm();
+      await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+      alert('Materi berhasil disimpan');
+      setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
       fetchMaterials();
     } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.message || 'Gagal menyimpan materi';
-      setErrorMsg(msg);
-      console.error('Upload error:', err.response?.data);
+      alert(err.response?.data?.message || 'Gagal simpan materi');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Yakin ingin menghapus materi ini?')) {
-      try {
-        await api.delete(`/guru/materials/${id}`);
-        setSuccessMsg('Materi berhasil dihapus');
-        fetchMaterials();
-      } catch (err) {
-        setErrorMsg('Gagal menghapus materi');
-      }
+  const handleGenerateAI = async () => {
+    if (!aiPrompt || !form.class_id || !form.subject_id) {
+      alert('Lengkapi prompt, kelas, dan mapel terlebih dahulu');
+      return;
+    }
+    try {
+      await api.post('/materials/generate-ai', {
+        prompt: aiPrompt,
+        titleSuggestion: aiTitle,
+        class_id: form.class_id,
+        subject_id: form.subject_id
+      });
+      alert('Materi berhasil dibuat dengan AI');
+      fetchMaterials();
+      setAiPrompt('');
+      setAiTitle('');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal generate AI');
     }
   };
 
-  if (loading) return <div className="loading">Memuat...</div>;
+  const stripHtml = (html) => {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
+
+  if (loading) return <div className="loading">Memuat materi...</div>;
 
   return (
     <div className="guru-materials-container">
-      <div className="header">
-        <h2>📚 Materi Pembelajaran</h2>
-        {!showForm && (
-          <button className="btn-primary" onClick={() => setShowForm(true)}>+ Upload Materi Baru</button>
-        )}
+      <div className="page-header">
+        <h1>Materi Pembelajaran</h1>
+        <p>Kelola materi pembelajaran untuk kelas Anda — upload manual atau buat dengan AI</p>
       </div>
 
-      {errorMsg && <div className="error-msg">{errorMsg}</div>}
-      {successMsg && <div className="success-msg">{successMsg}</div>}
-
-      {showForm && (
-        <div className="material-form">
-          <h3>{editing ? 'Edit Materi' : 'Upload Materi Baru'}</h3>
+      <div className="cards-grid">
+        <div className="form-card">
+          <h3>
+            <span className="material-symbols-outlined card-icon">upload_file</span>
+            Tambah Materi Baru
+          </h3>
           <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Judul Materi *</label>
-                <input type="text" name="title" value={formData.title} onChange={handleChange} required />
-              </div>
+            <div className="form-group">
+              <label>Judul Materi</label>
+              <input name="title" placeholder="Contoh: Bab 1 — Pengenalan Aljabar" value={form.title} onChange={handleChange} required />
+            </div>
+            <div className="form-group">
+              <label>Deskripsi</label>
+              <textarea name="description" placeholder="Ringkasan singkat materi" rows="2" value={form.description} onChange={handleChange} />
+            </div>
+            <div className="form-group">
+              <label>Konten</label>
+              <textarea name="content" placeholder="Isi materi (teks atau HTML)" rows="5" value={form.content} onChange={handleChange} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Mata Pelajaran *</label>
-                <select name="subject_id" value={formData.subject_id} onChange={handleChange} required>
-                  <option value="">Pilih Mapel</option>
-                  {teacherSubjects.map(s => (
-                    <option key={s._id} value={s._id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Kelas *</label>
-                <select name="class_id" value={formData.class_id} onChange={handleChange} required>
+                <label>Kelas</label>
+                <select name="class_id" value={form.class_id} onChange={handleChange} required>
                   <option value="">Pilih Kelas</option>
-                  {teacherClasses.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
+                  {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Mata Pelajaran</label>
+                <select name="subject_id" value={form.subject_id} onChange={handleChange} required>
+                  <option value="">Pilih Mapel</option>
+                  {teacherSubjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
               </div>
             </div>
             <div className="form-group">
-              <label>Deskripsi (opsional)</label>
-              <textarea name="description" rows="3" value={formData.description} onChange={handleChange} />
+              <label>Link Eksternal</label>
+              <input name="external_link" placeholder="YouTube, Google Drive, dll." value={form.external_link} onChange={handleChange} />
             </div>
-            <div className="form-group">
-              <label>File Lampiran</label>
-              <input type="file" multiple onChange={e => setAttachments(Array.from(e.target.files))} />
-              <small>Anda dapat memilih beberapa file (PDF, gambar, video, zip, dll)</small>
+            <div className="form-group file-input">
+              <label>Lampiran File</label>
+              <input type="file" onChange={handleFileChange} />
+              {form.file && <span className="file-name">{form.file.name}</span>}
             </div>
-            <div className="form-actions">
-              <button type="button" onClick={resetForm}>Batal</button>
-              <button type="submit">Upload</button>
-            </div>
+            <button type="submit" className="btn-primary">Simpan Materi</button>
           </form>
         </div>
-      )}
 
-      <div className="materials-grid">
-        {materials.length === 0 && !showForm && <p>Belum ada materi. Klik "Upload Materi Baru" untuk menambahkan.</p>}
-        {materials.map(mat => (
-          <div key={mat._id} className="material-card">
-            <div className="material-title">{mat.title}</div>
-            <div className="material-meta">
-              {mat.subject_name || mat.subject?.name || '-'} - {mat.class_name || mat.class?.name || '-'}
-            </div>
-            <div className="material-desc">{mat.description}</div>
-            {mat.attachments?.length > 0 && (
-              <div className="material-attachments">
-                <strong>Lampiran:</strong>
-                <ul>
-                  {mat.attachments.map((att, idx) => (
-                    <li key={idx}>
-                      <a href={att.url || `/api/guru/uploads/materials/${att.path}`} target="_blank" rel="noopener noreferrer">
-                        📎 {att.filename}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="material-actions">
-              <button className="btn-delete" onClick={() => handleDelete(mat._id)}>Hapus</button>
-            </div>
+        <div className="form-card ai-card">
+          <h3>
+            <span className="material-symbols-outlined card-icon">auto_awesome</span>
+            Buat Materi dengan AI
+          </h3>
+          <p className="ai-hint">Gunakan kelas & mapel yang sama dari form di sebelah kiri.</p>
+          <div className="form-group">
+            <label>Prompt AI</label>
+            <textarea rows="4" placeholder="Contoh: Buat materi tentang persamaan linear dua variabel untuk kelas X..." value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} />
           </div>
-        ))}
+          <div className="form-group">
+            <label>Saran Judul (opsional)</label>
+            <input placeholder="Judul yang diinginkan" value={aiTitle} onChange={(e) => setAiTitle(e.target.value)} />
+          </div>
+          <button type="button" className="btn-ai" onClick={handleGenerateAI}>
+            <span className="material-symbols-outlined">bolt</span>
+            Generate dengan AI
+          </button>
+        </div>
+      </div>
+
+      <div className="materials-section">
+        <h3>
+          <span className="material-symbols-outlined section-icon">library_books</span>
+          Materi yang Sudah Diupload
+          <span className="count-badge">{materials.length}</span>
+        </h3>
+
+        {materials.length === 0 ? (
+          <div className="empty">
+            <span className="material-symbols-outlined empty-icon">folder_open</span>
+            <p>Belum ada materi. Tambahkan materi baru menggunakan form di atas.</p>
+          </div>
+        ) : (
+          <div className="materials-list">
+            {materials.map(m => (
+              <div key={m._id} className="material-card">
+                <div className="card-header">
+                  <h4>{m.title}</h4>
+                  <span className="badge">{m.subject_name}</span>
+                </div>
+                {m.description && <p className="desc">{m.description}</p>}
+                {m.content && (
+                  <div className="content-preview">{stripHtml(m.content)}</div>
+                )}
+                <div className="card-footer">
+                  <div className="meta">
+                    <span>
+                      <span className="material-symbols-outlined meta-icon">school</span>
+                      {m.class_name}
+                    </span>
+                    <span>
+                      <span className="material-symbols-outlined meta-icon">menu_book</span>
+                      {m.subject_name}
+                    </span>
+                  </div>
+                  <div className="links">
+                    {m.file_url && (
+                      <a href={m.file_url} target="_blank" rel="noopener noreferrer">
+                        <span className="material-symbols-outlined">attach_file</span>
+                        Unduh Lampiran
+                      </a>
+                    )}
+                    {m.external_link && (
+                      <a href={m.external_link} target="_blank" rel="noopener noreferrer">
+                        <span className="material-symbols-outlined">link</span>
+                        Link Materi
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

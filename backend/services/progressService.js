@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const materialProgressService = require('./materialProgressService');
 
 async function getStudentData(studentId) {
   // Ambil submission yang sudah dinilai
@@ -19,18 +20,28 @@ async function getStudentData(studentId) {
   const presentDays = attendances.filter(a => a.status === 'present').length;
   const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
 
-  return { avgScore, attendanceRate };
+  const siswaCol = mongoose.connection.collection('users_siswa');
+  const student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId) });
+  const materialCompletionRate = student?.class_id
+    ? await materialProgressService.getStudentMaterialCompletionRate(studentId, student.class_id)
+    : 0;
+
+  return { avgScore, attendanceRate, materialCompletionRate };
 }
 
 // Sementara pakai rule-based (nanti bisa ganti dengan Random Forest)
-function predictRisk(avgScore, attendanceRate) {
-  if (avgScore < 60 || attendanceRate < 70) return { risk: 'high', message: 'Perlu perhatian serius', color: 'red' };
-  if (avgScore < 75 || attendanceRate < 85) return { risk: 'medium', message: 'Perlu ditingkatkan', color: 'yellow' };
+function predictRisk(avgScore, attendanceRate, materialCompletionRate = 0) {
+  if (avgScore < 60 || attendanceRate < 70 || materialCompletionRate < 50) {
+    return { risk: 'high', message: 'Perlu perhatian serius', color: 'red' };
+  }
+  if (avgScore < 75 || attendanceRate < 85 || materialCompletionRate < 75) {
+    return { risk: 'medium', message: 'Perlu ditingkatkan', color: 'yellow' };
+  }
   return { risk: 'low', message: 'Baik, pertahankan', color: 'green' };
 }
 
 exports.getStudentProgress = async (studentId) => {
   const data = await getStudentData(studentId);
-  const prediction = predictRisk(data.avgScore, data.attendanceRate);
+  const prediction = predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate);
   return { ...data, ...prediction };
 };

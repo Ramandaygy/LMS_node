@@ -76,6 +76,7 @@ import GuruStudents from './pages/dashboard/guru/GuruStudents';
 // ============================================
 import SiswaAssignments from './pages/dashboard/siswa/SiswaAssignments';
 import SiswaAttendance from './pages/dashboard/siswa/SiswaAttendance';
+import SiswaMaterials from './pages/dashboard/siswa/SiswaMaterials';
 
 // ============================================
 // ORTU SUB PAGES
@@ -382,6 +383,17 @@ function App() {
             </DashboardLayout>
           </ProtectedRoute>
         } />
+
+        <Route
+          path="/dashboard/siswa/materials"
+          element={
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <SiswaMaterials />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
 
         {/* ============================================ */}
         {/* GURU DASHBOARD */}
