@@ -1,0 +1,195 @@
+.progress-container {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.progress-container h2 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.progress-container h3 {
+  color: #444;
+  margin-bottom: 15px;
+}
+
+.progress-container h4 {
+  color: #666;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+/* Risk Status Card */
+.progress-summary {
+  margin-bottom: 30px;
+}
+
+.progress-card {
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.progress-card.risk-red {
+  background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.progress-card.risk-yellow {
+  background: linear-gradient(135deg, #ffd93d, #ffb700);
+  box-shadow: 0 4px 12px rgba(255, 183, 0, 0.3);
+  color: #333;
+}
+
+.progress-card.risk-green {
+  background: linear-gradient(135deg, #6bcf7f, #38ad58);
+  box-shadow: 0 4px 12px rgba(107, 207, 127, 0.3);
+}
+
+.risk-level {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.risk-message {
+  font-size: 16px;
+  opacity: 0.95;
+  margin: 0;
+}
+
+/* Metrics Grid */
+.progress-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-value {
+  font-size: 36px;
+  font-weight: bold;
+  color: #007bff;
+  margin: 10px 0;
+}
+
+.progress-bar-container {
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  height: 12px;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar-high {
+  background: linear-gradient(90deg, #38ad58, #6bcf7f);
+}
+
+.progress-bar-medium {
+  background: linear-gradient(90deg, #ffb700, #ffd93d);
+}
+
+.progress-bar-low {
+  background: linear-gradient(90deg, #ee5a6f, #ff6b6b);
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #888;
+  margin: 8px 0 0 0;
+}
+
+/* Recommendations Section */
+.progress-recommendations {
+  background: #f9f9f9;
+  border-radius: 8px;
+  padding: 20px;
+  border-left: 4px solid #007bff;
+}
+
+.recommendation-alert {
+  margin-top: 15px;
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 4px solid;
+}
+
+.recommendation-alert p {
+  margin: 0 0 10px 0;
+  font-weight: bold;
+}
+
+.recommendation-alert ul {
+  margin: 0;
+  padding-left: 20px;
+  list-style: none;
+}
+
+.recommendation-alert li {
+  margin: 8px 0;
+  padding-left: 25px;
+  position: relative;
+  color: #333;
+  line-height: 1.5;
+}
+
+.recommendation-alert li:before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+.recommendation-alert.high {
+  background-color: #ffe6e6;
+  border-left-color: #ff6b6b;
+}
+
+.recommendation-alert.high li {
+  color: #cc0000;
+}
+
+.recommendation-alert.medium {
+  background-color: #fff3e0;
+  border-left-color: #ffb700;
+}
+
+.recommendation-alert.medium li {
+  color: #e65100;
+}
+
+.recommendation-alert.low {
+  background-color: #e6f7e6;
+  border-left-color: #6bcf7f;
+}
+
+.recommendation-alert.low li {
+  color: #1b5e20;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin: 20px 0;
+}

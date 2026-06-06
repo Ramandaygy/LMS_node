@@ -70,6 +70,7 @@ import GuruMaterials from './pages/dashboard/guru/GuruMaterials';
 import GuruAttendance from './pages/dashboard/guru/GuruAttendance';
 import GuruMonitoring from './pages/dashboard/guru/GuruMonitoring';
 import GuruStudents from './pages/dashboard/guru/GuruStudents';
+import GuruProgress from './pages/dashboard/guru/GuruProgress';
 
 // ============================================
 // SISWA SUB PAGES
@@ -77,6 +78,7 @@ import GuruStudents from './pages/dashboard/guru/GuruStudents';
 import SiswaAssignments from './pages/dashboard/siswa/SiswaAssignments';
 import SiswaAttendance from './pages/dashboard/siswa/SiswaAttendance';
 import SiswaMaterials from './pages/dashboard/siswa/SiswaMaterials';
+import SiswaProgress from './pages/dashboard/siswa/SiswaProgress';
 
 // ============================================
 // ORTU SUB PAGES
@@ -395,6 +397,17 @@ function App() {
           }
         />
 
+        <Route
+          path="/dashboard/siswa/progress"
+          element={
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <SiswaProgress />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* ============================================ */}
         {/* GURU DASHBOARD */}
         {/* ============================================ */}
@@ -460,6 +473,17 @@ function App() {
             <ProtectedRoute allowedRole="guru">
               <DashboardLayout role="guru">
                 <GuruMonitoring />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/progress"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <GuruProgress />
               </DashboardLayout>
             </ProtectedRoute>
           }

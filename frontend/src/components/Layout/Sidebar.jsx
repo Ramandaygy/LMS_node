@@ -53,6 +53,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
       { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
       { key: 'monitoring', label: 'Monitoring', icon: 'psychology', path: '/dashboard/guru/monitoring' },
+      { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
     ],
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },

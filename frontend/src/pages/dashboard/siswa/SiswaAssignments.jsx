@@ -31,6 +31,12 @@ const SiswaAssignments = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedAssignment) return;
+
+    if (submissionFile && submissionFile.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Ukuran file melebihi batas (Maks. 5MB).' });
+      return;
+    }
+
     setSubmitting(true);
     const formData = new FormData();
     if (submissionFile) formData.append('file', submissionFile);
@@ -53,11 +59,22 @@ const SiswaAssignments = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.size > 5 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Ukuran file terlalu besar (Maks. 5MB).' });
+      e.target.value = null; // Reset input field
+      return;
+    }
+    setSubmissionFile(file);
+  };
+
   const handleSelect = (assignment) => {
     setSelectedAssignment(assignment);
     setSubmissionFile(null);
     setSubmissionLink('');
     setSubmissionText('');
+    setMessage({ type: '', text: '' });
   };
 
   const getRemaining = (deadline) => {
@@ -241,7 +258,7 @@ const SiswaAssignments = () => {
                   <div className="form-group">
                     <label>Upload File (PDF, gambar, doc, max 5MB)</label>
                     <div className="file-zone">
-                      <input type="file" onChange={(e) => setSubmissionFile(e.target.files[0])} />
+                      <input type="file" onChange={handleFileChange} />
                       <span className="helper">Klik atau tarik file ke sini</span>
                     </div>
                   </div>

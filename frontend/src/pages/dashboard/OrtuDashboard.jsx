@@ -1,90 +1,222 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import api from '../../services/api';
 import '../../styles/dashboard/ortu/ortu.css';
 
 const OrtuDashboard = () => {
+  const [loading, setLoading] = useState(true);
+
+  const [profile, setProfile] = useState({});
+  const [children, setChildren] = useState([]);
+
   const [stats, setStats] = useState({
     total_children: 0,
-    average_progress: 0
+    average_progress: 0,
+    total_materials: 0,
+    completed_tasks: 0,
   });
-  const [children, setChildren] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+
+  const [todaySchedule, setTodaySchedule] = useState([]);
+  const [recentTasks, setRecentTasks] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    loadDashboard();
   }, []);
 
-  const fetchData = async () => {
+  const loadDashboard = async () => {
     try {
-      const statsResponse = await api.get('/dashboard/stats');
-      setStats(statsResponse.data);
-      
-      // Fetch children list
-      const childrenResponse = await api.get('/users/children');
-      setChildren(childrenResponse.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Gagal memuat data dashboard');
+      const [
+        profileRes,
+        statsRes,
+        progressRes,
+        scheduleRes,
+        submissionRes
+      ] = await Promise.allSettled([
+        api.get('/profile'),
+        api.get('/dashboard/stats'),
+        api.get('/progress'),
+        api.get('/schedules'),
+        api.get('/submissions')
+      ]);
+
+      if (profileRes.status === 'fulfilled') {
+        setProfile(profileRes.value.data);
+      }
+
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data);
+      }
+
+      if (progressRes.status === 'fulfilled') {
+        setChildren(progressRes.value.data || []);
+      }
+
+      if (scheduleRes.status === 'fulfilled') {
+        setTodaySchedule(scheduleRes.value.data || []);
+      }
+
+      if (submissionRes.status === 'fulfilled') {
+        setRecentTasks(submissionRes.value.data || []);
+      }
+
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="loading">Loading dashboard...</div>;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <div className="ortu-loading">
+        Memuat Dashboard...
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h2 style={{ marginBottom: '20px' }}>Dashboard Orang Tua</h2>
-      
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon">👨‍👩‍👧</div>
-          <div className="stat-number">{stats.total_children}</div>
-          <div className="stat-label">Anak Terdaftar</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon">📈</div>
-          <div className="stat-number">{stats.average_progress}%</div>
-          <div className="stat-label">Rata-rata Progress</div>
-        </div>
+    <div className="ortu-dashboard">
+
+      {/* Header */}
+
+      <div className="ortu-header">
+        <h2>
+          Halo, {profile.full_name}
+        </h2>
+
+        <p>
+          Pantau perkembangan belajar anak Anda
+        </p>
       </div>
 
-      <div style={{ marginTop: '30px', background: 'white', padding: '20px', borderRadius: '10px' }}>
-        <h3 className="section-title">Progress Anak</h3>
+      {/* Stats */}
+
+      <div className="stats-grid">
+
+        <div className="stat-card">
+          <span>👨‍👩‍👧</span>
+          <h3>{stats.total_children || 0}</h3>
+          <p>Anak Terdaftar</p>
+        </div>
+
+        <div className="stat-card">
+          <span>📚</span>
+          <h3>{stats.total_materials || 0}</h3>
+          <p>Materi Selesai</p>
+        </div>
+
+        <div className="stat-card">
+          <span>📝</span>
+          <h3>{stats.completed_tasks || 0}</h3>
+          <p>Tugas Selesai</p>
+        </div>
+
+        <div className="stat-card">
+          <span>📈</span>
+          <h3>{stats.average_progress || 0}%</h3>
+          <p>Progress Belajar</p>
+        </div>
+
+      </div>
+
+      {/* Anak */}
+
+      <div className="card-section">
+
+        <h3>Anak Terhubung</h3>
+
         {children.length === 0 ? (
-          <p>Belum ada anak terdaftar</p>
+          <p>Belum ada data anak.</p>
         ) : (
-          children.map(child => (
-            <div key={child.id} className="course-card" style={{ marginBottom: '15px' }}>
-              <div className="course-content">
+          children.map((child) => (
+            <div
+              key={child._id}
+              className="child-card"
+            >
+              <div className="child-top">
                 <h4>{child.full_name}</h4>
-                <p style={{ color: '#666', fontSize: '14px', marginBottom: '10px' }}>NIS: {child.nis}</p>
-                <div className="course-progress">
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${child.progress || 0}%` }}></div>
-                  </div>
-                  <p style={{ marginTop: '5px', fontSize: '14px' }}>Progress: {child.progress || 0}%</p>
+                <span>{child.class_name}</span>
+              </div>
+
+              <div className="progress-wrapper">
+
+                <div className="progress-bar">
+                  <div
+                    className="progress-fill"
+                    style={{
+                      width: `${child.progress || 0}%`
+                    }}
+                  />
                 </div>
+
+                <p>
+                  Progress {child.progress || 0}%
+                </p>
+
+              </div>
+
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Jadwal */}
+
+      <div className="card-section">
+
+        <h3>Jadwal Hari Ini</h3>
+
+        {todaySchedule.length === 0 ? (
+          <p>Tidak ada jadwal.</p>
+        ) : (
+          todaySchedule.map((item) => (
+            <div
+              key={item._id}
+              className="schedule-item"
+            >
+              <div>
+
+                <strong>
+                  {item.subject_name}
+                </strong>
+
+                <p>
+                  {item.start_time}
+                  {' - '}
+                  {item.end_time}
+                </p>
+
               </div>
             </div>
           ))
         )}
       </div>
-      
-      <div style={{ marginTop: '30px', background: 'white', padding: '20px', borderRadius: '10px' }}>
-        <h3 className="section-title">Akses Cepat</h3>
-        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <button className="btn btn-secondary">Lihat Laporan Lengkap</button>
-          <button className="btn btn-primary">Hubungi Guru</button>
-        </div>
+
+      {/* Tugas */}
+
+      <div className="card-section">
+
+        <h3>Tugas Terbaru</h3>
+
+        {recentTasks.length === 0 ? (
+          <p>Tidak ada tugas.</p>
+        ) : (
+          recentTasks.slice(0, 5).map((task) => (
+            <div
+              key={task._id}
+              className="task-item"
+            >
+              <strong>
+                {task.title}
+              </strong>
+
+              <span>
+                {task.status}
+              </span>
+            </div>
+          ))
+        )}
       </div>
+
     </div>
   );
 };

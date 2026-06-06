@@ -41,8 +41,10 @@ const SiswaMaterials = () => {
   const [slides, setSlides] = useState([]);
   const [saving, setSaving] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [previewReady, setPreviewReady] = useState(false);
   const videoRef = useRef(null);
   const videoTimerRef = useRef(null);
+  const previewTimerRef = useRef(null);
 
   const fetchMaterials = useCallback(async () => {
     try {
@@ -62,6 +64,7 @@ const SiswaMaterials = () => {
   useEffect(() => {
     return () => {
       if (videoTimerRef.current) clearTimeout(videoTimerRef.current);
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
     };
   }, []);
 
@@ -104,10 +107,17 @@ const SiswaMaterials = () => {
     setSlides(parsedSlides);
     setCurrentSlide(safeSlide);
     setVideoReady(false);
+    setPreviewReady(false);
 
     if (videoTimerRef.current) clearTimeout(videoTimerRef.current);
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+
     if (type === 'video' || type === 'video-file') {
       videoTimerRef.current = setTimeout(() => setVideoReady(true), 15000);
+    }
+
+    if (type === 'file' || type === 'link') {
+      previewTimerRef.current = setTimeout(() => setPreviewReady(true), 8000);
     }
   };
 
@@ -317,35 +327,59 @@ const SiswaMaterials = () => {
           {(type === 'file' || type === 'link') && (
             <div className="file-viewer">
               {selectedMaterial.file_url && (
-                <a
-                  href={`${baseURL}${selectedMaterial.file_url}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="file-link"
-                >
-                  <span className="material-symbols-outlined">attach_file</span>
-                  Buka Lampiran: {selectedMaterial.file_name || 'Unduh File'}
-                </a>
+                <div className="preview-block">
+                  {selectedMaterial.file_url.match(/\.(png|jpe?g|gif|svg)$/i) ? (
+                    <img
+                      src={`${baseURL}${selectedMaterial.file_url}`}
+                      alt={selectedMaterial.title}
+                      className="preview-image"
+                      onLoad={() => setPreviewReady(true)}
+                    />
+                  ) : (
+                    <iframe
+                      title={selectedMaterial.title}
+                      src={`${baseURL}${selectedMaterial.file_url}`}
+                      className="preview-iframe"
+                      onLoad={() => setPreviewReady(true)}
+                    />
+                  )}
+                </div>
               )}
+
               {selectedMaterial.external_link && (
+                <div className="preview-block">
+                  <iframe
+                    title={selectedMaterial.title}
+                    src={selectedMaterial.external_link}
+                    className="preview-iframe"
+                    onLoad={() => setPreviewReady(true)}
+                  />
+                </div>
+              )}
+
+              <div className="preview-note">
+                Materi ditampilkan langsung di sini. Jika pratinjau tidak muncul, coba buka tautan di tab baru.
+              </div>
+              {(selectedMaterial.file_url || selectedMaterial.external_link) && (
                 <a
-                  href={selectedMaterial.external_link}
+                  href={selectedMaterial.external_link || `${baseURL}${selectedMaterial.file_url}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="file-link"
                 >
-                  <span className="material-symbols-outlined">link</span>
-                  Buka Link Materi
+                  <span className="material-symbols-outlined">open_in_new</span>
+                  Buka di Tab Baru
                 </a>
               )}
+
               {!isCompleted && (
                 <button
                   type="button"
                   className="btn-complete"
-                  disabled={saving}
+                  disabled={saving || !previewReady}
                   onClick={handleCompleteFile}
                 >
-                  Saya Sudah Membaca / Menonton
+                  {previewReady ? 'Tandai Selesai' : 'Tunggu pratinjau aktif...'}
                 </button>
               )}
             </div>

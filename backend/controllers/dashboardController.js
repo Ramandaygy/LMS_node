@@ -53,3 +53,50 @@ exports.getDashboardStats =
       });
     }
   };
+
+  exports.getParentDashboard = async (req, res) => {
+    try {
+  
+      const parentId = req.user.id;
+  
+      const parent =
+        await mongoose.connection
+          .collection('users_ortu')
+          .findOne({
+            _id: new mongoose.Types.ObjectId(parentId)
+          });
+  
+      if (!parent) {
+        return res.status(404).json({
+          success:false,
+          message:'Parent not found'
+        });
+      }
+  
+      const childrenIds =
+        parent.children || [];
+  
+      const students =
+        await mongoose.connection
+          .collection('users_siswa')
+          .find({
+            _id: {
+              $in: childrenIds
+            }
+          })
+          .toArray();
+  
+      return res.json({
+        success:true,
+        total_children: students.length,
+        children: students
+      });
+  
+    } catch(err){
+      console.error(err);
+      res.status(500).json({
+        success:false,
+        error:err.message
+      });
+    }
+  };

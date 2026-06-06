@@ -1,0 +1,299 @@
+.guru-progress-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.guru-progress-container h2 {
+  color: #333;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+.guru-progress-container h3 {
+  color: #444;
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+}
+
+.class-selector,
+.sort-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.class-selector label,
+.sort-selector label {
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.class-selector select,
+.sort-selector select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+  min-width: 200px;
+}
+
+.class-selector select:hover,
+.sort-selector select:hover {
+  border-color: #007bff;
+}
+
+.class-selector select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* Messages */
+.error-message {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.loading-message,
+.no-data-message {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  padding: 20px;
+  border-radius: 4px;
+  text-align: center;
+  color: #666;
+  margin: 20px 0;
+}
+
+/* Table */
+.students-table {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 200px 100px 150px 150px 150px 150px;
+  gap: 15px;
+  padding: 15px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  position: sticky;
+  top: 0;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 200px 100px 150px 150px 150px 150px;
+  gap: 15px;
+  padding: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  align-items: center;
+}
+
+.table-row:hover {
+  background-color: #f9f9f9;
+}
+
+.col-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.col-nis {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Progress Inline */
+.progress-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.progress-inline .value {
+  font-weight: 600;
+  color: #007bff;
+  font-size: 14px;
+}
+
+.mini-bar {
+  background-color: #f0f0f0;
+  border-radius: 4px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.mini-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Risk Badge */
+.risk-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid;
+  text-align: center;
+  min-width: 70px;
+}
+
+.risk-badge.risk-high {
+  background-color: #ffe6e6;
+  color: #cc0000;
+  border-color: #ff6b6b;
+}
+
+.risk-badge.risk-medium {
+  background-color: #fff3e0;
+  color: #e65100;
+  border-color: #ffb700;
+}
+
+.risk-badge.risk-low {
+  background-color: #e6f7e6;
+  color: #1b5e20;
+  border-color: #6bcf7f;
+}
+
+.risk-message {
+  font-size: 12px;
+  color: #888;
+  margin-top: 3px;
+  margin-bottom: 0;
+}
+
+/* Statistics Section */
+.statistics-section {
+  background: #f9f9f9;
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.stat-card {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border-left: 4px solid #007bff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 8px 0;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: bold;
+  color: #007bff;
+  margin: 0;
+}
+
+.stat-risk-high {
+  color: #ff6b6b;
+}
+
+.stat-risk-medium {
+  color: #ffb700;
+}
+
+.stat-risk-low {
+  color: #6bcf7f;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 150px 80px 120px 120px 120px 120px;
+    gap: 10px;
+  }
+
+  .col-name {
+    font-size: 14px;
+  }
+
+  .progress-inline .value {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .filter-section {
+    flex-direction: column;
+  }
+
+  .class-selector,
+  .sort-selector {
+    width: 100%;
+  }
+
+  .class-selector select,
+  .sort-selector select {
+    min-width: 100%;
+  }
+
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    border: 1px solid #e0e0e0;
+    margin-bottom: 10px;
+    border-radius: 4px;
+    background: white;
+    padding: 10px;
+  }
+
+  .col-name::before { content: "Nama: "; font-weight: 600; }
+  .col-nis::before { content: "NIS: "; font-weight: 600; }
+  .col-score::before { content: "Nilai: "; font-weight: 600; }
+  .col-attendance::before { content: "Kehadiran: "; font-weight: 600; }
+  .col-material::before { content: "Materi: "; font-weight: 600; }
+  .col-risk::before { content: "Status: "; font-weight: 600; }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
