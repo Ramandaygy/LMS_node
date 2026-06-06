@@ -2,11 +2,28 @@ const mongoose = require('mongoose');
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Atlas connected: ${conn.connection.host}`);
+
+    console.log(
+      'MONGO_URI exists:',
+      !!process.env.MONGO_URI
+    );
+
+    await mongoose.connect(
+      process.env.MONGO_URI
+    );
+
+    console.log(
+      'MongoDB Connected'
+    );
+
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+
+    console.error(
+      'Mongo Error:',
+      error
+    );
+
+    throw error;
   }
 };
 
