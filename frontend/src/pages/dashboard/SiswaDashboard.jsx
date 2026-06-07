@@ -1,7 +1,6 @@
-// src/pages/dashboard/siswa/SiswaDashboard.jsx
 import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
-import '../../../styles/dashboard/siswa/siswa.css'; // CSS baru
+import api from '../../services/api'; // dari dashboard naik ke pages, lalu ke src, lalu services
+import '../../styles/dashboard/siswa/siswa.css';// CSS baru
 
 const SiswaDashboard = () => {
   const [user, setUser] = useState(null);
