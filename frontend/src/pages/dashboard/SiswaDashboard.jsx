@@ -1,192 +1,179 @@
+// src/pages/dashboard/siswa/SiswaDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
-import '../../../styles/dashboard/siswa/siswa-dashboard.css'; // CSS khusus dashboard
+import '../../../styles/dashboard/siswa/siswa.css'; // CSS baru
 
 const SiswaDashboard = () => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState({ materi: 0, poin: 0, poinHariIni: 0 });
-  const [assignments, setAssignments] = useState([]);
+  const [stats, setStats] = useState({ enrolled_courses: 0, overall_progress: 0, upcoming_deadlines: 0, completed_assignments: 0 });
   const [schedules, setSchedules] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [grades, setGrades] = useState([]);
-  const [currentLesson, setCurrentLesson] = useState({
-    name: 'Matematika: Bangun Ruang Sisi Datar',
-    room: 'Ruang Lab-A',
-    teacher: 'Bpk. Suwardi',
-    progress: 78
-  });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchData();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
-      // Ambil profil user
       const profileRes = await api.get('/profile');
       const userData = profileRes.data;
       setUser(userData);
 
-      // Ambil progress / poin (asumsikan ada /siswa/progress)
-      try {
-        const progressRes = await api.get('/siswa/progress');
-        setProgress(progressRes.data);
-      } catch {
-        setProgress({ materi: 78, poin: 1240, poinHariIni: 15 });
-      }
+      const statsRes = await api.get('/dashboard/stats');
+      setStats(statsRes.data);
 
-      // Ambil tugas mendatang
-      try {
-        const tasksRes = await api.get('/assignments/siswa/me');
-        const upcoming = (tasksRes.data.data || []).filter(t => !t.submitted).slice(0, 2);
-        setAssignments(upcoming);
-      } catch {
-        setAssignments([]);
-      }
+      // dummy schedule (nanti bisa diganti API)
+      setSchedules([
+        { time: '08:00', name: 'Bahasa Inggris', room: 'Modul Reading', isCurrent: true },
+        { time: '10:30', name: 'Istirahat', room: '', isCurrent: false },
+        { time: '13:15', name: 'Pendidikan Jasmani', room: 'Praktek Basket', isCurrent: false }
+      ]);
 
-      // Ambil jadwal hari ini
-      try {
-        const scheduleRes = await api.get('/schedules?today=true');
-        setSchedules(scheduleRes.data.data || []);
-      } catch {
-        setSchedules([
-          { time: '08:00', name: 'Bahasa Inggris', room: 'Modul Reading', isCurrent: true },
-          { time: '10:30', name: 'Istirahat', room: '', isCurrent: false },
-          { time: '13:15', name: 'Pendidikan Jasmani', room: 'Praktek Basket', isCurrent: false }
-        ]);
-      }
+      // dummy assignments
+      setAssignments([
+        { title: 'Analisis Puisi Baru', subject: 'Bahasa Indonesia', deadline: 'Besok, 09:00', urgent: true },
+        { title: 'Laporan Praktikum IPA', subject: 'Biologi', deadline: '3 Hari Lagi', urgent: false }
+      ]);
 
-      // Ambil nilai terbaru
-      try {
-        const gradesRes = await api.get('/siswa/grades?limit=2');
-        setGrades(gradesRes.data.data || []);
-      } catch {
-        setGrades([
-          { subject: 'Sejarah Indonesia', assignment: 'Kuis Orde Baru', score: 92, label: 'TINGGI' },
-          { subject: 'Basa Jawa', assignment: 'Aksara Murda', score: 85, label: 'RATA-RATA' }
-        ]);
-      }
+      // dummy grades
+      setGrades([
+        { subject: 'Sejarah Indonesia', assignment: 'Kuis Orde Baru', score: 92, label: 'TINGGI' },
+        { subject: 'Basa Jawa', assignment: 'Aksara Murda', score: 85, label: 'RATA-RATA' }
+      ]);
 
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Memuat dashboard...</p>
-      </div>
-    );
-  }
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  if (loading) return <div className="loading">Memuat dashboard...</div>;
 
   return (
-    <div className="siswa-dashboard-modern">
-      {/* Bagian Hero: Welcome + Progress */}
-      <div className="hero-grid">
-        <div className="welcome-card">
-          <div className="welcome-badge">Pelajaran Sekarang</div>
-          <h2>{currentLesson.name}</h2>
-          <p className="class-info">{currentLesson.room} • Guru: {currentLesson.teacher}</p>
-          <div className="progress-wrapper">
-            <div className="progress-label">
-              <span>Progress Materi</span>
-              <span className="progress-percent">{currentLesson.progress}%</span>
-            </div>
-            <div className="progress-bar-bg">
-              <div className="progress-bar-fill" style={{ width: `${currentLesson.progress}%` }}></div>
-            </div>
+    <div className="siswa-dashboard">
+      {/* Header */}
+      <header className="dashboard-header">
+        <div className="header-left">
+          <div className="avatar">
+            {user?.profileImage ? <img src={user.profileImage} alt="avatar" /> : <span className="material-symbols-outlined">account_circle</span>}
+          </div>
+          <div>
+            <h1 className="school-name">SMP N 1 LMS</h1>
+            <p className="user-greeting">Halo, {user?.full_name || 'Siswa'}</p>
           </div>
         </div>
-        <div className="points-card">
-          <div className="points-icon">⭐</div>
-          <div className="points-info">
-            <span className="points-label">Poin Akademik</span>
-            <span className="points-value">{progress.poin}</span>
-            <span className="points-today">+{progress.poinHariIni} Hari Ini</span>
+        <button className="hamburger" onClick={toggleMenu}>
+          <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
+        </button>
+      </header>
+
+      {/* Overlay menu (slide from right) */}
+      <div className={`menu-overlay ${menuOpen ? 'open' : ''}`} onClick={toggleMenu}></div>
+      <nav className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
+        <ul>
+          <li><a href="/dashboard/siswa"><span className="material-symbols-outlined">dashboard</span> Dashboard</a></li>
+          <li><a href="/dashboard/siswa/courses"><span className="material-symbols-outlined">auto_stories</span> Courses</a></li>
+          <li><a href="/dashboard/siswa/schedule"><span className="material-symbols-outlined">calendar_today</span> Schedule</a></li>
+          <li><a href="/dashboard/siswa/grades"><span className="material-symbols-outlined">leaderboard</span> Grades</a></li>
+          <li><a href="/profile"><span className="material-symbols-outlined">person</span> Profile</a></li>
+        </ul>
+      </nav>
+
+      <main className="dashboard-main">
+        {/* Hero bento grid */}
+        <div className="hero-grid">
+          <div className="hero-card featured">
+            <div className="badge">Pelajaran Sekarang</div>
+            <h2>Matematika: Bangun Ruang Sisi Datar</h2>
+            <p>Ruang Lab-A • Guru: Bpk. Suwardi</p>
+            <div className="progress-wrapper">
+              <div className="progress-label">Progress Materi <span>78%</span></div>
+              <div className="progress-bar"><div className="progress-fill" style={{ width: '78%' }}></div></div>
+            </div>
+            <div className="bg-deco"></div>
+          </div>
+          <div className="hero-card points">
+            <span className="material-symbols-outlined">star</span>
+            <div className="points-value">{stats.enrolled_courses * 100 + stats.overall_progress * 10 || 1240}</div>
+            <div className="points-label">Poin Akademik</div>
+            <div className="points-today">+15 Hari Ini</div>
           </div>
         </div>
-      </div>
 
-      {/* Jadwal Hari Ini */}
-      <section className="schedule-section">
-        <div className="section-header">
-          <h3>Jadwal Hari Ini</h3>
-          <button className="link-button">Lihat Kalender</button>
-        </div>
-        <div className="schedule-horizontal">
-          {schedules.map((item, idx) => (
-            <div key={idx} className={`schedule-card ${item.isCurrent ? 'current' : ''}`}>
-              <div className="schedule-time">
-                <span className="hour">{item.time.split(':')[0]}:{item.time.split(':')[1]}</span>
-                <span className="period">{parseInt(item.time) < 12 ? 'Pagi' : 'Siang'}</span>
-              </div>
-              <div className="schedule-info">
-                <h4>{item.name}</h4>
-                {item.room && <p>{item.room}</p>}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Tugas Mendatang & Nilai Terbaru */}
-      <div className="two-columns">
-        <div className="assignments-column">
+        {/* Jadwal hari ini */}
+        <section className="schedule-section">
           <div className="section-header">
-            <h3>Tugas Mendatang</h3>
-            <button className="link-button">Selengkapnya</button>
+            <h3>Jadwal Hari Ini</h3>
+            <a href="#" className="link">Lihat Kalender</a>
           </div>
-          <div className="task-list">
-            {assignments.length === 0 && <p className="empty-message">Tidak ada tugas mendatang</p>}
+          <div className="schedule-scroll">
+            {schedules.map((item, idx) => (
+              <div key={idx} className={`schedule-card ${item.isCurrent ? 'current' : ''}`}>
+                <div className="time">{item.time}</div>
+                <div className="schedule-info">
+                  <h4>{item.name}</h4>
+                  {item.room && <p>{item.room}</p>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Tugas dan Nilai */}
+        <div className="two-columns">
+          <div className="assignments-section">
+            <div className="section-header">
+              <h3>Tugas Mendatang</h3>
+              <span className="material-symbols-outlined">more_horiz</span>
+            </div>
             {assignments.map((task, idx) => (
-              <div key={idx} className="task-item">
-                <div className="task-icon">📘</div>
+              <div key={idx} className="task-card">
+                <div className="task-icon"><span className="material-symbols-outlined">history_edu</span></div>
                 <div className="task-details">
                   <h4>{task.title}</h4>
-                  <p>{task.subject_name} • {new Date(task.deadline).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p>{task.subject} • {task.deadline}</p>
                 </div>
-                <span className="task-urgency">{new Date(task.deadline) - new Date() < 86400000 ? 'Urgent' : 'Dalam Proses'}</span>
+                <div className={`task-badge ${task.urgent ? 'urgent' : ''}`}>{task.urgent ? 'Urgent' : 'Dalam Proses'}</div>
               </div>
             ))}
           </div>
-        </div>
-
-        <div className="grades-column">
-          <div className="section-header">
-            <h3>Nilai Terbaru</h3>
-            <button className="link-button">Rincian</button>
-          </div>
-          <div className="grades-list">
-            {grades.map((grade, idx) => (
-              <div key={idx} className="grade-item">
-                <div className="grade-icon">📖</div>
-                <div className="grade-details">
-                  <h4>{grade.subject}</h4>
-                  <p>{grade.assignment}</p>
+          <div className="grades-section">
+            <div className="section-header">
+              <h3>Nilai Terbaru</h3>
+              <a href="#" className="link">Rincian</a>
+            </div>
+            <div className="grades-list">
+              {grades.map((grade, idx) => (
+                <div key={idx} className="grade-card">
+                  <div className="grade-icon"><span className="material-symbols-outlined">book</span></div>
+                  <div>
+                    <h4>{grade.subject}</h4>
+                    <p>{grade.assignment}</p>
+                  </div>
+                  <div className="grade-score">{grade.score}</div>
+                  <div className="grade-label">{grade.label}</div>
                 </div>
-                <div className="grade-score">
-                  <span className="score-number">{grade.score}</span>
-                  <span className="score-label">{grade.label}</span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tantangan Mingguan */}
-      <div className="challenge-card">
-        <div className="challenge-content">
-          <h3>Tantangan Mingguan: Jago Aljabar!</h3>
-          <p>Selesaikan 5 latihan tambahan untuk mendapatkan badge 'Mathematician'.</p>
-          <button className="challenge-button">Mulai Sekarang</button>
+        {/* Tantangan */}
+        <div className="challenge-card">
+          <div className="challenge-text">
+            <h3>Tantangan Mingguan: Jago Aljabar!</h3>
+            <p>Selesaikan 5 latihan tambahan untuk mendapatkan badge 'Mathematician'.</p>
+            <button className="btn-challenge">Mulai Sekarang</button>
+          </div>
+          <div className="challenge-deco"></div>
         </div>
-        <div className="challenge-decoration">🏆</div>
-      </div>
+      </main>
     </div>
   );
 };
