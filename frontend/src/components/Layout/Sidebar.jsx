@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { profileService } from '../../services/profile';
 import '../../styles/components/sidebar.css';
 
-const Sidebar = ({ role, activeMenu, onMenuChange }) => {
+const Sidebar = ({  role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
@@ -57,7 +57,6 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
     ],
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
-      { key: 'my-courses', label: 'Kursus Saya', icon: 'menu_book', path: '/dashboard/siswa/courses' },
       { key: 'progress', label: 'Progress', icon: 'trending_up', path: '/dashboard/siswa/progress' },
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/siswa/assignments' },
       { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/siswa/materials' },
@@ -74,10 +73,6 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
   const currentMenus = menus[role] || menus.siswa;
   const roleNames = { admin: 'ADMINISTRATOR', guru: 'GURU', siswa: 'SISWA', ortu: 'ORANG TUA' };
 
-  const handleMenuClick = (menu) => {
-    onMenuChange(menu.key);
-    navigate(menu.path);
-  };
 
   const getActiveKeyFromPath = () => {
     const currentPath = location.pathname;
@@ -105,6 +100,12 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
   }, [location.pathname]);
 
   const activeKey = getActiveKeyFromPath();
+
+  const handleMenuClick = (menu) => {
+    onMenuChange(menu.key);
+    navigate(menu.path);
+    if (onClose) onClose(); // tutup sidebar setelah klik menu (di mobile)
+  };
 
   // Handle logout
   const handleLogout = () => {
@@ -137,51 +138,50 @@ const Sidebar = ({ role, activeMenu, onMenuChange }) => {
   };
 
   return (
-    <aside className="sidebar-modern">
-      {/* Dynamic User Profile Section - DI ATAS */}
-      <div className="sidebar-user-info">
-        <div className="sidebar-user-avatar">
-          {user?.profile?.avatar ? (
-            <img src={user.profile.avatar} alt="Avatar" />
-          ) : (
-            <span className="avatar-initials">{getInitials(getDisplayName())}</span>
-          )}
-        </div>
-        <div className="sidebar-user-details">
-          <p className="sidebar-user-name">{getDisplayName()}</p>
-          <p className="sidebar-user-role">{getDisplayRole()}</p>
-        </div>
-      </div>
-
-      {/* Navigation Menu */}
-      <nav className="sidebar-nav">
-        {currentMenus.map(menu => (
-          <a
-            key={menu.key}
-            className={`sidebar-nav-item ${activeKey === menu.key ? 'active' : ''}`}
-            onClick={() => handleMenuClick(menu)}
-          >
-            <span className="material-symbols-outlined">{menu.icon}</span>
-            <span>{menu.label}</span>
-          </a>
-        ))}
-      </nav>
-
-      {/* Bottom Actions */}
-      <div className="sidebar-footer">
-
-        <div className="sidebar-footer-links">
-          <div className="sidebar-footer-link" onClick={handleProfile}>
-            <span className="material-symbols-outlined">account_circle</span>
-            Profil Saya
+    <>
+      <aside className={`sidebar-modern ${isOpen ? 'open' : ''}`}>
+        {/* Konten sidebar (user info, menu, footer) sama persis seperti sebelumnya */}
+        <div className="sidebar-user-info">
+          <div className="sidebar-user-avatar">
+            {user?.profile?.avatar ? (
+              <img src={user.profile.avatar} alt="Avatar" />
+            ) : (
+              <span className="avatar-initials">{getInitials(getDisplayName())}</span>
+            )}
           </div>
-          <div className="sidebar-footer-link" onClick={handleLogout}>
-            <span className="material-symbols-outlined">logout</span>
-            Logout
+          <div className="sidebar-user-details">
+            <p className="sidebar-user-name">{getDisplayName()}</p>
+            <p className="sidebar-user-role">{getDisplayRole()}</p>
           </div>
         </div>
-      </div>
-    </aside>
+
+        <nav className="sidebar-nav">
+          {currentMenus.map(menu => (
+            <a
+              key={menu.key}
+              className={`sidebar-nav-item ${activeKey === menu.key ? 'active' : ''}`}
+              onClick={() => handleMenuClick(menu)}
+            >
+              <span className="material-symbols-outlined">{menu.icon}</span>
+              <span>{menu.label}</span>
+            </a>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-links">
+            <div className="sidebar-footer-link" onClick={handleProfile}>
+              <span className="material-symbols-outlined">account_circle</span>
+              Profil Saya
+            </div>
+            <div className="sidebar-footer-link" onClick={handleLogout}>
+              <span className="material-symbols-outlined">logout</span>
+              Logout
+            </div>
+          </div>
+        </div>
+      </aside>
+    </>
   );
 };
 

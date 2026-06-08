@@ -1,74 +1,87 @@
-/* ============================================ */
-/* SIDEBAR MODERN STYLES                       */
-/* ============================================ */
+/* ======================================== */
+/* SIDEBAR MODERN - DENGAN RESPONSIVE BUKA/TUTUP */
+/* ======================================== */
 
+/* DESKTOP (default) */
 .sidebar-modern {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  z-index: 50;
+  width: 280px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-right: 1px solid rgba(0, 64, 161, 0.08);
   display: flex;
   flex-direction: column;
-  width: 280px;
   height: 100vh;
-  background: #f8fafc;
-  border-right: 1px solid #e2e8f0;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  position: sticky;
+  top: 0;
+  transition: transform 0.3s ease;
+  z-index: 100;
   overflow-y: auto;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02);
 }
 
-/* Logo Section */
-.sidebar-logo {
+/* User profile section */
+.sidebar-user-info {
+  padding: 24px 20px;
+  border-bottom: 1px solid rgba(0, 64, 161, 0.08);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 24px 20px;
-  border-bottom: 1px solid #e2e8f0;
 }
 
-.sidebar-logo-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
+.sidebar-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #0040a1, #0056d2);
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+  box-shadow: 0 4px 8px rgba(0, 64, 161, 0.2);
 }
 
-.sidebar-logo-img {
+.sidebar-user-avatar img {
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.sidebar-logo-icon span {
-  font-size: 24px;
-  color: white;
-}
-
-.sidebar-title {
+.avatar-initials {
+  font-weight: 600;
   font-size: 18px;
-  font-weight: 700;
-  color: #1e3a5f;
-  line-height: 1.2;
 }
 
-.sidebar-subtitle {
-  font-size: 10px;
+.sidebar-user-details {
+  flex: 1;
+}
+
+.sidebar-user-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: #191c1e;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.sidebar-user-role {
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: #64748b;
-  margin-top: 2px;
+  letter-spacing: 0.5px;
+  color: #0040a1;
+  background: #dae2ff;
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 30px;
+  margin: 0;
 }
 
-/* Navigation Menu */
+/* Navigation menu */
 .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 20px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -80,185 +93,166 @@
   gap: 12px;
   padding: 12px 16px;
   border-radius: 12px;
-  font-size: 14px;
+  color: #424654;
   font-weight: 500;
-  color: #475569;
-  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s;
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sidebar-nav-item span:first-child {
-  font-size: 20px;
+  text-decoration: none;
 }
 
 .sidebar-nav-item:hover {
-  background: #f1f5f9;
+  background-color: #f0f2f5;
   color: #0040a1;
 }
 
 .sidebar-nav-item.active {
-  background: #ffffff;
+  background: linear-gradient(95deg, #dae2ff, #e8edff);
   color: #0040a1;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  border-left: 3px solid #feb700;
+  position: relative;
 }
 
-/* Bottom Actions */
+.sidebar-nav-item .material-symbols-outlined {
+  font-size: 22px;
+  width: 28px;
+}
+
+/* Footer */
 .sidebar-footer {
-  padding: 20px;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.sidebar-btn-primary {
-  width: 100%;
-  background: #0040a1;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 40px;
-  font-weight: 700;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sidebar-btn-primary:hover {
-  background: #003080;
-  transform: scale(0.98);
-}
-
-.sidebar-btn-primary span {
-  font-size: 18px;
+  padding: 20px 16px 24px;
+  border-top: 1px solid rgba(0, 64, 161, 0.08);
+  margin-top: auto;
 }
 
 .sidebar-footer-links {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .sidebar-footer-link {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: #424654;
   font-weight: 500;
-  color: #64748b;
-  text-decoration: none;
-  border-radius: 8px;
-  transition: all 0.2s;
+  font-size: 14px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .sidebar-footer-link:hover {
-  background: #f1f5f9;
+  background-color: #f0f2f5;
   color: #0040a1;
 }
 
-.sidebar-footer-link span {
-  font-size: 18px;
+.sidebar-footer-link .material-symbols-outlined {
+  font-size: 20px;
 }
 
-/* Scrollbar */
+/* ========== RESPONSIVE (BUKA/TUTUP) ========== */
+/* Overlay untuk mobile (di luar sidebar) */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+
+/* Tombol hamburger (disembunyikan di desktop) */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 101;
+  background: #0040a1;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 64, 161, 0.3);
+  transition: all 0.2s;
+}
+
+.mobile-menu-btn:hover {
+  background: #002e75;
+}
+
+/* Media Query untuk layar ≤ 768px (mobile/tablet) */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+
+  .sidebar-modern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    transform: translateX(-100%);
+    box-shadow: none;
+    z-index: 100;
+  }
+
+  .sidebar-modern.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .sidebar-overlay {
+    display: block;
+  }
+
+  /* Konten utama tidak perlu margin kiri di mobile */
+  .dashboard-container .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding-top: 60px; /* ruang untuk tombol hamburger */
+  }
+}
+
+/* Media Query untuk desktop (≥ 769px) */
+@media (min-width: 769px) {
+  .sidebar-modern {
+    transform: translateX(0) !important;
+    position: sticky;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+  }
+
+  .sidebar-overlay {
+    display: none;
+  }
+
+  .dashboard-container .main-content {
+    margin-left: 0;
+    flex: 1;
+    overflow-x: auto;
+  }
+}
+
+/* Optional: Smooth scroll dan custom scrollbar untuk sidebar */
 .sidebar-modern::-webkit-scrollbar {
   width: 4px;
 }
 
 .sidebar-modern::-webkit-scrollbar-track {
-  background: #e2e8f0;
+  background: #f1f1f1;
 }
 
 .sidebar-modern::-webkit-scrollbar-thumb {
-  background: #94a3b8;
+  background: #c1c1c1;
   border-radius: 4px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .sidebar-modern {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    z-index: 100;
-  }
-  
-  .sidebar-modern.open {
-    transform: translateX(0);
-  }
-}
-
-/* ============================================ */
-/* DYNAMIC USER PROFILE IN SIDEBAR - DI ATAS   */
-/* ============================================ */
-
-.sidebar-user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  margin: 16px;
-  background: linear-gradient(135deg, #e8f4ff, #d4e4ff);
-  border-radius: 20px;
-  transition: all 0.3s ease;
-}
-
-.sidebar-user-info:hover {
-  background: linear-gradient(135deg, #d4e4ff, #c0d4ff);
-}
-
-.sidebar-user-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0040a1, #0056d2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.sidebar-user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-initials {
-  font-size: 20px;
-  font-weight: 700;
-  color: white;
-  text-transform: uppercase;
-}
-
-.sidebar-user-details {
-  flex: 1;
-  overflow: hidden;
-}
-
-.sidebar-user-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1a2e;
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-user-role {
-  font-size: 10px;
-  font-weight: 600;
-  color: #6c757d;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }

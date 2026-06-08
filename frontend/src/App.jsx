@@ -175,15 +175,24 @@ function App() {
   // ============================================
   // DASHBOARD LAYOUT
   // ============================================
+  // App.jsx
   const DashboardLayout = ({ children, role }) => {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
     return (
       <div className="dashboard-container">
+        {/* Tombol hamburger - hanya tampil di mobile (CSS atur display) */}
+        <button className="mobile-menu-btn" onClick={toggleSidebar}>
+          <span className="material-symbols-outlined">menu</span>
+        </button>
         <Sidebar
           role={role}
           activeMenu={activeMenu}
           onMenuChange={setActiveMenu}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
         />
-
         <div className="main-content">
           {children}
         </div>

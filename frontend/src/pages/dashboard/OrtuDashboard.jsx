@@ -1,222 +1,155 @@
-import React, { useEffect, useState } from 'react';
-import api from '../../services/api';
-import '../../styles/dashboard/ortu/ortu.css';
+import React, { useState, useEffect } from 'react';
+import api from '../../../services/api';
+import '../../../styles/dashboard/ortu/ortu.css';
 
 const OrtuDashboard = () => {
-  const [loading, setLoading] = useState(true);
-
-  const [profile, setProfile] = useState({});
+  const [user, setUser] = useState(null);
   const [children, setChildren] = useState([]);
-
-  const [stats, setStats] = useState({
-    total_children: 0,
-    average_progress: 0,
-    total_materials: 0,
-    completed_tasks: 0,
-  });
-
-  const [todaySchedule, setTodaySchedule] = useState([]);
-  const [recentTasks, setRecentTasks] = useState([]);
+  const [selectedChild, setSelectedChild] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    loadDashboard();
+    fetchParentData();
   }, []);
 
-  const loadDashboard = async () => {
+  const fetchParentData = async () => {
     try {
-      const [
-        profileRes,
-        statsRes,
-        progressRes,
-        scheduleRes,
-        submissionRes
-      ] = await Promise.allSettled([
-        api.get('/profile'),
-        api.get('/dashboard/stats'),
-        api.get('/progress'),
-        api.get('/schedules'),
-        api.get('/submissions')
-      ]);
+      // Ambil profil orang tua
+      const profileRes = await api.get('/profile');
+      setUser(profileRes.data);
 
-      if (profileRes.status === 'fulfilled') {
-        setProfile(profileRes.value.data);
+      // Ambil daftar anak
+      const childrenRes = await api.get('/ortu/children');
+      const kids = childrenRes.data.children || [];
+      setChildren(kids);
+      if (kids.length > 0) {
+        setSelectedChild(kids[0]);
+        fetchProgress(kids[0].id);
       }
-
-      if (statsRes.status === 'fulfilled') {
-        setStats(statsRes.value.data);
-      }
-
-      if (progressRes.status === 'fulfilled') {
-        setChildren(progressRes.value.data || []);
-      }
-
-      if (scheduleRes.status === 'fulfilled') {
-        setTodaySchedule(scheduleRes.value.data || []);
-      }
-
-      if (submissionRes.status === 'fulfilled') {
-        setRecentTasks(submissionRes.value.data || []);
-      }
-
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching parent data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="ortu-loading">
-        Memuat Dashboard...
-      </div>
-    );
-  }
+  const fetchProgress = async (childId) => {
+    try {
+      const res = await api.get(`/ortu/children/${childId}/progress`);
+      setProgress(res.data.data);
+    } catch (err) {
+      console.error('Error fetching progress:', err);
+      setProgress(null);
+    }
+  };
+
+  const handleChildChange = (child) => {
+    setSelectedChild(child);
+    fetchProgress(child.id);
+  };
+
+  const toggleMenu = () => setMenuOpen(!menuOpen);
+
+  if (loading) return <div className="loading">Memuat dashboard...</div>;
 
   return (
     <div className="ortu-dashboard">
+      {/* Header dengan Hamburger */}
+      <header className="dashboard-header">
+        <div className="header-left">
+          <div className="avatar">
+            {user?.profileImage ? <img src={user.profileImage} alt="avatar" /> : 
+              <span className="material-symbols-outlined">account_circle</span>}
+          </div>
+          <div>
+            <h1 className="school-name">SMP N 1 LMS</h1>
+            <p className="user-greeting">Halo, {user?.full_name?.split(' ')[0] || 'Orang Tua'}</p>
+          </div>
+        </div>
+        <button className="hamburger" onClick={toggleMenu}>
+          <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
+        </button>
+      </header>
 
-      {/* Header */}
+      {/* Overlay dan Mobile Nav */}
+      <div className={`menu-overlay ${menuOpen ? 'open' : ''}`} onClick={toggleMenu}></div>
+      <nav className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
+        <ul>
+          <li><a href="/dashboard/ortu"><span className="material-symbols-outlined">dashboard</span> Dashboard</a></li>
+          <li><a href="/dashboard/ortu/children"><span className="material-symbols-outlined">groups</span> Data Anak</a></li>
+          <li><a href="/dashboard/ortu/monitoring"><span className="material-symbols-outlined">monitoring</span> Monitoring</a></li>
+          <li><a href="/profile"><span className="material-symbols-outlined">person</span> Profil</a></li>
+        </ul>
+      </nav>
 
-      <div className="ortu-header">
-        <h2>
-          Halo, {profile.full_name}
-        </h2>
-
-        <p>
-          Pantau perkembangan belajar anak Anda
-        </p>
-      </div>
-
-      {/* Stats */}
-
-      <div className="stats-grid">
-
-        <div className="stat-card">
-          <span>👨‍👩‍👧</span>
-          <h3>{stats.total_children || 0}</h3>
-          <p>Anak Terdaftar</p>
+      <main className="dashboard-main">
+        <div className="welcome-section">
+          <h2>Pantau Perkembangan Belajar Anak Anda</h2>
+          <p>Lihat progress, nilai, dan rekomendasi belajar</p>
         </div>
 
-        <div className="stat-card">
-          <span>📚</span>
-          <h3>{stats.total_materials || 0}</h3>
-          <p>Materi Selesai</p>
-        </div>
-
-        <div className="stat-card">
-          <span>📝</span>
-          <h3>{stats.completed_tasks || 0}</h3>
-          <p>Tugas Selesai</p>
-        </div>
-
-        <div className="stat-card">
-          <span>📈</span>
-          <h3>{stats.average_progress || 0}%</h3>
-          <p>Progress Belajar</p>
-        </div>
-
-      </div>
-
-      {/* Anak */}
-
-      <div className="card-section">
-
-        <h3>Anak Terhubung</h3>
-
-        {children.length === 0 ? (
-          <p>Belum ada data anak.</p>
-        ) : (
-          children.map((child) => (
-            <div
-              key={child._id}
-              className="child-card"
-            >
-              <div className="child-top">
-                <h4>{child.full_name}</h4>
-                <span>{child.class_name}</span>
-              </div>
-
-              <div className="progress-wrapper">
-
-                <div className="progress-bar">
-                  <div
-                    className="progress-fill"
-                    style={{
-                      width: `${child.progress || 0}%`
-                    }}
-                  />
-                </div>
-
-                <p>
-                  Progress {child.progress || 0}%
-                </p>
-
-              </div>
-
+        {/* Pilih Anak */}
+        {children.length > 0 && (
+          <div className="child-selector">
+            <label>Pilih Anak:</label>
+            <div className="child-buttons">
+              {children.map(child => (
+                <button
+                  key={child.id}
+                  className={`child-btn ${selectedChild?.id === child.id ? 'active' : ''}`}
+                  onClick={() => handleChildChange(child)}
+                >
+                  {child.full_name} - {child.class_name}
+                </button>
+              ))}
             </div>
-          ))
+          </div>
         )}
-      </div>
 
-      {/* Jadwal */}
-
-      <div className="card-section">
-
-        <h3>Jadwal Hari Ini</h3>
-
-        {todaySchedule.length === 0 ? (
-          <p>Tidak ada jadwal.</p>
-        ) : (
-          todaySchedule.map((item) => (
-            <div
-              key={item._id}
-              className="schedule-item"
-            >
-              <div>
-
-                <strong>
-                  {item.subject_name}
-                </strong>
-
-                <p>
-                  {item.start_time}
-                  {' - '}
-                  {item.end_time}
-                </p>
-
+        {/* Progress Card */}
+        {selectedChild && progress && (
+          <div className="progress-card">
+            <h3>Progress Belajar {selectedChild.full_name}</h3>
+            <div className="stats-grid">
+              <div className="stat-item">
+                <span className="stat-label">Rata-rata Nilai</span>
+                <span className="stat-value">{progress.avgScore?.toFixed(1) || 0}%</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-label">Kehadiran</span>
+                <span className="stat-value">{progress.attendanceRate?.toFixed(1) || 100}%</span>
+              </div>
+              <div className={`stat-item risk-${progress.risk}`}>
+                <span className="stat-label">Status</span>
+                <span className="stat-value">{progress.message || 'Normal'}</span>
               </div>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* Tugas */}
-
-      <div className="card-section">
-
-        <h3>Tugas Terbaru</h3>
-
-        {recentTasks.length === 0 ? (
-          <p>Tidak ada tugas.</p>
-        ) : (
-          recentTasks.slice(0, 5).map((task) => (
-            <div
-              key={task._id}
-              className="task-item"
-            >
-              <strong>
-                {task.title}
-              </strong>
-
-              <span>
-                {task.status}
-              </span>
+            <div className="progress-bar-container">
+              <div className="progress-label">Progress Akademik</div>
+              <div className="progress-bar">
+                <div className="progress-fill" style={{ width: `${progress.avgScore || 0}%` }}></div>
+              </div>
             </div>
-          ))
+          </div>
         )}
-      </div>
 
+        {/* Placeholder jika belum ada progress */}
+        {selectedChild && !progress && (
+          <div className="info-card">Belum ada data progress untuk anak ini.</div>
+        )}
+
+        {/* Rekomendasi Sederhana */}
+        <div className="suggestion-card">
+          <h3>Tips untuk Orang Tua</h3>
+          <ul>
+            <li>✔️ Pantau jadwal belajar anak secara rutin</li>
+            <li>✔️ Diskusikan tugas yang sulit dengan guru</li>
+            <li>✔️ Beri motivasi dan apresiasi atas usaha anak</li>
+          </ul>
+        </div>
+      </main>
     </div>
   );
 };
