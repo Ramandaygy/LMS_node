@@ -20,7 +20,6 @@ const AdminParents = () => {
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -31,7 +30,7 @@ const AdminParents = () => {
     nik: '',
     phone: '',
     children: [],
-    is_active: true
+    is_active: true,
   });
 
   useEffect(() => {
@@ -49,7 +48,6 @@ const AdminParents = () => {
     }
   }, [errorMsg, successMsg]);
 
-  // Close dropdown when click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -75,26 +73,26 @@ const AdminParents = () => {
 
   const fetchStudents = async () => {
     try {
-        const res = await api.get('/users/students/all'); // konsisten dengan AdminStudents
-        const studentsData = res.data.data || [];
-        setStudents(studentsData);
-        if (studentsData.length === 0) {
+      const res = await api.get('/users/students/all');
+      const studentsData = res.data.data || [];
+      setStudents(studentsData);
+      if (studentsData.length === 0) {
         console.warn('Tidak ada data siswa, dropdown anak akan kosong');
-        }
+      }
     } catch (err) {
-        console.error('Gagal ambil data siswa', err);
-        setErrorMsg('Gagal memuat data siswa');
+      console.error('Gagal ambil data siswa', err);
+      setErrorMsg('Gagal memuat data siswa');
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleChildrenChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({ ...prev, children: selectedOptions }));
+    const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
+    setFormData((prev) => ({ ...prev, children: selectedOptions }));
   };
 
   const handleSubmit = async (e) => {
@@ -107,7 +105,7 @@ const AdminParents = () => {
           nik: formData.nik,
           phone: formData.phone,
           children: formData.children,
-          is_active: formData.is_active
+          is_active: formData.is_active,
         };
         if (formData.password) updateData.password = formData.password;
         await api.put(`/users/parents/${editing._id}`, updateData);
@@ -132,8 +130,8 @@ const AdminParents = () => {
       password: '',
       nik: parent.nik || '',
       phone: parent.phone || '',
-      children: parent.children?.map(c => c._id || c) || [],
-      is_active: parent.is_active !== undefined ? parent.is_active : true
+      children: parent.children?.map((c) => c._id || c) || [],
+      is_active: parent.is_active !== undefined ? parent.is_active : true,
     });
     setShowModal(true);
   };
@@ -157,7 +155,7 @@ const AdminParents = () => {
       nik: '',
       phone: '',
       children: [],
-      is_active: true
+      is_active: true,
     });
     setEditing(null);
   };
@@ -167,44 +165,40 @@ const AdminParents = () => {
     setShowDetailModal(true);
   };
 
-  // Filtered data
-  const filteredParents = parents.filter(p => {
+  const filteredParents = parents.filter((p) => {
     const matchesSearch =
       p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.nik?.includes(searchTerm);
-    const matchesStatus = !selectedStatus ||
+    const matchesStatus =
+      !selectedStatus ||
       (selectedStatus === 'active' && p.is_active) ||
       (selectedStatus === 'inactive' && !p.is_active);
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination
   const totalItems = filteredParents.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredParents.slice(indexOfFirstItem, indexOfLastItem);
   const goToPage = (page) => setCurrentPage(page);
-  const goToPrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
-  const goToNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
+  const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  // Export, Import, Template (dummy - nanti diimplementasi sesuai backend)
-  const handleExport = async () => {
-    alert('Fitur export akan segera hadir');
-  };
+  const handleExport = async () => alert('Fitur export akan segera hadir');
   const handleImportClick = () => fileInputRef.current?.click();
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setImportLoading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      await api.post('/users/parents/import', formData);
+      const fd = new FormData();
+      fd.append('file', file);
+      await api.post('/users/parents/import', fd);
       setSuccessMsg('Import berhasil');
       fetchParents();
-    } catch (err) {
+    } catch {
       setErrorMsg('Gagal import data');
     } finally {
       setImportLoading(false);
@@ -214,15 +208,15 @@ const AdminParents = () => {
   const handleDownloadTemplate = async () => {
     setTemplateLoading(true);
     try {
-      const response = await api.get('/users/parents/template', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const res = await api.get('/users/parents/template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'template_orang_tua.xlsx');
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (err) {
+    } catch {
       setErrorMsg('Gagal download template');
     } finally {
       setTemplateLoading(false);
@@ -235,7 +229,6 @@ const AdminParents = () => {
     <div className="admin-parents">
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".xlsx, .xls" style={{ display: 'none' }} />
 
-      {/* Header dengan Export/Import */}
       <div className="admin-page-header">
         <div>
           <span className="admin-page-badge">Administrative Dashboard</span>
@@ -255,7 +248,7 @@ const AdminParents = () => {
                     <span className="material-symbols-outlined">family_restroom</span> Export Orang Tua
                   </button>
                 </div>
-                <div className="dropdown-divider"></div>
+                <div className="dropdown-divider" />
                 <div className="dropdown-group">
                   <div className="dropdown-group-title">IMPORT</div>
                   <button onClick={handleImportClick} disabled={importLoading}>
@@ -263,7 +256,7 @@ const AdminParents = () => {
                     {importLoading ? 'Mengimport...' : 'Import Orang Tua (Excel)'}
                   </button>
                 </div>
-                <div className="dropdown-divider"></div>
+                <div className="dropdown-divider" />
                 <div className="dropdown-group">
                   <div className="dropdown-group-title">TEMPLATE</div>
                   <button onClick={handleDownloadTemplate} disabled={templateLoading}>
@@ -280,7 +273,6 @@ const AdminParents = () => {
         </div>
       </div>
 
-      {/* Notifikasi */}
       {errorMsg && (
         <div className="notification error">
           <span className="material-symbols-outlined">error</span> {errorMsg}
@@ -294,7 +286,6 @@ const AdminParents = () => {
         </div>
       )}
 
-      {/* Statistik */}
       <div className="admin-stats-grid">
         <div className="admin-stat-card parents">
           <div className="admin-stat-header">
@@ -307,7 +298,6 @@ const AdminParents = () => {
         </div>
       </div>
 
-      {/* Filter dan Pencarian */}
       <div className="admin-table-filters">
         <div className="admin-filter-group">
           <div className="admin-filter-select">
@@ -321,11 +311,15 @@ const AdminParents = () => {
         </div>
         <div className="admin-search-wrapper">
           <span className="material-symbols-outlined">search</span>
-          <input type="text" placeholder="Cari berdasarkan nama, email, atau NIK..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input
+            type="text"
+            placeholder="Cari berdasarkan nama, email, atau NIK..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      {/* Tabel Data */}
       <div className="table-wrapper">
         <table className="data-table">
           <thead>
@@ -354,7 +348,7 @@ const AdminParents = () => {
                   <td>{parent.nik || '-'}</td>
                   <td>{parent.phone || '-'}</td>
                   <td className="children-cell">
-                    {parent.children?.map(c => c.full_name || c).join(', ') || '-'}
+                    {parent.children?.map((c) => c.full_name || c).join(', ') || '-'}
                   </td>
                   <td>
                     <span className={`status-badge ${parent.is_active ? 'active' : 'inactive'}`}>
@@ -376,7 +370,6 @@ const AdminParents = () => {
         </table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 0 && (
         <div className="admin-table-pagination">
           <p className="admin-pagination-info">
@@ -406,7 +399,6 @@ const AdminParents = () => {
         </div>
       )}
 
-      {/* Modal Tambah/Edit */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -439,7 +431,7 @@ const AdminParents = () => {
                 </div>
                 <div className="admin-students-form-group">
                   <label>Status</label>
-                  <select name="is_active" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'active' }))}>
+                  <select name="is_active" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.value === 'active' }))}>
                     <option value="active">Aktif</option>
                     <option value="inactive">Nonaktif</option>
                   </select>
@@ -448,8 +440,10 @@ const AdminParents = () => {
               <div className="form-group">
                 <label>Anak (pilih siswa)</label>
                 <select multiple value={formData.children} onChange={handleChildrenChange} className="multi-select" size={5}>
-                  {students.map(s => (
-                    <option key={s._id} value={s._id}>{s.full_name} - {s.nis}</option>
+                  {students.map((s) => (
+                    <option key={s._id} value={s._id}>
+                      {s.full_name} - {s.nis}
+                    </option>
                   ))}
                 </select>
                 <small>Tekan Ctrl (Windows) atau Cmd (Mac) untuk pilih lebih dari satu</small>
@@ -463,7 +457,6 @@ const AdminParents = () => {
         </div>
       )}
 
-      {/* Modal Detail */}
       {showDetailModal && selectedParent && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -472,7 +465,7 @@ const AdminParents = () => {
             <div className="detail-field"><strong>Email:</strong> {selectedParent.email}</div>
             <div className="detail-field"><strong>NIK:</strong> {selectedParent.nik || '-'}</div>
             <div className="detail-field"><strong>Telepon:</strong> {selectedParent.phone || '-'}</div>
-            <div className="detail-field"><strong>Anak:</strong> {selectedParent.children?.map(c => c.full_name || c).join(', ') || '-'}</div>
+            <div className="detail-field"><strong>Anak:</strong> {selectedParent.children?.map((c) => c.full_name || c).join(', ') || '-'}</div>
             <div className="detail-field"><strong>Status:</strong> {selectedParent.is_active ? 'Aktif' : 'Nonaktif'}</div>
             <div className="modal-buttons" style={{ marginTop: '20px' }}>
               <button type="button" onClick={() => setShowDetailModal(false)}>Tutup</button>
