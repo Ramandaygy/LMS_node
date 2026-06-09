@@ -121,6 +121,7 @@ exports.getTeachers = async (
   }
 };
 
+
 // ======================================
 // CREATE USER
 // ======================================
@@ -201,5 +202,77 @@ exports.deleteUser = async (req, res) => {
       success: false,
       message: err.message,
     });
+  }
+};
+
+// ======================================
+// GET ALL PARENTS (ADMIN)
+// ======================================
+exports.getAllParents = async (req, res) => {
+  try {
+    const parents = await userService.getUsersByRole('ortu');
+    return res.status(200).json({ success: true, data: parents });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil data orang tua' });
+  }
+};
+
+// ======================================
+// CREATE PARENT
+// ======================================
+exports.createParent = async (req, res) => {
+  try {
+    const parentData = { ...req.body, role: 'ortu' };
+    const result = await userService.createUser(parentData);
+    return res.status(201).json({ success: true, message: 'Orang tua berhasil ditambahkan', data: result });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================
+// UPDATE PARENT
+// ======================================
+exports.updateParent = async (req, res) => {
+  try {
+    await userService.updateUser(req.params.id, req.body);
+    return res.status(200).json({ success: true, message: 'Data orang tua berhasil diperbarui' });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================
+// DELETE PARENT
+// ======================================
+exports.deleteParent = async (req, res) => {
+  try {
+    await userService.deleteUser(req.params.id);
+    return res.status(200).json({ success: true, message: 'Data orang tua berhasil dihapus' });
+  } catch (err) {
+    console.error(err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+// ======================================
+// GET ALL STUDENTS (FOR DROPDOWN)
+// ======================================
+exports.getAllStudents = async (req, res) => {
+  try {
+    const students = await userService.getUsersByRole('siswa');
+    // Hanya kirim data yang diperlukan
+    const simplified = students.map(s => ({
+      _id: s._id,
+      full_name: s.full_name,
+      nis: s.nis
+    }));
+    return res.status(200).json({ success: true, data: simplified });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil data siswa' });
   }
 };
