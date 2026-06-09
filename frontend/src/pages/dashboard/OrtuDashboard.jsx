@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../../services/api';
-import '../../../styles/dashboard/ortu/ortu.css';
+import api from '../../services/api';
+import '../../styles/dashboard/ortu/ortu.css';
 
 const OrtuDashboard = () => {
   const [user, setUser] = useState(null);

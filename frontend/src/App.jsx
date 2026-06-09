@@ -53,7 +53,7 @@ import OrtuDashboard from './pages/dashboard/OrtuDashboard';
 // ============================================
 import AdminStudents from './pages/dashboard/admin/AdminStudents';
 import AdminTeachers from './pages/dashboard/admin/AdminTeachers';
-import AdminCourses from './pages/dashboard/admin/AdminCourses';
+import AdminParents from './pages/dashboard/admin/AdminParents';
 import AdminReports from './pages/dashboard/admin/AdminReports';
 import AdminClasses from './pages/dashboard/admin/AdminClasses';
 import AdminSubjects from './pages/dashboard/admin/AdminMapel';
@@ -355,10 +355,7 @@ function App() {
           }
         />
 
-        <Route
-          path="/register"
-          element={<Navigate to="/register/siswa" replace />}
-        />
+        
 
         {/* ============================================ */}
         {/* SISWA DASHBOARD */}
@@ -546,16 +543,6 @@ function App() {
           }
         />
 
-        <Route
-          path="/dashboard/admin/courses"
-          element={
-            <ProtectedRoute allowedRole="admin">
-              <DashboardLayout role="admin">
-                <AdminCourses />
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/dashboard/admin/reports"
@@ -618,6 +605,17 @@ function App() {
             <ProtectedRoute allowedRole="admin">
               <DashboardLayout role="admin">
                 <AdminDataMaster />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/parents"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <AdminParents />
               </DashboardLayout>
             </ProtectedRoute>
           }

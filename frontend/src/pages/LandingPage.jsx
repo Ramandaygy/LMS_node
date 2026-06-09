@@ -17,15 +17,7 @@ const LandingPage = () => {
             <p className="hero-subtitle-modern">
               Selamat datang di pusat kurasi akademik terbaik. Kami mengintegrasikan teknologi modern dengan nilai-nilai luhur untuk menciptakan pemimpin masa depan.
             </p>
-            <div className="hero-buttons-modern">
-              <Link to="/register/siswa" className="btn-primary-modern">
-                Daftar Sekarang
-                <span className="material-symbols-outlined">arrow_forward</span>
-              </Link>
-              <Link to="/tentang" className="btn-secondary-modern">
-                Profil Sekolah
-              </Link>
-            </div>
+            
           </div>
           
           {/* Portal Login Bento */}
@@ -55,8 +47,8 @@ const LandingPage = () => {
                 </div>
                 <span className="portal-arrow material-symbols-outlined">chevron_right</span>
               </Link>
-              <Link to="/login/siswa" className="portal-item">
-                <div className="portal-icon siswa">
+              <Link to="/login/ortu" className="portal-item">
+                <div className="portal-icon ortu">
                   <span className="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div className="portal-info">

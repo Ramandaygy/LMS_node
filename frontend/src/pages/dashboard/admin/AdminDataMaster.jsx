@@ -1,9 +1,10 @@
-// src/pages/dashboard/admin/AdminDataMaster.jsx
+
 import React, { useState } from 'react';
 import AdminStudents from './AdminStudents';
 import AdminTeachers from './AdminTeachers';
 import AdminSubjects from './AdminMapel';
 import AdminClasses from './AdminClasses';
+import AdminParents from './AdminParents';
 import '../../../styles/dashboard/admin/admin-data-master.css';
 
 const AdminDataMaster = () => {
@@ -14,6 +15,7 @@ const AdminDataMaster = () => {
     { key: 'teachers', label: 'Guru', component: <AdminTeachers /> },
     { key: 'subjects', label: 'Mata Pelajaran', component: <AdminSubjects /> },
     { key: 'classes', label: 'Kelas', component: <AdminClasses /> },
+    { key: 'parents', label: 'Orang Tua', component: <AdminParents /> },
   ];
 
   return (
