@@ -186,8 +186,28 @@ const AdminParents = () => {
   const goToPrevPage = () => setCurrentPage((prev) => Math.max(prev - 1, 1));
   const goToNextPage = () => setCurrentPage((prev) => Math.min(prev + 1, totalPages));
 
-  const handleExport = async () => alert('Fitur export akan segera hadir');
-  const handleImportClick = () => fileInputRef.current?.click();
+  const handleExport = async () => {
+    setDropdownOpen(false);
+    try {
+      const res = await api.get('/admin/export/parents', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'orang_tua.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      setErrorMsg('Gagal export data');
+    }
+  };
+
+  const handleImportClick = () => {
+    setDropdownOpen(false);
+    fileInputRef.current?.click();
+  };
+
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -195,7 +215,7 @@ const AdminParents = () => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      await api.post('/users/parents/import', fd);
+      await api.post('/admin/import/parents', fd);
       setSuccessMsg('Import berhasil');
       fetchParents();
     } catch {
@@ -205,10 +225,12 @@ const AdminParents = () => {
       e.target.value = '';
     }
   };
+
   const handleDownloadTemplate = async () => {
+    setDropdownOpen(false);
     setTemplateLoading(true);
     try {
-      const res = await api.get('/users/parents/template', { responseType: 'blob' });
+      const res = await api.get('/admin/export/parents-template', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;

@@ -62,6 +62,12 @@ app.use(
   require('./routes/userRoutes')
 );
 
+// ADMIN EXPORT IMPORT
+app.use(
+  '/api/admin',
+  require('./routes/exportImportRoutes')
+);
+
 // CLASSES
 app.use(
   '/api/classes',

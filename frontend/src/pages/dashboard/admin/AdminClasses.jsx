@@ -336,7 +336,7 @@ const AdminClasses = () => {
     try {
 
       const response = await api.get(
-        '/export/classes',
+        '/admin/export/classes',
         {
           responseType: 'blob'
         }
@@ -439,7 +439,7 @@ const AdminClasses = () => {
       );
 
       const response = await api.post(
-        '/import/classes',
+        '/admin/import/classes',
         formDataImport,
         {
           headers: {

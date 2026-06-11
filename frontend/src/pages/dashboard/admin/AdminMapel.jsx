@@ -295,7 +295,7 @@ const AdminMapel = () => {
 
       const response =
         await api.get(
-          '/subjects/export',
+          '/admin/export/subjects',
           {
             responseType: 'blob'
           }
@@ -400,7 +400,7 @@ const AdminMapel = () => {
 
       const response =
         await api.post(
-          '/subjects/import',
+          '/admin/import/subjects',
           formDataImport,
           {
             headers: {

@@ -164,10 +164,64 @@ const AdminStudents = () => {
     }
   };
 
-  const handleExport = () => {};
-  const handleImportClick = () => {};
-  const handleDownloadTemplate = () => {};
-  const handleFileChange = () => {};
+  const handleExport = async () => {
+    setDropdownOpen(false);
+    try {
+      const response = await api.get('/admin/export/students', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'siswa.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setSuccessMsg('Export siswa berhasil');
+    } catch (error) {
+      console.error(error);
+      setErrorMsg('Gagal export siswa');
+    }
+  };
+
+  const handleImportClick = () => {
+    setDropdownOpen(false);
+    fileInputRef.current.click();
+  };
+
+  const handleDownloadTemplate = async () => {
+    setDropdownOpen(false);
+    try {
+      const response = await api.get('/admin/export/students-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'template_siswa.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setErrorMsg('Gagal download template');
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const response = await api.post('/admin/import/students', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setSuccessMsg(response.data.message || 'Import berhasil');
+      fetchStudents();
+    } catch (error) {
+      setErrorMsg(error.response?.data?.error || 'Gagal import siswa');
+    } finally {
+      event.target.value = '';
+    }
+  };
   const handleShowDetail = (student) => {
     setSelectedStudent(student);
     setShowDetailModal(true);
