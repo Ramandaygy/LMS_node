@@ -2,7 +2,38 @@ const mongoose = require('mongoose');
 const Attendance = require('../models/Attendance'); // ← IMPORT MODEL
 const attendanceService = require('../services/attendanceService');
 
+const Schedule = require('../models/Schedule');
+
 // ==================== GURU ====================
+exports.getTeacherSchedules = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const schedules = await Schedule.find({ teacher_id: teacherId, is_active: true })
+      .populate('class_id', 'name')
+      .populate('subject_id', 'name');
+
+    if (!schedules || schedules.length === 0) {
+      return res.json({ schedules: [] });
+    }
+
+    const formatted = schedules.map(s => ({
+      id: s._id,
+      class_id: s.class_id ? s.class_id._id : null,
+      class_name: s.class_id ? s.class_id.name : 'Unknown Class',
+      subject: s.subject_id ? s.subject_id.name : 'Unknown Subject',
+      day: s.day,
+      start_time: s.start_time,
+      end_time: s.end_time,
+      room: s.room
+    }));
+
+    return res.json({ schedules: formatted });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getTeacherClasses = async (req, res) => {
   try {
     const teacherId = req.user.id;
@@ -47,12 +78,12 @@ exports.getClassStudents = async (req, res) => {
 
 exports.getAttendance = async (req, res) => {
   try {
-    const { class_id, date } = req.query;
+    const { schedule_id, date } = req.query;
     const teacherId = req.user.id;
-    if (!class_id || !date) {
-      return res.status(400).json({ error: 'class_id dan date diperlukan' });
+    if (!schedule_id || !date) {
+      return res.status(400).json({ error: 'schedule_id dan date diperlukan' });
     }
-    const attendance = await attendanceService.getAttendanceByClassAndDate(class_id, date, teacherId);
+    const attendance = await attendanceService.getAttendanceByScheduleAndDate(schedule_id, date, teacherId);
     return res.json({ attendance });
   } catch (err) {
     console.error(err);
@@ -62,12 +93,12 @@ exports.getAttendance = async (req, res) => {
 
 exports.saveAttendance = async (req, res) => {
   try {
-    const { attendance, class_id, date } = req.body;
+    const { attendance, schedule_id, class_id, date } = req.body;
     const teacherId = req.user.id;
-    if (!attendance || !class_id || !date) {
-      return res.status(400).json({ error: 'Data tidak lengkap' });
+    if (!attendance || !schedule_id || !class_id || !date) {
+      return res.status(400).json({ error: 'Data tidak lengkap (butuh attendance, schedule_id, class_id, date)' });
     }
-    await attendanceService.saveAttendance(attendance, class_id, date, teacherId);
+    await attendanceService.saveAttendance(attendance, schedule_id, class_id, date, teacherId);
     return res.json({ success: true, message: 'Absensi berhasil disimpan' });
   } catch (err) {
     console.error(err);

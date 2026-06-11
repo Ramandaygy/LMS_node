@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 // ======================================
 // COLLECTION REFERENCES
@@ -305,6 +306,20 @@ exports.createUser = async (userData) => {
       throw new Error('Role tidak valid');
   }
 
+  if (userData.password) {
+    userData.password = await bcrypt.hash(userData.password, 10);
+  }
+
+  if (userData.children && Array.isArray(userData.children)) {
+    userData.children = userData.children.map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (err) {
+        return id;
+      }
+    });
+  }
+
   const result =
     await collection.insertOne({
 
@@ -337,6 +352,23 @@ exports.updateUser = async (
     adminCollection,
     ortuCollection
   ];
+
+  if (updateData.password) {
+    updateData.password = await bcrypt.hash(updateData.password, 10);
+  } else if (updateData.password === '') {
+    // Jika dikirim string kosong, tidak perlu di-update
+    delete updateData.password;
+  }
+
+  if (updateData.children && Array.isArray(updateData.children)) {
+    updateData.children = updateData.children.map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (err) {
+        return id;
+      }
+    });
+  }
 
   for (const collection of collections) {
 

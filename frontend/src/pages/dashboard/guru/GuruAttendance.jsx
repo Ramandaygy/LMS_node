@@ -3,9 +3,10 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-attendance.css';
 
 const GuruAttendance = () => {
-  const [classes, setClasses] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [selectedSchedule, setSelectedSchedule] = useState('');
+  const [selectedScheduleInfo, setSelectedScheduleInfo] = useState(null);
   const [selectedClass, setSelectedClass] = useState('');
-  const [selectedClassInfo, setSelectedClassInfo] = useState(null);
   const [students, setStudents] = useState([]);
   const [attendanceData, setAttendanceData] = useState({});
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -17,31 +18,32 @@ const GuruAttendance = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchClasses();
+    fetchSchedules();
   }, []);
 
   useEffect(() => {
-    if (selectedClass) {
+    if (selectedSchedule && selectedClass) {
       fetchStudents();
       fetchAttendance();
     }
-  }, [selectedClass, selectedDate]);
+  }, [selectedSchedule, selectedClass, selectedDate]);
 
-  // Ambil daftar kelas yang diampu guru
-  const fetchClasses = async () => {
+  // Ambil daftar jadwal yang diampu guru
+  const fetchSchedules = async () => {
     try {
-      const response = await api.get('/attendance/classes');
-      // Backend mengembalikan { classes: [...] }
-      const classesData = response.data.classes || [];
-      setClasses(classesData);
-      if (classesData.length > 0) {
-        const firstClass = classesData[0];
-        setSelectedClass(firstClass.id || firstClass._id);
-        setSelectedClassInfo(firstClass);
+      const response = await api.get('/attendance/schedules');
+      // Backend mengembalikan { schedules: [...] }
+      const schedulesData = response.data.schedules || [];
+      setSchedules(schedulesData);
+      if (schedulesData.length > 0) {
+        const first = schedulesData[0];
+        setSelectedSchedule(first.id || first._id);
+        setSelectedScheduleInfo(first);
+        setSelectedClass(first.class_id);
       }
     } catch (error) {
-      console.error('Error fetching classes:', error);
-      setError('Gagal mengambil data kelas');
+      console.error('Error fetching schedules:', error);
+      setError('Gagal mengambil data jadwal');
     } finally {
       setLoading(false);
     }
@@ -72,7 +74,7 @@ const GuruAttendance = () => {
   // Ambil data absensi yang sudah ada (untuk tanggal tertentu)
   const fetchAttendance = async () => {
     try {
-      const response = await api.get(`/attendance?class_id=${selectedClass}&date=${selectedDate}`);
+      const response = await api.get(`/attendance?schedule_id=${selectedSchedule}&date=${selectedDate}`);
       // Backend mengembalikan { attendance: { [studentId]: { status, note } } }
       const savedData = response.data.attendance || {};
       setAttendanceData(prev => {
@@ -138,6 +140,7 @@ const GuruAttendance = () => {
       }));
       await api.post('/attendance/save', {
         attendance: attendanceList,
+        schedule_id: selectedSchedule,
         class_id: selectedClass,
         date: selectedDate
       });
@@ -191,10 +194,10 @@ const GuruAttendance = () => {
             </span>
           </div>
           <h1 className="attendance-title">
-            {selectedClassInfo?.name || selectedClassInfo?.class_name || 'Kelas'} - {selectedClassInfo?.subject || 'Mata Pelajaran'}
+            {selectedScheduleInfo?.class_name || 'Kelas'} - {selectedScheduleInfo?.subject || 'Mata Pelajaran'}
           </h1>
           <p className="attendance-subtitle">
-            Topic: {selectedClassInfo?.topic || 'Pembelajaran'}
+            Jadwal: {selectedScheduleInfo?.day || ''}, {selectedScheduleInfo?.start_time || ''} - {selectedScheduleInfo?.end_time || ''}
           </p>
         </div>
         <div className="header-actions">
@@ -233,23 +236,24 @@ const GuruAttendance = () => {
 
       <div className="class-selector">
         <div className="selector-group">
-          <label>Select Class</label>
+          <label>Select Schedule</label>
           <div className="selector-input">
-            <span className="material-symbols-outlined">class</span>
+            <span className="material-symbols-outlined">schedule</span>
             <select 
-              value={selectedClass} 
+              value={selectedSchedule} 
               onChange={(e) => {
-                const newClassId = e.target.value;
-                setSelectedClass(newClassId);
-                const cls = classes.find(c => (c.id || c._id) === newClassId);
-                setSelectedClassInfo(cls);
+                const newSchedId = e.target.value;
+                setSelectedSchedule(newSchedId);
+                const sched = schedules.find(s => (s.id || s._id) === newSchedId);
+                setSelectedScheduleInfo(sched);
+                if (sched) setSelectedClass(sched.class_id);
               }}
             >
-              {classes.map(cls => {
-                const clsId = cls.id || cls._id;
+              {schedules.map(sched => {
+                const schedId = sched.id || sched._id;
                 return (
-                  <option key={clsId} value={clsId}>
-                    {cls.name || cls.class_name} - {cls.subject || 'Mapel'}
+                  <option key={schedId} value={schedId}>
+                    {sched.class_name} - {sched.subject} ({sched.day}, {sched.start_time}-{sched.end_time})
                   </option>
                 );
               })}

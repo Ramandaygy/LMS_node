@@ -15,15 +15,15 @@ exports.getStudentsByClass = async (classId) => {
   }));
 };
 
-// Ambil absensi untuk kelas, tanggal, dan guru tertentu
-exports.getAttendanceByClassAndDate = async (classId, date, teacherId) => {
+// Ambil absensi untuk jadwal, tanggal, dan guru tertentu
+exports.getAttendanceByScheduleAndDate = async (scheduleId, date, teacherId) => {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
   const end = new Date(date);
   end.setHours(23, 59, 59, 999);
 
   const records = await Attendance.find({
-    class_id: classId,
+    schedule_id: scheduleId,
     teacher_id: teacherId,
     date: { $gte: start, $lte: end },
   });
@@ -39,13 +39,13 @@ exports.getAttendanceByClassAndDate = async (classId, date, teacherId) => {
 };
 
 // Simpan absensi (bulk upsert)
-exports.saveAttendance = async (attendanceList, classId, date, teacherId) => {
+exports.saveAttendance = async (attendanceList, scheduleId, classId, date, teacherId) => {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
 
-  // Hapus semua absensi yang sudah ada untuk kelas, guru, tanggal tsb
+  // Hapus semua absensi yang sudah ada untuk jadwal, kelas, guru, tanggal tsb
   await Attendance.deleteMany({
-    class_id: classId,
+    schedule_id: scheduleId,
     teacher_id: teacherId,
     date: { $gte: start, $lt: new Date(start.getTime() + 24 * 60 * 60 * 1000) },
   });
@@ -54,6 +54,7 @@ exports.saveAttendance = async (attendanceList, classId, date, teacherId) => {
 
   const newRecords = attendanceList.map(item => ({
     student_id: item.student_id,
+    schedule_id: scheduleId,
     class_id: classId,
     teacher_id: teacherId,
     date: start,

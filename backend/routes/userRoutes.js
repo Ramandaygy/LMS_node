@@ -36,6 +36,30 @@ router.get(
 );
 
 // ======================================
+// PARENTS ROUTES
+// ======================================
+router.get(
+  '/parents',
+  authMiddleware,
+  userController.getAllParents
+);
+router.post(
+  '/parents',
+  authMiddleware,
+  userController.createParent
+);
+router.put(
+  '/parents/:id',
+  authMiddleware,
+  userController.updateParent
+);
+router.delete(
+  '/parents/:id',
+  authMiddleware,
+  userController.deleteParent
+);
+
+// ======================================
 // GET USER BY ID
 // ======================================
 router.get(
@@ -71,28 +95,6 @@ router.delete(
   userController.deleteUser
 );
 
-// ======================================
-// PARENTS ROUTES
-// ======================================
-router.get(
-  '/parents',
-  authMiddleware,
-  userController.getAllParents
-);
-router.post(
-  '/parents',
-  authMiddleware,
-  userController.createParent
-);
-router.put(
-  '/parents/:id',
-  authMiddleware,
-  userController.updateParent
-);
-router.delete(
-  '/parents/:id',
-  authMiddleware,
-  userController.deleteParent
-);
+
 
 module.exports = router;

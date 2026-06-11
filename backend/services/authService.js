@@ -39,6 +39,8 @@ exports.register = async (body) => {
     role,
     full_name,
     phone,
+    student_nis,
+    nik,
   } = body;
 
   const emailLower =
@@ -81,6 +83,16 @@ exports.register = async (body) => {
     );
   }
 
+  let children = [];
+
+  if (role === 'ortu' && student_nis) {
+    const student = await siswaCollection.findOne({ nis: student_nis });
+    if (!student) {
+      throw new Error('Data siswa dengan NIS tersebut tidak ditemukan');
+    }
+    children.push(student._id);
+  }
+
   const hashedPassword =
     await bcrypt.hash(
       password,
@@ -103,6 +115,11 @@ exports.register = async (body) => {
 
       phone:
         phone || '',
+
+      nik:
+        nik || '',
+
+      children: children,
 
       is_active: true,
 

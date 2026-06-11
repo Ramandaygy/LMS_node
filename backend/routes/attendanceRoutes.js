@@ -4,6 +4,7 @@ const auth = require('../middleware/authMiddleware');
 const attendanceController = require('../controllers/attendanceController');
 
 // ===== GURU =====
+router.get('/schedules', auth, attendanceController.getTeacherSchedules);
 router.get('/classes', auth, attendanceController.getTeacherClasses);
 router.get('/students/:classId', auth, attendanceController.getClassStudents);
 router.get('/', auth, attendanceController.getAttendance);
