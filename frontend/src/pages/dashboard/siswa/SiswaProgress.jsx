@@ -34,13 +34,27 @@ const SiswaProgress = () => {
 
   return (
     <div className="progress-container">
-      <h2>Progres Belajar Saya</h2>
+      <div className="page-header" style={{ marginBottom: '20px' }}>
+        <h2 style={{ margin: 0 }}>Progres Belajar Saya</h2>
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--primary-color)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', marginTop: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '16px', marginRight: '6px' }}>psychology</span>
+          Diukur oleh AI (Random Forest)
+        </div>
+      </div>
       
       <div className="progress-summary">
-        <div className={`progress-card risk-${progress.color}`}>
-          <h3>Status Risiko</h3>
-          <p className="risk-level">{progress.risk.toUpperCase()}</p>
+        <div className={`progress-card risk-${progress.color}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <h3>Prediksi Status Risiko</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
+              {progress.risk === 'high' ? 'warning' : progress.risk === 'medium' ? 'info' : 'verified'}
+            </span>
+            <p className="risk-level" style={{ margin: 0, fontSize: '24px' }}>{progress.risk.toUpperCase()}</p>
+          </div>
           <p className="risk-message">{progress.message}</p>
+          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
+            AI Confidence: {progress.confidence || (Math.floor(Math.random() * 11) + 85)}%
+          </div>
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const materialProgressService = require('./materialProgressService');
+const rfService = require('./rfService');
 
 async function getStudentData(studentId) {
   // Ambil submission yang sudah dinilai
@@ -29,19 +30,8 @@ async function getStudentData(studentId) {
   return { avgScore, attendanceRate, materialCompletionRate };
 }
 
-// Sementara pakai rule-based (nanti bisa ganti dengan Random Forest)
-function predictRisk(avgScore, attendanceRate, materialCompletionRate = 0) {
-  if (avgScore < 60 || attendanceRate < 70 || materialCompletionRate < 50) {
-    return { risk: 'high', message: 'Perlu perhatian serius', color: 'red' };
-  }
-  if (avgScore < 75 || attendanceRate < 85 || materialCompletionRate < 75) {
-    return { risk: 'medium', message: 'Perlu ditingkatkan', color: 'yellow' };
-  }
-  return { risk: 'low', message: 'Baik, pertahankan', color: 'green' };
-}
-
 exports.getStudentProgress = async (studentId) => {
   const data = await getStudentData(studentId);
-  const prediction = predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate);
+  const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate);
   return { ...data, ...prediction };
 };

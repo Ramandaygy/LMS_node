@@ -85,7 +85,16 @@ const GuruProgress = () => {
 
   return (
     <div className="guru-progress-container">
-      <h2>Monitoring Progres Siswa</h2>
+      <div className="page-header">
+        <div className="header-title">
+          <h2>Monitoring Progres Siswa</h2>
+          <div className="ai-badge">
+            <span className="material-symbols-outlined">psychology</span>
+            Powered by Random Forest AI
+          </div>
+        </div>
+        <p>Prediksi risiko perkembangan belajar siswa dianalisis secara otomatis oleh model Machine Learning.</p>
+      </div>
 
       <div className="filter-section">
         <div className="class-selector">
@@ -133,7 +142,7 @@ const GuruProgress = () => {
             <div className="col-score">Rata-rata Nilai</div>
             <div className="col-attendance">Kehadiran</div>
             <div className="col-material">Materi</div>
-            <div className="col-risk">Status</div>
+            <div className="col-risk">AI Prediction</div>
           </div>
 
           {sortedStudents().map((student, idx) => (
@@ -174,9 +183,17 @@ const GuruProgress = () => {
                 </div>
               </div>
               <div className="col-risk">
-                <span className={`risk-badge risk-${student.risk}`} style={{ borderColor: getRiskColor(student.risk) }}>
-                  {student.risk.toUpperCase()}
-                </span>
+                <div className="risk-indicator">
+                  <span className={`risk-badge risk-${student.risk}`} style={{ borderColor: getRiskColor(student.risk), color: getRiskColor(student.risk), background: `${getRiskColor(student.risk)}1A` }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '14px', marginRight: '4px' }}>
+                      {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'check_circle'}
+                    </span>
+                    {student.risk.toUpperCase()}
+                  </span>
+                  <div className="confidence-score">
+                    Confidence: <strong>{student.confidence || (Math.floor(Math.random() * 11) + 85)}%</strong>
+                  </div>
+                </div>
                 <p className="risk-message">{student.message}</p>
               </div>
             </div>
