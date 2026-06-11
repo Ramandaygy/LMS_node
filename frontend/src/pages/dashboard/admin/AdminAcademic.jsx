@@ -127,24 +127,7 @@ const AdminAcademicYear = () => {
   };
 
   const loadStudentsForPromotion = async () => {
-    if (!sourceClass) return;
-    setPromotionLoading(true);
-    try {
-      // 🔧 Ganti dengan endpoint yang sesuai jika sudah ada
-      // Sementara gunakan data dummy
-      const dummyStudents = [
-        { _id: '1', full_name: 'Siswa 1', nis: '12345', class: sourceClass },
-        { _id: '2', full_name: 'Siswa 2', nis: '12346', class: sourceClass }
-      ];
-      setStudentsForPromotion(dummyStudents.map(s => ({ ...s, newClass: '' })));
-      // Jika ingin memanggil API nyata, gunakan:
-      // const response = await api.get(`/academic-years/${promoteModal.yearId}/students?class=${sourceClass}`);
-      // setStudentsForPromotion((response.data.students || []).map(s => ({ ...s, newClass: '' })));
-    } catch (err) {
-      setError('Fitur kenaikan kelas masih dalam pengembangan');
-    } finally {
-      setPromotionLoading(false);
-    }
+    // This function is no longer needed since promotion is automatic
   };
 
   const handleNewClassChange = (index, newClass) => {
@@ -154,20 +137,14 @@ const AdminAcademicYear = () => {
   };
 
   const handlePromote = async () => {
-    const promotions = studentsForPromotion
-      .filter(s => s.newClass && s.newClass !== s.class)
-      .map(s => ({ student_id: s._id, new_class: s.newClass }));
-    if (promotions.length === 0) {
-      setError('Tidak ada perubahan kelas yang dipilih');
-      return;
-    }
-    if (!window.confirm(`Promosikan ${promotions.length} siswa ke kelas baru?`)) return;
+    if (!window.confirm(`PERINGATAN: Tindakan ini akan menaikkan kelas semua siswa aktif secara acak ke kelas tingkat berikutnya, dan meluluskan siswa kelas akhir ke tahun ajaran ${promoteModal.yearName}. Tindakan ini tidak bisa dibatalkan secara otomatis. Lanjutkan?`)) return;
     setPromotionLoading(true);
     try {
-      // 🔧 Ganti dengan endpoint asli jika sudah ada
-      alert('Fitur kenaikan kelas belum terhubung ke backend. Data hanya simulasi.');
-      setSuccess('Kenaikan kelas berhasil (simulasi)');
+      const response = await api.post(`/academic-years/${promoteModal.yearId}/promote`);
+      const { data } = response.data;
+      setSuccess(`Berhasil! ${data.promotedTo8} siswa naik ke kelas 8, ${data.promotedTo9} siswa naik ke kelas 9, dan ${data.graduated} siswa lulus.`);
       setPromoteModal({ open: false, yearId: null, yearName: '' });
+      fetchClasses();
     } catch (err) {
       setError(err.response?.data?.error || 'Gagal melakukan kenaikan kelas');
     } finally {
@@ -175,27 +152,17 @@ const AdminAcademicYear = () => {
     }
   };
 
-  // ========== ALUMNI (sementara) ==========
+  // ========== ALUMNI ==========
   const openAlumniModal = async (year) => {
     setAlumniModal({ open: true, yearId: year._id, yearName: year.year });
     setAlumniList([]);
     setAlumniLoading(true);
     try {
-      // 🔧 Ganti dengan endpoint asli jika sudah ada
-      // Sementara data dummy
-      setTimeout(() => {
-        const dummyAlumni = [
-          { _id: 'a1', full_name: 'Alumni 1', nis: '111', graduated_from_class: '12A' },
-          { _id: 'a2', full_name: 'Alumni 2', nis: '112', graduated_from_class: '12B' }
-        ];
-        setAlumniList(dummyAlumni);
-        setAlumniLoading(false);
-      }, 500);
-      // Jika ingin API nyata:
-      // const response = await api.get(`/academic-years/${year._id}/alumni`);
-      // setAlumniList(response.data.alumni || []);
+      const response = await api.get(`/academic-years/${year._id}/alumni`);
+      setAlumniList(response.data.alumni || []);
     } catch (err) {
-      setError('Fitur alumni masih dalam pengembangan');
+      setError('Gagal memuat data alumni');
+    } finally {
       setAlumniLoading(false);
     }
   };
@@ -309,44 +276,27 @@ const AdminAcademicYear = () => {
         </div>
       )}
 
-      {/* MODAL KENAIKAN KELAS (sama, tapi menggunakan data kelas dari allClasses) */}
+      {/* MODAL KENAIKAN KELAS AUTO */}
       {promoteModal.open && (
         <div className="modal-overlay" onClick={() => setPromoteModal({ open: false })}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>Kenaikan Kelas - {promoteModal.yearName}</h3>
-            <div className="form-row">
-              <select value={sourceClass} onChange={e => setSourceClass(e.target.value)}>
-                <option value="">Pilih Kelas Asal</option>
-                {allClasses.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
-              </select>
-              <button onClick={loadStudentsForPromotion} disabled={!sourceClass}>Ambil Siswa</button>
+            <div className="alert-warning" style={{ padding: '15px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '8px', marginBottom: '20px' }}>
+              <strong>Peringatan!</strong> Sistem akan:
+              <ul style={{ margin: '10px 0 0 20px' }}>
+                <li>Mengacak dan menaikkan siswa Kelas 7 ke Kelas 8 secara merata.</li>
+                <li>Mengacak dan menaikkan siswa Kelas 8 ke Kelas 9 secara merata.</li>
+                <li>Meluluskan seluruh siswa Kelas 9 (menjadi Alumni di tahun ajaran ini).</li>
+              </ul>
+              <br/>
+              <em>Pastikan semua kelas tujuan (Kelas 8 dan 9) sudah dibuat di menu Data Master.</em>
             </div>
-            {promotionLoading && <div className="loading-spinner">Memuat...</div>}
-            {studentsForPromotion.length > 0 && (
-              <div className="promotion-table-container">
-                <table className="promotion-table">
-                  <thead><tr><th>Nama</th><th>NIS</th><th>Kelas Asal</th><th>Kelas Tujuan</th></tr></thead>
-                  <tbody>
-                    {studentsForPromotion.map((s, idx) => (
-                      <tr key={s._id}>
-                        <td>{s.full_name}</td>
-                        <td>{s.nis}</td>
-                        <td>{s.class}</td>
-                        <td>
-                          <select value={s.newClass} onChange={e => handleNewClassChange(idx, e.target.value)}>
-                            <option value="">-- Pilih Kelas Baru --</option>
-                            {allClasses.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            
+            {promotionLoading && <div className="loading-spinner" style={{ textAlign: 'center', marginBottom: '20px' }}>Sedang memproses... mohon tunggu.</div>}
+            
             <div className="modal-buttons">
               <button onClick={() => setPromoteModal({ open: false })}>Batal</button>
-              <button onClick={handlePromote} disabled={promotionLoading}>Simpan Promosi</button>
+              <button onClick={handlePromote} disabled={promotionLoading} style={{ backgroundColor: '#dc3545' }}>Proses Sekarang</button>
             </div>
           </div>
         </div>

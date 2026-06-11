@@ -62,3 +62,22 @@ exports.getCurrent =
 
     res.json(data);
   };
+
+exports.getAlumniByYear = async (req, res) => {
+  try {
+    const data = await service.getAlumniByYear(req.params.id);
+    res.json({ success: true, alumni: data });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.promoteStudents = async (req, res) => {
+  try {
+    const result = await service.promoteStudents(req.params.id);
+    res.json({ success: true, message: 'Kenaikan kelas dan pengacakan siswa berhasil dilakukan.', data: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};

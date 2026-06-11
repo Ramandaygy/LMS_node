@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ['admin', 'guru', 'siswa', 'ortu'],
+      enum: ['admin', 'guru', 'siswa', 'ortu', 'alumni'],
       default: 'siswa'
     },
 
@@ -71,6 +71,17 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Class',
       default: null
+    },
+
+    graduated_year_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'AcademicYear',
+      default: null
+    },
+
+    graduated_from_class_name: {
+      type: String,
+      default: ''
     },
 
     children: [

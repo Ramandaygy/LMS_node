@@ -34,5 +34,15 @@ router.get(
   controller.getCurrent
 );
 
+router.get(
+  '/:id/alumni',
+  controller.getAlumniByYear
+);
+
+router.post(
+  '/:id/promote',
+  controller.promoteStudents
+);
+
 module.exports =
   router;
