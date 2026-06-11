@@ -7,6 +7,8 @@ const OrtuDashboard = () => {
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [assignments, setAssignments] = useState([]);
+  const [todayAttendance, setTodayAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -27,6 +29,7 @@ const OrtuDashboard = () => {
       if (kids.length > 0) {
         setSelectedChild(kids[0]);
         fetchProgress(kids[0].id);
+        fetchChildDetails(kids[0].id);
       }
     } catch (err) {
       console.error('Error fetching parent data:', err);
@@ -45,9 +48,22 @@ const OrtuDashboard = () => {
     }
   };
 
+  const fetchChildDetails = async (childId) => {
+    try {
+      const assignRes = await api.get(`/assignments/ortu/children/${childId}`);
+      setAssignments(assignRes.data.data || []);
+      
+      const attendRes = await api.get(`/attendance/ortu/children/${childId}/today`);
+      setTodayAttendance(attendRes.data.attendance || []);
+    } catch (err) {
+      console.error('Error fetching child details', err);
+    }
+  };
+
   const handleChildChange = (child) => {
     setSelectedChild(child);
     fetchProgress(child.id);
+    fetchChildDetails(child.id);
   };
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
@@ -138,6 +154,55 @@ const OrtuDashboard = () => {
         {/* Placeholder jika belum ada progress */}
         {selectedChild && !progress && (
           <div className="info-card">Belum ada data progress untuk anak ini.</div>
+        )}
+
+        {/* Jadwal dan Kehadiran Hari Ini */}
+        {selectedChild && (
+          <div className="attendance-card" style={{ marginTop: '20px', padding: '20px', background: 'var(--surface-color)', borderRadius: '16px' }}>
+            <h3>Jadwal & Kehadiran Hari Ini</h3>
+            {todayAttendance.length > 0 ? (
+              <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+                {todayAttendance.map((att, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px' }}>
+                    <div>
+                      <strong>{att.schedule_id?.subject_id?.name || 'Mata Pelajaran'}</strong>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {att.schedule_id?.start_time} - {att.schedule_id?.end_time} | Guru: {att.teacher_id?.full_name}
+                      </div>
+                    </div>
+                    <div>
+                      <span className={`badge ${att.status === 'hadir' ? 'badge-success' : 'badge-warning'}`}>
+                        {att.status.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-secondary)' }}>Belum ada data absensi untuk jadwal hari ini.</p>
+            )}
+          </div>
+        )}
+
+        {/* Tugas Mendatang */}
+        {selectedChild && (
+          <div className="assignments-card" style={{ marginTop: '20px', padding: '20px', background: 'var(--surface-color)', borderRadius: '16px' }}>
+            <h3>Tugas Mendatang</h3>
+            {assignments.length > 0 ? (
+              <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+                {assignments.map(a => (
+                  <div key={a._id} style={{ padding: '12px', background: 'var(--bg-color)', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
+                    <strong>{a.title}</strong>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      Mata Pelajaran: {a.subject_id?.name || '-'} | Tenggat: {new Date(a.due_date).toLocaleDateString('id-ID')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: 'var(--text-secondary)' }}>Tidak ada tugas yang aktif saat ini.</p>
+            )}
+          </div>
         )}
 
         {/* Rekomendasi Sederhana */}

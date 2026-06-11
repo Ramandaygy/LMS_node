@@ -18,6 +18,9 @@ router.get('/guru/me', authMiddleware, assignmentController.getTeacherAssignment
 // Siswa: tugas untuk kelasnya
 router.get('/siswa/me', authMiddleware, assignmentController.getStudentAssignments);
 
+// Ortu: tugas anak
+router.get('/ortu/children/:childId', authMiddleware, assignmentController.getOrtuAssignments);
+
 // ========== SUBMISSION ROUTES ==========
 // Submit tugas siswa
 router.post('/:assignmentId/submit', authMiddleware, uploadSubmission.single('file'), submissionController.submitAssignment);

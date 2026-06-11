@@ -30,6 +30,28 @@ exports.bulkSaveSchedule = async (scheduleList) => {
       results.push(created);
     }
   }
+  
+  // -- Update class_ids for all affected teachers --
+  try {
+    const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(id => id))];
+    const guruCollection = mongoose.connection.collection('users_guru');
+    
+    for (const tid of teacherIds) {
+      // Find all schedules for this teacher across all active academic years or current ones
+      const teacherSchedules = await Schedule.find({ teacher_id: tid });
+      const uniqueClasses = [...new Set(teacherSchedules.map(s => s.class_id.toString()))];
+      const classObjectIds = uniqueClasses.map(id => new mongoose.Types.ObjectId(id));
+      
+      // Update the teacher's classes array
+      await guruCollection.updateOne(
+        { _id: new mongoose.Types.ObjectId(tid) },
+        { $set: { classes: classObjectIds } }
+      );
+    }
+  } catch (err) {
+    console.error('Failed to update teacher classes from schedules:', err);
+  }
+
   return results;
 };
 

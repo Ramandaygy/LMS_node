@@ -203,3 +203,25 @@ exports.getOrtuAttendance = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
+exports.getOrtuTodayAttendance = async (req, res) => {
+  try {
+    const { childId } = req.params;
+    if (!childId) return res.status(400).json({ error: 'childId required' });
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    const attendance = await Attendance.find({
+      student_id: childId,
+      date: { $gte: start, $lte: end },
+    }).populate('schedule_id').populate('teacher_id', 'full_name');
+
+    return res.json({ success: true, attendance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

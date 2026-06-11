@@ -89,3 +89,23 @@ exports.getStudentAssignments = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// KHUSUS ORTU
+exports.getOrtuAssignments = async (req, res) => {
+  try {
+    const childId = req.params.childId;
+    const siswaCollection = mongoose.connection.collection('users_siswa');
+    const child = await siswaCollection.findOne({ _id: new mongoose.Types.ObjectId(childId) });
+    if (!child) return res.status(404).json({ success: false, message: 'Anak tidak ditemukan' });
+
+    const classId = child.class_id;
+    if (!classId) return res.json({ success: true, data: [] });
+
+    // Ortu gets the same view of assignments as the student
+    const assignments = await assignmentService.getAssignmentsForStudent(classId, childId);
+    return res.json({ success: true, data: assignments });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

@@ -1,8 +1,8 @@
 const scheduleService = require('../services/scheduleService');
 const Class = require('../models/Class');
 const Subject = require('../models/Subject');
-const User = require('../models/User');
 const Schedule = require('../models/Schedule');
+const mongoose = require('mongoose');
 
 exports.createSchedule = async (req, res) => {
   try {
@@ -81,6 +81,31 @@ exports.deleteSchedule = async (req, res) => {
   }
 };
 
+exports.getStudentTodaySchedule = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const siswaCollection = mongoose.connection.collection('users_siswa');
+    const student = await siswaCollection.findOne({ _id: new mongoose.Types.ObjectId(studentId) });
+    if (!student || !student.class_id) {
+      return res.json({ success: true, schedule: [] });
+    }
+    
+    const days = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+    const today = days[new Date().getDay()];
+    
+    // Find schedule for student's class_id and today's day
+    const schedules = await Schedule.find({ class_id: student.class_id, day: today })
+      .populate('subject_id', 'name code')
+      .populate('teacher_id', 'full_name')
+      .sort({ time_slot: 1 });
+      
+    return res.json({ success: true, schedule: schedules });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil jadwal hari ini' });
+  }
+};
+
 // scheduleController.js
 exports.autoGenerateSchedule = async (req, res) => {
   try {
@@ -92,7 +117,18 @@ exports.autoGenerateSchedule = async (req, res) => {
     // Ambil data master
     const classes = await Class.find({ academic_year_id: academic_year_id });
     const subjects = await Subject.find();
-    const teachers = await User.find({ role: 'teacher' });
+    
+    // Ambil guru dari koleksi users_guru
+    const guruCollection = mongoose.connection.collection('users_guru');
+    const teachersRaw = await guruCollection.find({ is_active: true }).toArray();
+    
+    // Map ke format yang diexpect
+    const teachers = teachersRaw.map(t => ({
+      _id: t._id,
+      full_name: t.full_name,
+      subject_ids: t.subjects || []
+    }));
+    
     const existingSchedules = await Schedule.find({ academic_year_id: academic_year_id });
 
     // Generate dari AI

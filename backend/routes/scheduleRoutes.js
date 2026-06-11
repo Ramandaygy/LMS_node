@@ -32,6 +32,12 @@ router.get(
   scheduleController.getClassSchedule
 );
 
+router.get(
+  '/siswa/today',
+  authMiddleware,
+  scheduleController.getStudentTodaySchedule
+);
+
 router.put(
   '/:id',
   authMiddleware,

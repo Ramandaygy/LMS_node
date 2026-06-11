@@ -24,18 +24,31 @@ const SiswaDashboard = () => {
       const statsRes = await api.get('/dashboard/stats');
       setStats(statsRes.data);
 
-      // dummy schedule (nanti bisa diganti API)
-      setSchedules([
-        { time: '08:00', name: 'Bahasa Inggris', room: 'Modul Reading', isCurrent: true },
-        { time: '10:30', name: 'Istirahat', room: '', isCurrent: false },
-        { time: '13:15', name: 'Pendidikan Jasmani', room: 'Praktek Basket', isCurrent: false }
-      ]);
+      try {
+        const scheduleRes = await api.get('/schedules/siswa/today');
+        const schedData = scheduleRes.data.schedule || [];
+        setSchedules(schedData.map(s => ({
+          time: `${s.start_time} - ${s.end_time}`,
+          name: s.subject_id?.name || 'Mata Pelajaran',
+          room: s.room || '',
+          isCurrent: false // could calculate if current time is within range
+        })));
+      } catch (err) {
+        console.error('Error fetching today schedule', err);
+      }
 
-      // dummy assignments
-      setAssignments([
-        { title: 'Analisis Puisi Baru', subject: 'Bahasa Indonesia', deadline: 'Besok, 09:00', urgent: true },
-        { title: 'Laporan Praktikum IPA', subject: 'Biologi', deadline: '3 Hari Lagi', urgent: false }
-      ]);
+      try {
+        const assignRes = await api.get('/assignments/siswa/me');
+        const assignData = assignRes.data.data || [];
+        setAssignments(assignData.map(a => ({
+          title: a.title,
+          subject: a.subject_id?.name || 'Umum',
+          deadline: new Date(a.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+          urgent: new Date(a.due_date) < new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
+        })));
+      } catch (err) {
+        console.error('Error fetching assignments', err);
+      }
 
       // dummy grades
       setGrades([

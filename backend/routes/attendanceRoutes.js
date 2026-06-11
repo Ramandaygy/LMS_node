@@ -16,5 +16,6 @@ router.get('/siswa/attendance', auth, attendanceController.getStudentAttendance)
 // ===== ORTU =====
 router.get('/ortu/children', auth, attendanceController.getOrtuChildren);
 router.get('/ortu/attendance', auth, attendanceController.getOrtuAttendance);
+router.get('/ortu/children/:childId/today', auth, attendanceController.getOrtuTodayAttendance);
 
 module.exports = router;
