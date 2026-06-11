@@ -7,6 +7,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Fetch user profile for dynamic display
   const fetchUserProfile = async () => {
@@ -139,8 +140,20 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   return (
     <>
-      <aside className={`sidebar-modern ${isOpen ? 'open' : ''}`}>
-        {/* Konten sidebar (user info, menu, footer) sama persis seperti sebelumnya */}
+      <aside className={`sidebar-modern ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
+        
+        {/* Toggle Button Hamburger */}
+        <div className="sidebar-toggle-header">
+          <button 
+            className="hamburger-toggle-btn"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Buka Menu" : "Tutup Menu"}
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+        </div>
+
+        {/* Konten sidebar (user info, menu, footer) */}
         <div className="sidebar-user-info">
           <div className="sidebar-user-avatar">
             {user?.profile?.avatar ? (
