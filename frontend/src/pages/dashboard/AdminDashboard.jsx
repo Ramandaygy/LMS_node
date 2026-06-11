@@ -24,7 +24,7 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/api/dashboard/stats');
+      const response = await api.get('/dashboard/stats');
       setStats({
         ...response.data,
         avg_attendance: 96.4,
@@ -46,10 +46,10 @@ const AdminDashboard = () => {
   };
 
   const commandCards = [
-    { id: 1, title: 'User Management', description: 'Onboard new students, assign teacher roles, and manage permissions.', icon: 'person_add', path: '/dashboard/admin/students' },
-    { id: 2, title: 'Curriculum Settings', description: 'Adjust semester periods, grade boundaries, and academic standards.', icon: 'history_edu', path: '/dashboard/admin/courses' },
-    { id: 3, title: 'Financial Oversight', description: 'Track tuition statuses and laboratory resource allocations.', icon: 'account_balance', path: '/dashboard/admin/reports' },
-    { id: 4, title: 'Data Export', description: 'Generate comprehensive CSV/PDF reports for government compliance.', icon: 'database', path: '/dashboard/admin/reports' }
+    { id: 1, title: 'Data Master', description: 'Kelola data siswa, guru, kelas, dan mata pelajaran.', icon: 'database', path: '/dashboard/admin/data-master' },
+    { id: 2, title: 'Tahun Ajaran', description: 'Atur semester, kalender akademik, dan kenaikan kelas.', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
+    { id: 3, title: 'Penugasan Guru', description: 'Atur jadwal pelajaran dan pembagian tugas mengajar guru.', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
+    { id: 4, title: 'Laporan', description: 'Lihat statistik, aktivitas, dan unduh laporan performa sekolah.', icon: 'analytics', path: '/dashboard/admin/reports' }
   ];
 
   const getAlertIconColor = (type) => {
@@ -74,13 +74,13 @@ const AdminDashboard = () => {
       {/* Header Section */}
       <section className="dashboard-header">
         <div className="header-left">
-          <span className="header-badge">Institutional Dashboard</span>
-          <h2 className="header-title">Academic Pulse.</h2>
-          <p className="header-subtitle">Real-time overview of SMP N 1's academic ecosystem and administrative health.</p>
+          <span className="header-badge">Dashboard Administrator</span>
+          <h2 className="header-title">Sistem Informasi Akademik</h2>
+          <p className="header-subtitle">Ringkasan real-time aktivitas akademik dan administrasi sekolah.</p>
         </div>
         <button className="broadcast-btn">
           <span className="material-symbols-outlined">campaign</span>
-          Broadcast Announcement
+          Buat Pengumuman
         </button>
       </section>
 
@@ -92,11 +92,11 @@ const AdminDashboard = () => {
             <div className="metric-icon primary">
               <span className="material-symbols-outlined">school</span>
             </div>
-            <span className="metric-trend positive">+12% this term</span>
+            <span className="metric-trend positive">+12% semester ini</span>
           </div>
           <div className="metric-large-value">
             <h4>{stats.total_students.toLocaleString()}</h4>
-            <p>Total Registered Students</p>
+            <p>Total Siswa Aktif</p>
           </div>
           <div className="progress-bar">
             <div className="progress-fill" style={{ width: '80%' }}></div>
@@ -108,17 +108,17 @@ const AdminDashboard = () => {
           <div className="metric-small">
             <span className="material-symbols-outlined secondary">supervisor_account</span>
             <h4>{stats.total_teachers}</h4>
-            <p>Active Teachers</p>
+            <p>Guru Aktif</p>
           </div>
           <div className="metric-small">
             <span className="material-symbols-outlined primary">today</span>
             <h4>{stats.classes_today}</h4>
-            <p>Classes Today</p>
+            <p>Kelas Hari Ini</p>
           </div>
           <div className="metric-small">
             <span className="material-symbols-outlined primary">check_circle</span>
             <h4>{stats.avg_attendance}%</h4>
-            <p>Avg Attendance</p>
+            <p>Rata-rata Kehadiran</p>
           </div>
           
           {/* System Status Card */}
@@ -128,8 +128,8 @@ const AdminDashboard = () => {
                 <span className="material-symbols-outlined">cloud_done</span>
               </div>
               <div>
-                <p className="system-status-label">System Status</p>
-                <h5 className="system-status-title">LMS Core: Optimal Stability</h5>
+                <p className="system-status-label">Status Sistem</p>
+                <h5 className="system-status-title">LMS Core: Stabil & Optimal</h5>
               </div>
             </div>
             <div className="system-status-avatars">
@@ -147,8 +147,8 @@ const AdminDashboard = () => {
         <div className="alerts-section">
           <div className="alerts-card">
             <div className="alerts-header">
-              <h3>System Alerts</h3>
-              <span className="alerts-badge">3 Critical</span>
+              <h3>Peringatan Sistem</h3>
+              <span className="alerts-badge">3 Perhatian</span>
             </div>
             <div className="alerts-list">
               {alerts.map(alert => (
@@ -159,7 +159,7 @@ const AdminDashboard = () => {
                   <div className="alert-content">
                     <p className="alert-title">{alert.title}</p>
                     <p className="alert-message">{alert.message}</p>
-                    <button className="alert-action">Manage →</button>
+                    <button className="alert-action">Kelola →</button>
                   </div>
                 </div>
               ))}
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
         {/* Right: Command Center */}
         <div className="commands-section">
           <div className="commands-card">
-            <h3 className="commands-title">Admin Command Center</h3>
+            <h3 className="commands-title">Pusat Kendali Admin</h3>
             <div className="commands-grid">
               {commandCards.map(cmd => (
                 <div 
@@ -196,8 +196,8 @@ const AdminDashboard = () => {
             <div className="quote-content">
               <span className="quote-icon material-symbols-outlined">format_quote</span>
               <div>
-                <p className="quote-text">"The goal of the Academic Curator is not just to manage data, but to design the environment where teachers can teach and students can thrive without friction."</p>
-                <p className="quote-author">— Institutional Philosophy, SMP N 1</p>
+                <p className="quote-text">"Pendidikan adalah senjata paling ampuh yang dapat kamu gunakan untuk mengubah dunia."</p>
+                <p className="quote-author">— Nelson Mandela</p>
               </div>
             </div>
             <div className="quote-bg-blur"></div>

@@ -133,7 +133,7 @@ const AdminReports = () => {
           </div>
           <div className="stats-card-info">
             <h3>Total Kursus</h3>
-            <p className="stats-number">{stats.total_courses}</p>
+            <p className="stats-number">{stats.total_subjects || 0}</p>
             <span className="stats-trend positive">
               <span className="material-symbols-outlined">trending_up</span>
               +5 dari bulan lalu

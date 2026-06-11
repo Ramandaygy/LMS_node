@@ -10,18 +10,20 @@ exports.getDashboardStats =
 
     try {
 
+      const mongoose = require('mongoose');
+
       const total_students =
-        await User.countDocuments({
+        await mongoose.connection.collection('users_siswa').countDocuments({
           role: 'siswa',
         });
 
       const total_teachers =
-        await User.countDocuments({
+        await mongoose.connection.collection('users_guru').countDocuments({
           role: 'guru',
         });
 
       const total_parents =
-        await User.countDocuments({
+        await mongoose.connection.collection('users_ortu').countDocuments({
           role: 'ortu',
         });
 

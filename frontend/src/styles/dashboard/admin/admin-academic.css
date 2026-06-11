@@ -56,16 +56,22 @@
 .status-badge.active { background: #dcfce7; color: #15803d; }
 .status-badge.inactive { background: #f1f5f9; color: #475569; }
 .academic-actions { display: flex; gap: 8px; }
-.btn-promote, .btn-alumni {
+.academic-actions button {
   padding: 6px 14px;
-  border-radius: 30px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #475569;
   cursor: pointer;
+  transition: all 0.2s;
 }
-.btn-promote { background: #e0f2fe; color: #0369a1; }
-.btn-alumni { background: #fef9c3; color: #a16207; }
+.academic-actions button:hover {
+  background: #f1f5f9;
+  color: #0040a1;
+  border-color: #0040a1;
+}
 .modal-overlay {
   position: fixed;
   top:0; left:0; right:0; bottom:0;
