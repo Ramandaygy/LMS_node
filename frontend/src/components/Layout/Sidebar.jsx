@@ -64,8 +64,9 @@ const Sidebar = ({  role, activeMenu, onMenuChange, isOpen, onClose }) => {
     ],
     ortu: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/ortu' },
-      { key: 'children', label: 'Anak Saya', icon: 'family_restroom', path: '/dashboard/ortu/children' },
-      { key: 'progress', label: 'Progress Anak', icon: 'trending_up', path: '/dashboard/ortu/progress' },
+      { key: 'children', label: 'Data Anak', icon: 'family_restroom', path: '/dashboard/ortu/children' },
+      { key: 'attendance', label: 'Kehadiran Anak', icon: 'event_available', path: '/dashboard/ortu/attendance' },
+      { key: 'monitoring', label: 'Monitoring AI', icon: 'psychology', path: '/dashboard/ortu/monitoring' },
       { key: 'reports', label: 'Laporan', icon: 'receipt', path: '/dashboard/ortu/reports' },
     ]
   };

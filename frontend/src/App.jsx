@@ -85,6 +85,8 @@ import SiswaProgress from './pages/dashboard/siswa/SiswaProgress';
 // ============================================
 import OrtuAttendance from './pages/dashboard/ortu/OrtuAttendance';
 import OrtuMonitoring from './pages/dashboard/ortu/OrtuMonitoring';
+import OrtuChildren from './pages/dashboard/ortu/OrtuChildren';
+import OrtuReports from './pages/dashboard/ortu/OrtuReports';
 
 // ============================================
 // COMPONENTS
@@ -648,6 +650,22 @@ function App() {
           <ProtectedRoute allowedRole="ortu">
             <DashboardLayout role="ortu">
               <OrtuMonitoring />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard/ortu/children" element={
+          <ProtectedRoute allowedRole="ortu">
+            <DashboardLayout role="ortu">
+              <OrtuChildren />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard/ortu/reports" element={
+          <ProtectedRoute allowedRole="ortu">
+            <DashboardLayout role="ortu">
+              <OrtuReports />
             </DashboardLayout>
           </ProtectedRoute>
         } />
