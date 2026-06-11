@@ -21,7 +21,7 @@ const OrtuAttendance = () => {
 
   const fetchChildren = async () => {
     try {
-      const res = await api.get('/ortu/children');
+      const res = await api.get('/attendance/ortu/children');
       const kids = res.data.children || [];
       setChildren(kids);
       if (kids.length > 0) setSelectedChild(kids[0].id);

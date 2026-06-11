@@ -14,7 +14,7 @@ const OrtuMonitoring = () => {
 
   const fetchChildren = async () => {
     try {
-      const res = await api.get('/ortu/children');
+      const res = await api.get('/attendance/ortu/children');
       setChildren(res.data.children || []);
       if (res.data.children?.length > 0) {
         setSelectedChild(res.data.children[0]);
@@ -28,7 +28,7 @@ const OrtuMonitoring = () => {
   const fetchProgress = async (childId) => {
     setLoading(true);
     try {
-      const res = await api.get(`/ortu/children/${childId}/progress`);
+      const res = await api.get(`/progress/ortu/children/${childId}`);
       setProgress(res.data.data);
     } catch (err) {
       console.error(err);

@@ -23,7 +23,7 @@ const OrtuDashboard = () => {
       setUser(profileRes.data);
 
       // Ambil daftar anak
-      const childrenRes = await api.get('/ortu/children');
+      const childrenRes = await api.get('/attendance/ortu/children');
       const kids = childrenRes.data.children || [];
       setChildren(kids);
       if (kids.length > 0) {
@@ -40,7 +40,7 @@ const OrtuDashboard = () => {
 
   const fetchProgress = async (childId) => {
     try {
-      const res = await api.get(`/ortu/children/${childId}/progress`);
+      const res = await api.get(`/progress/ortu/children/${childId}`);
       setProgress(res.data.data);
     } catch (err) {
       console.error('Error fetching progress:', err);
@@ -72,33 +72,7 @@ const OrtuDashboard = () => {
 
   return (
     <div className="ortu-dashboard">
-      {/* Header dengan Hamburger */}
-      <header className="dashboard-header">
-        <div className="header-left">
-          <div className="avatar">
-            {user?.profileImage ? <img src={user.profileImage} alt="avatar" /> : 
-              <span className="material-symbols-outlined">account_circle</span>}
-          </div>
-          <div>
-            <h1 className="school-name">SMP N 1 LMS</h1>
-            <p className="user-greeting">Halo, {user?.full_name?.split(' ')[0] || 'Orang Tua'}</p>
-          </div>
-        </div>
-        <button className="hamburger" onClick={toggleMenu}>
-          <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
-        </button>
-      </header>
 
-      {/* Overlay dan Mobile Nav */}
-      <div className={`menu-overlay ${menuOpen ? 'open' : ''}`} onClick={toggleMenu}></div>
-      <nav className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
-        <ul>
-          <li><a href="/dashboard/ortu"><span className="material-symbols-outlined">dashboard</span> Dashboard</a></li>
-          <li><a href="/dashboard/ortu/children"><span className="material-symbols-outlined">groups</span> Data Anak</a></li>
-          <li><a href="/dashboard/ortu/monitoring"><span className="material-symbols-outlined">monitoring</span> Monitoring</a></li>
-          <li><a href="/profile"><span className="material-symbols-outlined">person</span> Profil</a></li>
-        </ul>
-      </nav>
 
       <main className="dashboard-main">
         <div className="welcome-section">

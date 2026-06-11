@@ -11,7 +11,7 @@ const OrtuChildren = () => {
 
   const fetchChildren = async () => {
     try {
-      const res = await api.get('/ortu/children');
+      const res = await api.get('/attendance/ortu/children');
       setChildren(res.data.children || []);
     } catch (err) {
       console.error(err);

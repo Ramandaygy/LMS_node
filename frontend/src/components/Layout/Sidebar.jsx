@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { profileService } from '../../services/profile';
 import '../../styles/components/sidebar.css';
 
-const Sidebar = ({  role, activeMenu, onMenuChange, isOpen, onClose }) => {
+const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
@@ -52,7 +52,6 @@ const Sidebar = ({  role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
       { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
-      { key: 'monitoring', label: 'Monitoring', icon: 'psychology', path: '/dashboard/guru/monitoring' },
       { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
     ],
     siswa: [

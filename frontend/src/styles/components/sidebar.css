@@ -256,3 +256,60 @@
   background: #c1c1c1;
   border-radius: 4px;
 }
+
+/* Collapse Button */
+.collapse-btn {
+  position: absolute;
+  top: 15px;
+  right: -15px;
+  background: #0040a1;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 102;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: all 0.3s;
+}
+
+.collapse-btn:hover {
+  background: #002e75;
+  transform: scale(1.1);
+}
+
+/* Collapsed State */
+.sidebar-modern.collapsed {
+  width: 80px;
+}
+
+.sidebar-modern.collapsed .sidebar-user-details,
+.sidebar-modern.collapsed .sidebar-nav-item span:not(.material-symbols-outlined) {
+  display: none;
+}
+
+.sidebar-modern.collapsed .sidebar-nav-item {
+  justify-content: center;
+  padding: 12px 0;
+}
+
+.sidebar-modern.collapsed .sidebar-nav-item .material-symbols-outlined {
+  margin: 0;
+  width: auto;
+}
+
+/* Fix footer links in collapsed mode */
+.sidebar-modern.collapsed .sidebar-footer-link {
+  justify-content: center;
+}
+.sidebar-modern.collapsed .sidebar-footer-link span:not(.material-symbols-outlined) {
+  display: none;
+}
+.sidebar-modern.collapsed .sidebar-footer-link {
+  font-size: 0;
+}
+
