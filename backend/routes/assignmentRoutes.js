@@ -7,9 +7,9 @@ const { uploadSubmission } = require('../middleware/uploadMiddleware');
 //
 // Assignment routes
 router.get('/', authMiddleware, assignmentController.getAllAssignments);
-router.post('/', authMiddleware, assignmentController.createAssignment);
+router.post('/', authMiddleware, uploadSubmission.array('attachments'), assignmentController.createAssignment);
 router.get('/:id', authMiddleware, assignmentController.getAssignmentById);
-router.put('/:id', authMiddleware, assignmentController.updateAssignment);
+router.put('/:id', authMiddleware, uploadSubmission.array('attachments'), assignmentController.updateAssignment);
 router.delete('/:id', authMiddleware, assignmentController.deleteAssignment);
 
 // Guru: tugas yang dibuat

@@ -1,11 +1,25 @@
 const assignmentService = require('../services/assignmentService');
 const mongoose = require('mongoose');
 
-// CREATE
 exports.createAssignment = async (req, res) => {
   try {
     const teacherId = req.user.id; // dari token
-    const assignmentData = { ...req.body, teacher: teacherId };
+    const attachments = [];
+    
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        attachments.push({ type: 'file', value: file.filename || file.originalname });
+      });
+    }
+    
+    if (req.body.links) {
+      const linksArray = Array.isArray(req.body.links) ? req.body.links : [req.body.links];
+      linksArray.forEach(link => {
+        if (link) attachments.push({ type: 'link', value: link });
+      });
+    }
+
+    const assignmentData = { ...req.body, teacher: teacherId, attachments };
     const newAssignment = await assignmentService.createAssignment(assignmentData);
     return res.status(201).json({ success: true, data: newAssignment });
   } catch (err) {
@@ -40,7 +54,34 @@ exports.getAssignmentById = async (req, res) => {
 // UPDATE
 exports.updateAssignment = async (req, res) => {
   try {
-    const updated = await assignmentService.updateAssignment(req.params.id, req.body);
+    const attachments = [];
+    
+    if (req.files && req.files.length > 0) {
+      req.files.forEach(file => {
+        attachments.push({ type: 'file', value: file.filename || file.originalname });
+      });
+    }
+    
+    if (req.body.attachments) {
+      const existArray = Array.isArray(req.body.attachments) ? req.body.attachments : [req.body.attachments];
+      existArray.forEach(val => {
+        if (typeof val === 'string' && val.trim() !== '') {
+          attachments.push({ type: 'file', value: val });
+        }
+      });
+    }
+    
+    if (req.body.links) {
+      const linksArray = Array.isArray(req.body.links) ? req.body.links : [req.body.links];
+      linksArray.forEach(link => {
+        if (link) attachments.push({ type: 'link', value: link });
+      });
+    }
+
+    const updateData = { ...req.body };
+    updateData.attachments = attachments;
+
+    const updated = await assignmentService.updateAssignment(req.params.id, updateData);
     return res.json({ success: true, data: updated });
   } catch (err) {
     console.error(err);
