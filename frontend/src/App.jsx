@@ -320,7 +320,7 @@ function App() {
 
         <Route
           path="/login"
-          element={<Navigate to="/login/siswa" replace />}
+          element={<Navigate to={`/login/${localStorage.getItem('lastRole') || 'siswa'}`} replace />}
         />
 
         {/* ============================================ */}

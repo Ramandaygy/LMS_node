@@ -393,7 +393,7 @@ exports.login = async (body) => {
       },
       process.env.JWT_SECRET,
       {
-        expiresIn: '7d',
+        expiresIn: '30d',
       }
     );
 

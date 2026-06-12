@@ -7,6 +7,7 @@ export const authService = {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('lastRole', response.data.user.role);
         console.log('User saved:', response.data.user); // Debug
       }
       return response.data;
@@ -22,6 +23,7 @@ export const authService = {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('lastRole', response.data.user.role);
         console.log('Login success, user:', response.data.user); // Debug
       }
       return response.data;
