@@ -103,44 +103,44 @@ const AdminReports = () => {
       <div className="reports-modules-grid">
         <div className="report-module-card">
           <div className="module-icon academic">
-            <span className="material-symbols-outlined">menu_book</span>
+            <span className="material-symbols-outlined">school</span>
           </div>
           <div className="module-content">
-            <h3>Laporan Akademik</h3>
-            <p>Rekapitulasi nilai, tugas, dan hasil ujian siswa per semester.</p>
+            <h3>Laporan Data Siswa</h3>
+            <p>Export dan lihat daftar lengkap siswa yang terdaftar di sistem.</p>
             <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
         
         <div className="report-module-card">
           <div className="module-icon attendance">
-            <span className="material-symbols-outlined">how_to_reg</span>
+            <span className="material-symbols-outlined">person_pin</span>
           </div>
           <div className="module-content">
-            <h3>Laporan Kehadiran</h3>
-            <p>Data presensi siswa dan guru berdasarkan periode waktu.</p>
+            <h3>Laporan Data Guru</h3>
+            <p>Daftar seluruh profil guru pengajar beserta status keaktifannya.</p>
             <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
 
         <div className="report-module-card">
           <div className="module-icon finance">
-            <span className="material-symbols-outlined">payments</span>
+            <span className="material-symbols-outlined">assignment_ind</span>
           </div>
           <div className="module-content">
-            <h3>Laporan Administrasi</h3>
-            <p>Status administrasi dan biaya sekolah lainnya.</p>
+            <h3>Laporan Penugasan Guru</h3>
+            <p>Data lengkap mengenai pembagian tugas mengajar guru per kelas.</p>
             <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
 
         <div className="report-module-card">
           <div className="module-icon users">
-            <span className="material-symbols-outlined">group</span>
+            <span className="material-symbols-outlined">manage_accounts</span>
           </div>
           <div className="module-content">
-            <h3>Data Induk Pengguna</h3>
-            <p>Export data lengkap siswa, guru, dan staf aktif.</p>
+            <h3>Laporan Aktivitas Pengguna</h3>
+            <p>Rekapitulasi log aktivitas yang dilakukan oleh semua pengguna.</p>
             <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>

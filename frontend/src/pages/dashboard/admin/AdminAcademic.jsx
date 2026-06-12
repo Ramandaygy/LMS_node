@@ -175,7 +175,7 @@ const AdminAcademicYear = () => {
     <div className="academic-container">
       <div className="academic-header">
         <div>
-          <h2>📅 Tahun Ajaran</h2>
+          <h2>Tahun Ajaran</h2>
           <p>Kelola tahun ajaran, kenaikan kelas, dan alumni</p>
         </div>
         <button className="btn-add" onClick={() => { setEditingYear(null); setFormData({ year: '', start_date: '', end_date: '', is_active: true, semester: '' }); setShowModal(true); }}>
@@ -221,10 +221,10 @@ const AdminAcademicYear = () => {
                     </span>
                   </td>
                   <td className="academic-actions">
-                    <button className="btn-edit" onClick={() => handleEdit(year)}>✏️ Edit</button>
-                    <button className="btn-promote" onClick={() => openPromoteModal(year)}>📈 Kenaikan Kelas</button>
-                    <button className="btn-alumni" onClick={() => openAlumniModal(year)}>🎓 Alumni</button>
-                    <button className="btn-delete" onClick={() => handleDelete(year._id)}>🗑️ Hapus</button>
+                    <button className="btn-edit" onClick={() => handleEdit(year)}>Edit</button>
+                    <button className="btn-promote" onClick={() => openPromoteModal(year)}>Kenaikan Kelas</button>
+                    <button className="btn-alumni" onClick={() => openAlumniModal(year)}>Alumni</button>
+                    <button className="btn-delete" onClick={() => handleDelete(year._id)}>Hapus</button>
                   </td>
                 </tr>
               ))
