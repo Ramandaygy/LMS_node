@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { profileService } from '../../services/profile';
+import { pushNotificationService } from '../../services/pushNotificationService';
 import '../../styles/profile/profile.css';
 
 const Profile = () => {
@@ -111,6 +112,15 @@ const Profile = () => {
       fetchProfile();
     } catch (error) {
       setError('Gagal upload foto profil');
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      await pushNotificationService.sendTestNotification();
+      setSuccess('Test Notifikasi berhasil dikirim. Silakan cek layar HP/komputer Anda!');
+    } catch (error) {
+      setError('Gagal mengirim test notifikasi. Pastikan Anda sudah mengizinkan notifikasi.');
     }
   };
 
@@ -247,6 +257,9 @@ const Profile = () => {
               </button>
               <button className="btn-password" onClick={() => setIsChangingPassword(true)}>
                 Ganti Password
+              </button>
+              <button className="btn-password" onClick={handleTestNotification} style={{background: '#28a745'}}>
+                Test Notifikasi Asli
               </button>
             </>
           )}

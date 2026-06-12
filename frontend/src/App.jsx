@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 
 import { authService } from './services/auth';
+import { pushNotificationService } from './services/pushNotificationService';
 
 // ============================================
 // STYLES
@@ -187,6 +188,11 @@ function App() {
   const DashboardLayout = ({ children, role }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+    // Initialize Push Notifications
+    useEffect(() => {
+      pushNotificationService.subscribe();
+    }, []);
 
     return (
       <div className="dashboard-container">
