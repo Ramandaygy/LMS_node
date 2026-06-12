@@ -99,89 +99,51 @@ const AdminReports = () => {
         </button>
       </div>
 
-      {/* Stats Summary Cards */}
-      <div className="reports-stats-grid">
-        <div className="stats-card">
-          <div className="stats-card-icon">
-            <span className="material-symbols-outlined">school</span>
-          </div>
-          <div className="stats-card-info">
-            <h3>Total Siswa</h3>
-            <p className="stats-number">{stats.total_students}</p>
-            <span className="stats-trend positive">
-              <span className="material-symbols-outlined">trending_up</span>
-              +12 dari bulan lalu
-            </span>
-          </div>
-        </div>
-        <div className="stats-card">
-          <div className="stats-card-icon teacher">
-            <span className="material-symbols-outlined">person_pin</span>
-          </div>
-          <div className="stats-card-info">
-            <h3>Total Guru</h3>
-            <p className="stats-number">{stats.total_teachers}</p>
-            <span className="stats-trend positive">
-              <span className="material-symbols-outlined">trending_up</span>
-              +2 dari bulan lalu
-            </span>
-          </div>
-        </div>
-        <div className="stats-card">
-          <div className="stats-card-icon course">
+      {/* Report Modules Grid */}
+      <div className="reports-modules-grid">
+        <div className="report-module-card">
+          <div className="module-icon academic">
             <span className="material-symbols-outlined">menu_book</span>
           </div>
-          <div className="stats-card-info">
-            <h3>Total Kursus</h3>
-            <p className="stats-number">{stats.total_subjects || 0}</p>
-            <span className="stats-trend positive">
-              <span className="material-symbols-outlined">trending_up</span>
-              +5 dari bulan lalu
-            </span>
+          <div className="module-content">
+            <h3>Laporan Akademik</h3>
+            <p>Rekapitulasi nilai, tugas, dan hasil ujian siswa per semester.</p>
+            <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
-        <div className="stats-card">
-          <div className="stats-card-icon parent">
-            <span className="material-symbols-outlined">family_restroom</span>
+        
+        <div className="report-module-card">
+          <div className="module-icon attendance">
+            <span className="material-symbols-outlined">how_to_reg</span>
           </div>
-          <div className="stats-card-info">
-            <h3>Orang Tua Terdaftar</h3>
-            <p className="stats-number">{stats.total_parents}</p>
-            <span className="stats-trend positive">
-              <span className="material-symbols-outlined">trending_up</span>
-              +8 dari bulan lalu
-            </span>
+          <div className="module-content">
+            <h3>Laporan Kehadiran</h3>
+            <p>Data presensi siswa dan guru berdasarkan periode waktu.</p>
+            <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
-      </div>
 
-      {/* Chart Section */}
-      <div className="reports-chart">
-        <div className="chart-header">
-          <h3>Statistik Aktivitas Harian</h3>
-          <div className="chart-legend">
-            <div className="legend-item">
-              <div className="legend-color primary"></div>
-              <span>Aktivitas Pengguna</span>
-            </div>
+        <div className="report-module-card">
+          <div className="module-icon finance">
+            <span className="material-symbols-outlined">payments</span>
+          </div>
+          <div className="module-content">
+            <h3>Laporan Administrasi</h3>
+            <p>Status administrasi dan biaya sekolah lainnya.</p>
+            <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
-        <div className="chart-container">
-          <div className="chart-bars">
-            {['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map((day, idx) => {
-              const heights = [120, 95, 145, 110, 135, 80, 60];
-              return (
-                <div key={idx} className="chart-bar-item">
-                  <div className="chart-bar" style={{ height: `${heights[idx]}px` }}>
-                    <span className="chart-value">{heights[idx]}</span>
-                  </div>
-                  <span className="chart-label">{day}</span>
-                </div>
-              );
-            })}
+
+        <div className="report-module-card">
+          <div className="module-icon users">
+            <span className="material-symbols-outlined">group</span>
+          </div>
+          <div className="module-content">
+            <h3>Data Induk Pengguna</h3>
+            <p>Export data lengkap siswa, guru, dan staf aktif.</p>
+            <button className="module-action-btn">Buat Laporan</button>
           </div>
         </div>
-        <p className="chart-note">*Grafik aktivitas pengguna aktif per hari</p>
       </div>
 
       {/* Recent Activity Table */}
