@@ -130,6 +130,9 @@ app.use('/api/profile',
 // PROGRESS
 app.use('/api/progress', require('./routes/progressRoutes'));
 
+// EVENTS / CALENDAR
+app.use('/api/events', require('./routes/eventRoutes'));
+
 app.use('/api/guru/attendance', require('./routes/attendanceRoutes'));
 
 // =====================================

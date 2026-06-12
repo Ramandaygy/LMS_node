@@ -62,6 +62,11 @@ import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
 import AdminDataMaster from './pages/dashboard/admin/AdminDataMaster';
 
 // ============================================
+// SHARED SUB PAGES
+// ============================================
+import CalendarInfo from './pages/dashboard/shared/CalendarInfo';
+
+// ============================================
 // GURU SUB PAGES
 // ============================================
 import GuruCourses from './pages/dashboard/guru/GuruCourses';
@@ -71,6 +76,7 @@ import GuruAttendance from './pages/dashboard/guru/GuruAttendance';
 import GuruMonitoring from './pages/dashboard/guru/GuruMonitoring';
 import GuruStudents from './pages/dashboard/guru/GuruStudents';
 import GuruProgress from './pages/dashboard/guru/GuruProgress';
+import GuruQuiz from './pages/dashboard/guru/GuruQuiz';
 
 // ============================================
 // SISWA SUB PAGES
@@ -416,6 +422,17 @@ function App() {
           }
         />
 
+        <Route
+          path="/dashboard/siswa/calendar"
+          element={
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <CalendarInfo />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* ============================================ */}
         {/* GURU DASHBOARD */}
         {/* ============================================ */}
@@ -503,6 +520,28 @@ function App() {
             <ProtectedRoute allowedRole="guru">
               <DashboardLayout role="guru">
                 <GuruStudents />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/quiz"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <GuruQuiz />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/calendar"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <CalendarInfo />
               </DashboardLayout>
             </ProtectedRoute>
           }
@@ -623,6 +662,17 @@ function App() {
           }
         />
 
+        <Route
+          path="/dashboard/admin/calendar"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <CalendarInfo />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* ============================================ */}
         {/* ORTU DASHBOARD */}
         {/* ============================================ */}
@@ -666,6 +716,14 @@ function App() {
           <ProtectedRoute allowedRole="ortu">
             <DashboardLayout role="ortu">
               <OrtuReports />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard/ortu/calendar" element={
+          <ProtectedRoute allowedRole="ortu">
+            <DashboardLayout role="ortu">
+              <CalendarInfo />
             </DashboardLayout>
           </ProtectedRoute>
         } />

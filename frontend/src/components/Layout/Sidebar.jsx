@@ -46,6 +46,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Assign Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     guru: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/guru' },
@@ -54,6 +55,8 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
       { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
       { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
+      { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
     ],
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
@@ -61,6 +64,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/siswa/assignments' },
       { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/siswa/materials' },
       { key: 'schedule', label: 'Jadwal', icon: 'calendar_month', path: '/dashboard/siswa/schedule' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/siswa/calendar' },
     ],
     ortu: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/ortu' },
@@ -68,6 +72,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'attendance', label: 'Kehadiran Anak', icon: 'event_available', path: '/dashboard/ortu/attendance' },
       { key: 'monitoring', label: 'Monitoring AI', icon: 'psychology', path: '/dashboard/ortu/monitoring' },
       { key: 'reports', label: 'Laporan', icon: 'receipt', path: '/dashboard/ortu/reports' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/ortu/calendar' },
     ]
   };
 
