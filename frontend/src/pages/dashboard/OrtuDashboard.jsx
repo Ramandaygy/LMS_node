@@ -132,15 +132,15 @@ const OrtuDashboard = () => {
 
         {/* Jadwal dan Kehadiran Hari Ini */}
         {selectedChild && (
-          <div className="attendance-card" style={{ marginTop: '20px', padding: '20px', background: 'var(--surface-color)', borderRadius: '16px' }}>
+          <div className="attendance-card card-section">
             <h3>Jadwal & Kehadiran Hari Ini</h3>
             {todayAttendance.length > 0 ? (
               <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
                 {todayAttendance.map((att, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: 'var(--bg-color)', borderRadius: '8px' }}>
+                  <div key={idx} className="schedule-item">
                     <div>
                       <strong>{att.schedule_id?.subject_id?.name || 'Mata Pelajaran'}</strong>
-                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
                         {att.schedule_id?.start_time} - {att.schedule_id?.end_time} | Guru: {att.teacher_id?.full_name}
                       </div>
                     </div>
@@ -153,28 +153,30 @@ const OrtuDashboard = () => {
                 ))}
               </div>
             ) : (
-              <p style={{ color: 'var(--text-secondary)' }}>Belum ada data absensi untuk jadwal hari ini.</p>
+              <p style={{ color: '#666' }}>Belum ada data absensi untuk jadwal hari ini.</p>
             )}
           </div>
         )}
 
         {/* Tugas Mendatang */}
         {selectedChild && (
-          <div className="assignments-card" style={{ marginTop: '20px', padding: '20px', background: 'var(--surface-color)', borderRadius: '16px' }}>
+          <div className="assignments-card card-section">
             <h3>Tugas Mendatang</h3>
             {assignments.length > 0 ? (
               <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
                 {assignments.map(a => (
-                  <div key={a._id} style={{ padding: '12px', background: 'var(--bg-color)', borderRadius: '8px', borderLeft: '4px solid var(--primary-color)' }}>
-                    <strong>{a.title}</strong>
-                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                      Mata Pelajaran: {a.subject_id?.name || '-'} | Tenggat: {new Date(a.due_date).toLocaleDateString('id-ID')}
+                  <div key={a._id} className="task-item" style={{ borderLeft: '4px solid #0040a1', paddingLeft: '12px' }}>
+                    <div>
+                      <strong>{a.title}</strong>
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        Mata Pelajaran: {a.subject_name || '-'} | Tenggat: {new Date(a.deadline).toLocaleDateString('id-ID')}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p style={{ color: 'var(--text-secondary)' }}>Tidak ada tugas yang aktif saat ini.</p>
+              <p style={{ color: '#666' }}>Tidak ada tugas yang aktif saat ini.</p>
             )}
           </div>
         )}

@@ -21,6 +21,40 @@ exports.createAssignment = async (req, res) => {
 
     const assignmentData = { ...req.body, teacher: teacherId, attachments };
     const newAssignment = await assignmentService.createAssignment(assignmentData);
+
+    // Kirim push notification ke siswa dan ortu
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const classIdObj = new mongoose.Types.ObjectId(req.body.class);
+      const subjectName = req.body.title; // Gunakan title tugas sebagai referensi singkat
+      
+      const students = await siswaCol.find({ class_id: classIdObj }).toArray();
+      
+      // Notifikasi untuk setiap siswa dan ortu
+      for (const student of students) {
+        if (student._id) {
+          notificationController.sendPushNotification(
+            student._id.toString(),
+            'Tugas Baru!',
+            `Tugas baru telah ditambahkan: ${subjectName}. Tenggat: ${new Date(req.body.deadline).toLocaleDateString('id-ID')}`,
+            '/dashboard/siswa/assignments'
+          ).catch(e => console.error(e));
+        }
+        
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Tugas Baru untuk Anak Anda',
+            `Ada tugas baru untuk ${student.full_name}: ${subjectName}. Tenggat: ${new Date(req.body.deadline).toLocaleDateString('id-ID')}`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send push notifications for new assignment:', notifErr);
+    }
+
     return res.status(201).json({ success: true, data: newAssignment });
   } catch (err) {
     console.error(err);
