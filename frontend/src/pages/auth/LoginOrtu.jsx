@@ -50,10 +50,10 @@ const LoginOrtu = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">family_restroom</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Parent <span>Dashboard</span></h2>
-          <p>Welcome to SMP N 1 ScholarFlow Parent Portal. Stay connected with your child's academic journey and support their educational growth.</p>
+          <p>Welcome to SMP N 1 Suradadi .</p>
           
           <div className="auth-features">
             <div className="auth-feature">
@@ -82,7 +82,7 @@ const LoginOrtu = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">family_restroom</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Parent Access</p>
           </div>
 
@@ -92,8 +92,7 @@ const LoginOrtu = () => {
             <div className="auth-tabs">
               <button className="auth-tab active">LOGIN</button>
               <Link to="/register/ortu" className="auth-tab">REGISTER</Link>
-              <button className="auth-tab">ACTIVATE</button>
-            </div>
+              </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
@@ -146,7 +145,7 @@ const LoginOrtu = () => {
               </div>
 
               <button type="submit" disabled={loading} className="auth-submit">
-                {loading ? 'Processing...' : 'Access Dashboard'}
+                {loading ? 'Processing...' : 'Login'}
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             </form>
@@ -154,10 +153,6 @@ const LoginOrtu = () => {
             {/* Register Link */}
             <div className="auth-register-prompt">
               <p>First time here? Register your parent account.</p>
-              <Link to="/register/ortu" className="auth-register-btn">
-                <span className="material-symbols-outlined">app_registration</span>
-                Parent Registration
-              </Link>
             </div>
           </div>
 
@@ -165,9 +160,8 @@ const LoginOrtu = () => {
           <div className="auth-footer-info">
             <div className="auth-footer-support">
               <span className="material-symbols-outlined">support_agent</span>
-              <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>

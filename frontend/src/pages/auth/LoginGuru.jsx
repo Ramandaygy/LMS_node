@@ -87,7 +87,7 @@ const LoginGuru = () => {
             <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Teaching <span>Excellence</span> Portal</h2>
-          <p>Welcome to SMP N 1 ScholarFlow Educator Hub. Streamline your teaching workflow, manage classes, and inspire the next generation of leaders.</p>
+          <p>Welcome to SMP N 1 Suradadi .</p>
           
           <div className="auth-features">
             <div className="auth-feature">

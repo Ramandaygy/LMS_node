@@ -52,10 +52,10 @@ const RegisterSiswa = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">school</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Start Your <span>Learning</span> Journey</h2>
-          <p>Join SMP N 1 ScholarFlow today. Create your student account to access curated learning materials, track your progress, and achieve academic excellence.</p>
+          <p>Join SMP N 1 Suradadi today. Create your student account to access curated learning materials, track your progress, and achieve academic excellence.</p>
           
           <div className="auth-features">
             <div className="auth-feature">
@@ -84,7 +84,7 @@ const RegisterSiswa = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">school</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Student Registration</p>
           </div>
 
@@ -94,8 +94,7 @@ const RegisterSiswa = () => {
             <div className="auth-tabs">
               <Link to="/login/siswa" className="auth-tab">LOGIN</Link>
               <button className="auth-tab active">REGISTER</button>
-              <button className="auth-tab">ACTIVATE</button>
-            </div>
+              </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
@@ -231,9 +230,8 @@ const RegisterSiswa = () => {
           <div className="auth-footer-info">
             <div className="auth-footer-support">
               <span className="material-symbols-outlined">support_agent</span>
-              <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>

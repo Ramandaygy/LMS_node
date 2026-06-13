@@ -61,7 +61,7 @@ const RegisterAdmin = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">admin_panel_settings</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Administrator <span>Registration</span></h2>
           <p>Authorized personnel only. Please enter your valid access code to register as an administrator.</p>
@@ -91,7 +91,7 @@ const RegisterAdmin = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">admin_panel_settings</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Administrator Registration</p>
           </div>
 
@@ -99,7 +99,6 @@ const RegisterAdmin = () => {
             <div className="auth-tabs">
               <Link to="/login/admin" className="auth-tab">LOGIN</Link>
               <button className="auth-tab active">REGISTER</button>
-              <button className="auth-tab">ACTIVATE</button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -147,7 +146,7 @@ const RegisterAdmin = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="admin@scholarflow.edu"
+                      placeholder="admin@smpn1suradadi.sch.id"
                       required
                     />
                   </div>
@@ -229,7 +228,7 @@ const RegisterAdmin = () => {
               <span className="material-symbols-outlined">support_agent</span>
               <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>

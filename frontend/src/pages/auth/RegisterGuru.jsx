@@ -53,10 +53,10 @@ const RegisterGuru = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">menu_book</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Join Our <span>Teaching</span> Community</h2>
-          <p>Register as an educator at SMP N 1 ScholarFlow. Access powerful teaching tools, manage your classes, and inspire the next generation.</p>
+          <p>Register as an educator at SMP N 1 Suradadi. Access powerful teaching tools, manage your classes, and inspire the next generation.</p>
           
           <div className="auth-features">
             <div className="auth-feature">
@@ -84,7 +84,7 @@ const RegisterGuru = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">menu_book</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Educator Registration</p>
           </div>
 
@@ -92,7 +92,6 @@ const RegisterGuru = () => {
             <div className="auth-tabs">
               <Link to="/login/guru" className="auth-tab">LOGIN</Link>
               <button className="auth-tab active">REGISTER</button>
-              <button className="auth-tab">ACTIVATE</button>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -237,7 +236,7 @@ const RegisterGuru = () => {
               <span className="material-symbols-outlined">support_agent</span>
               <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>

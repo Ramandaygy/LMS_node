@@ -53,7 +53,7 @@ const RegisterOrtu = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">family_restroom</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
           <h2>Parent <span>Portal</span> Registration</h2>
           <p>Register as a parent to monitor your child's academic progress, receive reports, and stay connected with teachers.</p>
@@ -83,7 +83,7 @@ const RegisterOrtu = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">family_restroom</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Parent Registration</p>
           </div>
 
@@ -91,8 +91,7 @@ const RegisterOrtu = () => {
             <div className="auth-tabs">
               <Link to="/login/ortu" className="auth-tab">LOGIN</Link>
               <button className="auth-tab active">REGISTER</button>
-              <button className="auth-tab">ACTIVATE</button>
-            </div>
+              </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
@@ -256,9 +255,8 @@ const RegisterOrtu = () => {
           <div className="auth-footer-info">
             <div className="auth-footer-support">
               <span className="material-symbols-outlined">support_agent</span>
-              <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>

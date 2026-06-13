@@ -48,10 +48,10 @@ const LoginSiswa = () => {
             <div className="auth-logo-icon">
               <span className="material-symbols-outlined">school</span>
             </div>
-            <h1>ScholarFlow</h1>
+            <h1>SMP N 1 SURADADI</h1>
           </div>
-          <h2>A Legacy of <span>Excellence</span>, Digitalized.</h2>
-          <p>Welcome to SMP N 1 ScholarFlow. Whether you're a student embarking on a journey of discovery or a parent supporting their path, our curated learning environment is designed for your success.</p>
+          <h2>Student <span>Portal</span></h2>
+          <p>Welcome to SMP N 1 Suradadi .</p>
           
           <div className="auth-features">
             <div className="auth-feature">
@@ -80,7 +80,7 @@ const LoginSiswa = () => {
             <div className="auth-mobile-logo">
               <span className="material-symbols-outlined">school</span>
             </div>
-            <h2>ScholarFlow</h2>
+            <h2>SMP N 1 SURADADI</h2>
             <p>Access your learning portal</p>
           </div>
 
@@ -90,8 +90,7 @@ const LoginSiswa = () => {
             <div className="auth-tabs">
               <button className="auth-tab active">LOGIN</button>
               <Link to="/register/siswa" className="auth-tab">REGISTER</Link>
-              <button className="auth-tab">ACTIVATE</button>
-            </div>
+              </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
@@ -144,18 +143,14 @@ const LoginSiswa = () => {
               </div>
 
               <button type="submit" disabled={loading} className="auth-submit">
-                {loading ? 'Processing...' : 'Access Dashboard'}
+                {loading ? 'Processing...' : 'Login'}
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             </form>
 
             {/* Register Link */}
             <div className="auth-register-prompt">
-              <p>First time here? Link your official student account.</p>
-              <Link to="/register/siswa" className="auth-register-btn">
-                <span className="material-symbols-outlined">app_registration</span>
-                Account Activation
-              </Link>
+              <p>First time here? Register your student account.</p>
             </div>
           </div>
 
@@ -163,9 +158,8 @@ const LoginSiswa = () => {
           <div className="auth-footer-info">
             <div className="auth-footer-support">
               <span className="material-symbols-outlined">support_agent</span>
-              <span>Technical Support</span>
             </div>
-            <span>SMP N 1 ScholarFlow v4.2.0</span>
+            <span>SMP N 1 SURADADI v1.0</span>
           </div>
         </div>
       </div>
