@@ -12,6 +12,8 @@ const GuruQuiz = () => {
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
 
   // Scoring Modal State
   const [showModal, setShowModal] = useState(false);
@@ -21,7 +23,22 @@ const GuruQuiz = () => {
 
   useEffect(() => {
     fetchStudents();
+    fetchTeacherProfile();
   }, []);
+
+  const fetchTeacherProfile = async () => {
+    try {
+      const res = await api.get('/profile');
+      if (res.data && res.data.subjects) {
+        setSubjects(res.data.subjects);
+        if (res.data.subjects.length > 0) {
+          setSelectedSubject(res.data.subjects[0].name);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch profile', err);
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -84,19 +101,67 @@ const GuruQuiz = () => {
 
   const handleGenerateAI = () => {
     setIsGenerating(true);
-    // Simulate AI generation delay
-    setTimeout(() => {
-      const dummyQuestions = [
-        "Sebutkan ibu kota dari negara Australia!",
-        "Siapakah penemu bola lampu pijar?",
+    
+    // Subject specific dummy questions
+    const subjectQuestionBank = {
+      "Matematika": [
         "Berapakah hasil dari 15 x 12?",
+        "Sebuah segitiga memiliki alas 10 cm dan tinggi 5 cm, berapakah luasnya?",
+        "Apa rumus keliling lingkaran?",
+        "Jika x + 5 = 12, berapakah nilai x?",
+        "Sebutkan 3 jenis bilangan prima pertama!"
+      ],
+      "IPA": [
         "Jelaskan secara singkat apa yang dimaksud dengan fotosintesis!",
-        "Sebutkan 3 jenis hewan mamalia yang hidup di air!"
-      ];
-      const randomQ = dummyQuestions[Math.floor(Math.random() * dummyQuestions.length)];
+        "Sebutkan 3 jenis hewan mamalia yang hidup di air!",
+        "Apa fungsi klorofil pada tumbuhan?",
+        "Sebutkan 3 wujud benda beserta contohnya!",
+        "Apa yang membedakan pembuluh vena dan arteri?"
+      ],
+      "Bahasa Indonesia": [
+        "Apa yang dimaksud dengan majas personifikasi?",
+        "Buatlah satu kalimat menggunakan kata 'bersinonim'!",
+        "Sebutkan unsur-unsur intrinsik dalam sebuah cerpen!",
+        "Apa perbedaan antara kalimat aktif dan pasif?",
+        "Sebutkan ciri-ciri teks prosedur!"
+      ],
+      "Bahasa Inggris": [
+        "What is the past tense of the verb 'go'?",
+        "Make a sentence using the word 'beautiful'!",
+        "Translate to English: 'Saya sedang makan nasi.'",
+        "What are the 3 forms of verb (V1, V2, V3) for 'eat'?",
+        "Mention 5 names of fruits in English!"
+      ],
+      "IPS": [
+        "Sebutkan ibu kota dari negara Australia!",
+        "Siapakah proklamator kemerdekaan Indonesia?",
+        "Jelaskan apa yang dimaksud dengan letak astronomis!",
+        "Sebutkan 3 contoh sumber daya alam yang dapat diperbarui!",
+        "Apa fungsi dari sebuah peta?"
+      ],
+      "default": [
+        "Sebutkan konsep paling mendasar dari mata pelajaran ini!",
+        "Berikan contoh penerapan ilmu ini di kehidupan sehari-hari!",
+        "Siapakah tokoh yang terkenal di bidang ini?",
+        "Jelaskan satu istilah penting yang sering digunakan dalam pelajaran ini!",
+        "Apa tujuan utama mempelajari materi ini?"
+      ]
+    };
+
+    setTimeout(() => {
+      // Find matching subject or use default
+      let bank = subjectQuestionBank['default'];
+      if (selectedSubject) {
+        const foundKey = Object.keys(subjectQuestionBank).find(key => 
+          selectedSubject.toLowerCase().includes(key.toLowerCase())
+        );
+        if (foundKey) bank = subjectQuestionBank[foundKey];
+      }
+
+      const randomQ = bank[Math.floor(Math.random() * bank.length)];
       setQuestions([...questions, randomQ]);
       setIsGenerating(false);
-    }, 1500);
+    }, 1000);
   };
 
   const filteredStudents = students.filter(s => s.class_name === selectedClass);
@@ -116,14 +181,27 @@ const GuruQuiz = () => {
         <div className="quiz-questions-panel">
           <div className="panel-header">
             <h3>Bank Soal</h3>
-            <button 
-              className={`btn-ai-generate ${isGenerating ? 'loading' : ''}`}
-              onClick={handleGenerateAI}
-              disabled={isGenerating}
-            >
-              <span className="material-symbols-outlined">auto_awesome</span>
-              {isGenerating ? 'Generating...' : 'Generate with AI'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {subjects.length > 0 && (
+                <select 
+                  value={selectedSubject} 
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  style={{ padding: '6px', borderRadius: '6px', border: '1px solid #ccc' }}
+                >
+                  {subjects.map(s => (
+                    <option key={s._id} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+              <button 
+                className={`btn-ai-generate ${isGenerating ? 'loading' : ''}`}
+                onClick={handleGenerateAI}
+                disabled={isGenerating}
+              >
+                <span className="material-symbols-outlined">auto_awesome</span>
+                {isGenerating ? 'Generating...' : 'Generate with AI'}
+              </button>
+            </div>
           </div>
 
           <form onSubmit={handleAddQuestion} className="question-input-form">
