@@ -38,6 +38,18 @@ router.get(
   scheduleController.getStudentTodaySchedule
 );
 
+router.get(
+  '/siswa/weekly',
+  authMiddleware,
+  scheduleController.getStudentWeeklySchedule
+);
+
+router.get(
+  '/ortu/child/:childId',
+  authMiddleware,
+  scheduleController.getOrtuChildSchedule
+);
+
 router.put(
   '/:id',
   authMiddleware,

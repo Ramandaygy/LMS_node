@@ -86,6 +86,7 @@ import SiswaAssignments from './pages/dashboard/siswa/SiswaAssignments';
 import SiswaAttendance from './pages/dashboard/siswa/SiswaAttendance';
 import SiswaMaterials from './pages/dashboard/siswa/SiswaMaterials';
 import SiswaProgress from './pages/dashboard/siswa/SiswaProgress';
+import SiswaSchedule from './pages/dashboard/siswa/SiswaSchedule';
 
 // ============================================
 // ORTU SUB PAGES
@@ -94,6 +95,7 @@ import OrtuAttendance from './pages/dashboard/ortu/OrtuAttendance';
 import OrtuMonitoring from './pages/dashboard/ortu/OrtuMonitoring';
 import OrtuChildren from './pages/dashboard/ortu/OrtuChildren';
 import OrtuReports from './pages/dashboard/ortu/OrtuReports';
+import OrtuSchedule from './pages/dashboard/ortu/OrtuSchedule';
 
 // ============================================
 // COMPONENTS
@@ -429,6 +431,17 @@ function App() {
         />
 
         <Route
+          path="/dashboard/siswa/schedule"
+          element={
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <SiswaSchedule />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/dashboard/siswa/calendar"
           element={
             <ProtectedRoute allowedRole="siswa">
@@ -722,6 +735,14 @@ function App() {
           <ProtectedRoute allowedRole="ortu">
             <DashboardLayout role="ortu">
               <OrtuReports />
+            </DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/dashboard/ortu/schedule" element={
+          <ProtectedRoute allowedRole="ortu">
+            <DashboardLayout role="ortu">
+              <OrtuSchedule />
             </DashboardLayout>
           </ProtectedRoute>
         } />

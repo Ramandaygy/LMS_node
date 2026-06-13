@@ -106,6 +106,56 @@ exports.getStudentTodaySchedule = async (req, res) => {
   }
 };
 
+exports.getStudentWeeklySchedule = async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const siswaCollection = mongoose.connection.collection('users_siswa');
+    const student = await siswaCollection.findOne({ _id: new mongoose.Types.ObjectId(studentId) });
+    if (!student || !student.class_id) {
+      return res.json({ success: true, schedule: [] });
+    }
+    
+    const schedules = await Schedule.find({ class_id: student.class_id })
+      .populate('subject_id', 'name code')
+      .populate('teacher_id', 'full_name username teacher_code')
+      .sort({ time_slot: 1 });
+      
+    return res.json({ success: true, schedule: schedules });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil jadwal' });
+  }
+};
+
+exports.getOrtuChildSchedule = async (req, res) => {
+  try {
+    const { childId } = req.params;
+    const ortuId = req.user.id;
+    
+    const ortuCollection = mongoose.connection.collection('users_ortu');
+    const ortu = await ortuCollection.findOne({ _id: new mongoose.Types.ObjectId(ortuId) });
+    if (!ortu || !ortu.children || !ortu.children.map(c => c.toString()).includes(childId)) {
+      return res.status(403).json({ success: false, message: 'Akses ditolak' });
+    }
+
+    const siswaCollection = mongoose.connection.collection('users_siswa');
+    const student = await siswaCollection.findOne({ _id: new mongoose.Types.ObjectId(childId) });
+    if (!student || !student.class_id) {
+      return res.json({ success: true, schedule: [] });
+    }
+
+    const schedules = await Schedule.find({ class_id: student.class_id })
+      .populate('subject_id', 'name code')
+      .populate('teacher_id', 'full_name username teacher_code')
+      .sort({ time_slot: 1 });
+
+    return res.json({ success: true, schedule: schedules });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil jadwal anak' });
+  }
+};
+
 // scheduleController.js
 exports.autoGenerateSchedule = async (req, res) => {
   try {

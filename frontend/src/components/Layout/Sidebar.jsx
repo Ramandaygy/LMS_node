@@ -70,6 +70,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/ortu' },
       { key: 'children', label: 'Data Anak', icon: 'family_restroom', path: '/dashboard/ortu/children' },
       { key: 'attendance', label: 'Kehadiran Anak', icon: 'event_available', path: '/dashboard/ortu/attendance' },
+      { key: 'schedule', label: 'Jadwal Anak', icon: 'calendar_month', path: '/dashboard/ortu/schedule' },
       { key: 'monitoring', label: 'Monitoring AI', icon: 'psychology', path: '/dashboard/ortu/monitoring' },
       { key: 'reports', label: 'Laporan', icon: 'receipt', path: '/dashboard/ortu/reports' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/ortu/calendar' },
