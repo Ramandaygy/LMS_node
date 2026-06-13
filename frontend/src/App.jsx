@@ -202,6 +202,9 @@ function App() {
         <button className="mobile-menu-btn" onClick={toggleSidebar}>
           <span className="material-symbols-outlined">menu</span>
         </button>
+        {sidebarOpen && (
+          <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>
+        )}
         <Sidebar
           role={role}
           activeMenu={activeMenu}
@@ -253,9 +256,13 @@ function App() {
         <Route
           path="/"
           element={
-            <PublicLayout>
-              <LandingPage />
-            </PublicLayout>
+            currentUser ? (
+              <DashboardRedirect />
+            ) : (
+              <PublicLayout>
+                <LandingPage />
+              </PublicLayout>
+            )
           }
         />
 
