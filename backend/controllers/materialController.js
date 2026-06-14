@@ -12,7 +12,12 @@ exports.createMaterial = async (req, res) => {
     let fileType = '';
 
     if (req.file) {
-      fileUrl = `/uploads/materials/${req.file.filename}`;
+      if (process.env.VERCEL === '1' && req.file.buffer) {
+        const { uploadToSupabase } = require('../services/supabaseService');
+        fileUrl = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype, 'materials');
+      } else {
+        fileUrl = `/uploads/materials/${req.file.filename}`;
+      }
       fileName = req.file.originalname;
       fileSize = req.file.size;
       fileType = req.file.mimetype;

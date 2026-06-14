@@ -8,15 +8,19 @@ const path = require('path');
 // ==============================
 // MULTER CONFIG
 // ==============================
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/avatars/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, `${req.user.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
-});
+const isVercel = process.env.VERCEL === '1';
+
+const storage = isVercel 
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        cb(null, 'uploads/avatars/');
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, `${req.user.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
+      }
+    });
 
 const upload = multer({ storage });
 

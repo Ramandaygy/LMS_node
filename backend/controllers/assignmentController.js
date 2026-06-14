@@ -7,9 +7,19 @@ exports.createAssignment = async (req, res) => {
     const attachments = [];
     
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        attachments.push({ type: 'file', value: file.filename || file.originalname });
-      });
+      if (process.env.VERCEL === '1') {
+        const { uploadToSupabase } = require('../services/supabaseService');
+        for (const file of req.files) {
+          if (file.buffer) {
+            const fileUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype, 'assignments');
+            attachments.push({ type: 'file', value: fileUrl });
+          }
+        }
+      } else {
+        req.files.forEach(file => {
+          attachments.push({ type: 'file', value: `/uploads/materials/${file.filename}` || file.originalname });
+        });
+      }
     }
     
     if (req.body.links) {
@@ -91,9 +101,19 @@ exports.updateAssignment = async (req, res) => {
     const attachments = [];
     
     if (req.files && req.files.length > 0) {
-      req.files.forEach(file => {
-        attachments.push({ type: 'file', value: file.filename || file.originalname });
-      });
+      if (process.env.VERCEL === '1') {
+        const { uploadToSupabase } = require('../services/supabaseService');
+        for (const file of req.files) {
+          if (file.buffer) {
+            const fileUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype, 'assignments');
+            attachments.push({ type: 'file', value: fileUrl });
+          }
+        }
+      } else {
+        req.files.forEach(file => {
+          attachments.push({ type: 'file', value: `/uploads/materials/${file.filename}` || file.originalname });
+        });
+      }
     }
     
     if (req.body.attachments) {

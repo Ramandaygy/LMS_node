@@ -145,7 +145,14 @@ exports.uploadAvatar = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
     const collection = getCollectionByRole(userRole);
-    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    let avatarUrl = '';
+
+    if (process.env.VERCEL === '1' && req.file.buffer) {
+      const { uploadToSupabase } = require('../services/supabaseService');
+      avatarUrl = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype, 'avatars');
+    } else {
+      avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    }
 
     await collection.updateOne(
       { _id: new mongoose.Types.ObjectId(userId) },

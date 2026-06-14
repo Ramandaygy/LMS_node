@@ -153,30 +153,20 @@ exports.deleteSubmission =
 
   exports.submitAssignment = async (req, res) => {
     try {
-      const { assignment_id, content, link } = req.body;
-      const studentId = req.user.id;
-      let filePath = '';
-      if (req.file) filePath = `/uploads/submissions/${req.file.filename}`;
-      const existing = await Submission.findOne({ assignment_id, student_id: studentId });
-      if (existing) return res.status(400).json({ error: 'Already submitted' });
-      const submission = await Submission.create({
-        assignment_id,
-        student_id: studentId,
-        content: content || '',
-        link: link || '',
-        file: filePath,
-      });
-      res.json({ success: true, data: submission });
-    } catch(err) { res.status(500).json({ error: err.message }); }
-  };
-
-  exports.submitAssignment = async (req, res) => {
-    try {
       const { assignmentId } = req.params;
       const studentId = req.user.id;
       const { content, link } = req.body;
       let filePath = '';
-      if (req.file) filePath = `/uploads/submissions/${req.file.filename}`;
+
+      if (req.file) {
+        if (process.env.VERCEL === '1' && req.file.buffer) {
+          const { uploadToSupabase } = require('../services/supabaseService');
+          filePath = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype, 'submissions');
+        } else {
+          filePath = `/uploads/submissions/${req.file.filename}`;
+        }
+      }
+
       const submission = await submissionService.submitAssignment(assignmentId, studentId, { content, link, filePath });
       res.json({ success: true, data: submission });
     } catch (err) {
