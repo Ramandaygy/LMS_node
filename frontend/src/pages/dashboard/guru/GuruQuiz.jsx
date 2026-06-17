@@ -99,69 +99,28 @@ const GuruQuiz = () => {
     setQuestions(questions.filter((_, i) => i !== index));
   };
 
-  const handleGenerateAI = () => {
-    setIsGenerating(true);
+  const handleGenerateAI = async () => {
+    if (!selectedSubject) {
+      alert('Pilih mata pelajaran terlebih dahulu');
+      return;
+    }
     
-    // Subject specific dummy questions
-    const subjectQuestionBank = {
-      "Matematika": [
-        "Berapakah hasil dari 15 x 12?",
-        "Sebuah segitiga memiliki alas 10 cm dan tinggi 5 cm, berapakah luasnya?",
-        "Apa rumus keliling lingkaran?",
-        "Jika x + 5 = 12, berapakah nilai x?",
-        "Sebutkan 3 jenis bilangan prima pertama!"
-      ],
-      "IPA": [
-        "Jelaskan secara singkat apa yang dimaksud dengan fotosintesis!",
-        "Sebutkan 3 jenis hewan mamalia yang hidup di air!",
-        "Apa fungsi klorofil pada tumbuhan?",
-        "Sebutkan 3 wujud benda beserta contohnya!",
-        "Apa yang membedakan pembuluh vena dan arteri?"
-      ],
-      "Bahasa Indonesia": [
-        "Apa yang dimaksud dengan majas personifikasi?",
-        "Buatlah satu kalimat menggunakan kata 'bersinonim'!",
-        "Sebutkan unsur-unsur intrinsik dalam sebuah cerpen!",
-        "Apa perbedaan antara kalimat aktif dan pasif?",
-        "Sebutkan ciri-ciri teks prosedur!"
-      ],
-      "Bahasa Inggris": [
-        "What is the past tense of the verb 'go'?",
-        "Make a sentence using the word 'beautiful'!",
-        "Translate to English: 'Saya sedang makan nasi.'",
-        "What are the 3 forms of verb (V1, V2, V3) for 'eat'?",
-        "Mention 5 names of fruits in English!"
-      ],
-      "IPS": [
-        "Sebutkan ibu kota dari negara Australia!",
-        "Siapakah proklamator kemerdekaan Indonesia?",
-        "Jelaskan apa yang dimaksud dengan letak astronomis!",
-        "Sebutkan 3 contoh sumber daya alam yang dapat diperbarui!",
-        "Apa fungsi dari sebuah peta?"
-      ],
-      "default": [
-        "Sebutkan konsep paling mendasar dari mata pelajaran ini!",
-        "Berikan contoh penerapan ilmu ini di kehidupan sehari-hari!",
-        "Siapakah tokoh yang terkenal di bidang ini?",
-        "Jelaskan satu istilah penting yang sering digunakan dalam pelajaran ini!",
-        "Apa tujuan utama mempelajari materi ini?"
-      ]
-    };
-
-    setTimeout(() => {
-      // Find matching subject or use default
-      let bank = subjectQuestionBank['default'];
-      if (selectedSubject) {
-        const foundKey = Object.keys(subjectQuestionBank).find(key => 
-          selectedSubject.toLowerCase().includes(key.toLowerCase())
-        );
-        if (foundKey) bank = subjectQuestionBank[foundKey];
+    setIsGenerating(true);
+    try {
+      const res = await api.post('/materials/generate-quiz-ai', {
+        subject_name: selectedSubject
+      });
+      if (res.data && res.data.success) {
+        setQuestions([...questions, res.data.data.question]);
+      } else {
+        alert('Gagal menghasilkan pertanyaan dari AI');
       }
-
-      const randomQ = bank[Math.floor(Math.random() * bank.length)];
-      setQuestions([...questions, randomQ]);
+    } catch (err) {
+      console.error('Failed to generate AI question', err);
+      alert(err.response?.data?.message || 'Gagal menghasilkan pertanyaan dari AI');
+    } finally {
       setIsGenerating(false);
-    }, 1000);
+    }
   };
 
   const filteredStudents = students.filter(s => s.class_name === selectedClass);
@@ -273,7 +232,7 @@ const GuruQuiz = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>Beri Nilai Kuis</h3>
-            <p className="modal-subtitle">Berikan poin kuis untuk <strong>{selectedStudent.full_name}</strong></p>
+            <p className="modal-subtitle">Berikan poin kuis untuk pertanyaan lisan yang ditujukan kepada <strong>{selectedStudent.full_name}</strong> (Kelas {selectedStudent.class_name})</p>
             <form onSubmit={handleSubmitScore}>
               <div className="form-group">
                 <label>Nilai Poin (Misal: 10, 20, 100)</label>

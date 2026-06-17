@@ -91,6 +91,22 @@ Jangan tambahkan teks lain di luar JSON.`;
   return material;
 };
 
+// GENERATE QUIZ DENGAN AI (Gemini)
+exports.generateQuizQuestionAI = async (data) => {
+  const { subject_name } = data;
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const systemPrompt = `Anda adalah asisten guru. Buatlah HANYA 1 pertanyaan kuis singkat dan menantang tentang mata pelajaran ${subject_name}. Jangan berikan jawaban, HANYA pertanyaannya saja, dan jangan gunakan format markdown, cukup teks biasa.`;
+
+  const result = await model.generateContent(systemPrompt);
+  let text = result.response.text().trim();
+  // hapus tanda petik ganda jika digenerate AI
+  text = text.replace(/^"|"$/g, '');
+  return text;
+};
+
 // ENRICHMENT: ambil nama kelas, mapel, guru
 async function enrichMaterials(materials) {
   if (!materials.length) return [];

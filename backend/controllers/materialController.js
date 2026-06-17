@@ -74,6 +74,26 @@ exports.generateMaterial = async (req, res) => {
   }
 };
 
+// GENERATE QUIZ DENGAN AI (Gemini)
+exports.generateQuiz = async (req, res) => {
+  try {
+    const { subject_name } = req.body;
+
+    if (!subject_name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mata pelajaran wajib diisi untuk generate kuis'
+      });
+    }
+
+    const question = await materialService.generateQuizQuestionAI({ subject_name });
+    return res.json({ success: true, data: { question } });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // GET ALL (admin)
 exports.getAllMaterials = async (req, res) => {
   try {
