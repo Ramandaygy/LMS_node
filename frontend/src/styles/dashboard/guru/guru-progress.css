@@ -16,6 +16,47 @@
   font-size: 20px;
 }
 
+/* Feature Info Card */
+.feature-info-card {
+  display: flex;
+  gap: 16px;
+  background: linear-gradient(145deg, #f8f9fc, #e8f0fe);
+  border: 1px solid #cce0ff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  align-items: flex-start;
+}
+
+.feature-icon {
+  background: #0056b3;
+  color: white;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feature-icon span {
+  font-size: 28px;
+}
+
+.feature-text h4 {
+  margin: 0 0 8px 0;
+  color: #004085;
+  font-size: 16px;
+}
+
+.feature-text p {
+  margin: 0;
+  color: #495057;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 /* Filter Section */
 .filter-section {
   display: flex;

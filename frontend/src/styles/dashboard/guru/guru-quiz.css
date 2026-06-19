@@ -197,7 +197,22 @@
 .question-card-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  margin-bottom: 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  background: white;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.question-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: white;
+  padding: 16px;
+  transition: background-color 0.2s;
 }
 
 .q-actions {
@@ -223,10 +238,10 @@
 
 .question-detail-expanded {
   background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 12px;
-  padding: 16px;
-  margin-left: 48px; /* align with text somewhat */
+  border-top: 1px dashed #cce0ff;
+  border-radius: 0 0 12px 12px;
+  padding: 20px;
+  margin-top: 0;
 }
 
 .detail-header {

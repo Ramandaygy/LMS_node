@@ -88,12 +88,17 @@ const GuruProgress = () => {
       <div className="page-header">
         <div className="header-title">
           <h2>Monitoring Progres Siswa</h2>
-          <div className="ai-badge">
-            <span className="material-symbols-outlined">psychology</span>
-            Powered by Random Forest AI
-          </div>
         </div>
-        <p>Prediksi risiko perkembangan belajar siswa dianalisis secara otomatis oleh model Machine Learning.</p>
+      </div>
+
+      <div className="feature-info-card">
+        <div className="feature-icon">
+           <span className="material-symbols-outlined">psychology</span>
+        </div>
+        <div className="feature-text">
+           <h4>Analisis Perkembangan Siswa (AI)</h4>
+           <p>Fitur ini menggunakan model <strong>Machine Learning (Random Forest)</strong> untuk menganalisis berbagai data siswa secara otomatis (nilai, kehadiran, penyelesaian materi). Sistem memprediksi status risiko perkembangan belajar, membantu Anda mengidentifikasi lebih awal siswa yang membutuhkan perhatian khusus (Risiko Tinggi/Sedang).</p>
+        </div>
       </div>
 
       <div className="filter-section">
