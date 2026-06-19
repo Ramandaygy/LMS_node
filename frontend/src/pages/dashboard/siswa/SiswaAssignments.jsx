@@ -252,6 +252,16 @@ const SiswaAssignments = () => {
                     </div>
                   )}
                 </div>
+              ) : new Date() > new Date(selectedAssignment.deadline) ? (
+                <div className="submission-status" style={{ backgroundColor: '#fee2e2', border: '1px solid #f87171' }}>
+                  <div className="status-success" style={{ color: '#ef4444' }}>
+                    <span className="material-symbols-outlined">error</span>
+                    <div>
+                      <h4>Tugas tidak dapat dikumpulkan</h4>
+                      <p>Batas waktu (deadline) untuk tugas ini telah berakhir.</p>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="submit-form">
                   <h3>Kumpulkan Tugas</h3>

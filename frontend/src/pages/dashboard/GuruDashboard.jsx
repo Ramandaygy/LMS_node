@@ -17,9 +17,46 @@ const GuruDashboard = () => {
 
   useEffect(() => {
     fetchStats();
-    fetchActiveClasses();
-    fetchPendingTasks();
+    fetchTeacherData();
   }, []);
+
+  const fetchTeacherData = async () => {
+    try {
+      // Get teacher classes
+      const profileRes = await api.get('/profile');
+      if (profileRes.data && profileRes.data.classes) {
+        const mappedClasses = profileRes.data.classes.map(c => ({
+          id: c._id,
+          name: c.name,
+          room: 'LMS Online', // Ruang virtual default
+          students: 0, // Akan diperbarui jika ada endpoint detail
+          progress: Math.floor(Math.random() * 40) + 40, // Simulated progress for now as there's no class progress endpoint
+          time: 'Sesuai Jadwal',
+          thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6agdB1chHQ1hIabOPEJbhPbArKf5qeo3ffmnxx8GRQ5bFM1MxdSQzlWYUQ_JIKKyAR1_L5bYzMk_Y6w392oEYhU-fV-JdfCjbaXjVIB3yvxz6RcOEqJYj9YFQ7XO0q9xPVhoHAqP9qXcel4WSy6AdHUoXQaXJwu0gKRDRoQl9eXTscMVtk-XuA3twoIhMfjLPOBe32g1nxXJPP6yK1h4riv5Ql5VgbZc1kdeboZWxOzo20v5dLleslFQib_gltuubthhD3aDnFxk'
+        }));
+        setActiveClasses(mappedClasses);
+      }
+
+      // Get pending tasks (assignments)
+      const assignmentsRes = await api.get('/assignments/teacher/me');
+      if (assignmentsRes.data && assignmentsRes.data.data) {
+        const allAssignments = assignmentsRes.data.data;
+        // Ambil 3 tugas terbaru sebagai pending tasks
+        const recentTasks = allAssignments.slice(0, 3).map(task => ({
+          id: task._id,
+          title: task.title,
+          class: task.class_name || 'Semua',
+          submitted: task.submissions ? task.submissions.length : 0,
+          total: 30, // Estimasi total siswa
+          icon: 'assignment'
+        }));
+        setPendingTasks(recentTasks);
+        setStats(prev => ({ ...prev, pending_assignments: allAssignments.length }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch teacher data', err);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -33,50 +70,7 @@ const GuruDashboard = () => {
     }
   };
 
-  const fetchActiveClasses = async () => {
-    // Simulasi data kelas aktif
-    setActiveClasses([
-      { 
-        id: 1, 
-        name: 'Matematika - Kelas 8A', 
-        room: 'Ruang 204', 
-        students: 32, 
-        progress: 85, 
-        time: '08:00 - 09:30',
-        present: 32,
-        thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6agdB1chHQ1hIabOPEJbhPbArKf5qeo3ffmnxx8GRQ5bFM1MxdSQzlWYUQ_JIKKyAR1_L5bYzMk_Y6w392oEYhU-fV-JdfCjbaXjVIB3yvxz6RcOEqJYj9YFQ7XO0q9xPVhoHAqP9qXcel4WSy6AdHUoXQaXJwu0gKRDRoQl9eXTscMVtk-XuA3twoIhMfjLPOBe32g1nxXJPP6yK1h4riv5Ql5VgbZc1kdeboZWxOzo20v5dLleslFQib_gltuubthhD3aDnFxk'
-      },
-      { 
-        id: 2, 
-        name: 'IPA - Kelas 7C', 
-        room: 'Lab Fisika', 
-        students: 28, 
-        progress: 60, 
-        time: '10:00 - 11:30',
-        present: 26,
-        thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBk1sg6l6ALYAaLKqklMej2pGqROtOATWtaj2FriiBhR9KWaghBxAGeMYG_cr_sEvGd7pxpVe-6M_L0yMNrLLmi-UCW9f1VDu88YSijpthwM0vCr-OA4r-BAxcd2MEy5P5xh30BywNetjPhWp7_jqv0n7IyBsdPKnx7cCA0BJvhQI-5vBp8dEv0kzW4t2KA6kbvfeFRl-J6R8w-mgyGm506zFTtPaNusnwWwMZ2VMxdmUFaD-QqGHxn3bRAAp-kalw1jjgvcLDF09E'
-      },
-      { 
-        id: 3, 
-        name: 'Matematika - Kelas 8B', 
-        room: 'Ruang 205', 
-        students: 30, 
-        progress: 45, 
-        time: '13:00 - 14:30',
-        present: 28,
-        thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCUT4Mz5Rbib_q_ya2H8Q1XtMMLsR9rhT6xOkW88SDvPAmNfbgEWEE7Qe42Vw7-RrKC_Nnx_c3LjmQGr9x-tAHO1o6ER00ZRlwzVcyZVuc7TSMHrnJNM8i2RJFaZDkmRJxU8XZh-lgg4FDGG0f-nX9ochBYn0LQI9iRmzzCw-3xVGokZXWQeoDoUlFFnQrkorNrBNdu1hw4jurY7tQxNCcS9B1bYVfXtLH41tiHkAW4Grkd8gBELSg4jzefrEUYdUrY2T3ZYIk8p34'
-      }
-    ]);
-  };
 
-  const fetchPendingTasks = async () => {
-    // Simulasi data tugas perlu dinilai
-    setPendingTasks([
-      { id: 1, title: 'Kuis Aljabar Dasar', class: '8B', submitted: 24, total: 30, icon: 'quiz' },
-      { id: 2, title: 'Proyek Bangun Ruang', class: '8C', submitted: 12, total: 28, icon: 'assignment' },
-      { id: 3, title: 'Laporan Observasi', class: '7A', submitted: 5, total: 32, icon: 'history_edu' }
-    ]);
-  };
 
   if (loading) {
     return (
@@ -102,13 +96,13 @@ const GuruDashboard = () => {
             Sesi Berlangsung
           </div>
           <div className="session-info">
-            <h2>Matematika - Kelas 8A</h2>
-            <p>Topik: Teorema Pythagoras &amp; Geometri</p>
+            <h2>{activeClasses.length > 0 ? activeClasses[0].name : 'Selamat Datang'}</h2>
+            <p>Pusat Aktivitas Kelas Anda</p>
           </div>
           <div className="session-meta">
             <div className="meta-item">
               <span className="material-symbols-outlined">schedule</span>
-              <span>08:00 - 09:30</span>
+              <span>{activeClasses.length > 0 ? activeClasses[0].time : 'Tidak ada jadwal terdekat'}</span>
             </div>
             <div className="meta-item">
               <span className="material-symbols-outlined">group</span>

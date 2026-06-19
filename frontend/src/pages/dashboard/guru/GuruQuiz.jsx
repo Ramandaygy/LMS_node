@@ -62,32 +62,38 @@ const GuruQuiz = () => {
     setStudentScores(prev => ({ ...prev, [studentId]: value }));
   };
 
-  const handleInlineSubmitScore = async (student, questionIndex) => {
-    const score = studentScores[student._id];
-    if (!score) return;
-
-    // Find the correct subject_id
-    const subjectObj = subjects.find(s => s.name === selectedSubject);
-    const subjectIdToUse = subjectObj ? subjectObj._id : student.subject_id;
-
-    if (!subjectIdToUse) {
-      alert('Gagal: Mata pelajaran tidak ditemukan');
+  const handleSaveAllScores = async (questionIndex) => {
+    const scoresToSubmit = Object.entries(studentScores).filter(([_, score]) => score !== '');
+    if (scoresToSubmit.length === 0) {
+      alert('Tidak ada nilai baru yang dimasukkan.');
       return;
     }
 
+    const subjectObj = subjects.find(s => s.name === selectedSubject);
+    if (!subjectObj) {
+      alert('Pilih mata pelajaran terlebih dahulu.');
+      return;
+    }
+
+    let successCount = 0;
     try {
-      await api.post('/grades', {
-        student: student._id,
-        subject: subjectIdToUse,
-        score: Number(score),
-        type: 'quiz',
-        note: `Kuis: ${questions[questionIndex]}`
-      });
-      alert(`Berhasil memberikan nilai ${score} ke ${student.full_name}`);
-      setStudentScores(prev => ({ ...prev, [student._id]: '' }));
+      await Promise.all(
+        scoresToSubmit.map(async ([studentId, score]) => {
+          await api.post('/grades', {
+            student: studentId,
+            subject: subjectObj._id,
+            score: Number(score),
+            type: 'quiz',
+            note: `Kuis: ${questions[questionIndex]}`
+          });
+          successCount++;
+        })
+      );
+      alert(`Berhasil menyimpan ${successCount} nilai kuis.`);
+      setStudentScores({});
     } catch (err) {
-      console.error('Failed to submit score', err);
-      alert('Gagal menyimpan nilai kuis');
+      console.error('Failed to submit some scores', err);
+      alert('Terjadi kesalahan saat menyimpan beberapa nilai. Silakan coba lagi.');
     }
   };
 
@@ -211,8 +217,8 @@ const GuruQuiz = () => {
 
                   {expandedQuestionIndex === index && (
                     <div className="question-detail-expanded">
-                      <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <h4>Cari Siswa</h4>
+                       <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <h4>Daftar Siswa</h4>
                          <div style={{ display: 'flex', gap: '10px' }}>
                            <select 
                              value={selectedClass} 
@@ -231,6 +237,24 @@ const GuruQuiz = () => {
                              onChange={e => setSearchQuery(e.target.value)}
                              style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', width: '250px' }}
                            />
+                           <button 
+                             onClick={() => handleSaveAllScores(index)}
+                             style={{
+                               padding: '8px 16px',
+                               backgroundColor: 'var(--primary-color, #3b82f6)',
+                               color: 'white',
+                               border: 'none',
+                               borderRadius: '8px',
+                               fontWeight: '600',
+                               cursor: 'pointer',
+                               display: 'flex',
+                               alignItems: 'center',
+                               gap: '6px'
+                             }}
+                           >
+                             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+                             Simpan Semua
+                           </button>
                          </div>
                       </div>
                       <div className="student-grid" style={{ maxHeight: '300px', overflowY: 'auto' }}>
@@ -254,7 +278,6 @@ const GuruQuiz = () => {
                                   onChange={e => handleScoreChange(student._id, e.target.value)}
                                   className="score-input"
                                 />
-                                <button className="btn-save-score" onClick={() => handleInlineSubmitScore(student, index)}>Simpan</button>
                               </div>
                             </div>
                           ))
