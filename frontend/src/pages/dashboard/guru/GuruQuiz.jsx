@@ -5,9 +5,8 @@ import '../../../styles/dashboard/guru/guru-quiz.css';
 const GuruQuiz = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('');
-  
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Quiz Questions State
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState('');
@@ -43,12 +42,6 @@ const GuruQuiz = () => {
       const response = await api.get('/users/students/all');
       const data = response.data.data || [];
       setStudents(data);
-
-      const classList = [...new Set(data.map(s => s.class_name).filter(Boolean))];
-      setClasses(classList);
-      if (classList.length > 0) {
-        setSelectedClass(classList[0]);
-      }
     } catch (err) {
       console.error('Failed to fetch students', err);
     } finally {
@@ -64,10 +57,19 @@ const GuruQuiz = () => {
     const score = studentScores[student._id];
     if (!score) return;
 
+    // Find the correct subject_id
+    const subjectObj = subjects.find(s => s.name === selectedSubject);
+    const subjectIdToUse = subjectObj ? subjectObj._id : student.subject_id;
+
+    if (!subjectIdToUse) {
+      alert('Gagal: Mata pelajaran tidak ditemukan');
+      return;
+    }
+
     try {
       await api.post('/grades', {
         student: student._id,
-        subject: student.subject_id || selectedSubject || 'dummy_subject_id_for_now',
+        subject: subjectIdToUse,
         score: Number(score),
         type: 'quiz',
         note: `Kuis: ${questions[questionIndex]}`
@@ -97,7 +99,7 @@ const GuruQuiz = () => {
       alert('Pilih mata pelajaran terlebih dahulu');
       return;
     }
-    
+
     setIsGenerating(true);
     try {
       const res = await api.post('/materials/generate-quiz-ai', {
@@ -116,7 +118,13 @@ const GuruQuiz = () => {
     }
   };
 
-  const filteredStudents = students.filter(s => s.class_name === selectedClass);
+  const filteredStudents = students.filter(s => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return s.full_name?.toLowerCase().includes(lowerQuery) || 
+           s.nis?.includes(searchQuery) ||
+           s.class_name?.toLowerCase().includes(lowerQuery);
+  });
 
   if (loading) return <div className="quiz-loading">Memuat data kuis...</div>;
 
@@ -128,14 +136,14 @@ const GuruQuiz = () => {
       </div>
 
       <div className="quiz-single-layout">
-        
+
         <div className="quiz-questions-panel">
           <div className="panel-header">
             <h3>Bank Soal</h3>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               {subjects.length > 0 && (
-                <select 
-                  value={selectedSubject} 
+                <select
+                  value={selectedSubject}
                   onChange={(e) => setSelectedSubject(e.target.value)}
                   style={{ padding: '6px', borderRadius: '6px', border: '1px solid #ccc' }}
                 >
@@ -144,7 +152,7 @@ const GuruQuiz = () => {
                   ))}
                 </select>
               )}
-              <button 
+              <button
                 className={`btn-ai-generate ${isGenerating ? 'loading' : ''}`}
                 onClick={handleGenerateAI}
                 disabled={isGenerating}
@@ -156,9 +164,9 @@ const GuruQuiz = () => {
           </div>
 
           <form onSubmit={handleAddQuestion} className="question-input-form">
-            <input 
-              type="text" 
-              placeholder="Ketik pertanyaan kuis manual di sini..." 
+            <input
+              type="text"
+              placeholder="Ketik pertanyaan kuis manual di sini..."
               value={newQuestion}
               onChange={(e) => setNewQuestion(e.target.value)}
             />
@@ -179,31 +187,33 @@ const GuruQuiz = () => {
                       <div className="q-text">{q}</div>
                     </div>
                     <div className="q-actions">
-                      <button 
-                        className="btn-detail-q" 
+                      <button
+                        className="btn-detail-q"
                         onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === index ? null : index)}
                       >
-                        Detail
+                        Beri Nilai
                       </button>
                       <button className="btn-del-q" onClick={() => handleDeleteQuestion(index)}>
                         <span className="material-symbols-outlined">close</span>
                       </button>
                     </div>
                   </div>
-                  
+
                   {expandedQuestionIndex === index && (
                     <div className="question-detail-expanded">
-                      <div className="detail-header">
-                         <h4>Pilih Kelas & Beri Nilai</h4>
-                         <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="class-selector">
-                           {classes.map(c => (
-                             <option key={c} value={c}>{c}</option>
-                           ))}
-                         </select>
+                      <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <h4>Cari Siswa</h4>
+                         <input 
+                           type="text" 
+                           placeholder="Cari nama, NIS, atau kelas..." 
+                           value={searchQuery}
+                           onChange={e => setSearchQuery(e.target.value)}
+                           style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', width: '250px' }}
+                         />
                       </div>
-                      <div className="student-grid">
+                      <div className="student-grid" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                         {filteredStudents.length === 0 ? (
-                          <div className="no-students">Tidak ada siswa di kelas ini.</div>
+                          <div className="no-students">Siswa tidak ditemukan.</div>
                         ) : (
                           filteredStudents.map(student => (
                             <div key={student._id} className="student-score-row">
@@ -211,13 +221,13 @@ const GuruQuiz = () => {
                                 <div className="student-avatar-small">{student.full_name.charAt(0)}</div>
                                 <div>
                                   <div className="student-name">{student.full_name}</div>
-                                  <div className="student-nis">{student.nis || '-'}</div>
+                                  <div className="student-nis">{student.nis || '-'} • {student.class_name}</div>
                                 </div>
                               </div>
                               <div className="score-input-group">
-                                <input 
-                                  type="number" 
-                                  placeholder="Nilai" 
+                                <input
+                                  type="number"
+                                  placeholder="Nilai"
                                   value={studentScores[student._id] || ''}
                                   onChange={e => handleScoreChange(student._id, e.target.value)}
                                   className="score-input"

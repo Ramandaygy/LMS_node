@@ -137,6 +137,7 @@ app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 
 app.use('/api/guru/attendance', require('./routes/attendanceRoutes'));
+app.use('/api/guru', require('./routes/guruRoutes'));
 
 // =====================================
 // ROOT TEST
