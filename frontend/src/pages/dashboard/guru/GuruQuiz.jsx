@@ -174,8 +174,10 @@ const GuruQuiz = () => {
               questions.map((q, index) => (
                 <div key={index} className="question-card-container">
                   <div className="question-card">
-                    <div className="q-number">{index + 1}</div>
-                    <div className="q-text">{q}</div>
+                    <div className="q-header">
+                      <div className="q-number">{index + 1}</div>
+                      <div className="q-text">{q}</div>
+                    </div>
                     <div className="q-actions">
                       <button 
                         className="btn-detail-q" 

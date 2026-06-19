@@ -59,7 +59,7 @@ exports.generateMaterialAI = async (data) => {
   if (!prompt) throw new Error('Prompt tidak boleh kosong');
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const systemPrompt = `Anda adalah asisten guru pembuat materi pembelajaran. 
 Buat materi berdasarkan permintaan berikut. Output harus dalam format JSON dengan struktur:
@@ -96,7 +96,7 @@ exports.generateQuizQuestionAI = async (data) => {
   const { subject_name } = data;
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   const systemPrompt = `Anda adalah asisten guru. Buatlah HANYA 1 pertanyaan kuis singkat dan menantang tentang mata pelajaran ${subject_name}. Jangan berikan jawaban, HANYA pertanyaannya saja, dan jangan gunakan format markdown, cukup teks biasa.`;
 
