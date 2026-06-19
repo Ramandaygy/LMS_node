@@ -27,8 +27,8 @@ const AdminDashboard = () => {
       const response = await api.get('/dashboard/stats');
       setStats({
         ...response.data,
-        avg_attendance: 96.4,
-        classes_today: 32
+        avg_attendance: 100, // TODO: Replace with real metric if available
+        classes_today: response.data.total_classes || 0
       });
       setLoading(false);
     } catch (error) {
@@ -38,10 +38,9 @@ const AdminDashboard = () => {
   };
 
   const fetchAlerts = async () => {
+    // Currently no dynamic alerts API, show default healthy system state
     setAlerts([
-      { id: 1, title: 'Storage Capacity Warning', message: 'Cloud server storage reaching 90% threshold for Grade 8 multimedia.', type: 'critical', icon: 'report_problem' },
-      { id: 2, title: 'Scheduled Maintenance', message: 'LMS core update scheduled for Sunday at 02:00 AM WIB.', type: 'warning', icon: 'update' },
-      { id: 3, title: 'Security Audit Required', message: 'Password renewal policy for teacher accounts needs updating.', type: 'info', icon: 'verified_user' }
+      { id: 1, title: 'Sistem Berjalan Normal', message: 'Tidak ada peringatan atau masalah sistem hari ini.', type: 'info', icon: 'check_circle' }
     ]);
   };
 

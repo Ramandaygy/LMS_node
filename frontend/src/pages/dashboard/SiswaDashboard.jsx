@@ -40,22 +40,23 @@ const SiswaDashboard = () => {
       try {
         const assignRes = await api.get('/assignments/siswa/me');
         const assignData = assignRes.data.data || [];
-        setAssignments(assignData.map(a => ({
+        setAssignments(assignData.filter(a => new Date(a.deadline) >= new Date() && !a.submitted).map(a => ({
           title: a.title,
-          subject: a.subject_id?.name || 'Umum',
-          deadline: new Date(a.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-          urgent: new Date(a.due_date) < new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
+          subject: a.subject_name || 'Umum',
+          deadline: new Date(a.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+          urgent: new Date(a.deadline) < new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
+        })));
+
+        const gradedAssignments = assignData.filter(a => a.score !== null).sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).slice(0, 3);
+        setGrades(gradedAssignments.map(g => ({
+          subject: g.subject_name || 'Umum',
+          assignment: g.title,
+          score: g.score,
+          label: g.score >= 85 ? 'TINGGI' : g.score >= 70 ? 'RATA-RATA' : 'RENDAH'
         })));
       } catch (err) {
         console.error('Error fetching assignments', err);
       }
-
-      // dummy grades
-      setGrades([
-        { subject: 'Sejarah Indonesia', assignment: 'Kuis Orde Baru', score: 92, label: 'TINGGI' },
-        { subject: 'Basa Jawa', assignment: 'Aksara Murda', score: 85, label: 'RATA-RATA' }
-      ]);
-
     } catch (err) {
       console.error(err);
     } finally {
@@ -101,13 +102,14 @@ const SiswaDashboard = () => {
         {/* Hero bento grid */}
         <div className="hero-grid">
           <div className="hero-card featured">
-            <div className="badge">Pelajaran Sekarang</div>
-            <h2>Matematika: Bangun Ruang Sisi Datar</h2>
-            <p>Ruang Lab-A • Guru: Bpk. Suwardi</p>
-            <div className="progress-wrapper">
-              <div className="progress-label">Progress Materi <span>78%</span></div>
-              <div className="progress-bar"><div className="progress-fill" style={{ width: '78%' }}></div></div>
-            </div>
+            <div className="badge">Info Terkini</div>
+            <h2>Selamat Datang di LMS, {user?.full_name || 'Siswa'}!</h2>
+            <p>Periksa jadwal pelajaran dan tugas hari ini untuk mulai belajar.</p>
+            {schedules.length > 0 && (
+              <div style={{ marginTop: '15px' }}>
+                <p><strong>Pelajaran selanjutnya:</strong> {schedules[0].name} ({schedules[0].time})</p>
+              </div>
+            )}
             <div className="bg-deco"></div>
           </div>
           <div className="hero-card points">
@@ -179,9 +181,9 @@ const SiswaDashboard = () => {
         {/* Tantangan */}
         <div className="challenge-card">
           <div className="challenge-text">
-            <h3>Tantangan Mingguan: Jago Aljabar!</h3>
-            <p>Selesaikan 5 latihan tambahan untuk mendapatkan badge 'Mathematician'.</p>
-            <button className="btn-challenge">Mulai Sekarang</button>
+            <h3>Jadilah yang Terbaik!</h3>
+            <p>Kerjakan semua tugas tepat waktu dan perhatikan penjelasan guru dengan baik.</p>
+            <button className="btn-challenge" onClick={() => window.location.href='/dashboard/siswa/assignments'}>Lihat Semua Tugas</button>
           </div>
           <div className="challenge-deco"></div>
         </div>

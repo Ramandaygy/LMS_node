@@ -159,8 +159,8 @@ const GuruAssignments = () => {
     data.append('class', formData.class_id);
     data.append('description', formData.description);
     data.append('deadline', new Date(formData.deadline).toISOString());
-    data.append('kkm', formData.kkm);
-    data.append('max_score', formData.max_score);
+    data.append('kkm', Number(formData.kkm) || 70);
+    data.append('max_score', Number(formData.max_score) || 100);
     // attachments
     formData.attachments.forEach((att, idx) => {
       if (att.type === 'file' && att.value) {
@@ -171,14 +171,10 @@ const GuruAssignments = () => {
     });
     try {
       if (editMode && editingAssignment) {
-        await api.put(`/assignments/${editingAssignment._id}`, data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.put(`/assignments/${editingAssignment._id}`, data);
         alert('Tugas berhasil diupdate');
       } else {
-        await api.post('/assignments', data, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        await api.post('/assignments', data);
         alert('Tugas berhasil dibuat');
       }
       setShowCreateForm(false);
@@ -189,7 +185,8 @@ const GuruAssignments = () => {
       });
       fetchAssignments();
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal menyimpan tugas');
+      console.error("Error creating assignment:", err.response?.data || err);
+      alert(err.response?.data?.message || err.response?.data?.error || 'Gagal menyimpan tugas');
     }
   };
 
