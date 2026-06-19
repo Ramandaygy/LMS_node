@@ -27,8 +27,6 @@ const AdminDashboard = () => {
       const response = await api.get('/dashboard/stats');
       setStats({
         ...response.data,
-        avg_attendance: 100, // TODO: Replace with real metric if available
-        classes_today: response.data.total_classes || 0
       });
       setLoading(false);
     } catch (error) {
@@ -110,14 +108,14 @@ const AdminDashboard = () => {
             <p>Guru Aktif</p>
           </div>
           <div className="metric-small">
-            <span className="material-symbols-outlined primary">today</span>
-            <h4>{stats.classes_today}</h4>
-            <p>Kelas Hari Ini</p>
+            <span className="material-symbols-outlined primary">family_restroom</span>
+            <h4>{stats.total_parents}</h4>
+            <p>Orang Tua Terdaftar</p>
           </div>
           <div className="metric-small">
-            <span className="material-symbols-outlined primary">check_circle</span>
-            <h4>{stats.avg_attendance}%</h4>
-            <p>Rata-rata Kehadiran</p>
+            <span className="material-symbols-outlined primary">library_books</span>
+            <h4>{stats.total_subjects}</h4>
+            <p>Mata Pelajaran</p>
           </div>
           
           {/* System Status Card */}
