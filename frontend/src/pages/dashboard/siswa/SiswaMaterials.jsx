@@ -308,7 +308,7 @@ const SiswaMaterials = () => {
                 ref={videoRef}
                 controls
                 className="native-video"
-                src={`${baseURL}${selectedMaterial.file_url}`}
+                src={selectedMaterial.file_url.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`}
                 onEnded={handleVideoEnded}
               />
               {!isCompleted && (
@@ -330,7 +330,7 @@ const SiswaMaterials = () => {
                 <div className="preview-block">
                   {selectedMaterial.file_url.match(/\.(png|jpe?g|gif|svg)$/i) ? (
                     <img
-                      src={`${baseURL}${selectedMaterial.file_url}`}
+                      src={selectedMaterial.file_url.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`}
                       alt={selectedMaterial.title}
                       className="preview-image"
                       onLoad={() => setPreviewReady(true)}
@@ -338,7 +338,7 @@ const SiswaMaterials = () => {
                   ) : (
                     <iframe
                       title={selectedMaterial.title}
-                      src={`${baseURL}${selectedMaterial.file_url}`}
+                      src={selectedMaterial.file_url.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`}
                       className="preview-iframe"
                       onLoad={() => setPreviewReady(true)}
                     />
@@ -362,7 +362,7 @@ const SiswaMaterials = () => {
               </div>
               {(selectedMaterial.file_url || selectedMaterial.external_link) && (
                 <a
-                  href={selectedMaterial.external_link || `${baseURL}${selectedMaterial.file_url}`}
+                  href={selectedMaterial.external_link || (selectedMaterial.file_url?.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="file-link"

@@ -234,13 +234,17 @@ const AdminStudents = () => {
       student.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.nis?.includes(searchTerm);
-    const matchesClass = !selectedClass || student.class_id === selectedClass;
+    const matchesClass = !selectedClass || (student.class_id && student.class_id.toString() === selectedClass);
     const matchesStatus =
       !selectedStatus ||
       (selectedStatus === 'active' && student.is_active) ||
       (selectedStatus === 'inactive' && !student.is_active);
     return matchesSearch && matchesClass && matchesStatus;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedClass, selectedStatus]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;

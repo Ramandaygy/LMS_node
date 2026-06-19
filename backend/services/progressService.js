@@ -27,11 +27,17 @@ async function getStudentData(studentId) {
     ? await materialProgressService.getStudentMaterialCompletionRate(studentId, student.class_id)
     : 0;
 
-  return { avgScore, attendanceRate, materialCompletionRate };
+  // Ambil nilai kuis
+  const quizGrades = await mongoose.connection.collection('grades').find({ student: new mongoose.Types.ObjectId(studentId), type: 'quiz' }).toArray();
+  let quizScoreSum = 0;
+  quizGrades.forEach(q => quizScoreSum += q.score);
+  const avgQuizScore = quizGrades.length > 0 ? quizScoreSum / quizGrades.length : 0;
+
+  return { avgScore, attendanceRate, materialCompletionRate, avgQuizScore };
 }
 
 exports.getStudentProgress = async (studentId) => {
   const data = await getStudentData(studentId);
-  const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate);
+  const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate, data.avgQuizScore);
   return { ...data, ...prediction };
 };

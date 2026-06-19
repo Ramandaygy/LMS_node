@@ -26,9 +26,14 @@ exports.getClassStudentsProgress = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Class not found' });
     }
 
-    // Ambil semua siswa di kelas
+    // Ambil semua siswa di kelas (coba ObjectId dan string)
     const studentsCollection = mongoose.connection.collection('users_siswa');
-    const students = await studentsCollection.find({ class_id: new mongoose.Types.ObjectId(classId) }).toArray();
+    const students = await studentsCollection.find({ 
+      $or: [
+        { class_id: new mongoose.Types.ObjectId(classId) },
+        { class_id: classId }
+      ]
+    }).toArray();
     
     // Ambil progress untuk setiap siswa
     const progressData = await Promise.all(
@@ -39,6 +44,7 @@ exports.getClassStudentsProgress = async (req, res) => {
           student_name: student.full_name,
           nis: student.nis,
           avgScore: progress.avgScore,
+          avgQuizScore: progress.avgQuizScore,
           attendanceRate: progress.attendanceRate,
           materialCompletionRate: progress.materialCompletionRate,
           risk: progress.risk,

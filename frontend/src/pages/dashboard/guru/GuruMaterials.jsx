@@ -194,7 +194,22 @@ const GuruMaterials = () => {
         ) : (
           <div className="materials-list">
             {materials.map(m => (
-              <div key={m._id} className="material-card">
+              <div 
+                key={m._id} 
+                className="material-card"
+                onClick={(e) => {
+                  // Prevent click if clicking on the action links directly
+                  if(e.target.closest('.links a')) return;
+                  
+                  if (m.file_url) {
+                    const url = m.file_url.startsWith('http') ? m.file_url : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${m.file_url}`;
+                    window.open(url, '_blank');
+                  } else if (m.external_link) {
+                    window.open(m.external_link, '_blank');
+                  }
+                }}
+                style={{ cursor: (m.file_url || m.external_link) ? 'pointer' : 'default' }}
+              >
                 <div className="card-header">
                   <h4>{m.title}</h4>
                   <span className="badge">{m.subject_name}</span>
@@ -216,7 +231,7 @@ const GuruMaterials = () => {
                   </div>
                   <div className="links">
                     {m.file_url && (
-                      <a href={m.file_url} target="_blank" rel="noopener noreferrer">
+                      <a href={m.file_url.startsWith('http') ? m.file_url : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${m.file_url}`} target="_blank" rel="noopener noreferrer">
                         <span className="material-symbols-outlined">attach_file</span>
                         Unduh Lampiran
                       </a>

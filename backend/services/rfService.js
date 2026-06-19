@@ -5,7 +5,7 @@ let rfClassifier = null;
 
 /**
  * Generate 1000 data sintetik untuk training Random Forest.
- * Fitur: [avgScore, attendanceRate, materialCompletionRate]
+ * Fitur: [avgScore, attendanceRate, materialCompletionRate, quizScore]
  * Label: 0 (High Risk), 1 (Medium Risk), 2 (Low Risk)
  */
 function generateSyntheticData() {
@@ -17,16 +17,17 @@ function generateSyntheticData() {
     const avgScore = Math.floor(Math.random() * 101);
     const attendanceRate = Math.floor(Math.random() * 101);
     const materialCompletionRate = Math.floor(Math.random() * 101);
+    const quizScore = Math.floor(Math.random() * 101);
     
     // Klasifikasi awal berdasarkan Rule untuk melatih model
     let label = 2; // Default Low
     
     // High Risk: Sangat kurang
-    if (avgScore < 60 || attendanceRate < 70 || materialCompletionRate < 50) {
+    if (avgScore < 60 || attendanceRate < 70 || materialCompletionRate < 50 || quizScore < 50) {
       label = 0;
     } 
     // Medium Risk: Kurang dari ideal
-    else if (avgScore < 75 || attendanceRate < 85 || materialCompletionRate < 75) {
+    else if (avgScore < 75 || attendanceRate < 85 || materialCompletionRate < 75 || quizScore < 70) {
       label = 1;
     }
     
@@ -35,7 +36,7 @@ function generateSyntheticData() {
       label = [0, 1, 2][Math.floor(Math.random() * 3)];
     }
     
-    data.push([avgScore, attendanceRate, materialCompletionRate]);
+    data.push([avgScore, attendanceRate, materialCompletionRate, quizScore]);
     labels.push(label);
   }
   
@@ -66,12 +67,12 @@ function trainModel() {
 /**
  * Prediksi risiko belajar siswa
  */
-function predictRisk(avgScore, attendanceRate, materialCompletionRate) {
+function predictRisk(avgScore, attendanceRate, materialCompletionRate, quizScore) {
   if (!rfClassifier) {
     trainModel();
   }
   
-  const features = [[avgScore, attendanceRate, materialCompletionRate]];
+  const features = [[avgScore, attendanceRate, materialCompletionRate, quizScore]];
   
   // Prediksi mengembalikan array, misalnya [1]
   const predictionArray = rfClassifier.predict(features);

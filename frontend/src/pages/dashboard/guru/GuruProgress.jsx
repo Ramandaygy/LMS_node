@@ -88,161 +88,214 @@ const GuruProgress = () => {
       <div className="page-header">
         <div className="header-title">
           <h2>Monitoring Progres Siswa</h2>
+          <p>Analisis Perkembangan Siswa berbasis Machine Learning</p>
         </div>
       </div>
 
-      <div className="feature-info-card">
+      <div className="feature-info-card premium-card">
         <div className="feature-icon">
            <span className="material-symbols-outlined">psychology</span>
         </div>
         <div className="feature-text">
-           <h4>Analisis Perkembangan Siswa (AI)</h4>
-           <p>Fitur ini menggunakan model <strong>Machine Learning (Random Forest)</strong> untuk menganalisis berbagai data siswa secara otomatis (nilai, kehadiran, penyelesaian materi). Sistem memprediksi status risiko perkembangan belajar, membantu Anda mengidentifikasi lebih awal siswa yang membutuhkan perhatian khusus (Risiko Tinggi/Sedang).</p>
+           <h4>Random Forest AI Prediction</h4>
+           <p>Sistem ini menggunakan algoritma <strong>Machine Learning (Random Forest)</strong> untuk memprediksi status risiko perkembangan belajar siswa. Prediksi ini berdasarkan data gabungan dari <strong>Nilai Tugas, Nilai Kuis, Kehadiran, dan Penyelesaian Materi</strong>.</p>
         </div>
       </div>
 
-      <div className="filter-section">
+      <div className="filter-section premium-card">
         <div className="class-selector">
-          <label htmlFor="class-select">Pilih Kelas:</label>
-          <select 
-            id="class-select"
-            value={selectedClass} 
-            onChange={(e) => setSelectedClass(e.target.value)}
-            disabled={classes.length === 0}
-          >
-            {classes.map(cls => (
-              <option key={cls._id} value={cls._id}>
-                {cls.name}
-              </option>
-            ))}
-          </select>
+          <label htmlFor="class-select">Pilih Kelas</label>
+          <div className="select-wrapper">
+            <span className="material-symbols-outlined select-icon">school</span>
+            <select 
+              id="class-select"
+              value={selectedClass} 
+              onChange={(e) => setSelectedClass(e.target.value)}
+              disabled={classes.length === 0}
+            >
+              {classes.map(cls => (
+                <option key={cls._id} value={cls._id}>
+                  {cls.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="sort-selector">
-          <label htmlFor="sort-select">Urutkan Berdasarkan:</label>
-          <select 
-            id="sort-select"
-            value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="name">Nama Siswa</option>
-            <option value="score">Nilai Tertinggi</option>
-            <option value="risk">Status Risiko</option>
-            <option value="attendance">Kehadiran Tertinggi</option>
-          </select>
+          <label htmlFor="sort-select">Urutkan</label>
+          <div className="select-wrapper">
+            <span className="material-symbols-outlined select-icon">sort</span>
+            <select 
+              id="sort-select"
+              value={sortBy} 
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="name">Nama Siswa</option>
+              <option value="score">Nilai Tertinggi</option>
+              <option value="risk">Status Risiko</option>
+              <option value="attendance">Kehadiran</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
-
-      {loading ? (
-        <div className="loading-message">Memuat data siswa...</div>
-      ) : students.length === 0 ? (
-        <div className="no-data-message">Tidak ada siswa di kelas ini</div>
-      ) : (
-        <div className="students-table">
-          <div className="table-header">
-            <div className="col-name">Nama Siswa</div>
-            <div className="col-nis">NIS</div>
-            <div className="col-score">Rata-rata Nilai</div>
-            <div className="col-attendance">Kehadiran</div>
-            <div className="col-material">Materi</div>
-            <div className="col-risk">AI Prediction</div>
-          </div>
-
-          {sortedStudents().map((student, idx) => (
-            <div key={idx} className="table-row">
-              <div className="col-name">{student.student_name}</div>
-              <div className="col-nis">{student.nis}</div>
-              <div className="col-score">
-                <div className="progress-inline">
-                  <span className="value">{student.avgScore.toFixed(1)}%</span>
-                  <div className="mini-bar">
-                    <div className="mini-fill" style={{ 
-                      width: `${Math.min(student.avgScore, 100)}%`,
-                      backgroundColor: student.avgScore >= 75 ? '#6bcf7f' : student.avgScore >= 60 ? '#ffb700' : '#ff6b6b'
-                    }}></div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-attendance">
-                <div className="progress-inline">
-                  <span className="value">{student.attendanceRate.toFixed(1)}%</span>
-                  <div className="mini-bar">
-                    <div className="mini-fill" style={{ 
-                      width: `${Math.min(student.attendanceRate, 100)}%`,
-                      backgroundColor: student.attendanceRate >= 85 ? '#6bcf7f' : student.attendanceRate >= 70 ? '#ffb700' : '#ff6b6b'
-                    }}></div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-material">
-                <div className="progress-inline">
-                  <span className="value">{student.materialCompletionRate.toFixed(1)}%</span>
-                  <div className="mini-bar">
-                    <div className="mini-fill" style={{ 
-                      width: `${Math.min(student.materialCompletionRate, 100)}%`,
-                      backgroundColor: student.materialCompletionRate >= 75 ? '#6bcf7f' : student.materialCompletionRate >= 50 ? '#ffb700' : '#ff6b6b'
-                    }}></div>
-                  </div>
-                </div>
-              </div>
-              <div className="col-risk">
-                <div className="risk-indicator">
-                  <span className={`risk-badge risk-${student.risk}`} style={{ borderColor: getRiskColor(student.risk), color: getRiskColor(student.risk), background: `${getRiskColor(student.risk)}1A` }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '14px', marginRight: '4px' }}>
-                      {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'check_circle'}
-                    </span>
-                    {student.risk.toUpperCase()}
-                  </span>
-                  <div className="confidence-score">
-                    Confidence: <strong>{student.confidence || (Math.floor(Math.random() * 11) + 85)}%</strong>
-                  </div>
-                </div>
-                <p className="risk-message">{student.message}</p>
-              </div>
-            </div>
-          ))}
+      {error && (
+        <div className="alert-message error-message">
+          <span className="material-symbols-outlined">error</span>
+          {error}
         </div>
       )}
 
-      <div className="statistics-section">
-        <h3>Statistik Kelas</h3>
-        {students.length > 0 && (
+      {loading ? (
+        <div className="loading-state">
+          <span className="material-symbols-outlined spin">sync</span>
+          <p>Memuat dan Menganalisis Data...</p>
+        </div>
+      ) : students.length === 0 ? (
+        <div className="empty-state premium-card">
+          <span className="material-symbols-outlined">group_off</span>
+          <h3>Tidak ada siswa</h3>
+          <p>Belum ada data siswa untuk kelas ini.</p>
+        </div>
+      ) : (
+        <div className="students-table-wrapper premium-card">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>Siswa</th>
+                <th>Tugas</th>
+                <th>Kuis</th>
+                <th>Kehadiran</th>
+                <th>Materi</th>
+                <th>Prediksi AI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedStudents().map((student, idx) => (
+                <tr key={idx}>
+                  <td className="student-info-cell">
+                    <div className="student-avatar">
+                      {student.student_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="student-name">{student.student_name}</div>
+                      <div className="student-nis">NIS: {student.nis}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="progress-cell">
+                      <span className="progress-text">{student.avgScore.toFixed(0)}%</span>
+                      <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ 
+                          width: `${Math.min(student.avgScore, 100)}%`,
+                          backgroundColor: student.avgScore >= 75 ? '#10b981' : student.avgScore >= 60 ? '#f59e0b' : '#ef4444'
+                        }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="progress-cell">
+                      <span className="progress-text">{(student.avgQuizScore || 0).toFixed(0)}%</span>
+                      <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ 
+                          width: `${Math.min(student.avgQuizScore || 0, 100)}%`,
+                          backgroundColor: (student.avgQuizScore || 0) >= 75 ? '#10b981' : (student.avgQuizScore || 0) >= 60 ? '#f59e0b' : '#ef4444'
+                        }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="progress-cell">
+                      <span className="progress-text">{student.attendanceRate.toFixed(0)}%</span>
+                      <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ 
+                          width: `${Math.min(student.attendanceRate, 100)}%`,
+                          backgroundColor: student.attendanceRate >= 85 ? '#10b981' : student.attendanceRate >= 70 ? '#f59e0b' : '#ef4444'
+                        }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="progress-cell">
+                      <span className="progress-text">{student.materialCompletionRate.toFixed(0)}%</span>
+                      <div className="progress-bar-bg">
+                        <div className="progress-bar-fill" style={{ 
+                          width: `${Math.min(student.materialCompletionRate, 100)}%`,
+                          backgroundColor: student.materialCompletionRate >= 75 ? '#10b981' : student.materialCompletionRate >= 50 ? '#f59e0b' : '#ef4444'
+                        }}></div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="risk-cell">
+                      <span className={`risk-badge risk-${student.risk}`}>
+                        <span className="material-symbols-outlined">
+                          {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'verified'}
+                        </span>
+                        {student.risk === 'high' ? 'Tinggi' : student.risk === 'medium' ? 'Sedang' : 'Rendah'}
+                      </span>
+                      <div className="risk-message">{student.message}</div>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {students.length > 0 && (
+        <div className="statistics-section">
+          <h3 className="section-title">Ringkasan Analisis Kelas</h3>
           <div className="stats-grid">
-            <div className="stat-card">
-              <p className="stat-label">Rata-rata Nilai</p>
-              <p className="stat-value">
-                {(students.reduce((sum, s) => sum + s.avgScore, 0) / students.length).toFixed(1)}%
-              </p>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-blue">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Rata-rata Kelas</p>
+                <p className="stat-value">
+                  {((students.reduce((sum, s) => sum + s.avgScore + (s.avgQuizScore || 0), 0)) / (students.length * 2)).toFixed(1)}%
+                </p>
+              </div>
             </div>
-            <div className="stat-card">
-              <p className="stat-label">Rata-rata Kehadiran</p>
-              <p className="stat-value">
-                {(students.reduce((sum, s) => sum + s.attendanceRate, 0) / students.length).toFixed(1)}%
-              </p>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-green">
+                <span className="material-symbols-outlined">verified</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Rendah</p>
+                <p className="stat-value text-green">
+                  {students.filter(s => s.risk === 'low').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
             </div>
-            <div className="stat-card">
-              <p className="stat-label">Siswa Risiko Tinggi</p>
-              <p className="stat-value stat-risk-high">
-                {students.filter(s => s.risk === 'high').length}
-              </p>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-yellow">
+                <span className="material-symbols-outlined">info</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Sedang</p>
+                <p className="stat-value text-yellow">
+                  {students.filter(s => s.risk === 'medium').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
             </div>
-            <div className="stat-card">
-              <p className="stat-label">Siswa Risiko Sedang</p>
-              <p className="stat-value stat-risk-medium">
-                {students.filter(s => s.risk === 'medium').length}
-              </p>
-            </div>
-            <div className="stat-card">
-              <p className="stat-label">Siswa Baik</p>
-              <p className="stat-value stat-risk-low">
-                {students.filter(s => s.risk === 'low').length}
-              </p>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-red">
+                <span className="material-symbols-outlined">warning</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Tinggi</p>
+                <p className="stat-value text-red">
+                  {students.filter(s => s.risk === 'high').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

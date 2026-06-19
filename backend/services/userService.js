@@ -320,6 +320,18 @@ exports.createUser = async (userData) => {
     });
   }
 
+  if (userData.class_id) {
+    try {
+      userData.class_id = new mongoose.Types.ObjectId(userData.class_id);
+    } catch (err) {}
+  }
+  
+  if (userData.parent_id) {
+    try {
+      userData.parent_id = new mongoose.Types.ObjectId(userData.parent_id);
+    } catch (err) {}
+  }
+
   const result =
     await collection.insertOne({
 
@@ -368,6 +380,18 @@ exports.updateUser = async (
         return id;
       }
     });
+  }
+
+  if (updateData.class_id) {
+    try {
+      updateData.class_id = new mongoose.Types.ObjectId(updateData.class_id);
+    } catch (err) {}
+  }
+
+  if (updateData.parent_id) {
+    try {
+      updateData.parent_id = new mongoose.Types.ObjectId(updateData.parent_id);
+    } catch (err) {}
   }
 
   for (const collection of collections) {
