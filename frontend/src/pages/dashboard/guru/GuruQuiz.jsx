@@ -15,11 +15,9 @@ const GuruQuiz = () => {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
 
-  // Scoring Modal State
-  const [showModal, setShowModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [quizScore, setQuizScore] = useState(10);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Scoring Detail State
+  const [expandedQuestionIndex, setExpandedQuestionIndex] = useState(null);
+  const [studentScores, setStudentScores] = useState({});
 
   useEffect(() => {
     fetchStudents();
@@ -58,32 +56,27 @@ const GuruQuiz = () => {
     }
   };
 
-  const handleStudentClick = (student) => {
-    setSelectedStudent(student);
-    setShowModal(true);
+  const handleScoreChange = (studentId, value) => {
+    setStudentScores(prev => ({ ...prev, [studentId]: value }));
   };
 
-  const handleSubmitScore = async (e) => {
-    e.preventDefault();
-    if (!selectedStudent || !quizScore) return;
+  const handleInlineSubmitScore = async (student, questionIndex) => {
+    const score = studentScores[student._id];
+    if (!score) return;
 
-    setIsSubmitting(true);
     try {
       await api.post('/grades', {
-        student: selectedStudent._id,
-        subject: selectedStudent.subject_id || 'dummy_subject_id_for_now',
-        score: Number(quizScore),
+        student: student._id,
+        subject: student.subject_id || selectedSubject || 'dummy_subject_id_for_now',
+        score: Number(score),
         type: 'quiz',
-        note: 'Icebreaker Quiz Point'
+        note: `Kuis: ${questions[questionIndex]}`
       });
-      alert(`Berhasil memberikan nilai ${quizScore} ke ${selectedStudent.full_name}`);
-      setShowModal(false);
-      setQuizScore(10); 
+      alert(`Berhasil memberikan nilai ${score} ke ${student.full_name}`);
+      setStudentScores(prev => ({ ...prev, [student._id]: '' }));
     } catch (err) {
       console.error('Failed to submit score', err);
       alert('Gagal menyimpan nilai kuis');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -134,9 +127,8 @@ const GuruQuiz = () => {
         <p>Buat pertanyaan kuis dan nilai siswa secara langsung</p>
       </div>
 
-      <div className="quiz-split-layout">
+      <div className="quiz-single-layout">
         
-        {/* LEFT COLUMN: QUIZ QUESTIONS */}
         <div className="quiz-questions-panel">
           <div className="panel-header">
             <h3>Bank Soal</h3>
@@ -180,82 +172,68 @@ const GuruQuiz = () => {
               </div>
             ) : (
               questions.map((q, index) => (
-                <div key={index} className="question-card">
-                  <div className="q-number">{index + 1}</div>
-                  <div className="q-text">{q}</div>
-                  <button className="btn-del-q" onClick={() => handleDeleteQuestion(index)}>
-                    <span className="material-symbols-outlined">close</span>
-                  </button>
+                <div key={index} className="question-card-container">
+                  <div className="question-card">
+                    <div className="q-number">{index + 1}</div>
+                    <div className="q-text">{q}</div>
+                    <div className="q-actions">
+                      <button 
+                        className="btn-detail-q" 
+                        onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === index ? null : index)}
+                      >
+                        Detail
+                      </button>
+                      <button className="btn-del-q" onClick={() => handleDeleteQuestion(index)}>
+                        <span className="material-symbols-outlined">close</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {expandedQuestionIndex === index && (
+                    <div className="question-detail-expanded">
+                      <div className="detail-header">
+                         <h4>Pilih Kelas & Beri Nilai</h4>
+                         <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="class-selector">
+                           {classes.map(c => (
+                             <option key={c} value={c}>{c}</option>
+                           ))}
+                         </select>
+                      </div>
+                      <div className="student-grid">
+                        {filteredStudents.length === 0 ? (
+                          <div className="no-students">Tidak ada siswa di kelas ini.</div>
+                        ) : (
+                          filteredStudents.map(student => (
+                            <div key={student._id} className="student-score-row">
+                              <div className="student-score-info">
+                                <div className="student-avatar-small">{student.full_name.charAt(0)}</div>
+                                <div>
+                                  <div className="student-name">{student.full_name}</div>
+                                  <div className="student-nis">{student.nis || '-'}</div>
+                                </div>
+                              </div>
+                              <div className="score-input-group">
+                                <input 
+                                  type="number" 
+                                  placeholder="Nilai" 
+                                  value={studentScores[student._id] || ''}
+                                  onChange={e => handleScoreChange(student._id, e.target.value)}
+                                  className="score-input"
+                                />
+                                <button className="btn-save-score" onClick={() => handleInlineSubmitScore(student, index)}>Simpan</button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
         </div>
-
-        {/* RIGHT COLUMN: STUDENT SIDEBAR */}
-        <div className="quiz-sidebar-panel">
-          <div className="sidebar-header">
-            <h3>Daftar Siswa</h3>
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
-              {classes.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="student-list-vertical">
-            {filteredStudents.length === 0 ? (
-              <div className="no-students">Tidak ada siswa di kelas ini.</div>
-            ) : (
-              filteredStudents.map(student => (
-                <div key={student._id} className="student-list-item" onClick={() => handleStudentClick(student)}>
-                  <div className="student-avatar-small">
-                    {student.full_name.charAt(0)}
-                  </div>
-                  <div className="student-info-small">
-                    <h4>{student.full_name}</h4>
-                    <p>{student.nis || '-'}</p>
-                  </div>
-                  <div className="action-indicator">
-                    <span className="material-symbols-outlined">add_circle</span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
       </div>
-
-      {/* SCORING MODAL */}
-      {showModal && selectedStudent && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Beri Nilai Kuis</h3>
-            <p className="modal-subtitle">Berikan poin kuis untuk pertanyaan lisan yang ditujukan kepada <strong>{selectedStudent.full_name}</strong> (Kelas {selectedStudent.class_name})</p>
-            <form onSubmit={handleSubmitScore}>
-              <div className="form-group">
-                <label>Nilai Poin (Misal: 10, 20, 100)</label>
-                <input 
-                  type="number" 
-                  min="1" 
-                  max="100" 
-                  value={quizScore} 
-                  onChange={e => setQuizScore(e.target.value)} 
-                  required 
-                  autoFocus
-                />
-              </div>
-              <div className="modal-buttons">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-cancel">Batal</button>
-                <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Nilai'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
