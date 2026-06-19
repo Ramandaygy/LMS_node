@@ -95,6 +95,22 @@ const GuruAssignments = () => {
     setSelectedAssignment(null);
   };
 
+  const handleDeleteAssignment = async (e, id) => {
+    e.stopPropagation();
+    if(window.confirm('Yakin ingin menghapus tugas ini? Semua data submisi dan nilai akan hilang!')) {
+      try {
+        await api.delete(`/assignments/${id}`);
+        alert('Tugas berhasil dihapus');
+        fetchAssignments();
+        if(selectedAssignment && selectedAssignment._id === id) {
+          setSelectedAssignment(null);
+        }
+      } catch (err) {
+        alert(err.response?.data?.message || 'Gagal menghapus tugas');
+      }
+    }
+  };
+
   const handleFormChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -277,6 +293,7 @@ const GuruAssignments = () => {
                 </div>
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn-edit" onClick={(e) => handleEdit(assignment, e)}>Edit</button>
+                  <button className="btn-delete" onClick={(e) => handleDeleteAssignment(e, assignment._id)} style={{ padding: '6px 12px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Hapus</button>
                 </div>
               </div>
             );

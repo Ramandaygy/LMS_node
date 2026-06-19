@@ -15,6 +15,7 @@ const GuruMaterials = () => {
     external_link: '',
     file: null
   });
+  const [editingId, setEditingId] = useState(null);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiTitle, setAiTitle] = useState('');
   const [teacherSubjects, setTeacherSubjects] = useState([]);
@@ -65,12 +66,44 @@ const GuruMaterials = () => {
     data.append('external_link', form.external_link);
     if (form.file) data.append('file', form.file);
     try {
-      await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
-      alert('Materi berhasil disimpan');
+      if (editingId) {
+        await api.put(`/materials/${editingId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        alert('Materi berhasil diupdate');
+      } else {
+        await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+        alert('Materi berhasil disimpan');
+      }
       setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
+      setEditingId(null);
       fetchMaterials();
     } catch (err) {
       alert(err.response?.data?.message || 'Gagal simpan materi');
+    }
+  };
+
+  const handleEdit = (m) => {
+    setForm({
+      title: m.title || '',
+      description: m.description || '',
+      content: m.content || '',
+      class_id: m.class_id || '',
+      subject_id: m.subject_id || '',
+      external_link: m.external_link || '',
+      file: null
+    });
+    setEditingId(m._id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Yakin ingin menghapus materi ini?')) {
+      try {
+        await api.delete(`/materials/${id}`);
+        alert('Materi berhasil dihapus');
+        fetchMaterials();
+      } catch (err) {
+        alert('Gagal menghapus materi');
+      }
     }
   };
 
@@ -113,8 +146,8 @@ const GuruMaterials = () => {
       <div className="cards-grid">
         <div className="form-card">
           <h3>
-            <span className="material-symbols-outlined card-icon">upload_file</span>
-            Tambah Materi Baru
+            <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
+            {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
           </h3>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -154,7 +187,15 @@ const GuruMaterials = () => {
               <input type="file" onChange={handleFileChange} />
               {form.file && <span className="file-name">{form.file.name}</span>}
             </div>
-            <button type="submit" className="btn-primary">Simpan Materi</button>
+            <div className="form-actions-row" style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" className="btn-primary">{editingId ? 'Update Materi' : 'Simpan Materi'}</button>
+              {editingId && (
+                <button type="button" className="btn-secondary" onClick={() => {
+                  setEditingId(null);
+                  setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
+                }} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}>Batal</button>
+              )}
+            </div>
           </form>
         </div>
 
@@ -212,7 +253,23 @@ const GuruMaterials = () => {
               >
                 <div className="card-header">
                   <h4>{m.title}</h4>
-                  <span className="badge">{m.subject_name}</span>
+                  <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
+                    <span className="badge">{m.subject_name}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleEdit(m); }}
+                      style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title="Edit Materi"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(m._id); }}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      title="Hapus Materi"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                    </button>
+                  </div>
                 </div>
                 {m.description && <p className="desc">{m.description}</p>}
                 {m.content && (
