@@ -35,7 +35,6 @@ const AdminSchedule = () => {
   });
 
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [autoLoading, setAutoLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const getMapelColor = (subjectId) => {
@@ -195,28 +194,7 @@ const AdminSchedule = () => {
     }
   };
 
-  const handleAutoGenerate = async () => {
-    if (!selectedYear) {
-      return setMessage({ type: 'error', text: 'Pilih tahun ajaran' });
-    }
-    setAutoLoading(true);
-    try {
-      const response = await api.post('/schedules/auto-generate', {
-        academic_year_id: selectedYear
-      });
-      if (response.status === 200) {
-        await fetchExistingSchedule();
-        setMessage({ type: 'success', text: 'Jadwal digenerate otomatis' });
-      } else {
-        throw new Error('Gagal generate');
-      }
-    } catch (error) {
-      console.error(error);
-      setMessage({ type: 'error', text: 'Gagal generate jadwal' });
-    } finally {
-      setAutoLoading(false);
-    }
-  };
+
 
   const handleTimeEdit = (slotIndex) => {
     const newLabel = prompt('Edit waktu:', timeSlots[slotIndex].label);
@@ -248,9 +226,7 @@ const AdminSchedule = () => {
             <option value="9">Kelas 9</option>
             <option value="all">Semua</option>
           </select>
-          <button onClick={handleAutoGenerate} disabled={autoLoading}>
-            {autoLoading ? '...' : '⚡ Generate'}
-          </button>
+
           <button onClick={handleSaveAll} disabled={saving}>
             {saving ? '...' : '💾 Simpan'}
           </button>
