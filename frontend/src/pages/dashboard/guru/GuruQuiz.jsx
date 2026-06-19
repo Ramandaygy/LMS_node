@@ -7,6 +7,9 @@ const GuruQuiz = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  
   // Quiz Questions State
   const [questions, setQuestions] = useState([]);
   const [newQuestion, setNewQuestion] = useState('');
@@ -42,6 +45,12 @@ const GuruQuiz = () => {
       const response = await api.get('/users/students/all');
       const data = response.data.data || [];
       setStudents(data);
+
+      const classList = [...new Set(data.map(s => s.class_name).filter(Boolean))];
+      setClasses(classList);
+      if (classList.length > 0) {
+        setSelectedClass(classList[0]);
+      }
     } catch (err) {
       console.error('Failed to fetch students', err);
     } finally {
@@ -119,11 +128,12 @@ const GuruQuiz = () => {
   };
 
   const filteredStudents = students.filter(s => {
-    if (!searchQuery) return true;
-    const lowerQuery = searchQuery.toLowerCase();
-    return s.full_name?.toLowerCase().includes(lowerQuery) || 
-           s.nis?.includes(searchQuery) ||
-           s.class_name?.toLowerCase().includes(lowerQuery);
+    const matchesClass = !selectedClass || s.class_name === selectedClass;
+    const matchesSearch = !searchQuery || (
+      s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      s.nis?.includes(searchQuery)
+    );
+    return matchesClass && matchesSearch;
   });
 
   if (loading) return <div className="quiz-loading">Memuat data kuis...</div>;
@@ -203,13 +213,25 @@ const GuruQuiz = () => {
                     <div className="question-detail-expanded">
                       <div className="detail-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                          <h4>Cari Siswa</h4>
-                         <input 
-                           type="text" 
-                           placeholder="Cari nama, NIS, atau kelas..." 
-                           value={searchQuery}
-                           onChange={e => setSearchQuery(e.target.value)}
-                           style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', width: '250px' }}
-                         />
+                         <div style={{ display: 'flex', gap: '10px' }}>
+                           <select 
+                             value={selectedClass} 
+                             onChange={e => setSelectedClass(e.target.value)}
+                             style={{ padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '150px' }}
+                           >
+                             <option value="">Semua Kelas</option>
+                             {classes.map(c => (
+                               <option key={c} value={c}>{c}</option>
+                             ))}
+                           </select>
+                           <input 
+                             type="text" 
+                             placeholder="Cari nama atau NIS..." 
+                             value={searchQuery}
+                             onChange={e => setSearchQuery(e.target.value)}
+                             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', width: '250px' }}
+                           />
+                         </div>
                       </div>
                       <div className="student-grid" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                         {filteredStudents.length === 0 ? (

@@ -22,106 +22,143 @@ const SiswaProgress = () => {
     }
   };
 
-  if (loading) return <div className="progress-container"><p>Memuat data...</p></div>;
+  if (loading) return <div className="progress-container"><div className="loading">Memuat data...</div></div>;
   if (error) return <div className="progress-container"><div className="error-message">{error}</div></div>;
-  if (!progress) return <div className="progress-container"><p>Data tidak tersedia</p></div>;
+  if (!progress) return <div className="progress-container"><div className="loading">Data tidak tersedia</div></div>;
 
-  const getProgressBarClass = (percentage) => {
-    if (percentage >= 80) return 'progress-bar-high';
-    if (percentage >= 60) return 'progress-bar-medium';
-    return 'progress-bar-low';
+  const getFillColor = (percentage) => {
+    if (percentage >= 80) return '#10b981';
+    if (percentage >= 60) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  // Generate readable explanation based on metrics
+  const getAIExplanation = () => {
+    if (progress.risk === 'high') {
+      let reasons = [];
+      if (progress.avgScore < 70) reasons.push("Rata-rata nilai tugas/kuis berada di bawah standar");
+      if (progress.attendanceRate < 75) reasons.push("Persentase kehadiran sangat rendah");
+      if (progress.materialCompletionRate < 50) reasons.push("Sebagian besar materi pembelajaran belum dipelajari");
+      
+      if (reasons.length === 0) reasons.push("Pola aktivitas belajar menunjukkan tren penurunan");
+
+      return `AI memprediksi Status Risiko TINGGI karena: ${reasons.join(' dan ')}. Segera ambil tindakan untuk memperbaiki performa Anda agar tidak tertinggal.`;
+    } 
+    else if (progress.risk === 'medium') {
+      let reasons = [];
+      if (progress.avgScore >= 70 && progress.avgScore < 80) reasons.push("Nilai tugas/kuis cukup, namun masih bisa dimaksimalkan");
+      if (progress.attendanceRate < 90 && progress.attendanceRate >= 75) reasons.push("Kehadiran perlu ditingkatkan");
+      if (progress.materialCompletionRate < 80 && progress.materialCompletionRate >= 50) reasons.push("Ada beberapa materi yang belum diselesaikan");
+      
+      if (reasons.length === 0) reasons.push("Pola belajar cukup stabil, namun ada ruang untuk peningkatan");
+
+      return `AI memprediksi Status Risiko SEDANG karena: ${reasons.join(', ')}. Tingkatkan lagi fokus belajar Anda.`;
+    }
+    else {
+      return `AI memprediksi Status Risiko RENDAH (Aman). Semua indikator (Nilai, Kehadiran, Materi) menunjukkan performa yang sangat baik. Pertahankan!`;
+    }
   };
 
   return (
     <div className="progress-container">
-      <div className="page-header" style={{ marginBottom: '20px' }}>
-        <h2 style={{ margin: 0 }}>Progres Belajar Saya</h2>
-        <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--primary-color)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', marginTop: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '16px', marginRight: '6px' }}>psychology</span>
-          Diukur oleh AI (Random Forest)
-        </div>
+      <div className="page-header" style={{ marginBottom: '30px' }}>
+        <h2>Progres Belajar Saya</h2>
       </div>
       
-      <div className="progress-summary">
-        <div className={`progress-card risk-${progress.color}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <h3>Prediksi Status Risiko</h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '10px 0' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
-              {progress.risk === 'high' ? 'warning' : progress.risk === 'medium' ? 'info' : 'verified'}
-            </span>
-            <p className="risk-level" style={{ margin: 0, fontSize: '24px' }}>{progress.risk.toUpperCase()}</p>
+      <div className="progress-dashboard">
+        
+        {/* Kolom Kiri: AI Analysis */}
+        <div className={`ai-analysis-card risk-${progress.color}`}>
+          <div className="ai-badge">
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', marginRight: '6px' }}>psychology</span>
+            Analisis Random Forest AI
           </div>
-          <p className="risk-message">{progress.message}</p>
-          <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '8px' }}>
-            AI Confidence: {progress.confidence || (Math.floor(Math.random() * 11) + 85)}%
-          </div>
-        </div>
-      </div>
 
-      <div className="progress-metrics">
-        <div className="metric-card">
-          <h4>Rata-rata Nilai</h4>
-          <div className="metric-value">{progress.avgScore.toFixed(1)}%</div>
-          <div className="progress-bar-container">
-            <div className={`progress-bar ${getProgressBarClass(progress.avgScore)}`} 
-                 style={{ width: `${Math.min(progress.avgScore, 100)}%` }}></div>
+          <div className="risk-status-container">
+            <div className="risk-icon">
+              <span className="material-symbols-outlined" style={{ fontSize: '48px' }}>
+                {progress.risk === 'high' ? 'warning' : progress.risk === 'medium' ? 'info' : 'verified'}
+              </span>
+            </div>
+            <p className="risk-title">Prediksi Status Risiko</p>
+            <p className="risk-value">{progress.risk.toUpperCase()}</p>
           </div>
-          <p className="metric-label">Berdasarkan nilai tugas dan ujian</p>
-        </div>
 
-        <div className="metric-card">
-          <h4>Kehadiran</h4>
-          <div className="metric-value">{progress.attendanceRate.toFixed(1)}%</div>
-          <div className="progress-bar-container">
-            <div className={`progress-bar ${getProgressBarClass(progress.attendanceRate)}`} 
-                 style={{ width: `${Math.min(progress.attendanceRate, 100)}%` }}></div>
+          <div className="ai-explanation">
+            <h4><span className="material-symbols-outlined">insights</span> Penjelasan AI</h4>
+            <p>{getAIExplanation()}</p>
           </div>
-          <p className="metric-label">Persentase kehadiran</p>
-        </div>
 
-        <div className="metric-card">
-          <h4>Penyelesaian Materi</h4>
-          <div className="metric-value">{progress.materialCompletionRate.toFixed(1)}%</div>
-          <div className="progress-bar-container">
-            <div className={`progress-bar ${getProgressBarClass(progress.materialCompletionRate)}`} 
-                 style={{ width: `${Math.min(progress.materialCompletionRate, 100)}%` }}></div>
-          </div>
-          <p className="metric-label">Materi yang sudah diselesaikan</p>
-        </div>
-      </div>
-
-      <div className="progress-recommendations">
-        <h3>Rekomendasi</h3>
-        {progress.risk === 'high' && (
-          <div className="recommendation-alert high">
-            <p><strong>⚠️ Perhatian Serius</strong></p>
-            <ul>
-              {progress.avgScore < 60 && <li>Tingkatkan nilai akademik Anda. Konsultasikan materi yang sulit dengan guru.</li>}
-              {progress.attendanceRate < 70 && <li>Tingkatkan kehadiran Anda. Jangan sering bolos untuk memaksimalkan pembelajaran.</li>}
-              {progress.materialCompletionRate < 50 && <li>Segera selesaikan materi pembelajaran. Lihat materi yang belum Anda buka.</li>}
+          <div className="recommendations">
+            <h4 style={{ marginBottom: '15px', color: '#334155' }}>Saran Tindakan:</h4>
+            <ul className="recommendation-list">
+              {progress.risk === 'high' && (
+                <>
+                  <li><span className="material-symbols-outlined">menu_book</span> Hubungi guru wali kelas untuk konsultasi nilai.</li>
+                  <li><span className="material-symbols-outlined">event_available</span> Pastikan Anda selalu hadir di jadwal pelajaran.</li>
+                </>
+              )}
+              {progress.risk === 'medium' && (
+                <>
+                  <li><span className="material-symbols-outlined">task_alt</span> Selesaikan sisa materi dan tugas yang belum dikerjakan.</li>
+                  <li><span className="material-symbols-outlined">trending_up</span> Usahakan mendapat nilai lebih tinggi pada tugas berikutnya.</li>
+                </>
+              )}
+              {progress.risk === 'low' && (
+                <>
+                  <li><span className="material-symbols-outlined">emoji_events</span> Pertahankan rutinitas belajar Anda yang sudah efektif.</li>
+                </>
+              )}
             </ul>
           </div>
-        )}
-        {progress.risk === 'medium' && (
-          <div className="recommendation-alert medium">
-            <p><strong>📌 Perlu Ditingkatkan</strong></p>
-            <ul>
-              {progress.avgScore < 75 && <li>Tingkatkan prestasi akademik Anda dengan belajar lebih sungguh-sungguh.</li>}
-              {progress.attendanceRate < 85 && <li>Usahakan untuk hadir di semua kelas untuk tidak ketinggalan materi.</li>}
-              {progress.materialCompletionRate < 75 && <li>Pelajari sisa materi yang belum Anda selesaikan.</li>}
-            </ul>
+        </div>
+
+        {/* Kolom Kanan: Metrics Grid */}
+        <div className="metrics-grid">
+          
+          <div className="metric-card-modern">
+            <div className="metric-header">
+              <h3>Rata-rata Nilai</h3>
+              <div className="metric-icon blue">
+                <span className="material-symbols-outlined">grade</span>
+              </div>
+            </div>
+            <div className="metric-value-large">{progress.avgScore.toFixed(1)}%</div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${Math.min(progress.avgScore, 100)}%`, backgroundColor: getFillColor(progress.avgScore) }}></div>
+            </div>
+            <p className="metric-desc">Gabungan nilai tugas dan kuis</p>
           </div>
-        )}
-        {progress.risk === 'low' && (
-          <div className="recommendation-alert low">
-            <p><strong>✅ Baik, Pertahankan</strong></p>
-            <ul>
-              <li>Terus pertahankan performa akademik Anda yang sudah baik.</li>
-              <li>Jangan berhenti untuk terus meningkatkan prestasi.</li>
-              <li>Bantu teman-teman Anda yang membutuhkan bantuan.</li>
-            </ul>
+
+          <div className="metric-card-modern">
+            <div className="metric-header">
+              <h3>Kehadiran</h3>
+              <div className="metric-icon purple">
+                <span className="material-symbols-outlined">how_to_reg</span>
+              </div>
+            </div>
+            <div className="metric-value-large">{progress.attendanceRate.toFixed(1)}%</div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${Math.min(progress.attendanceRate, 100)}%`, backgroundColor: getFillColor(progress.attendanceRate) }}></div>
+            </div>
+            <p className="metric-desc">Persentase kehadiran di kelas</p>
           </div>
-        )}
+
+          <div className="metric-card-modern">
+            <div className="metric-header">
+              <h3>Penyelesaian Materi</h3>
+              <div className="metric-icon orange">
+                <span className="material-symbols-outlined">library_books</span>
+              </div>
+            </div>
+            <div className="metric-value-large">{progress.materialCompletionRate.toFixed(1)}%</div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: `${Math.min(progress.materialCompletionRate, 100)}%`, backgroundColor: getFillColor(progress.materialCompletionRate) }}></div>
+            </div>
+            <p className="metric-desc">Materi yang sudah dibaca/selesai</p>
+          </div>
+
+        </div>
       </div>
     </div>
   );

@@ -1,12 +1,188 @@
-.ortu-monitoring { padding: 24px; }
-.child-list { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-.child-list button { padding: 8px 16px; border: none; background: #f0f0f0; border-radius: 20px; cursor: pointer; }
-.child-list button.active { background: #4f46e5; color: white; }
-.progress-card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.progress-stats { display: flex; gap: 32px; margin: 16px 0; }
-.stat { flex: 1; }
-.label { color: #666; font-size: 14px; }
-.value { font-size: 24px; font-weight: bold; display: block; }
-.risk-high { border-top-color: #dc3545; }
-.risk-medium { border-top-color: #ffc107; }
-.risk-low { border-top-color: #28a745; }
+.ortu-monitoring {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
+}
+
+.ortu-header h2 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+}
+
+.child-selector {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  padding: 15px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.child-btn {
+  padding: 10px 20px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.child-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.child-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.monitoring-dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .monitoring-dashboard {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
+/* AI Card */
+.ai-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  border-top: 6px solid #e2e8f0;
+}
+
+.ai-card.risk-high { border-top-color: #ef4444; }
+.ai-card.risk-medium { border-top-color: #f59e0b; }
+.ai-card.risk-low { border-top-color: #10b981; }
+
+.ai-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.ai-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+.risk-high .ai-icon { color: #ef4444; }
+.risk-medium .ai-icon { color: #f59e0b; }
+.risk-low .ai-icon { color: #10b981; }
+
+.ai-title {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.ai-value {
+  font-size: 32px;
+  font-weight: 800;
+  margin: 0;
+}
+.risk-high .ai-value { color: #ef4444; }
+.risk-medium .ai-value { color: #f59e0b; }
+.risk-low .ai-value { color: #10b981; }
+
+.ai-text-block {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.ai-text-block h4 {
+  margin: 0 0 10px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+}
+
+.ai-text-block p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* Metrics */
+.metrics-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 640px) {
+  .metrics-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.metric-box {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.m-head span.label {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.m-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.m-icon.blue { background: linear-gradient(135deg, #3b82f6, #60a5fa); }
+.m-icon.purple { background: linear-gradient(135deg, #8b5cf6, #a78bfa); }
+
+.m-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.m-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 8px;
+}
