@@ -454,16 +454,19 @@
 /* Modal */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1100;
-  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .admin-students-modal {
@@ -471,19 +474,26 @@
   border-radius: 24px;
   width: 700px;
   max-width: 90%;
+  padding: 32px;
   max-height: 85vh;
   overflow-y: auto;
-  padding: 28px;
-  box-shadow: 0 25px 40px -12px rgba(0,0,0,0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .admin-students-modal h3 {
-  font-size: 22px;
+  margin: 0 0 24px 0;
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px 0;
-  padding-bottom: 14px;
-  border-bottom: 2px solid #eef2f6;
+  color: #0f172a;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 16px;
 }
 
 .admin-students-form-row {
