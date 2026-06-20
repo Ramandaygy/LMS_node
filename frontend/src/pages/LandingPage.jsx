@@ -17,9 +17,9 @@ const LandingPage = () => {
             <p className="hero-subtitle-modern">
               Selamat datang di pusat kurasi akademik terbaik. Kami mengintegrasikan teknologi modern dengan nilai-nilai luhur untuk menciptakan pemimpin masa depan.
             </p>
-            
+
           </div>
-          
+
           {/* Portal Login Bento */}
           <div className="portal-card">
             <h2 className="portal-title">
@@ -28,12 +28,12 @@ const LandingPage = () => {
             </h2>
             <div className="portal-grid">
               <Link to="/login/siswa" className="portal-item">
-                <div className="portal-icon admin">
-                  <span className="material-symbols-outlined">admin_panel_settings</span>
+                <div className="portal-icon siswa" style={{background: 'rgba(148,0,16,0.1)', color: '#940010'}}>
+                  <span className="material-symbols-outlined">face</span>
                 </div>
                 <div className="portal-info">
-                  <div className="portal-label">Login Siswa</div>
-                  <div className="portal-desc">Manajemen Siswa</div>
+                  <div className="portal-label">Portal Siswa</div>
+                  <div className="portal-desc">Akses Materi & Tugas</div>
                 </div>
                 <span className="portal-arrow material-symbols-outlined">chevron_right</span>
               </Link>
@@ -42,8 +42,8 @@ const LandingPage = () => {
                   <span className="material-symbols-outlined">school</span>
                 </div>
                 <div className="portal-info">
-                  <div className="portal-label">Login Guru</div>
-                  <div className="portal-desc">Portal Pengajaran & Nilai</div>
+                  <div className="portal-label">Portal Guru</div>
+                  <div className="portal-desc">Manajemen Kelas & Nilai</div>
                 </div>
                 <span className="portal-arrow material-symbols-outlined">chevron_right</span>
               </Link>
@@ -52,8 +52,8 @@ const LandingPage = () => {
                   <span className="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div className="portal-info">
-                  <div className="portal-label">Login Wali Murid</div>
-                  <div className="portal-desc">Laporan Belajar & Informasi</div>
+                  <div className="portal-label">Portal Wali Murid</div>
+                  <div className="portal-desc">Pantau Perkembangan Anak</div>
                 </div>
                 <span className="portal-arrow material-symbols-outlined">chevron_right</span>
               </Link>
@@ -74,7 +74,7 @@ const LandingPage = () => {
               Kami tidak hanya mengajar, kami membimbing siswa untuk menemukan minat bakat mereka melalui fasilitas modern.
             </p>
           </div>
-          
+
           <div className="features-grid">
             <div className="feature-card feature-card-1">
               <div className="feature-icon">🔬</div>
@@ -100,6 +100,30 @@ const LandingPage = () => {
         </div>
       </div>
 
+      {/* Stats Section (Dummy Data) */}
+      <div className="stats-section">
+        <div className="container">
+          <div className="stats-grid">
+            <div className="stat-card">
+              <h2>1,200+</h2>
+              <p>Siswa Aktif</p>
+            </div>
+            <div className="stat-card">
+              <h2>85+</h2>
+              <p>Guru Profesional</p>
+            </div>
+            <div className="stat-card">
+              <h2>30+</h2>
+              <p>Ekstrakurikuler</p>
+            </div>
+            <div className="stat-card">
+              <h2>100%</h2>
+              <p>Kelulusan</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Berita Terbaru */}
       <div className="news-section">
         <div className="container">
@@ -110,30 +134,30 @@ const LandingPage = () => {
               <span className="material-symbols-outlined">east</span>
             </Link>
           </div>
-          
+
           <div className="news-grid">
             <div className="news-card">
-              <div className="news-image"></div>
+              <div className="news-image" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}></div>
               <div className="news-content">
                 <div className="news-date">📅 12 Okt 2024</div>
-                <h3>Siswa SMP N 1 Meraih Medali Emas di Olimpiade Sains Nasional</h3>
-                <p>Prestasi gemilang kembali ditorehkan oleh siswa kelas 9 dalam ajang tahunan paling bergengsi...</p>
+                <h3>Siswa Meraih Medali Emas di Olimpiade Sains Nasional</h3>
+                <p>Prestasi gemilang kembali ditorehkan oleh siswa kelas 9 dalam ajang tahunan paling bergengsi tingkat nasional.</p>
               </div>
             </div>
             <div className="news-card">
-              <div className="news-image"></div>
+              <div className="news-image" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}></div>
               <div className="news-content">
                 <div className="news-date">📅 08 Okt 2024</div>
-                <h3>Implementasi ScholarFlow: Era Baru Digitalisasi Sekolah</h3>
-                <p>Digitalisasi sistem administrasi dan pembelajaran kini semakin mudah dengan platform ScholarFlow...</p>
+                <h3>Era Baru Digitalisasi dengan LMS Modern</h3>
+                <p>Digitalisasi sistem administrasi dan pembelajaran kini semakin mudah, memfasilitasi guru dan siswa.</p>
               </div>
             </div>
             <div className="news-card">
-              <div className="news-image"></div>
+              <div className="news-image" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1529390079861-591de354faf5?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')" }}></div>
               <div className="news-content">
                 <div className="news-date">📅 05 Okt 2024</div>
-                <h3>Program Pengabdian Masyarakat: Siswa Peduli Lingkungan</h3>
-                <p>Menanamkan rasa tanggung jawab sosial melalui kegiatan rutin kebersihan lingkungan sekitar...</p>
+                <h3>Program Pengabdian: Siswa Peduli Lingkungan</h3>
+                <p>Menanamkan rasa tanggung jawab sosial melalui kegiatan rutin kebersihan lingkungan sekitar sekolah.</p>
               </div>
             </div>
           </div>
