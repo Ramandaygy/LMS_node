@@ -283,7 +283,8 @@
   font-size: 20px;
 }
 
-.auth-input-wrapper input {
+.auth-input-wrapper input,
+.auth-input-wrapper select {
   width: 100%;
   padding: 14px 16px 14px 48px;
   background: var(--auth-surface-container-low);
@@ -293,10 +294,13 @@
   font-weight: 500;
   transition: all 0.2s;
   outline: none;
+  appearance: none;
+  color: var(--auth-on-surface);
 }
 
-.auth-input-wrapper input:focus {
-  ring: 2px solid var(--auth-primary-container);
+.auth-input-wrapper input:focus,
+.auth-input-wrapper select:focus {
+  box-shadow: 0 0 0 2px var(--auth-primary-container);
   background: white;
 }
 
