@@ -159,22 +159,27 @@ const GuruProgress = () => {
           <p>Belum ada data siswa untuk kelas ini.</p>
         </div>
       ) : (
-        <div className="students-table-wrapper premium-card">
-          <table className="premium-table">
-            <thead>
-              <tr>
-                <th>Siswa</th>
-                <th>Tugas</th>
-                <th>Kuis</th>
-                <th>Kehadiran</th>
-                <th>Materi</th>
-                <th>Prediksi AI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedStudents().map((student, idx) => (
-                <tr key={idx}>
-                  <td className="student-info-cell">
+        <div className="students-grid">
+          {sortedStudents().map((student, idx) => {
+            
+            // Generate dynamic insights
+            const insights = [];
+            if (student.attendanceRate < 70) insights.push(`Kehadiran rendah (${student.attendanceRate.toFixed(0)}%) berpotensi besar menurunkan pemahaman.`);
+            if (student.avgScore < 60) insights.push(`Nilai Tugas sangat kurang (${student.avgScore.toFixed(0)}%), butuh bimbingan ekstra.`);
+            if (student.avgQuizScore < 60) insights.push(`Pemahaman materi dari Kuis masih minim (${(student.avgQuizScore || 0).toFixed(0)}%).`);
+            if (student.materialCompletionRate < 50) insights.push(`Banyak materi yang belum dibaca/diselesaikan (${student.materialCompletionRate.toFixed(0)}%).`);
+            
+            if (insights.length === 0 && student.risk === 'low') {
+              insights.push('Performa sangat baik dan konsisten di semua aspek penilaian.');
+            } else if (insights.length === 0 && student.risk === 'medium') {
+              insights.push('Performa cukup, namun masih bisa dioptimalkan pada penyelesaian tugas dan kuis.');
+            }
+
+            return (
+              <div key={idx} className="student-progress-card premium-card">
+                
+                <div className="card-header">
+                  <div className="student-info-cell">
                     <div className="student-avatar">
                       {student.student_name.charAt(0).toUpperCase()}
                     </div>
@@ -182,8 +187,38 @@ const GuruProgress = () => {
                       <div className="student-name">{student.student_name}</div>
                       <div className="student-nis">NIS: {student.nis}</div>
                     </div>
-                  </td>
-                  <td>
+                  </div>
+                  <div className="risk-cell">
+                    <span className={`risk-badge risk-${student.risk}`}>
+                      <span className="material-symbols-outlined">
+                        {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'verified'}
+                      </span>
+                      {student.risk === 'high' ? 'Risiko Tinggi' : student.risk === 'medium' ? 'Risiko Sedang' : 'Risiko Rendah'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="ai-insight-box">
+                  <div className="insight-header">
+                    <span className="material-symbols-outlined">psychology</span>
+                    <strong>Insight Prediksi AI</strong>
+                  </div>
+                  <p className="insight-summary">{student.message}</p>
+                  <ul className="insight-factors">
+                    {insights.map((insight, i) => (
+                      <li key={i}>
+                        <span className="material-symbols-outlined factor-icon">
+                          {insight.includes('rendah') || insight.includes('kurang') || insight.includes('minim') || insight.includes('belum') ? 'trending_down' : 'trending_up'}
+                        </span>
+                        {insight}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="metrics-grid">
+                  <div className="metric-item">
+                    <span className="metric-label">Tugas</span>
                     <div className="progress-cell">
                       <span className="progress-text">{student.avgScore.toFixed(0)}%</span>
                       <div className="progress-bar-bg">
@@ -193,8 +228,10 @@ const GuruProgress = () => {
                         }}></div>
                       </div>
                     </div>
-                  </td>
-                  <td>
+                  </div>
+
+                  <div className="metric-item">
+                    <span className="metric-label">Kuis</span>
                     <div className="progress-cell">
                       <span className="progress-text">{(student.avgQuizScore || 0).toFixed(0)}%</span>
                       <div className="progress-bar-bg">
@@ -204,8 +241,10 @@ const GuruProgress = () => {
                         }}></div>
                       </div>
                     </div>
-                  </td>
-                  <td>
+                  </div>
+
+                  <div className="metric-item">
+                    <span className="metric-label">Kehadiran</span>
                     <div className="progress-cell">
                       <span className="progress-text">{student.attendanceRate.toFixed(0)}%</span>
                       <div className="progress-bar-bg">
@@ -215,8 +254,10 @@ const GuruProgress = () => {
                         }}></div>
                       </div>
                     </div>
-                  </td>
-                  <td>
+                  </div>
+
+                  <div className="metric-item">
+                    <span className="metric-label">Materi</span>
                     <div className="progress-cell">
                       <span className="progress-text">{student.materialCompletionRate.toFixed(0)}%</span>
                       <div className="progress-bar-bg">
@@ -226,22 +267,12 @@ const GuruProgress = () => {
                         }}></div>
                       </div>
                     </div>
-                  </td>
-                  <td>
-                    <div className="risk-cell">
-                      <span className={`risk-badge risk-${student.risk}`}>
-                        <span className="material-symbols-outlined">
-                          {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'verified'}
-                        </span>
-                        {student.risk === 'high' ? 'Tinggi' : student.risk === 'medium' ? 'Sedang' : 'Rendah'}
-                      </span>
-                      <div className="risk-message">{student.message}</div>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       )}
 

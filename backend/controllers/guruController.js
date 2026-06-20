@@ -44,3 +44,56 @@ exports.getBinaanStudents = async (req, res) => {
     });
   }
 };
+
+exports.inputGrade = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const { student_id, subject_id, type, score, note } = req.body;
+
+    if (!student_id || !subject_id || !type || score === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lengkapi semua field (siswa, mata pelajaran, tipe ujian, dan nilai)',
+      });
+    }
+
+    const Grade = require('../models/Grade');
+
+    // Check if grade already exists for this student, subject, and type
+    let grade = await Grade.findOne({
+      student: student_id,
+      subject: subject_id,
+      type: type
+    });
+
+    if (grade) {
+      grade.score = score;
+      grade.note = note || grade.note;
+      grade.teacher = teacherId;
+      await grade.save();
+    } else {
+      grade = new Grade({
+        student: student_id,
+        subject: subject_id,
+        type: type,
+        score: score,
+        note: note || '',
+        teacher: teacherId
+      });
+      await grade.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Nilai berhasil disimpan',
+      data: grade
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menyimpan nilai'
+    });
+  }
+};
