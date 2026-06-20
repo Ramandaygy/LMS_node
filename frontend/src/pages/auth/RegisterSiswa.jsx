@@ -199,12 +199,13 @@ const RegisterSiswa = () => {
                       required
                     >
                       <option value="">Select Class</option>
-                      <option value="7A">7A</option>
-                      <option value="7B">7B</option>
-                      <option value="8A">8A</option>
-                      <option value="8B">8B</option>
-                      <option value="9A">9A</option>
-                      <option value="9B">9B</option>
+                      {[7, 8, 9].flatMap(grade =>
+                        ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'].map(section => (
+                          <option key={`${grade}${section}`} value={`${grade}${section}`}>
+                            {grade}{section}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>
