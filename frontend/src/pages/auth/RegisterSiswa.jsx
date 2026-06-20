@@ -94,7 +94,7 @@ const RegisterSiswa = () => {
             <div className="auth-tabs">
               <Link to="/login/siswa" className="auth-tab">LOGIN</Link>
               <button className="auth-tab active">REGISTER</button>
-              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}

@@ -126,7 +126,6 @@ const LoginGuru = () => {
             <div className="auth-tabs">
               <button className="auth-tab active">LOGIN</button>
               <Link to="/register/guru" className="auth-tab">REGISTER</Link>
-              
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -188,7 +187,10 @@ const LoginGuru = () => {
             {/* Register Link */}
             <div className="auth-register-prompt">
               <p>First time here? Register your educator account.</p>
-              
+              <Link to="/register/guru" className="auth-register-btn">
+                <span className="material-symbols-outlined">person_add</span>
+                Create Educator Account
+              </Link>
             </div>
           </div>
 

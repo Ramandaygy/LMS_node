@@ -92,7 +92,7 @@ const LoginOrtu = () => {
             <div className="auth-tabs">
               <button className="auth-tab active">LOGIN</button>
               <Link to="/register/ortu" className="auth-tab">REGISTER</Link>
-              </div>
+            </div>
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
@@ -153,6 +153,10 @@ const LoginOrtu = () => {
             {/* Register Link */}
             <div className="auth-register-prompt">
               <p>First time here? Register your parent account.</p>
+              <Link to="/register/ortu" className="auth-register-btn">
+                <span className="material-symbols-outlined">person_add</span>
+                Create Parent Account
+              </Link>
             </div>
           </div>
 
