@@ -100,30 +100,6 @@ const LandingPage = () => {
         </div>
       </div>
 
-      {/* Stats Section (Dummy Data) */}
-      <div className="stats-section">
-        <div className="container">
-          <div className="stats-grid">
-            <div className="stat-card">
-              <h2>1,200+</h2>
-              <p>Siswa Aktif</p>
-            </div>
-            <div className="stat-card">
-              <h2>85+</h2>
-              <p>Guru Profesional</p>
-            </div>
-            <div className="stat-card">
-              <h2>30+</h2>
-              <p>Ekstrakurikuler</p>
-            </div>
-            <div className="stat-card">
-              <h2>100%</h2>
-              <p>Kelulusan</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Berita Terbaru */}
       <div className="news-section">
         <div className="container">
