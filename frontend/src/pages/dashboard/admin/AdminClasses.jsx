@@ -545,7 +545,6 @@ const AdminClasses = () => {
             className="dropdown"
             ref={dropdownRef}
           >
-
             <button
               className="btn-export"
               onClick={() =>
@@ -554,34 +553,43 @@ const AdminClasses = () => {
                 )
               }
             >
-              📂 Data
+              <span className="material-symbols-outlined">file_present</span> Data
+              <span className="material-symbols-outlined dropdown-arrow">expand_more</span>
             </button>
 
             {dropdownOpen && (
               <div className="dropdown-menu">
+                <div className="dropdown-group">
+                  <div className="dropdown-group-title">EXPORT</div>
+                  <button
+                    onClick={handleExport}
+                    disabled={exportLoading}
+                  >
+                    <span className="material-symbols-outlined">class</span>
+                    {exportLoading
+                      ? 'Mengexport...'
+                      : 'Export Kelas'}
+                  </button>
+                </div>
 
-                <button
-                  onClick={handleExport}
-                  disabled={exportLoading}
-                >
-                  {exportLoading
-                    ? 'Mengexport...'
-                    : 'Export Excel'}
-                </button>
-
-                <button
-                  onClick={
-                    handleImportClick
-                  }
-                  disabled={
-                    importLoading
-                  }
-                >
-                  {importLoading
-                    ? 'Mengimport...'
-                    : 'Import Excel'}
-                </button>
-
+                <div className="dropdown-divider"></div>
+                
+                <div className="dropdown-group">
+                  <div className="dropdown-group-title">IMPORT</div>
+                  <button
+                    onClick={
+                      handleImportClick
+                    }
+                    disabled={
+                      importLoading
+                    }
+                  >
+                    <span className="material-symbols-outlined">upload_file</span>
+                    {importLoading
+                      ? 'Mengimport...'
+                      : 'Import Kelas (Excel)'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -592,7 +600,7 @@ const AdminClasses = () => {
               setShowModal(true)
             }
           >
-            + Tambah Kelas
+            <span className="material-symbols-outlined">add</span> Tambah Kelas
           </button>
 
         </div>
