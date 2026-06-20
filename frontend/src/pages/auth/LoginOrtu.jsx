@@ -22,15 +22,15 @@ const LoginOrtu = () => {
     try {
       const response = await authService.login(formData);
       const user = response.user;
-      
+
       if (user.role !== 'ortu') {
         setError('Akun ini bukan akun orang tua. Silakan login di halaman yang sesuai.');
         setLoading(false);
         return;
       }
-      
+
       navigate('/dashboard/ortu', { replace: true });
-      
+
     } catch (error) {
       console.error('Login error:', error);
       setError(error.response?.data?.error || 'Login failed');
@@ -54,7 +54,7 @@ const LoginOrtu = () => {
           </div>
           <h2>Parent <span>Dashboard</span></h2>
           <p>Welcome to SMP N 1 Suradadi .</p>
-          
+
           <div className="auth-features">
             <div className="auth-feature">
               <span className="material-symbols-outlined">monitoring</span>
@@ -96,9 +96,9 @@ const LoginOrtu = () => {
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
-              
+
               <div className="auth-input-group">
-                <label>Parent ID or Email Address</label>
+                <label>Email </label>
                 <div className="auth-input-wrapper">
                   <span className="material-symbols-outlined">person</span>
                   <input
@@ -127,8 +127,8 @@ const LoginOrtu = () => {
                     placeholder="••••••••"
                     required
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="auth-password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                   >
@@ -149,15 +149,6 @@ const LoginOrtu = () => {
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             </form>
-
-            {/* Register Link */}
-            <div className="auth-register-prompt">
-              <p>First time here? Register your parent account.</p>
-              <Link to="/register/ortu" className="auth-register-btn">
-                <span className="material-symbols-outlined">person_add</span>
-                Create Parent Account
-              </Link>
-            </div>
           </div>
 
           {/* Footer Info */}

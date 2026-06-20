@@ -16,27 +16,27 @@ const LoginGuru = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     setLoading(true);
     setError('');
-  
+
     try {
-  
+
       const response =
         await authService.login(formData);
-  
+
       console.log(
         'LOGIN RESPONSE:',
         response
       );
-  
+
       const user = response.user;
-  
+
       if (!user) {
         setError('User data not found');
         return;
       }
-  
+
       if (user.role !== 'guru') {
         setError(
           'Akun ini bukan akun guru. Akses ditolak.'
@@ -44,30 +44,30 @@ const LoginGuru = () => {
         setLoading(false);
         return;
       }
-  
+
       console.log(
         'LOCAL USER:',
         localStorage.getItem('user')
       );
-  
+
       console.log(
         'LOCAL TOKEN:',
         localStorage.getItem('token')
       );
-  
+
       // Sama seperti LoginAdmin
       window.location.href =
         '/dashboard/guru';
-  
+
     } catch (error) {
-  
+
       console.error(error);
-  
+
       setError(
         error.response?.data?.message ||
         'Login failed'
       );
-  
+
     } finally {
       setLoading(false);
     }
@@ -88,7 +88,7 @@ const LoginGuru = () => {
           </div>
           <h2>Teaching <span>Excellence</span> Portal</h2>
           <p>Welcome to SMP N 1 Suradadi .</p>
-          
+
           <div className="auth-features">
             <div className="auth-feature">
               <span className="material-symbols-outlined">class</span>
@@ -130,9 +130,9 @@ const LoginGuru = () => {
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
-              
+
               <div className="auth-input-group">
-                <label>Teacher ID or Email Address</label>
+                <label> Email </label>
                 <div className="auth-input-wrapper">
                   <span className="material-symbols-outlined">person</span>
                   <input
@@ -161,8 +161,8 @@ const LoginGuru = () => {
                     placeholder="••••••••"
                     required
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="auth-password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                   >
@@ -184,21 +184,13 @@ const LoginGuru = () => {
               </button>
             </form>
 
-            {/* Register Link */}
-            <div className="auth-register-prompt">
-              <p>First time here? Register your educator account.</p>
-              <Link to="/register/guru" className="auth-register-btn">
-                <span className="material-symbols-outlined">person_add</span>
-                Create Educator Account
-              </Link>
-            </div>
           </div>
 
           {/* Footer Info */}
           <div className="auth-footer-info">
             <div className="auth-footer-support">
               <span className="material-symbols-outlined">support_agent</span>
-              
+
             </div>
             <span>SMP N 1 SURADADI v1.0</span>
           </div>

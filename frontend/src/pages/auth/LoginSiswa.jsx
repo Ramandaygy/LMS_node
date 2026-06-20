@@ -22,13 +22,13 @@ const LoginSiswa = () => {
     try {
       const response = await authService.login(formData);
       const user = response.user;
-      
+
       if (user.role !== 'siswa') {
         setError('Akun ini bukan akun siswa. Silakan login di halaman yang sesuai.');
         setLoading(false);
         return;
       }
-      
+
       navigate('/dashboard/siswa');
     } catch (error) {
       setError(error.response?.data?.error || 'Login failed');
@@ -52,7 +52,7 @@ const LoginSiswa = () => {
           </div>
           <h2>Student <span>Portal</span></h2>
           <p>Welcome to SMP N 1 Suradadi .</p>
-          
+
           <div className="auth-features">
             <div className="auth-feature">
               <span className="material-symbols-outlined">verified</span>
@@ -94,9 +94,9 @@ const LoginSiswa = () => {
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
-              
+
               <div className="auth-input-group">
-                <label>Student ID or Email Address</label>
+                <label> Email </label>
                 <div className="auth-input-wrapper">
                   <span className="material-symbols-outlined">person</span>
                   <input
@@ -125,8 +125,8 @@ const LoginSiswa = () => {
                     placeholder="••••••••"
                     required
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="auth-password-toggle"
                     onClick={() => setShowPassword(!showPassword)}
                   >
@@ -147,15 +147,6 @@ const LoginSiswa = () => {
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             </form>
-
-            {/* Register Link */}
-            <div className="auth-register-prompt">
-              <p>First time here? Register your student account.</p>
-              <Link to="/register/siswa" className="auth-register-btn">
-                <span className="material-symbols-outlined">person_add</span>
-                Create Student Account
-              </Link>
-            </div>
           </div>
 
           {/* Footer Info */}

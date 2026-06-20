@@ -56,7 +56,7 @@ const RegisterSiswa = () => {
           </div>
           <h2>Start Your <span>Learning</span> Journey</h2>
           <p>Join SMP N 1 Suradadi today. Create your student account to access curated learning materials, track your progress, and achieve academic excellence.</p>
-          
+
           <div className="auth-features">
             <div className="auth-feature">
               <span className="material-symbols-outlined">menu_book</span>
@@ -98,7 +98,7 @@ const RegisterSiswa = () => {
 
             <form onSubmit={handleSubmit}>
               {error && <div className="auth-error">{error}</div>}
-              
+
               <div className="auth-form-row">
                 <div className="auth-input-group">
                   <label>Full Name *</label>
@@ -159,8 +159,8 @@ const RegisterSiswa = () => {
                       placeholder="Minimum 6 characters"
                       required
                     />
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="auth-password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
                     >
