@@ -2,6 +2,116 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-progress.css';
 
+const StudentCard = ({ student, insights }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`student-progress-card premium-card ${expanded ? 'expanded' : ''}`}>
+      <div className="card-header" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+        <div className="student-info-cell">
+          <div className="student-avatar">
+            {student.student_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div className="student-name">{student.student_name}</div>
+            <div className="student-nis">NIS: {student.nis}</div>
+          </div>
+        </div>
+        <div className="risk-cell" style={{ flexDirection: 'row', alignItems: 'center', gap: '16px' }}>
+          <span className={`risk-badge risk-${student.risk}`}>
+            <span className="material-symbols-outlined">
+              {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'verified'}
+            </span>
+            {student.risk === 'high' ? 'Risiko Tinggi' : student.risk === 'medium' ? 'Risiko Sedang' : 'Risiko Rendah'}
+          </span>
+          <button className="btn-detail" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Detail
+            <span className="material-symbols-outlined" style={{ fontSize: '18px', transition: 'transform 0.3s', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+              expand_more
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="card-body">
+          <div className="ai-insight-box">
+            <div className="insight-header">
+              <span className="material-symbols-outlined">psychology</span>
+              <strong>Insight Prediksi AI</strong>
+            </div>
+            <p className="insight-summary">{student.message}</p>
+            <ul className="insight-factors">
+              {insights.map((insight, i) => (
+                <li key={i}>
+                  <span className="material-symbols-outlined factor-icon">
+                    {insight.includes('rendah') || insight.includes('kurang') || insight.includes('minim') || insight.includes('belum') || insight.includes('anomali') || insight.includes('Tinggi') ? 'trending_down' : 'trending_up'}
+                  </span>
+                  {insight}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="metrics-grid">
+            <div className="metric-item">
+              <span className="metric-label">Tugas</span>
+              <div className="progress-cell">
+                <span className="progress-text">{student.avgScore.toFixed(0)}%</span>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ 
+                    width: `${Math.min(student.avgScore, 100)}%`,
+                    backgroundColor: student.avgScore >= 75 ? '#10b981' : student.avgScore >= 60 ? '#f59e0b' : '#ef4444'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-item">
+              <span className="metric-label">Kuis</span>
+              <div className="progress-cell">
+                <span className="progress-text">{(student.avgQuizScore || 0).toFixed(0)}%</span>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ 
+                    width: `${Math.min(student.avgQuizScore || 0, 100)}%`,
+                    backgroundColor: (student.avgQuizScore || 0) >= 75 ? '#10b981' : (student.avgQuizScore || 0) >= 60 ? '#f59e0b' : '#ef4444'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-item">
+              <span className="metric-label">Kehadiran</span>
+              <div className="progress-cell">
+                <span className="progress-text">{student.attendanceRate.toFixed(0)}%</span>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ 
+                    width: `${Math.min(student.attendanceRate, 100)}%`,
+                    backgroundColor: student.attendanceRate >= 85 ? '#10b981' : student.attendanceRate >= 70 ? '#f59e0b' : '#ef4444'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="metric-item">
+              <span className="metric-label">Materi</span>
+              <div className="progress-cell">
+                <span className="progress-text">{student.materialCompletionRate.toFixed(0)}%</span>
+                <div className="progress-bar-bg">
+                  <div className="progress-bar-fill" style={{ 
+                    width: `${Math.min(student.materialCompletionRate, 100)}%`,
+                    backgroundColor: student.materialCompletionRate >= 75 ? '#10b981' : student.materialCompletionRate >= 50 ? '#f59e0b' : '#ef4444'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const GuruProgress = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
@@ -164,114 +274,29 @@ const GuruProgress = () => {
             
             // Generate dynamic insights
             const insights = [];
-            if (student.attendanceRate < 70) insights.push(`Kehadiran rendah (${student.attendanceRate.toFixed(0)}%) berpotensi besar menurunkan pemahaman.`);
-            if (student.avgScore < 60) insights.push(`Nilai Tugas sangat kurang (${student.avgScore.toFixed(0)}%), butuh bimbingan ekstra.`);
+            if (student.attendanceRate < 70) insights.push(`Kehadiran sangat rendah (${student.attendanceRate.toFixed(0)}%) - Faktor utama risiko tinggi.`);
+            else if (student.attendanceRate < 85) insights.push(`Kehadiran kurang optimal (${student.attendanceRate.toFixed(0)}%).`);
+
+            if (student.avgScore < 60) insights.push(`Nilai Tugas sangat kurang (${student.avgScore.toFixed(0)}%) - Menandakan perlunya bimbingan ekstra.`);
+            else if (student.avgScore < 75) insights.push(`Nilai Tugas perlu ditingkatkan (${student.avgScore.toFixed(0)}%).`);
+
             if (student.avgQuizScore < 60) insights.push(`Pemahaman materi dari Kuis masih minim (${(student.avgQuizScore || 0).toFixed(0)}%).`);
+            
             if (student.materialCompletionRate < 50) insights.push(`Banyak materi yang belum dibaca/diselesaikan (${student.materialCompletionRate.toFixed(0)}%).`);
             
-            if (insights.length === 0 && student.risk === 'low') {
-              insights.push('Performa sangat baik dan konsisten di semua aspek penilaian.');
-            } else if (insights.length === 0 && student.risk === 'medium') {
-              insights.push('Performa cukup, namun masih bisa dioptimalkan pada penyelesaian tugas dan kuis.');
+            if (insights.length === 0) {
+              if (student.risk === 'high') {
+                 insights.push('Prediksi AI mendeteksi anomali pada pola belajar. Disarankan untuk memantau interaksi siswa secara berkala.');
+              } else if (student.risk === 'medium') {
+                 insights.push('Performa cukup, namun masih bisa dioptimalkan pada penyelesaian tugas dan kuis.');
+              } else {
+                 insights.push('Performa sangat baik dan konsisten di semua aspek penilaian.');
+              }
+            } else if (student.risk === 'high' && !insights.some(i => i.includes('Faktor utama'))) {
+               insights.push('Kombinasi dari beberapa faktor yang kurang optimal menyebabkan prediksi risiko menjadi Tinggi.');
             }
 
-            return (
-              <div key={idx} className="student-progress-card premium-card">
-                
-                <div className="card-header">
-                  <div className="student-info-cell">
-                    <div className="student-avatar">
-                      {student.student_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <div className="student-name">{student.student_name}</div>
-                      <div className="student-nis">NIS: {student.nis}</div>
-                    </div>
-                  </div>
-                  <div className="risk-cell">
-                    <span className={`risk-badge risk-${student.risk}`}>
-                      <span className="material-symbols-outlined">
-                        {student.risk === 'high' ? 'warning' : student.risk === 'medium' ? 'info' : 'verified'}
-                      </span>
-                      {student.risk === 'high' ? 'Risiko Tinggi' : student.risk === 'medium' ? 'Risiko Sedang' : 'Risiko Rendah'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="ai-insight-box">
-                  <div className="insight-header">
-                    <span className="material-symbols-outlined">psychology</span>
-                    <strong>Insight Prediksi AI</strong>
-                  </div>
-                  <p className="insight-summary">{student.message}</p>
-                  <ul className="insight-factors">
-                    {insights.map((insight, i) => (
-                      <li key={i}>
-                        <span className="material-symbols-outlined factor-icon">
-                          {insight.includes('rendah') || insight.includes('kurang') || insight.includes('minim') || insight.includes('belum') ? 'trending_down' : 'trending_up'}
-                        </span>
-                        {insight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="metrics-grid">
-                  <div className="metric-item">
-                    <span className="metric-label">Tugas</span>
-                    <div className="progress-cell">
-                      <span className="progress-text">{student.avgScore.toFixed(0)}%</span>
-                      <div className="progress-bar-bg">
-                        <div className="progress-bar-fill" style={{ 
-                          width: `${Math.min(student.avgScore, 100)}%`,
-                          backgroundColor: student.avgScore >= 75 ? '#10b981' : student.avgScore >= 60 ? '#f59e0b' : '#ef4444'
-                        }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-item">
-                    <span className="metric-label">Kuis</span>
-                    <div className="progress-cell">
-                      <span className="progress-text">{(student.avgQuizScore || 0).toFixed(0)}%</span>
-                      <div className="progress-bar-bg">
-                        <div className="progress-bar-fill" style={{ 
-                          width: `${Math.min(student.avgQuizScore || 0, 100)}%`,
-                          backgroundColor: (student.avgQuizScore || 0) >= 75 ? '#10b981' : (student.avgQuizScore || 0) >= 60 ? '#f59e0b' : '#ef4444'
-                        }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-item">
-                    <span className="metric-label">Kehadiran</span>
-                    <div className="progress-cell">
-                      <span className="progress-text">{student.attendanceRate.toFixed(0)}%</span>
-                      <div className="progress-bar-bg">
-                        <div className="progress-bar-fill" style={{ 
-                          width: `${Math.min(student.attendanceRate, 100)}%`,
-                          backgroundColor: student.attendanceRate >= 85 ? '#10b981' : student.attendanceRate >= 70 ? '#f59e0b' : '#ef4444'
-                        }}></div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="metric-item">
-                    <span className="metric-label">Materi</span>
-                    <div className="progress-cell">
-                      <span className="progress-text">{student.materialCompletionRate.toFixed(0)}%</span>
-                      <div className="progress-bar-bg">
-                        <div className="progress-bar-fill" style={{ 
-                          width: `${Math.min(student.materialCompletionRate, 100)}%`,
-                          backgroundColor: student.materialCompletionRate >= 75 ? '#10b981' : student.materialCompletionRate >= 50 ? '#f59e0b' : '#ef4444'
-                        }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            );
+            return <StudentCard key={idx} student={student} insights={insights} />;
           })}
         </div>
       )}

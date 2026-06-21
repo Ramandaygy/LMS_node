@@ -197,6 +197,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: padding-bottom 0.3s;
+}
+
+.student-progress-card.expanded .card-header {
   border-bottom: 1px solid #f1f5f9;
   padding-bottom: 16px;
   margin-bottom: 20px;

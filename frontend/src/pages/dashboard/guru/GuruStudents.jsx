@@ -22,6 +22,11 @@ const GuruStudents = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  // Detail Modal State
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [studentGrades, setStudentGrades] = useState([]);
+  const [loadingGrades, setLoadingGrades] = useState(false);
+
   useEffect(() => {
     fetchMyStudents();
     fetchSubjects();
@@ -61,6 +66,21 @@ const GuruStudents = () => {
     });
     setMessage({ type: '', text: '' });
     setShowModal(true);
+  };
+
+  const handleDetailClick = async (student) => {
+    setSelectedStudent(student);
+    setShowDetailModal(true);
+    setLoadingGrades(true);
+    try {
+      const res = await api.get(`/guru/students/${student._id}/grades`);
+      setStudentGrades(res.data.grades || []);
+    } catch (err) {
+      console.error('Error fetching grades:', err);
+      setStudentGrades([]);
+    } finally {
+      setLoadingGrades(false);
+    }
   };
 
   const handleGradeSubmit = async (e) => {
@@ -149,7 +169,7 @@ const GuruStudents = () => {
                   </td>
                   <td>{student.average_grade || '-'}</td>
                   <td>
-                    <button className="btn-detail">Detail</button>
+                    <button className="btn-detail" onClick={() => handleDetailClick(student)}>Detail</button>
                     <button className="btn-grade" onClick={() => handleInputNilaiClick(student)}>Input Nilai</button>
                   </td>
                 </tr>
@@ -233,6 +253,52 @@ const GuruStudents = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DETAIL SISWA */}
+      {showDetailModal && selectedStudent && (
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
+          <div className="modal-content glass-modal" onClick={(e) => e.stopPropagation()} style={{ width: '600px' }}>
+            <h3>Detail & Riwayat Nilai: {selectedStudent.full_name}</h3>
+            
+            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '16px', borderRadius: '12px' }}>
+              <p style={{ margin: '0 0 8px' }}><strong>NIS:</strong> {selectedStudent.nis}</p>
+              <p style={{ margin: '0 0 8px' }}><strong>Kelas:</strong> {selectedStudent.class_name}</p>
+            </div>
+
+            <h4>Riwayat Nilai UTS/UAS</h4>
+            {loadingGrades ? (
+              <p>Memuat nilai...</p>
+            ) : studentGrades.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9' }}>
+                    <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Mata Pelajaran</th>
+                    <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Jenis</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>Nilai</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentGrades.map((grade) => (
+                    <tr key={grade._id}>
+                      <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}>{grade.subject?.name || 'Tidak diketahui'}</td>
+                      <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', textTransform: 'uppercase' }}>{grade.type}</td>
+                      <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9', textAlign: 'center', fontWeight: 'bold' }}>{grade.score}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ color: '#64748b', fontStyle: 'italic' }}>Belum ada riwayat nilai untuk siswa ini.</p>
+            )}
+
+            <div className="modal-buttons">
+              <button type="button" className="btn-cancel" onClick={() => setShowDetailModal(false)}>
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

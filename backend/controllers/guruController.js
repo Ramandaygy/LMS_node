@@ -16,8 +16,11 @@ exports.getBinaanStudents = async (req, res) => {
     const classMap = Object.fromEntries(classes.map(c => [c._id.toString(), c.name]));
 
     // 2. Find students in those classes
-    const studentCol = mongoose.connection.collection('users_siswa');
-    const students = await studentCol.find({ class_id: { $in: classIds } }).toArray();
+    const User = require('../models/User');
+    const students = await User.find({ 
+      role: 'siswa', 
+      class_id: { $in: classIds } 
+    }).lean();
 
     // 3. Map students and calculate some basic progress (optional)
     const studentsData = students.map(s => {
@@ -94,6 +97,29 @@ exports.inputGrade = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Gagal menyimpan nilai'
+    });
+  }
+};
+
+exports.getStudentGrades = async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const Grade = require('../models/Grade');
+    
+    const grades = await Grade.find({ student: studentId })
+      .populate('subject', 'name')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      grades: grades
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data nilai siswa'
     });
   }
 };
