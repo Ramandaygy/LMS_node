@@ -16,21 +16,53 @@ exports.getBinaanStudents = async (req, res) => {
     const classMap = Object.fromEntries(classes.map(c => [c._id.toString(), c.name]));
 
     // 2. Find students in those classes
-    const User = require('../models/User');
-    const students = await User.find({ 
-      role: 'siswa', 
-      class_id: { $in: classIds } 
+    const studentCol = mongoose.connection.collection('users_siswa');
+    const classIdStrings = classes.map(c => c._id.toString());
+    const students = await studentCol.find({
+      $or: [
+        { class_id: { $in: classIds } },
+        { class_id: { $in: classIdStrings } }
+      ]
+    }).toArray();
+
+    // Fetch grades for these students
+    const Grade = require('../models/Grade');
+    const studentIds = students.map(s => s._id);
+    const studentIdStrings = students.map(s => s._id.toString());
+    
+    const grades = await Grade.find({
+      $or: [
+        { student: { $in: studentIds } },
+        { student: { $in: studentIdStrings } }
+      ]
     }).lean();
 
-    // 3. Map students and calculate some basic progress (optional)
+    // Group grades by student
+    const gradesByStudent = {};
+    grades.forEach(g => {
+      const sId = g.student.toString();
+      if (!gradesByStudent[sId]) gradesByStudent[sId] = [];
+      gradesByStudent[sId].push(g);
+    });
+
+    // 3. Map students and calculate some basic progress
     const studentsData = students.map(s => {
+      const studentGrades = gradesByStudent[s._id.toString()] || [];
+      const utsUasGrades = studentGrades.filter(g => g.type === 'uts' || g.type === 'uas');
+      
+      let avgGrade = '-';
+      if (utsUasGrades.length > 0) {
+        const sum = utsUasGrades.reduce((acc, curr) => acc + curr.score, 0);
+        avgGrade = (sum / utsUasGrades.length).toFixed(1);
+      }
+
       return {
         _id: s._id,
         full_name: s.full_name,
         nis: s.nis,
         class_name: classMap[s.class_id?.toString()] || '-',
-        progress: 0, // Placeholder, can be calculated via progressService if needed
-        average_grade: '-', 
+        progress: 0, // Placeholder
+        average_grade: avgGrade, 
       };
     });
 

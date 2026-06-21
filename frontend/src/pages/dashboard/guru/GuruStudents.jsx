@@ -114,7 +114,8 @@ const GuruStudents = () => {
   };
 
   const filteredStudents = students.filter(student => {
-    const matchesSearch = student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = student.full_name || '';
+    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           student.nis?.includes(searchTerm);
     const matchesClass = !selectedClass || student.class_name === selectedClass;
     return matchesSearch && matchesClass;
