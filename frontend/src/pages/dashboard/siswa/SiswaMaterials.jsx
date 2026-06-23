@@ -338,7 +338,11 @@ const SiswaMaterials = () => {
                   ) : (
                     <iframe
                       title={selectedMaterial.title}
-                      src={selectedMaterial.file_url.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`}
+                      src={
+                        selectedMaterial.file_url.startsWith('http') && selectedMaterial.file_url.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/i)
+                          ? `https://docs.google.com/gview?url=${encodeURIComponent(selectedMaterial.file_url)}&embedded=true`
+                          : (selectedMaterial.file_url.startsWith('http') ? selectedMaterial.file_url : `${baseURL}${selectedMaterial.file_url}`)
+                      }
                       className="preview-iframe"
                       onLoad={() => setPreviewReady(true)}
                     />

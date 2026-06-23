@@ -1,8 +1,8 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Ganti nilai berikut dengan credentials yang didapatkan
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tnvcmspodvkrahgjdrfy.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_GBv8Hwe8ICOBnKUSxWRpBw_99J9VCMB';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tjjptbfwonkikfiyaaja.supabase.co';
+const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_jrDX4PCI34LhvoIAe_MEeQ_rtlSTenM';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
