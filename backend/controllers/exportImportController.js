@@ -104,6 +104,17 @@ exports.importStudents = async (req, res) => {
     const parentMap = await getCollection('users_ortu').find({}).toArray();
     const activeYear = yearMap.find(y => y.is_active === true);
 
+    // Fetch existing students in-memory to prevent loop queries
+    const existingStudents = await getCollection('users_siswa')
+      .find({}, { projection: { nis: 1, email: 1, username: 1 } })
+      .toArray();
+
+    const studentNisSet = new Set(existingStudents.map(s => s.nis?.trim()));
+    const studentEmailSet = new Set(existingStudents.map(s => s.email?.trim()?.toLowerCase()));
+    const studentUsernameSet = new Set(existingStudents.map(s => s.username?.trim()));
+
+    const studentsToInsert = [];
+
     for (const worksheet of workbook.worksheets) {
       let headers = {};
       worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
@@ -129,8 +140,8 @@ exports.importStudents = async (req, res) => {
 
           if (!nis || !full_name || !email) continue;
           
-          if (await getCollection('users_siswa').findOne({ nis })) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
-          if (await getCollection('users_siswa').findOne({ email })) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Email ${email} sudah ada`); continue; }
+          if (studentNisSet.has(nis)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
+          if (studentEmailSet.has(email)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Email ${email} sudah ada`); continue; }
 
           const class_doc = classesMap.find(c => c.name === class_name);
           if (!class_doc) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Kelas '${class_name}' tidak ditemukan`); continue; }
@@ -153,9 +164,14 @@ exports.importStudents = async (req, res) => {
           }
 
           let username = email.split('@')[0];
-          if (await getCollection('users_siswa').findOne({ username })) { username = `${username}${nis.slice(-3)}`; }
+          if (studentUsernameSet.has(username)) { username = `${username}${nis.slice(-3)}`; }
 
-          await getCollection('users_siswa').insertOne({
+          // Add to local sets so subsequent duplicate records in same sheet are identified
+          studentNisSet.add(nis);
+          studentEmailSet.add(email);
+          studentUsernameSet.add(username);
+
+          studentsToInsert.push({
             nis, full_name, email, username, password: hashed_default, role: 'siswa',
             class_id: class_doc._id, parent_id, academic_year_id: year_id, status: status === 'active' ? 'active' : 'inactive',
             profile: { avatar: null, bio: '', phone: '', address: '' }, created_at: new Date(), updated_at: new Date()
@@ -164,9 +180,15 @@ exports.importStudents = async (req, res) => {
         } catch (e) { errors.push(`Sheet ${worksheet.name} Baris ${i}: ${e.message}`); }
       }
     }
+
+    if (studentsToInsert.length > 0) {
+      await getCollection('users_siswa').insertMany(studentsToInsert);
+    }
+
     res.json({ message: 'Import siswa selesai', success_count: success, error_count: errors.length, errors: errors.slice(0, 20), default_password });
   } catch (error) { res.status(500).json({ error: `Gagal import siswa: ${error.message}` }); }
 };
+
 
 exports.exportTeachers = async (req, res) => {
   try {
@@ -368,6 +390,22 @@ exports.importParents = async (req, res) => {
     const default_password = "ortu123";
     const hashed_default = await bcrypt.hash(default_password, 10);
 
+    // Fetch existing parents in-memory to prevent loop queries
+    const existingParents = await getCollection('users_ortu')
+      .find({}, { projection: { nik: 1, email: 1 } })
+      .toArray();
+
+    const parentNikSet = new Set(existingParents.map(p => p.nik?.trim()));
+    const parentEmailSet = new Set(existingParents.map(p => p.email?.trim()?.toLowerCase()));
+
+    // Fetch all students in-memory to map child NIS lists instantly
+    const existingStudents = await getCollection('users_siswa')
+      .find({}, { projection: { nis: 1 } })
+      .toArray();
+    const studentNisMap = Object.fromEntries(existingStudents.map(s => [s.nis?.trim(), s._id]));
+
+    const parentsToInsert = [];
+
     for (let i = 2; i <= worksheet.rowCount; i++) {
       const row = worksheet.getRow(i);
       if (!row.values.length) continue;
@@ -381,25 +419,39 @@ exports.importParents = async (req, res) => {
         const anak_nis_list = headers['anak'] ? row.getCell(headers['anak']).text?.trim() : '';
 
         if (!nik || !full_name || !email || !username) continue;
-        if (await getCollection('users_ortu').findOne({ nik })) { errors.push(`Baris ${i}: NIK ${nik} sudah ada`); continue; }
-        if (await getCollection('users_ortu').findOne({ email })) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
+        
+        if (parentNikSet.has(nik)) { errors.push(`Baris ${i}: NIK ${nik} sudah ada`); continue; }
+        if (parentEmailSet.has(email)) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
 
         let anak_ids = [];
         if (anak_nis_list) {
           const nis_list = anak_nis_list.split(',').map(n => n.trim()).filter(Boolean);
           for (let anis of nis_list) {
-            const student = await getCollection('users_siswa').findOne({ nis: anis });
-            if (student) anak_ids.push(student._id); else errors.push(`Baris ${i}: Siswa NIS '${anis}' tidak ditemukan`);
+            const studentId = studentNisMap[anis];
+            if (studentId) {
+              anak_ids.push(studentId);
+            } else {
+              errors.push(`Baris ${i}: Siswa NIS '${anis}' tidak ditemukan`);
+            }
           }
         }
 
-        await getCollection('users_ortu').insertOne({
+        // Add to local sets to prevent duplicate checks within same sheet
+        parentNikSet.add(nik);
+        parentEmailSet.add(email);
+
+        parentsToInsert.push({
           nik, full_name, email, username, password: hashed_default, role: 'ortu', children: anak_ids, phone,
           profile: { avatar: null, bio: '', address: '' }, created_at: new Date(), updated_at: new Date()
         });
         success++;
       } catch (e) { errors.push(`Baris ${i}: ${e.message}`); }
     }
+
+    if (parentsToInsert.length > 0) {
+      await getCollection('users_ortu').insertMany(parentsToInsert);
+    }
+
     res.json({ message: 'Import orang tua selesai', success_count: success, error_count: errors.length, errors: errors.slice(0, 10), default_password });
   } catch (error) { res.status(500).json({ error: `Gagal import orang tua: ${error.message}` }); }
 };
