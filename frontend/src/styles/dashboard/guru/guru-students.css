@@ -279,3 +279,355 @@
     font-size: 0.7rem;
   }
 }
+
+/* SPREADSHEET VIEW ENHANCEMENTS */
+.page-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.grade-legend {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 30px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  border: 1px solid #e2e8f0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.dot.red {
+  background: #dc2626;
+}
+
+.spreadsheet-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 20px;
+}
+
+.search-input-modern {
+  width: 100%;
+  padding: 10px 16px 10px 42px;
+  border-radius: 40px;
+  border: 1px solid #cbd5e1;
+  outline: none;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.search-input-modern:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  background: white;
+}
+
+.selectors-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.select-icon {
+  position: absolute;
+  left: 14px;
+  color: #64748b;
+  font-size: 20px;
+  pointer-events: none;
+}
+
+.modern-select {
+  padding: 10px 16px 10px 40px;
+  border-radius: 40px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  outline: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 160px;
+}
+
+.modern-select:focus {
+  border-color: #2563eb;
+  background: white;
+}
+
+/* Glass table layout */
+.glass-container {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  overflow-x: auto;
+}
+
+.spreadsheet-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.spreadsheet-table th {
+  background: #f8fafc;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  font-weight: 600;
+  padding: 12px 10px;
+  vertical-align: middle;
+}
+
+.spreadsheet-table td {
+  border-bottom: 1px solid #f1f5f9;
+  border-right: 1px solid #f1f5f9;
+  padding: 10px;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.spreadsheet-row {
+  transition: background-color 0.2s ease;
+}
+
+.spreadsheet-row:hover {
+  background-color: #f8fafc;
+}
+
+/* Sticky columns for beautiful scrolling experience */
+.th-name-sticky {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 10;
+  box-shadow: 3px 0 6px -2px rgba(0,0,0,0.08);
+}
+
+.spreadsheet-table th.th-name-sticky {
+  background: #f8fafc !important;
+  z-index: 12;
+  border-right: 2px solid #cbd5e1;
+}
+
+.spreadsheet-row td.th-name-sticky {
+  background: white;
+  border-right: 2px solid #cbd5e1;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.spreadsheet-row:hover td.th-name-sticky {
+  background: #f8fafc;
+}
+
+.th-actions-sticky {
+  position: sticky;
+  right: 0;
+  background: white;
+  z-index: 10;
+  box-shadow: -3px 0 6px -2px rgba(0,0,0,0.08);
+}
+
+.spreadsheet-table th.th-actions-sticky {
+  background: #f8fafc !important;
+  z-index: 12;
+  border-left: 2px solid #cbd5e1;
+}
+
+.spreadsheet-row td.th-actions-sticky {
+  background: white;
+  border-left: 2px solid #cbd5e1;
+}
+
+.spreadsheet-row:hover td.th-actions-sticky {
+  background: #f8fafc;
+}
+
+/* Scoring styles */
+.score-cell {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  min-width: 50px;
+}
+
+.kkm-fail {
+  background-color: #fef2f2 !important;
+  color: #dc2626 !important;
+  font-weight: 700;
+}
+
+.total-score-cell {
+  background-color: #fafbfd;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.avg-score-cell {
+  background-color: #f8fafc;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.rank-cell {
+  background-color: #faf5ff;
+}
+
+.rank-pill {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b21a8;
+  background: #f3e8ff;
+}
+
+.rank-pill.rank-no-1 {
+  background: #fef08a;
+  color: #854d0e;
+  border: 1.5px solid #eab308;
+  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.25);
+  transform: scale(1.1);
+}
+
+.rank-pill.rank-no-2 {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1.5px solid #cbd5e1;
+}
+
+.rank-pill.rank-no-3 {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1.5px solid #f97316;
+}
+
+/* Attendance styling */
+.att-cell {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  min-width: 32px;
+}
+
+.sick-color {
+  color: #ca8a04;
+  background-color: #fefeff;
+}
+
+.late-color {
+  color: #ea580c;
+}
+
+.absent-color {
+  color: #dc2626;
+}
+
+.total-att-color {
+  background-color: #fff1f2;
+  color: #be185d;
+  font-weight: 700;
+}
+
+/* Action button stylings */
+.spreadsheet-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.btn-action-view, .btn-action-edit {
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  color: #64748b;
+}
+
+.btn-action-view:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.btn-action-edit:hover {
+  background: #dbeafe;
+  color: #2563eb;
+  transform: scale(1.1);
+}
+
+.empty-table-state {
+  padding: 48px !important;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.font-semibold {
+  font-weight: 600;
+}

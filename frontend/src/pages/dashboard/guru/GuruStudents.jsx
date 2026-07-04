@@ -9,6 +9,7 @@ const GuruStudents = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [availableClasses, setAvailableClasses] = useState([]);
+  const [examType, setExamType] = useState('uts'); // 'uts' (ATS) or 'uas' (AAS)
 
   // Modal State
   const [showModal, setShowModal] = useState(false);
@@ -40,6 +41,9 @@ const GuruStudents = () => {
       const classList = Array.from(classSet).map(name => ({ name, value: name }));
       setAvailableClasses(classList);
       setStudents(studentsData);
+      if (response.data.subjects) {
+        setSubjects(response.data.subjects);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
     } finally {
@@ -50,11 +54,30 @@ const GuruStudents = () => {
   const fetchSubjects = async () => {
     try {
       const response = await api.get('/subjects');
-      setSubjects(response.data.data || []);
+      // Fallback only if getBinaanStudents didn't populate subjects
+      setSubjects(prev => prev.length > 0 ? prev : (response.data.data || []));
     } catch (error) {
       console.error('Error fetching subjects:', error);
     }
   };
+
+  const getSubjectLabel = (code) => {
+    const mapping = {
+      'PAI': 'PAI',
+      'PPKn': 'P. Pancasila',
+      'BIN': 'B. Indo',
+      'MAT': 'MTK',
+      'IPA': 'IPA',
+      'IPS': 'IPS',
+      'BIG': 'Inggris',
+      'SBK': 'Seni dan Pra',
+      'PJOK': 'PJOK',
+      'INF': 'Informatika',
+      'BJW': 'B. Jawa'
+    };
+    return mapping[code] || code;
+  };
+
 
   const handleInputNilaiClick = (student) => {
     setSelectedStudent(student);
@@ -125,64 +148,129 @@ const GuruStudents = () => {
 
   return (
     <div className="guru-dashboard-content">
-      <h2 className="page-title">👨‍🎓 Siswa Binaan</h2>
-
-      <div className="filter-bar">
-        <input
-          type="text"
-          placeholder="Cari nama atau NIS..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
-        <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
-          <option value="">Semua Kelas</option>
-          {availableClasses.map(cls => (
-            <option key={cls.value} value={cls.value}>{cls.name}</option>
-          ))}
-        </select>
+      <div className="page-header-flex">
+        <h2 className="page-title">👨‍🎓 Siswa Binaan (Wali Kelas)</h2>
+        <div className="grade-legend">
+          <span className="legend-item"><span className="dot red"></span> Nilai di bawah KKM (&lt;75)</span>
+        </div>
       </div>
 
-      <div className="student-table-container">
-        <table className="student-table">
+      <div className="filter-bar spreadsheet-filter-bar">
+        <div className="search-box">
+          <span className="material-symbols-outlined search-icon">search</span>
+          <input
+            type="text"
+            placeholder="Cari nama atau NIS..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input-modern"
+          />
+        </div>
+        
+        <div className="selectors-group">
+          <div className="filter-select-wrapper">
+            <span className="select-icon material-symbols-outlined">analytics</span>
+            <select value={examType} onChange={(e) => setExamType(e.target.value)} className="modern-select">
+              <option value="uts">UTS (Asesmen Tengah Semester / ATS)</option>
+              <option value="uas">UAS (Asesmen Akhir Semester / AAS)</option>
+            </select>
+          </div>
+
+          <div className="filter-select-wrapper">
+            <span className="select-icon material-symbols-outlined">class</span>
+            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
+              <option value="">Semua Kelas Binaan</option>
+              {availableClasses.map(cls => (
+                <option key={cls.value} value={cls.value}>{cls.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="student-table-container glass-container">
+        <table className="student-table spreadsheet-table">
           <thead>
             <tr>
-              <th>Nama</th>
-              <th>NIS</th>
-              <th>Kelas</th>
-              <th>Progress</th>
-              <th>Rata-rata</th>
-              <th>Aksi</th>
+              <th rowSpan="2" className="text-center">No</th>
+              <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
+              {subjects.map(sub => (
+                <th key={sub._id} rowSpan="2" className="text-center th-subject-code" title={sub.name}>
+                  {getSubjectLabel(sub.code)}
+                </th>
+              ))}
+              <th rowSpan="2" className="text-center th-bold-header">Jumlah</th>
+              <th rowSpan="2" className="text-center th-bold-header">Rata2</th>
+              <th rowSpan="2" className="text-center th-bold-header">Rank</th>
+              <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
+              <th rowSpan="2" className="text-center th-actions-sticky">Aksi</th>
+            </tr>
+            <tr>
+              <th className="text-center th-att-header" title="Sakit">S</th>
+              <th className="text-center th-att-header" title="Izin">I</th>
+              <th className="text-center th-att-header" title="Alpha">A</th>
+              <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
             </tr>
           </thead>
           <tbody>
             {filteredStudents.length > 0 ? (
-              filteredStudents.map(student => (
-                <tr key={student._id}>
-                  <td>{student.full_name}</td>
-                  <td>{student.nis}</td>
-                  <td>{student.class_name}</td>
-                  <td>
-                    <div className="progress-small">
-                      <div className="progress-fill" style={{ width: `${student.progress || 0}%` }}></div>
-                      <span>{student.progress || 0}%</span>
-                    </div>
-                  </td>
-                  <td>{student.average_grade || '-'}</td>
-                  <td>
-                    <button className="btn-detail" onClick={() => handleDetailClick(student)}>Detail</button>
-                    <button className="btn-grade" onClick={() => handleInputNilaiClick(student)}>Input Nilai</button>
-                  </td>
-                </tr>
-              ))
+              filteredStudents.map((student, idx) => {
+                const totalScore = examType === 'uts' ? student.uts_sum : student.uas_sum;
+                const avgScore = examType === 'uts' ? student.uts_avg : student.uas_avg;
+                const rank = examType === 'uts' ? student.rank_uts : student.rank_uas;
+                
+                return (
+                  <tr key={student._id} className="spreadsheet-row">
+                    <td className="text-center row-number">{idx + 1}</td>
+                    <td className="student-name-cell th-name-sticky">{student.full_name}</td>
+                    {subjects.map(sub => {
+                      const studentGrades = student.grades?.[sub._id.toString()] || {};
+                      const score = examType === 'uts' ? studentGrades.uts : studentGrades.uas;
+                      const displayScore = score !== undefined && score !== null ? score : '-';
+                      const isBelowKKM = typeof score === 'number' && score < 75;
+                      
+                      return (
+                        <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`}>
+                          {displayScore}
+                        </td>
+                      );
+                    })}
+                    <td className="text-center font-semibold total-score-cell">{totalScore || '-'}</td>
+                    <td className="text-center font-semibold avg-score-cell">{avgScore || '-'}</td>
+                    <td className="text-center rank-cell">
+                      <span className={`rank-pill rank-no-${rank}`}>
+                        {rank}
+                      </span>
+                    </td>
+                    <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
+                    <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
+                    <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
+                    <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
+                    <td className="text-center th-actions-sticky">
+                      <div className="spreadsheet-actions">
+                        <button className="btn-action-view" onClick={() => handleDetailClick(student)} title="Detail Nilai">
+                          <span className="material-symbols-outlined">visibility</span>
+                        </button>
+                        <button className="btn-action-edit" onClick={() => handleInputNilaiClick(student)} title="Input Nilai">
+                          <span className="material-symbols-outlined">edit</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="6" className="text-center">Tidak ada data siswa ditemukan</td>
+                <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
+                  <span className="material-symbols-outlined empty-icon">group_off</span>
+                  <p>Tidak ada data siswa binaan ditemukan</p>
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
 
       {/* MODAL INPUT NILAI */}
       {showModal && selectedStudent && (

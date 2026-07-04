@@ -9,7 +9,7 @@ exports.getBinaanStudents = async (req, res) => {
     const classes = await classCol.find({ homeroom_teacher: new mongoose.Types.ObjectId(teacherId) }).toArray();
     
     if (!classes || classes.length === 0) {
-      return res.status(200).json({ success: true, students: [] });
+      return res.status(200).json({ success: true, students: [], subjects: [] });
     }
 
     const classIds = classes.map(c => c._id);
@@ -25,7 +25,15 @@ exports.getBinaanStudents = async (req, res) => {
       ]
     }).toArray();
 
-    // Fetch grades for these students
+    if (!students || students.length === 0) {
+      return res.status(200).json({ success: true, students: [], subjects: [] });
+    }
+
+    // 3. Fetch all active subjects
+    const Subject = require('../models/Subject');
+    const subjects = await Subject.find({ is_active: true }).lean();
+
+    // 4. Fetch grades for these students
     const Grade = require('../models/Grade');
     const studentIds = students.map(s => s._id);
     const studentIdStrings = students.map(s => s._id.toString());
@@ -37,38 +45,137 @@ exports.getBinaanStudents = async (req, res) => {
       ]
     }).lean();
 
-    // Group grades by student
-    const gradesByStudent = {};
-    grades.forEach(g => {
-      const sId = g.student.toString();
-      if (!gradesByStudent[sId]) gradesByStudent[sId] = [];
-      gradesByStudent[sId].push(g);
+    // 5. Fetch attendance for these students
+    const Attendance = require('../models/Attendance');
+    const attendances = await Attendance.find({
+      student_id: { $in: [...studentIds, ...studentIdStrings] }
+    }).lean();
+
+    // Group attendance by student
+    const attendanceByStudent = {};
+    students.forEach(s => {
+      attendanceByStudent[s._id.toString()] = { sick: 0, late: 0, absent: 0, total: 0 };
+    });
+    attendances.forEach(att => {
+      const sId = att.student_id ? att.student_id.toString() : '';
+      if (attendanceByStudent[sId]) {
+        if (att.status === 'sick') {
+          attendanceByStudent[sId].sick++;
+          attendanceByStudent[sId].total++;
+        } else if (att.status === 'late') {
+          attendanceByStudent[sId].late++;
+          attendanceByStudent[sId].total++;
+        } else if (att.status === 'absent') {
+          attendanceByStudent[sId].absent++;
+          attendanceByStudent[sId].total++;
+        }
+      }
     });
 
-    // 3. Map students and calculate some basic progress
-    const studentsData = students.map(s => {
-      const studentGrades = gradesByStudent[s._id.toString()] || [];
-      const utsUasGrades = studentGrades.filter(g => g.type === 'uts' || g.type === 'uas');
-      
-      let avgGrade = '-';
-      if (utsUasGrades.length > 0) {
-        const sum = utsUasGrades.reduce((acc, curr) => acc + curr.score, 0);
-        avgGrade = (sum / utsUasGrades.length).toFixed(1);
+    // Group grades by student and subject
+    const gradesByStudent = {};
+    students.forEach(s => {
+      gradesByStudent[s._id.toString()] = {};
+    });
+    grades.forEach(g => {
+      const sId = g.student ? g.student.toString() : '';
+      const subId = g.subject ? g.subject.toString() : '';
+      if (gradesByStudent[sId] && subId) {
+        if (!gradesByStudent[sId][subId]) {
+          gradesByStudent[sId][subId] = { uts: null, uas: null };
+        }
+        if (g.type === 'uts') {
+          gradesByStudent[sId][subId].uts = g.score;
+        } else if (g.type === 'uas') {
+          gradesByStudent[sId][subId].uas = g.score;
+        }
       }
+    });
+
+    // 6. Map students and calculate some basic progress/metrics
+    const studentsData = students.map(s => {
+      const sId = s._id.toString();
+      const studentGrades = gradesByStudent[sId] || {};
+      
+      // Calculate UTS sum and avg
+      let utsSum = 0;
+      let utsCount = 0;
+      subjects.forEach(sub => {
+        const subId = sub._id.toString();
+        const score = studentGrades[subId]?.uts;
+        if (typeof score === 'number') {
+          utsSum += score;
+          utsCount++;
+        }
+      });
+      const utsAvg = subjects.length > 0 ? (utsSum / subjects.length) : 0;
+      
+      // Calculate UAS sum and avg
+      let uasSum = 0;
+      let uasCount = 0;
+      subjects.forEach(sub => {
+        const subId = sub._id.toString();
+        const score = studentGrades[subId]?.uas;
+        if (typeof score === 'number') {
+          uasSum += score;
+          uasCount++;
+        }
+      });
+      const uasAvg = subjects.length > 0 ? (uasSum / subjects.length) : 0;
 
       return {
         _id: s._id,
         full_name: s.full_name,
         nis: s.nis,
         class_name: classMap[s.class_id?.toString()] || '-',
-        progress: 0, // Placeholder
-        average_grade: avgGrade, 
+        attendance: attendanceByStudent[sId] || { sick: 0, late: 0, absent: 0, total: 0 },
+        grades: studentGrades,
+        uts_sum: utsSum,
+        uts_avg: Number(utsAvg.toFixed(2)),
+        uas_sum: uasSum,
+        uas_avg: Number(uasAvg.toFixed(2)),
+        rank_uts: 0,
+        rank_uas: 0
+      };
+    });
+
+    // 7. Calculate ranking for UTS
+    const sortedByUts = [...studentsData].sort((a, b) => b.uts_sum - a.uts_sum);
+    sortedByUts.forEach((student, index) => {
+      if (index > 0 && student.uts_sum === sortedByUts[index - 1].uts_sum) {
+        student.rank_uts = sortedByUts[index - 1].rank_uts;
+      } else {
+        student.rank_uts = index + 1;
+      }
+    });
+
+    // Calculate ranking for UAS
+    const sortedByUas = [...studentsData].sort((a, b) => b.uas_sum - a.uas_sum);
+    sortedByUas.forEach((student, index) => {
+      if (index > 0 && student.uas_sum === sortedByUas[index - 1].uas_sum) {
+        student.rank_uas = sortedByUas[index - 1].rank_uas;
+      } else {
+        student.rank_uas = index + 1;
+      }
+    });
+
+    // Map the ranks back to studentsData
+    const rankMapUts = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uts]));
+    const rankMapUas = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uas]));
+    
+    const finalStudents = studentsData.map(s => {
+      const sId = s._id.toString();
+      return {
+        ...s,
+        rank_uts: rankMapUts[sId] || '-',
+        rank_uas: rankMapUas[sId] || '-'
       };
     });
 
     return res.status(200).json({
       success: true,
-      students: studentsData
+      students: finalStudents,
+      subjects: subjects
     });
 
   } catch (err) {
