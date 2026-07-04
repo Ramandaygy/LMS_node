@@ -115,12 +115,35 @@ const Profile = () => {
     }
   };
 
+  const handleSubscribeNotification = async () => {
+    setError('');
+    setSuccess('');
+    try {
+      const successSub = await pushNotificationService.subscribe();
+      if (successSub) {
+        setSuccess('Notifikasi berhasil diaktifkan untuk perangkat ini! Silakan coba kirim test notifikasi sekarang.');
+      } else {
+        setError('Gagal mengaktifkan notifikasi. Browser/perangkat Anda mungkin tidak mendukung Push Notification, atau izin diblokir. Gunakan Google Chrome / Firefox versi terbaru (disarankan melalui Komputer/Laptop).');
+      }
+    } catch (err) {
+      console.error('SUBSCRIBE ERROR:', err);
+      setError('Terjadi kesalahan saat mengaktifkan notifikasi.');
+    }
+  };
+
   const handleTestNotification = async () => {
+    setError('');
+    setSuccess('');
     try {
       await pushNotificationService.sendTestNotification();
       setSuccess('Test Notifikasi berhasil dikirim. Silakan cek layar HP/komputer Anda!');
     } catch (error) {
-      setError('Gagal mengirim test notifikasi. Pastikan Anda sudah mengizinkan notifikasi.');
+      console.error('TEST NOTIFICATION ERROR:', error);
+      if (error.response?.status === 404) {
+        setError('Perangkat Anda belum terdaftar. Silakan klik tombol "Aktifkan Notifikasi" terlebih dahulu.');
+      } else {
+        setError('Gagal mengirim test notifikasi. Pastikan Anda sudah mengizinkan notifikasi di pengaturan browser Anda.');
+      }
     }
   };
 
@@ -160,7 +183,10 @@ const Profile = () => {
         <p className="profile-subtitle">Kelola informasi akun Anda</p>
       </div>
 
-      <div className="profile-content">
+      <div className="profile-content" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {error && <div className="alert error" style={{ width: '100%', marginBottom: '10px' }}>{error}</div>}
+        {success && <div className="alert success" style={{ width: '100%', marginBottom: '10px' }}>{success}</div>}
+        
         {/* Avatar Section */}
         <div className="profile-avatar-section">
           <div className="profile-avatar">
@@ -257,6 +283,9 @@ const Profile = () => {
               </button>
               <button className="btn-password" onClick={() => setIsChangingPassword(true)}>
                 Ganti Password
+              </button>
+              <button className="btn-password" onClick={handleSubscribeNotification} style={{background: '#0284c7'}}>
+                Aktifkan Notifikasi
               </button>
               <button className="btn-password" onClick={handleTestNotification} style={{background: '#28a745'}}>
                 Test Notifikasi Asli
