@@ -117,26 +117,40 @@ exports.importStudents = async (req, res) => {
 
     for (const worksheet of workbook.worksheets) {
       let headers = {};
-      worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
+      worksheet.getRow(1).eachCell((cell, colNumber) => { 
+        if (cell.value) {
+          headers[String(cell.value).trim().toLowerCase()] = colNumber; 
+        }
+      });
       if (!headers['nis'] || !headers['full_name'] || !headers['email']) {
         errors.push(`Sheet ${worksheet.name}: Kolom wajib (nis, full_name, email) tidak lengkap`); 
         continue;
       }
-      
-      const sheetClassName = headers['class_name'] ? null : worksheet.name.trim();
 
       for (let i = 2; i <= worksheet.rowCount; i++) {
         const row = worksheet.getRow(i);
         if (!row.values.length) continue;
 
         try {
-          const nis = row.getCell(headers['nis']).text?.trim();
-          const full_name = row.getCell(headers['full_name']).text?.trim();
-          const email = row.getCell(headers['email']).text?.trim()?.toLowerCase();
-          const class_name = headers['class_name'] ? row.getCell(headers['class_name']).text?.trim() : sheetClassName;
-          const status = (headers['status'] ? row.getCell(headers['status']).text?.trim()?.toLowerCase() : 'active') || 'active';
-          const academic_year_name = headers['academic_year'] ? row.getCell(headers['academic_year']).text?.trim() : null;
-          const parent_nama = headers['orang_tua_nama'] ? row.getCell(headers['orang_tua_nama']).text?.trim() : null;
+          const getVal = (colKey) => {
+            const colNum = headers[colKey];
+            if (!colNum) return '';
+            const cell = row.getCell(colNum);
+            if (!cell || cell.value === null || cell.value === undefined) return '';
+            if (cell.value.result !== undefined) return String(cell.value.result).trim();
+            return String(cell.value).trim();
+          };
+
+          const nis = getVal('nis');
+          const full_name = getVal('full_name');
+          const email = getVal('email').toLowerCase();
+          let class_name = getVal('class_name');
+          if (!class_name) {
+            class_name = worksheet.name.trim();
+          }
+          const status = getVal('status').toLowerCase() || 'active';
+          const academic_year_name = getVal('academic_year');
+          const parent_nama = getVal('orang_tua_nama');
 
           if (!nis || !full_name || !email) continue;
           
@@ -381,7 +395,11 @@ exports.importParents = async (req, res) => {
     const worksheet = workbook.getWorksheet(1);
     
     let headers = {};
-    worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
+    worksheet.getRow(1).eachCell((cell, colNumber) => { 
+      if (cell.value) {
+        headers[String(cell.value).trim().toLowerCase()] = colNumber; 
+      }
+    });
     if (!headers['nik'] || !headers['full_name'] || !headers['email'] || !headers['username']) {
       return res.status(400).json({ error: 'Kolom wajib (nik, full_name, email, username) tidak ditemukan' });
     }
@@ -411,12 +429,21 @@ exports.importParents = async (req, res) => {
       if (!row.values.length) continue;
 
       try {
-        const nik = row.getCell(headers['nik']).text?.trim();
-        const full_name = row.getCell(headers['full_name']).text?.trim();
-        const email = row.getCell(headers['email']).text?.trim()?.toLowerCase();
-        const username = row.getCell(headers['username']).text?.trim();
-        const phone = headers['phone'] ? row.getCell(headers['phone']).text?.trim() : '';
-        const anak_nis_list = headers['anak'] ? row.getCell(headers['anak']).text?.trim() : '';
+        const getVal = (colKey) => {
+          const colNum = headers[colKey];
+          if (!colNum) return '';
+          const cell = row.getCell(colNum);
+          if (!cell || cell.value === null || cell.value === undefined) return '';
+          if (cell.value.result !== undefined) return String(cell.value.result).trim();
+          return String(cell.value).trim();
+        };
+
+        const nik = getVal('nik');
+        const full_name = getVal('full_name');
+        const email = getVal('email').toLowerCase();
+        const username = getVal('username');
+        const phone = getVal('phone');
+        const anak_nis_list = getVal('anak');
 
         if (!nik || !full_name || !email || !username) continue;
         

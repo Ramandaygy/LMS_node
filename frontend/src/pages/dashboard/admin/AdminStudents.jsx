@@ -210,15 +210,34 @@ const AdminStudents = () => {
     if (!file) return;
     const formData = new FormData();
     formData.append('file', file);
+    setImportLoading(true);
+    setSuccessMsg('');
+    setErrorMsg('');
     try {
       const response = await api.post('/admin/import/students', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setSuccessMsg(response.data.message || 'Import berhasil');
+      const { success_count, error_count, errors } = response.data;
+      if (success_count > 0 && error_count > 0) {
+        setSuccessMsg(`Import selesai: ${success_count} berhasil dimasukkan.`);
+        if (errors && errors.length > 0) {
+          console.error('Import errors:', errors);
+          setErrorMsg(`Sebagian data (${error_count} baris) gagal diimport. Contoh kesalahan: ${errors.slice(0, 3).join(', ')}`);
+        }
+      } else if (success_count > 0 && error_count === 0) {
+        setSuccessMsg(`Import berhasil! ${success_count} data siswa ditambahkan.`);
+      } else {
+        setErrorMsg(`Gagal mengimport. Semua data (${error_count} baris) gagal diimport.`);
+        if (errors && errors.length > 0) {
+          console.error('Import errors:', errors);
+          setErrorMsg(prev => `${prev} Kesalahan: ${errors.slice(0, 3).join(', ')}`);
+        }
+      }
       fetchStudents();
     } catch (error) {
       setErrorMsg(error.response?.data?.error || 'Gagal import siswa');
     } finally {
+      setImportLoading(false);
       event.target.value = '';
     }
   };
