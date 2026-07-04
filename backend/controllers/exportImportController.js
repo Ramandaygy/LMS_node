@@ -23,7 +23,7 @@ exports.exportClasses = async (req, res) => {
     ]).toArray();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Kelas');
-    worksheet.columns = [ { header: 'name', key: 'name', width: 20 }, { header: 'grade_level', key: 'grade_level', width: 15 }, { header: 'wali_kelas', key: 'wali_kelas', width: 30 }, { header: 'tahun_ajaran', key: 'tahun_ajaran', width: 20 } ];
+    worksheet.columns = [{ header: 'name', key: 'name', width: 20 }, { header: 'grade_level', key: 'grade_level', width: 15 }, { header: 'wali_kelas', key: 'wali_kelas', width: 30 }, { header: 'tahun_ajaran', key: 'tahun_ajaran', width: 20 }];
     classes.forEach(c => worksheet.addRow(c));
     await sendExcelFile(res, workbook, 'kelas.xlsx');
   } catch (error) { res.status(500).json({ error: `Gagal export kelas: ${error.message}` }); }
@@ -84,7 +84,7 @@ exports.exportStudents = async (req, res) => {
     ]).toArray();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Siswa');
-    worksheet.columns = [ { header: 'nis', key: 'nis', width: 15 }, { header: 'full_name', key: 'full_name', width: 30 }, { header: 'email', key: 'email', width: 30 }, { header: 'username', key: 'username', width: 20 }, { header: 'status', key: 'status', width: 15 }, { header: 'class_name', key: 'class_name', width: 15 }, { header: 'academic_year', key: 'academic_year', width: 15 }, { header: 'orang_tua_nama', key: 'orang_tua_nama', width: 30 }, { header: 'created_at', key: 'created_at', width: 25 } ];
+    worksheet.columns = [{ header: 'nis', key: 'nis', width: 15 }, { header: 'full_name', key: 'full_name', width: 30 }, { header: 'email', key: 'email', width: 30 }, { header: 'username', key: 'username', width: 20 }, { header: 'status', key: 'status', width: 15 }, { header: 'class_name', key: 'class_name', width: 15 }, { header: 'academic_year', key: 'academic_year', width: 15 }, { header: 'orang_tua_nama', key: 'orang_tua_nama', width: 30 }, { header: 'created_at', key: 'created_at', width: 25 }];
     students.forEach(s => worksheet.addRow(s));
     await sendExcelFile(res, workbook, 'siswa.xlsx');
   } catch (error) { res.status(500).json({ error: `Gagal export siswa: ${error.message}` }); }
@@ -95,7 +95,7 @@ exports.importStudents = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Tidak ada file' });
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
-    
+
     let success = 0, errors = [];
     const default_password = "siswa123";
     const hashed_default = await bcrypt.hash(default_password, 10);
@@ -136,13 +136,13 @@ exports.importStudents = async (req, res) => {
 
     for (const worksheet of workbook.worksheets) {
       let headers = {};
-      worksheet.getRow(1).eachCell((cell, colNumber) => { 
+      worksheet.getRow(1).eachCell((cell, colNumber) => {
         if (cell.value) {
-          headers[String(cell.value).trim().toLowerCase()] = colNumber; 
+          headers[String(cell.value).trim().toLowerCase()] = colNumber;
         }
       });
       if (!headers['nis'] || !headers['full_name'] || !headers['email']) {
-        errors.push(`Sheet ${worksheet.name}: Kolom wajib (nis, full_name, email) tidak lengkap`); 
+        errors.push(`Sheet ${worksheet.name}: Kolom wajib (nis, full_name, email) tidak lengkap`);
         continue;
       }
 
@@ -176,7 +176,7 @@ exports.importStudents = async (req, res) => {
           const parent_nama = getVal('orang_tua_nama');
 
           if (!nis || !full_name || !email) continue;
-          
+
           if (studentNisSet.has(nis)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
           if (studentEmailSet.has(email)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Email ${email} sudah ada`); continue; }
 
@@ -195,9 +195,9 @@ exports.importStudents = async (req, res) => {
             const normInput = normalizeString(class_name);
             class_doc = classesMap.find(c => normalizeString(c.name).includes(normInput) || normInput.includes(normalizeString(c.name)));
           }
-          if (!class_doc) { 
-            errors.push(`Sheet ${worksheet.name} Baris ${i}: Kelas '${class_name}' tidak ditemukan`); 
-            continue; 
+          if (!class_doc) {
+            errors.push(`Sheet ${worksheet.name} Baris ${i}: Kelas '${class_name}' tidak ditemukan`);
+            continue;
           }
 
           // Flexible Academic Year Lookup
@@ -219,13 +219,13 @@ exports.importStudents = async (req, res) => {
             }
 
             if (year_doc) {
-              year_id = year_doc._id; 
-            } else { 
-              errors.push(`Sheet ${worksheet.name} Baris ${i}: Tahun ajaran '${academic_year_name}' tidak ditemukan`); 
-              continue; 
+              year_id = year_doc._id;
+            } else {
+              errors.push(`Sheet ${worksheet.name} Baris ${i}: Tahun ajaran '${academic_year_name}' tidak ditemukan`);
+              continue;
             }
           } else {
-            if (activeYear) year_id = activeYear._id; 
+            if (activeYear) year_id = activeYear._id;
             else { errors.push(`Sheet ${worksheet.name} Baris ${i}: Tidak ada tahun ajaran aktif`); continue; }
           }
 
@@ -245,7 +245,7 @@ exports.importStudents = async (req, res) => {
               const normInput = normalizeString(parent_nama);
               parent = parentMap.find(p => normalizeString(p.full_name) === normInput);
             }
-            
+
             const student_id_placeholder = new mongoose.Types.ObjectId();
 
             if (parent) {
@@ -273,7 +273,7 @@ exports.importStudents = async (req, res) => {
 
               // Insert parent into the database
               await getCollection('users_ortu').insertOne(newParentDoc);
-              
+
               // Add to parentMap so other sibling rows in same import match it
               parentMap.push(newParentDoc);
               parent_id = newParentDoc._id;
@@ -359,7 +359,7 @@ exports.importTeachers = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
     const worksheet = workbook.getWorksheet(1);
-    
+
     let headers = {};
     worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
     if (!headers['nip'] || !headers['full_name'] || !headers['email'] || !headers['username']) {
@@ -447,7 +447,7 @@ exports.importAcademicYears = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
     const worksheet = workbook.getWorksheet(1);
-    
+
     let headers = {};
     worksheet.getRow(1).eachCell((cell, colNumber) => {
       if (cell.value) {
@@ -458,7 +458,7 @@ exports.importAcademicYears = async (req, res) => {
     if (!nameKey) return res.status(400).json({ error: 'Kolom "name" atau "year" tidak ditemukan' });
 
     let success = 0, errors = [];
-    
+
     let has_active = false;
     for (let i = 2; i <= worksheet.rowCount; i++) {
       const row = worksheet.getRow(i);
@@ -474,15 +474,15 @@ exports.importAcademicYears = async (req, res) => {
       try {
         const name = row.getCell(nameKey).text?.trim();
         if (!name) { errors.push(`Baris ${i}: Nama kosong`); continue; }
-        if (await getCollection('academic_years').findOne({ $or: [{ year: name }, { name: name }] })) { 
-          errors.push(`Baris ${i}: '${name}' sudah ada`); 
-          continue; 
+        if (await getCollection('academic_years').findOne({ $or: [{ year: name }, { name: name }] })) {
+          errors.push(`Baris ${i}: '${name}' sudah ada`);
+          continue;
         }
 
         const semester = headers['semester'] ? row.getCell(headers['semester']).text?.trim() : '';
         const is_active_raw = headers['is_active'] ? row.getCell(headers['is_active']).text?.trim()?.toLowerCase() : 'false';
         const is_active = ['true', '1', 'yes', 'active'].includes(is_active_raw);
-        
+
         let start_date = null, end_date = null;
         if (headers['start_date']) start_date = new Date(row.getCell(headers['start_date']).value);
         if (headers['end_date']) end_date = new Date(row.getCell(headers['end_date']).value);
@@ -525,11 +525,11 @@ exports.importParents = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
     const worksheet = workbook.getWorksheet(1);
-    
+
     let headers = {};
-    worksheet.getRow(1).eachCell((cell, colNumber) => { 
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
       if (cell.value) {
-        headers[String(cell.value).trim().toLowerCase()] = colNumber; 
+        headers[String(cell.value).trim().toLowerCase()] = colNumber;
       }
     });
     if (!headers['nik'] || !headers['full_name'] || !headers['email'] || !headers['username']) {
@@ -582,7 +582,7 @@ exports.importParents = async (req, res) => {
         const anak_nis_list = getVal('anak');
 
         if (!nik || !full_name || !email || !username) continue;
-        
+
         if (parentNikSet.has(nik)) { errors.push(`Baris ${i}: NIK ${nik} sudah ada`); continue; }
         if (parentEmailSet.has(email)) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
 
@@ -639,7 +639,7 @@ exports.importSubjects = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
     const worksheet = workbook.getWorksheet(1);
-    
+
     let headers = {};
     worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
     if (!headers['name']) return res.status(400).json({ error: 'Kolom "name" tidak ditemukan' });

@@ -164,6 +164,17 @@ const AdminStudents = () => {
     }
   };
 
+  const handleResetPassword = async (student) => {
+    if (!window.confirm(`Yakin ingin mereset password siswa ${student.full_name} menjadi 'siswa123'?`)) return;
+    try {
+      await api.put(`/users/${student.id || student._id}`, { password: 'siswa123' });
+      setSuccessMsg('Password siswa berhasil direset menjadi siswa123');
+    } catch (error) {
+      console.error('RESET PASSWORD ERROR:', error);
+      setErrorMsg('Gagal mereset password siswa');
+    }
+  };
+
   const handleExport = async () => {
     setDropdownOpen(false);
     try {
@@ -245,7 +256,6 @@ const AdminStudents = () => {
     setSelectedStudent(student);
     setShowDetailModal(true);
   };
-  const handleResetPassword = () => {};
 
   // ==================== FILTER & PAGINATION ====================
   const filteredStudents = students.filter((student) => {

@@ -201,7 +201,7 @@ const AdminTeachers = () => {
       if (formData.password) payload.password = formData.password;
 
       if (editingTeacher) {
-        await api.put(`/admin/users/teachers/${editingTeacher.id}`, payload);
+        await api.put(`/users/${editingTeacher.id}`, payload);
         setSuccessMsg('Data guru berhasil diupdate');
       } else {
         await api.post('/auth/register', payload);
@@ -269,7 +269,7 @@ const AdminTeachers = () => {
   const handleResetPassword = async (teacher) => {
     if (window.confirm(`Reset password untuk ${teacher.full_name}? Password akan direset menjadi "guru123"`)) {
       try {
-        await api.post(`/admin/users/teachers/${teacher.id}/reset-password`, { new_password: 'guru123' });
+        await api.put(`/users/${teacher.id || teacher._id}`, { password: 'guru123' });
         setSuccessMsg(`Password ${teacher.full_name} berhasil direset menjadi "guru123"`);
       } catch (error) {
         setErrorMsg('Gagal mereset password');

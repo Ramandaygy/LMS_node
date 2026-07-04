@@ -137,13 +137,28 @@ const AdminParents = () => {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Yakin ingin menghapus orang tua ini?')) return;
+    if (!window.confirm('Yakin ingin menghapus data orang tua ini?')) return;
     try {
       await api.delete(`/users/parents/${id}`);
-      setSuccessMsg('Data berhasil dihapus');
+      setSuccessMsg('Orang tua berhasil dihapus');
       fetchParents();
+      // Refresh students list too because child association changed
+      fetchStudents();
+      resetForm();
+      setShowModal(false);
     } catch (err) {
       setErrorMsg('Gagal menghapus data');
+    }
+  };
+
+  const handleResetPassword = async (parent) => {
+    if (!window.confirm(`Yakin ingin mereset password orang tua ${parent.full_name} menjadi 'ortu123'?`)) return;
+    try {
+      await api.put(`/users/${parent._id || parent.id}`, { password: 'ortu123' });
+      setSuccessMsg('Password orang tua berhasil direset menjadi ortu123');
+    } catch (error) {
+      console.error('RESET PASSWORD ERROR:', error);
+      setErrorMsg('Gagal mereset password orang tua');
     }
   };
 
@@ -397,6 +412,9 @@ const AdminParents = () => {
                   <td className="actions">
                     <button className="btn-edit" onClick={() => handleEdit(parent)} title="Edit">
                       <span className="material-symbols-outlined">edit</span>
+                    </button>
+                    <button className="btn-reset" onClick={() => handleResetPassword(parent)} title="Reset Password (ortu123)" style={{ background: '#f59e0b', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginLeft: '6px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>lock_reset</span>
                     </button>
                   </td>
                 </tr>
