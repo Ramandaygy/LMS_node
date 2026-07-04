@@ -768,105 +768,232 @@ exports.importSchedules = async (req, res) => {
     await workbook.xlsx.load(req.file.buffer);
     const worksheet = workbook.getWorksheet(1);
     
-    let headers = {};
-    worksheet.getRow(1).eachCell((cell, colNumber) => { 
-      if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber; 
-    });
-
-    const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
-    for (const h of requiredHeaders) {
-      if (!headers[h]) {
-        return res.status(400).json({ error: `Kolom wajib "${h}" tidak ditemukan di file Excel` });
-      }
-    }
-
     const classes = await getCollection('classes').find({}).toArray();
     const subjects = await getCollection('subjects').find({}).toArray();
     const teachers = await getCollection('users_guru').find({}).toArray();
 
     const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
     
-    const findClass = (name) => {
-      const normName = normalize(name);
-      return classes.find(c => normalize(c.name) === normName);
-    };
+    // DETEKSI FORMAT: Apakah Grid Sekolah (seperti screenshot) atau Template Kita?
+    let isGridFormat = false;
+    let gridHeaderRow = 6;
     
-    const findSubject = (name) => {
-      const normName = normalize(name);
-      return subjects.find(s => normalize(s.name) === normName);
-    };
-    
-    const findTeacher = (name) => {
-      const normName = normalize(name);
-      return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
-    };
+    for (let r = 1; r <= 10; r++) {
+      const row = worksheet.getRow(r);
+      for (let c = 1; c <= 20; c++) {
+        const val = row.getCell(c).value?.toString()?.toUpperCase()?.trim();
+        if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX'))) {
+          isGridFormat = true;
+          gridHeaderRow = r;
+          break;
+        }
+      }
+      if (isGridFormat) break;
+    }
 
     let success = 0, errors = [];
     const schedulesToInsert = [];
-
     const validDays = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
 
-    for (let i = 2; i <= worksheet.rowCount; i++) {
-      const row = worksheet.getRow(i);
-      if (!row.values || row.values.length === 0) continue;
+    if (isGridFormat) {
+      // -------------------------------------------------------------
+      // FORMAT GRID SEKOLAH (Deteksi Kolom Dinamis)
+      // -------------------------------------------------------------
+      const colToClassMap = {};
+      let currentGrade = '';
+      
+      const gradeRow = worksheet.getRow(gridHeaderRow);
+      const classRow = worksheet.getRow(gridHeaderRow + 1);
 
-      try {
-        const hari = row.getCell(headers['hari']).text?.trim()?.toUpperCase();
-        const jamKe = row.getCell(headers['jam_ke']).value;
-        const waktuMulai = row.getCell(headers['waktu_mulai']).text?.trim();
-        const waktuSelesai = row.getCell(headers['waktu_selesai']).text?.trim();
-        const kelasName = row.getCell(headers['kelas']).text?.trim();
-        const mapelName = row.getCell(headers['mata_pelajaran']).text?.trim();
-        const guruName = row.getCell(headers['guru']).text?.trim();
-        const ruang = headers['ruang'] ? row.getCell(headers['ruang']).text?.trim() : '';
+      // Pindai dari kolom 4 (D) ke kanan
+      for (let col = 4; col <= 45; col++) {
+        const gradeVal = gradeRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
+        if (gradeVal) {
+          if (gradeVal.includes('VII') || gradeVal.includes('7')) {
+            currentGrade = '7';
+          } else if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
+            currentGrade = '8';
+          } else if (gradeVal.includes('IX') || gradeVal.includes('9')) {
+            currentGrade = '9';
+          }
+        }
 
-        if (!hari || !jamKe || !waktuMulai || !waktuSelesai || !kelasName || !mapelName || !guruName) {
-          errors.push(`Baris ${i}: Kolom wajib ada yang kosong`);
+        const classLetter = classRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
+        if (currentGrade && classLetter && classLetter.length === 1) {
+          const className = `${currentGrade}${classLetter}`; // e.g. "7A"
+          const foundClass = classes.find(c => normalize(c.name) === normalize(className));
+          if (foundClass) {
+            colToClassMap[col] = foundClass._id;
+          }
+        }
+      }
+
+      let currentDay = '';
+
+      for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
+        const row = worksheet.getRow(r);
+        
+        // Kolom 1 (A) adalah Hari (bisa jadi merged/kosong)
+        const dayVal = row.getCell(1).value?.toString()?.toUpperCase()?.trim();
+        if (dayVal && validDays.includes(dayVal)) {
+          currentDay = dayVal;
+        }
+
+        if (!currentDay) continue;
+
+        // Kolom 2 (B) adalah Jam Ke (period), Kolom 3 (C) adalah Waktu
+        const periodVal = row.getCell(2).value?.toString()?.trim();
+        const timeVal = row.getCell(3).value?.toString()?.trim();
+
+        if (!timeVal) continue;
+
+        const cleanTimeVal = timeVal.toUpperCase();
+        if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT') || cleanTimeVal.includes('JUMAT')) {
           continue;
         }
 
-        if (!validDays.includes(hari)) {
-          errors.push(`Baris ${i}: Hari '${hari}' tidak valid. Pilihan: ${validDays.join(', ')}`);
-          continue;
+        const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
+        if (timeParts.length < 2) continue;
+        const startTime = timeParts[0];
+        const endTime = timeParts[1];
+        const timeSlotNum = Number(periodVal) || 1;
+
+        for (const [colIndex, classId] of Object.entries(colToClassMap)) {
+          const codeVal = row.getCell(Number(colIndex)).value?.toString()?.trim();
+          if (!codeVal || codeVal === '-' || codeVal === '/' || codeVal === '.') {
+            continue;
+          }
+
+          const cleanCode = codeVal.toUpperCase();
+          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || cleanCode.includes('JUMAT') || cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
+            continue;
+          }
+
+          const foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toLowerCase().trim() === codeVal.toLowerCase());
+          if (!foundTeacher) {
+            errors.push(`Baris ${r}: Guru dengan kode '${codeVal}' tidak ditemukan`);
+            continue;
+          }
+
+          const subjectId = foundTeacher.subjects && foundTeacher.subjects[0];
+          if (!subjectId) {
+            errors.push(`Baris ${r}: Guru '${foundTeacher.full_name}' tidak memiliki bidang studi`);
+            continue;
+          }
+
+          schedulesToInsert.push({
+            academic_year_id: activeYear._id,
+            class_id: classId,
+            subject_id: subjectId,
+            teacher_id: foundTeacher._id,
+            day: currentDay,
+            time_slot: timeSlotNum,
+            start_time: startTime,
+            end_time: endTime,
+            room: '',
+            generated_type: 'manual',
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          success++;
         }
+      }
 
-        const foundClass = findClass(kelasName);
-        if (!foundClass) {
-          errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
-          continue;
+    } else {
+      // -------------------------------------------------------------
+      // FORMAT TEMPLATE KITA
+      // -------------------------------------------------------------
+      let headers = {};
+      worksheet.getRow(1).eachCell((cell, colNumber) => { 
+        if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber; 
+      });
+
+      const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
+      for (const h of requiredHeaders) {
+        if (!headers[h]) {
+          return res.status(400).json({ error: `Kolom wajib "${h}" tidak ditemukan di file Excel` });
         }
+      }
 
-        const foundSubject = findSubject(mapelName);
-        if (!foundSubject) {
-          errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
-          continue;
+      const findClass = (name) => {
+        const normName = normalize(name);
+        return classes.find(c => normalize(c.name) === normName);
+      };
+      
+      const findSubject = (name) => {
+        const normName = normalize(name);
+        return subjects.find(s => normalize(s.name) === normName);
+      };
+      
+      const findTeacher = (name) => {
+        const normName = normalize(name);
+        return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
+      };
+
+      for (let i = 2; i <= worksheet.rowCount; i++) {
+        const row = worksheet.getRow(i);
+        if (!row.values || row.values.length === 0) continue;
+
+        try {
+          const hari = row.getCell(headers['hari']).text?.trim()?.toUpperCase();
+          const jamKe = row.getCell(headers['jam_ke']).value;
+          const waktuMulai = row.getCell(headers['waktu_mulai']).text?.trim();
+          const waktuSelesai = row.getCell(headers['waktu_selesai']).text?.trim();
+          const kelasName = row.getCell(headers['kelas']).text?.trim();
+          const mapelName = row.getCell(headers['mata_pelajaran']).text?.trim();
+          const guruName = row.getCell(headers['guru']).text?.trim();
+          const ruang = headers['ruang'] ? row.getCell(headers['ruang']).text?.trim() : '';
+
+          if (!hari || !jamKe || !waktuMulai || !waktuSelesai || !kelasName || !mapelName || !guruName) {
+            errors.push(`Baris ${i}: Kolom wajib ada yang kosong`);
+            continue;
+          }
+
+          if (!validDays.includes(hari)) {
+            errors.push(`Baris ${i}: Hari '${hari}' tidak valid. Pilihan: ${validDays.join(', ')}`);
+            continue;
+          }
+
+          const foundClass = findClass(kelasName);
+          if (!foundClass) {
+            errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
+            continue;
+          }
+
+          const foundSubject = findSubject(mapelName);
+          if (!foundSubject) {
+            errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
+            continue;
+          }
+
+          const foundTeacher = findTeacher(guruName);
+          if (!foundTeacher) {
+            errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
+            continue;
+          }
+
+          schedulesToInsert.push({
+            academic_year_id: activeYear._id,
+            class_id: foundClass._id,
+            subject_id: foundSubject._id,
+            teacher_id: foundTeacher._id,
+            day: hari,
+            time_slot: Number(jamKe) || 1,
+            start_time: waktuMulai,
+            end_time: waktuSelesai,
+            room: ruang || '',
+            generated_type: 'manual',
+            is_active: true,
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          success++;
+        } catch (e) {
+          errors.push(`Baris ${i}: ${e.message}`);
         }
-
-        const foundTeacher = findTeacher(guruName);
-        if (!foundTeacher) {
-          errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
-          continue;
-        }
-
-        schedulesToInsert.push({
-          academic_year_id: activeYear._id,
-          class_id: foundClass._id,
-          subject_id: foundSubject._id,
-          teacher_id: foundTeacher._id,
-          day: hari,
-          time_slot: Number(jamKe) || 1,
-          start_time: waktuMulai,
-          end_time: waktuSelesai,
-          room: ruang || '',
-          generated_type: 'manual',
-          is_active: true,
-          created_at: new Date(),
-          updated_at: new Date()
-        });
-
-        success++;
-      } catch (e) {
-        errors.push(`Baris ${i}: ${e.message}`);
       }
     }
 
@@ -878,7 +1005,7 @@ exports.importSchedules = async (req, res) => {
       message: 'Import jadwal pelajaran selesai', 
       success_count: success, 
       error_count: errors.length, 
-      errors: errors.slice(0, 10) 
+      errors: errors.slice(0, 15) 
     });
   } catch (error) {
     res.status(500).json({ error: `Gagal import jadwal: ${error.message}` });
