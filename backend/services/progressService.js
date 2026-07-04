@@ -3,37 +3,123 @@ const materialProgressService = require('./materialProgressService');
 const rfService = require('./rfService');
 
 async function getStudentData(studentId) {
-  // Ambil submission yang sudah dinilai
-  const submissions = await mongoose.connection.collection('submissions').find({ student_id: new mongoose.Types.ObjectId(studentId), score: { $ne: null } }).toArray();
+  const submissionsCol = mongoose.connection.collection('submissions');
+  const assignmentsCol = mongoose.connection.collection('assignments');
+  const attendancesCol = mongoose.connection.collection('attendances');
+  const gradesCol = mongoose.connection.collection('grades');
+  const subjectsCol = mongoose.connection.collection('subjects');
+  const siswaCol = mongoose.connection.collection('users_siswa');
+
+  const objStudentId = new mongoose.Types.ObjectId(studentId);
+
+  // 1. Get submissions and assignments
+  const submissions = await submissionsCol.find({ student_id: objStudentId, score: { $ne: null } }).toArray();
   const assignmentIds = submissions.map(s => s.assignment_id);
-  const assignments = await mongoose.connection.collection('assignments').find({ _id: { $in: assignmentIds } }).toArray();
-  const assignmentMap = Object.fromEntries(assignments.map(a => [a._id.toString(), a.total_score || 100]));
+  const assignments = await assignmentsCol.find({ _id: { $in: assignmentIds } }).toArray();
+  
+  const assignmentMap = {};
+  assignments.forEach(a => {
+    assignmentMap[a._id.toString()] = {
+      title: a.title,
+      total_score: a.total_score || 100
+    };
+  });
+
   let totalScore = 0, totalMax = 0;
-  submissions.forEach(sub => {
-    totalScore += sub.score;
-    totalMax += assignmentMap[sub.assignment_id.toString()] || 100;
+  const detailedAssignments = submissions.map(s => {
+    const assign = assignmentMap[s.assignment_id.toString()] || { title: 'Tugas', total_score: 100 };
+    const pctScore = assign.total_score > 0 ? (s.score / assign.total_score) * 100 : 0;
+    totalScore += s.score;
+    totalMax += assign.total_score;
+    
+    return {
+      _id: s._id,
+      title: assign.title,
+      score: s.score,
+      max_score: assign.total_score,
+      pct: Math.round(pctScore),
+      submitted_at: s.submitted_at || s.createdAt || new Date()
+    };
   });
   const avgScore = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
 
-  // Ambil absensi
-  const attendances = await mongoose.connection.collection('attendances').find({ student_id: new mongoose.Types.ObjectId(studentId) }).toArray();
+  // 2. Get attendance
+  const attendances = await attendancesCol.find({ student_id: objStudentId }).toArray();
   const totalDays = attendances.length;
   const presentDays = attendances.filter(a => a.status === 'present').length;
   const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
 
-  const siswaCol = mongoose.connection.collection('users_siswa');
-  const student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId) });
+  // 3. Get material completion
+  const student = await siswaCol.findOne({ _id: objStudentId });
   const materialCompletionRate = student?.class_id
     ? await materialProgressService.getStudentMaterialCompletionRate(studentId, student.class_id)
     : 0;
 
-  // Ambil nilai kuis
-  const quizGrades = await mongoose.connection.collection('grades').find({ student: new mongoose.Types.ObjectId(studentId), type: 'quiz' }).toArray();
-  let quizScoreSum = 0;
-  quizGrades.forEach(q => quizScoreSum += q.score);
-  const avgQuizScore = quizGrades.length > 0 ? quizScoreSum / quizGrades.length : 0;
+  // 4. Get quiz & exam grades
+  const grades = await gradesCol.find({ student: objStudentId }).toArray();
+  const subjectIds = grades.map(g => g.subject).filter(Boolean);
+  const subjects = await subjectsCol.find({ _id: { $in: subjectIds } }).toArray();
+  const subjectMap = {};
+  subjects.forEach(s => {
+    subjectMap[s._id.toString()] = s.name;
+  });
 
-  return { avgScore, attendanceRate, materialCompletionRate, avgQuizScore };
+  let quizScoreSum = 0, quizCount = 0;
+  const detailedGrades = grades.map(g => {
+    const subName = subjectMap[g.subject?.toString()] || 'Mata Pelajaran';
+    if (g.type === 'quiz') {
+      quizScoreSum += g.score;
+      quizCount++;
+    }
+    return {
+      _id: g._id,
+      subject_name: subName,
+      type: g.type, // 'uts' | 'uas' | 'quiz'
+      score: g.score,
+      note: g.note || '',
+      created_at: g.created_at || g.createdAt || new Date()
+    };
+  });
+  const avgQuizScore = quizCount > 0 ? quizScoreSum / quizCount : 0;
+
+  // 5. Construct timeline of grades over time for line chart
+  const allScores = [
+    ...submissions.map(s => {
+      const assign = assignmentMap[s.assignment_id.toString()] || { title: 'Tugas', total_score: 100 };
+      const pctScore = assign.total_score > 0 ? (s.score / assign.total_score) * 100 : 0;
+      return {
+        date: new Date(s.submitted_at || s.createdAt || new Date()),
+        score: pctScore,
+        title: assign.title
+      };
+    }),
+    ...grades.map(g => {
+      const subName = subjectMap[g.subject?.toString()] || 'Ujian';
+      return {
+        date: new Date(g.createdAt || g.created_at || new Date()),
+        score: g.score,
+        title: `${g.type.toUpperCase()}: ${subName}`
+      };
+    })
+  ];
+
+  const timeline = allScores
+    .sort((a, b) => a.date - b.date)
+    .map(s => ({
+      date: s.date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+      score: Math.round(s.score),
+      title: s.title
+    }));
+
+  return { 
+    avgScore, 
+    attendanceRate, 
+    materialCompletionRate, 
+    avgQuizScore,
+    detailedAssignments,
+    detailedGrades,
+    timeline
+  };
 }
 
 exports.getStudentProgress = async (studentId) => {

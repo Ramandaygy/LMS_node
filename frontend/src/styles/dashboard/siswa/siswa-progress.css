@@ -225,6 +225,7 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
+  align-content: start;
 }
 
 @media (min-width: 640px) {
@@ -323,6 +324,163 @@
   color: #64748b;
   margin: 0;
   line-height: 1.5;
+}
+
+/* Detailed Progress & Line Chart Grid */
+.progress-details-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  margin-top: 30px;
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .progress-details-grid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.chart-card, .grades-card {
+  background: white;
+  border-radius: 24px;
+  padding: 30px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.03);
+}
+
+.chart-title, .grades-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-title .material-symbols-outlined, .grades-title .material-symbols-outlined {
+  color: #2563eb;
+}
+
+.chart-container-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  background: #0f172a;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  z-index: 10;
+  max-width: 250px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+.chart-tooltip p {
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Grades Tabs styling */
+.grades-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.tab-btn:hover:not(.active) {
+  background: #f8fafc;
+  color: #475569;
+}
+
+/* Detailed Tables styling */
+.grades-table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.grades-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+.grades-table th, .grades-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.grades-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #475569;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  box-shadow: inset 0 -1px 0 #e2e8f0;
+}
+
+.grades-table tr:hover td {
+  background: #f8fafc;
+}
+
+.grades-table tr:last-child td {
+  border-bottom: none;
+}
+
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.score-badge.high { background: #d1fae5; color: #065f46; }
+.score-badge.medium { background: #fef3c7; color: #92400e; }
+.score-badge.low { background: #fee2e2; color: #991b1b; }
+
+.type-badge {
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  color: #475569;
 }
 
 /* Loading & Error States */
