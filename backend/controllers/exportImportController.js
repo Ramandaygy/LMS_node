@@ -103,8 +103,25 @@ exports.importStudents = async (req, res) => {
     const hashed_ortu_default = await bcrypt.hash(ortu_default_password, 10);
     const classesMap = await getCollection('classes').find({}).toArray();
     const yearMap = await getCollection('academic_years').find({}).toArray();
-    const parentMap = await getCollection('users_ortu').find({}).toArray();
     const activeYear = yearMap.find(y => y.is_active === true);
+
+    // Clean up invalid parent documents (e.g. empty name, spaces, dashes, nulls)
+    const invalidParents = await getCollection('users_ortu').find({
+      $or: [
+        { full_name: { $in: ['', ' ', '-', 'null', 'n/a', 'tidak ada', null] } },
+        { full_name: /^\s*$/ }
+      ]
+    }).toArray();
+    const invalidParentIds = invalidParents.map(p => p._id);
+    if (invalidParentIds.length > 0) {
+      await getCollection('users_ortu').deleteMany({ _id: { $in: invalidParentIds } });
+      await getCollection('users_siswa').updateMany(
+        { parent_id: { $in: invalidParentIds } },
+        { $set: { parent_id: null } }
+      );
+    }
+
+    const parentMap = await getCollection('users_ortu').find({}).toArray();
 
     // Fetch existing students in-memory to prevent loop queries
     const existingStudents = await getCollection('users_siswa')
@@ -216,15 +233,17 @@ exports.importStudents = async (req, res) => {
           let parent_id = null;
           let student_id;
 
-          if (parent_nama) {
+          const isValidParentName = (name) => {
+            if (!name) return false;
+            const clean = name.trim().toLowerCase();
+            return clean !== '' && clean !== '-' && clean !== 'n/a' && clean !== 'null' && clean !== 'tidak ada';
+          };
+
+          if (parent_nama && isValidParentName(parent_nama)) {
             let parent = parentMap.find(p => p.full_name.trim().toLowerCase() === parent_nama.toLowerCase());
             if (!parent) {
               const normInput = normalizeString(parent_nama);
               parent = parentMap.find(p => normalizeString(p.full_name) === normInput);
-            }
-            if (!parent) {
-              const normInput = normalizeString(parent_nama);
-              parent = parentMap.find(p => normalizeString(p.full_name).includes(normInput) || normInput.includes(normalizeString(p.full_name)));
             }
             
             const student_id_placeholder = new mongoose.Types.ObjectId();
@@ -235,7 +254,7 @@ exports.importStudents = async (req, res) => {
               // Auto-create parent account
               const parent_username = `ortu_${email.split('@')[0]}`;
               const parent_email = `ortu.${email.split('@')[0]}@lms.sch.id`;
-              const parent_nik = `ORTU-${nis}`;
+              const parent_nik = nis; // Use child NIS directly as NIK
 
               const newParentDoc = {
                 _id: new mongoose.Types.ObjectId(),
