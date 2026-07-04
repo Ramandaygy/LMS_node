@@ -157,24 +157,74 @@ exports.importStudents = async (req, res) => {
           if (studentNisSet.has(nis)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
           if (studentEmailSet.has(email)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Email ${email} sudah ada`); continue; }
 
-          const class_doc = classesMap.find(c => c.name === class_name);
-          if (!class_doc) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Kelas '${class_name}' tidak ditemukan`); continue; }
+          const normalizeString = (str) => {
+            if (!str) return '';
+            return str.toLowerCase().replace(/[^a-z0-9]/g, '');
+          };
 
+          // Flexible Class Lookup
+          let class_doc = classesMap.find(c => c.name.trim().toLowerCase() === class_name.toLowerCase());
+          if (!class_doc) {
+            const normInput = normalizeString(class_name);
+            class_doc = classesMap.find(c => normalizeString(c.name) === normInput);
+          }
+          if (!class_doc) {
+            const normInput = normalizeString(class_name);
+            class_doc = classesMap.find(c => normalizeString(c.name).includes(normInput) || normInput.includes(normalizeString(c.name)));
+          }
+          if (!class_doc) { 
+            errors.push(`Sheet ${worksheet.name} Baris ${i}: Kelas '${class_name}' tidak ditemukan`); 
+            continue; 
+          }
+
+          // Flexible Academic Year Lookup
           let year_id = null;
           if (academic_year_name) {
-            const year_doc = yearMap.find(y => y.name === academic_year_name);
-            if (year_doc) year_id = year_doc._id; 
-            else { errors.push(`Sheet ${worksheet.name} Baris ${i}: Tahun ajaran '${academic_year_name}' tidak ditemukan`); continue; }
+            const getYearVal = (y) => y.year || y.name || '';
+            let year_doc = yearMap.find(y => getYearVal(y).trim().toLowerCase() === academic_year_name.toLowerCase());
+            if (!year_doc) {
+              const normInput = normalizeString(academic_year_name);
+              year_doc = yearMap.find(y => normalizeString(getYearVal(y)) === normInput);
+            }
+            if (!year_doc) {
+              const normInput = normalizeString(academic_year_name);
+              year_doc = yearMap.find(y => normalizeString(getYearVal(y)).includes(normInput) || normInput.includes(normalizeString(getYearVal(y))));
+            }
+            // Fallback to active year if search failed
+            if (!year_doc && activeYear) {
+              year_doc = activeYear;
+            }
+
+            if (year_doc) {
+              year_id = year_doc._id; 
+            } else { 
+              errors.push(`Sheet ${worksheet.name} Baris ${i}: Tahun ajaran '${academic_year_name}' tidak ditemukan`); 
+              continue; 
+            }
           } else {
             if (activeYear) year_id = activeYear._id; 
             else { errors.push(`Sheet ${worksheet.name} Baris ${i}: Tidak ada tahun ajaran aktif`); continue; }
           }
 
+          // Flexible Parent Lookup
           let parent_id = null;
           if (parent_nama) {
-            const parent = parentMap.find(p => p.full_name === parent_nama);
-            if (parent) parent_id = parent._id; 
-            else { errors.push(`Sheet ${worksheet.name} Baris ${i}: Orang tua '${parent_nama}' tidak ditemukan`); continue; }
+            let parent = parentMap.find(p => p.full_name.trim().toLowerCase() === parent_nama.toLowerCase());
+            if (!parent) {
+              const normInput = normalizeString(parent_nama);
+              parent = parentMap.find(p => normalizeString(p.full_name) === normInput);
+            }
+            if (!parent) {
+              const normInput = normalizeString(parent_nama);
+              parent = parentMap.find(p => normalizeString(p.full_name).includes(normInput) || normInput.includes(normalizeString(p.full_name)));
+            }
+            
+            if (parent) {
+              parent_id = parent._id; 
+            } else { 
+              errors.push(`Sheet ${worksheet.name} Baris ${i}: Orang tua '${parent_nama}' tidak ditemukan`); 
+              continue; 
+            }
           }
 
           let username = email.split('@')[0];
@@ -300,7 +350,7 @@ exports.importTeachers = async (req, res) => {
 
 exports.exportAcademicYears = async (req, res) => {
   try {
-    const years = await getCollection('academic_years').find({}, { projection: { _id: 0, name: 1, semester: 1, is_active: 1, start_date: 1, end_date: 1 } }).toArray();
+    const years = await getCollection('academic_years').find({}).toArray();
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('TahunAjaran');
     worksheet.columns = [
@@ -309,6 +359,7 @@ exports.exportAcademicYears = async (req, res) => {
       { header: 'end_date', key: 'end_date', width: 20 }
     ];
     years.forEach(y => {
+      y.name = y.year || y.name || '';
       if (y.start_date) y.start_date = y.start_date.toISOString().split('T')[0];
       if (y.end_date) y.end_date = y.end_date.toISOString().split('T')[0];
       worksheet.addRow(y);
@@ -325,8 +376,13 @@ exports.importAcademicYears = async (req, res) => {
     const worksheet = workbook.getWorksheet(1);
     
     let headers = {};
-    worksheet.getRow(1).eachCell((cell, colNumber) => { headers[cell.value] = colNumber; });
-    if (!headers['name']) return res.status(400).json({ error: 'Kolom "name" tidak ditemukan' });
+    worksheet.getRow(1).eachCell((cell, colNumber) => {
+      if (cell.value) {
+        headers[String(cell.value).trim().toLowerCase()] = colNumber;
+      }
+    });
+    const nameKey = headers['name'] || headers['year'];
+    if (!nameKey) return res.status(400).json({ error: 'Kolom "name" atau "year" tidak ditemukan' });
 
     let success = 0, errors = [];
     
@@ -343,9 +399,12 @@ exports.importAcademicYears = async (req, res) => {
       if (!row.values.length) continue;
 
       try {
-        const name = row.getCell(headers['name']).text?.trim();
+        const name = row.getCell(nameKey).text?.trim();
         if (!name) { errors.push(`Baris ${i}: Nama kosong`); continue; }
-        if (await getCollection('academic_years').findOne({ name })) { errors.push(`Baris ${i}: '${name}' sudah ada`); continue; }
+        if (await getCollection('academic_years').findOne({ $or: [{ year: name }, { name: name }] })) { 
+          errors.push(`Baris ${i}: '${name}' sudah ada`); 
+          continue; 
+        }
 
         const semester = headers['semester'] ? row.getCell(headers['semester']).text?.trim() : '';
         const is_active_raw = headers['is_active'] ? row.getCell(headers['is_active']).text?.trim()?.toLowerCase() : 'false';
@@ -356,7 +415,7 @@ exports.importAcademicYears = async (req, res) => {
         if (headers['end_date']) end_date = new Date(row.getCell(headers['end_date']).value);
 
         await getCollection('academic_years').insertOne({
-          name, semester, is_active, start_date, end_date, created_at: new Date(), updated_at: new Date()
+          year: name, name, semester, is_active, start_date, end_date, created_at: new Date(), updated_at: new Date()
         });
         success++;
       } catch (e) { errors.push(`Baris ${i}: ${e.message}`); }
