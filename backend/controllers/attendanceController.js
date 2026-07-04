@@ -20,6 +20,7 @@ exports.getTeacherSchedules = async (req, res) => {
       id: s._id,
       class_id: s.class_id ? s.class_id._id : null,
       class_name: s.class_id ? s.class_id.name : 'Unknown Class',
+      subject_id: s.subject_id ? s.subject_id._id : null,
       subject: s.subject_id ? s.subject_id.name : 'Unknown Subject',
       day: s.day,
       start_time: s.start_time,

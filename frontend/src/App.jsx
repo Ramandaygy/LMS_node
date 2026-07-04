@@ -78,6 +78,7 @@ import GuruMonitoring from './pages/dashboard/guru/GuruMonitoring';
 import GuruStudents from './pages/dashboard/guru/GuruStudents';
 import GuruProgress from './pages/dashboard/guru/GuruProgress';
 import GuruQuiz from './pages/dashboard/guru/GuruQuiz';
+import GuruInputNilai from './pages/dashboard/guru/GuruInputNilai';
 
 // ============================================
 // SISWA SUB PAGES
@@ -513,6 +514,17 @@ function App() {
             <ProtectedRoute allowedRole="guru">
               <DashboardLayout role="guru">
                 <GuruAttendance />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/input-nilai"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <GuruInputNilai />
               </DashboardLayout>
             </ProtectedRoute>
           }

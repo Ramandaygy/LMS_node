@@ -39,13 +39,45 @@ exports.getBinaanStudents = async (req, res) => {
     const studentIdStrings = students.map(s => s._id.toString());
     
     const grades = await Grade.find({
-      $or: [
-        { student: { $in: studentIds } },
-        { student: { $in: studentIdStrings } }
-      ]
+      student: { $in: [...studentIds, ...studentIdStrings] }
     }).lean();
 
-    // 5. Fetch attendance for these students
+    // 5. Fetch all rated submissions to compute average assignment scores per subject
+    const submissions = await mongoose.connection.collection('submissions').find({
+      student_id: { $in: [...studentIds, ...studentIdStrings] },
+      score: { $ne: null }
+    }).toArray();
+
+    const assignmentIds = submissions.map(s => s.assignment_id);
+    const assignments = await mongoose.connection.collection('assignments').find({
+      _id: { $in: assignmentIds }
+    }).toArray();
+
+    const assignmentMap = Object.fromEntries(assignments.map(a => [a._id.toString(), {
+      subject: a.subject?.toString(),
+      max_score: a.max_score || 100
+    } gradients]));
+
+    // Calculate assignment average per student per subject
+    const assignmentGradesByStudent = {};
+    students.forEach(s => {
+      assignmentGradesByStudent[s._id.toString()] = {};
+    });
+
+    submissions.forEach(sub => {
+      const sId = sub.student_id ? sub.student_id.toString() : '';
+      const assignInfo = assignmentMap[sub.assignment_id.toString()];
+      if (assignInfo && assignInfo.subject && assignmentGradesByStudent[sId]) {
+        const subId = assignInfo.subject;
+        if (!assignmentGradesByStudent[sId][subId]) {
+          assignmentGradesByStudent[sId][subId] = { sum: 0, max: 0 };
+        }
+        assignmentGradesByStudent[sId][subId].sum += sub.score;
+        assignmentGradesByStudent[sId][subId].max += assignInfo.max_score;
+      }
+    });
+
+    // 6. Fetch attendance for these students
     const Attendance = require('../models/Attendance');
     const attendances = await Attendance.find({
       student_id: { $in: [...studentIds, ...studentIdStrings] }
@@ -92,10 +124,27 @@ exports.getBinaanStudents = async (req, res) => {
       }
     });
 
-    // 6. Map students and calculate some basic progress/metrics
+    // Normalize and map to average assignment grade per student per subject
+    const studentSubjectAssignmentAvg = {};
+    students.forEach(s => {
+      const sId = s._id.toString();
+      studentSubjectAssignmentAvg[sId] = {};
+      subjects.forEach(sub => {
+        const subId = sub._id.toString();
+        const records = assignmentGradesByStudent[sId]?.[subId];
+        if (records && records.max > 0) {
+          studentSubjectAssignmentAvg[sId][subId] = Number(((records.sum / records.max) * 100).toFixed(2));
+        } else {
+          studentSubjectAssignmentAvg[sId][subId] = '-';
+        }
+      });
+    });
+
+    // Calculate metrics for each student (e.g. totals, averages, and ranks)
     const studentsData = students.map(s => {
       const sId = s._id.toString();
       const studentGrades = gradesByStudent[sId] || {};
+      const taskGrades = studentSubjectAssignmentAvg[sId] || {};
       
       // Calculate UTS sum and avg
       let utsSum = 0;
@@ -123,23 +172,40 @@ exports.getBinaanStudents = async (req, res) => {
       });
       const uasAvg = subjects.length > 0 ? (uasSum / subjects.length) : 0;
 
+      // Calculate Task sum and avg (Nilai Tugas Mapel)
+      let taskSum = 0;
+      let taskCount = 0;
+      subjects.forEach(sub => {
+        const subId = sub._id.toString();
+        const score = taskGrades[subId];
+        if (typeof score === 'number') {
+          taskSum += score;
+          taskCount++;
+        }
+      });
+      const taskAvg = subjects.length > 0 ? (taskSum / subjects.length) : 0;
+
       return {
         _id: s._id,
         full_name: s.full_name,
         nis: s.nis,
         class_name: classMap[s.class_id?.toString()] || '-',
         attendance: attendanceByStudent[sId] || { sick: 0, late: 0, absent: 0, total: 0 },
-        grades: studentGrades,
+        grades: studentGrades, // for ATS/AAS detail
+        tasks: taskGrades, // for main table display
         uts_sum: utsSum,
         uts_avg: Number(utsAvg.toFixed(2)),
         uas_sum: uasSum,
         uas_avg: Number(uasAvg.toFixed(2)),
+        task_sum: Number(taskSum.toFixed(2)),
+        task_avg: Number(taskAvg.toFixed(2)),
         rank_uts: 0,
-        rank_uas: 0
+        rank_uas: 0,
+        rank_task: 0
       };
     });
 
-    // 7. Calculate ranking for UTS
+    // Calculate ranking for UTS
     const sortedByUts = [...studentsData].sort((a, b) => b.uts_sum - a.uts_sum);
     sortedByUts.forEach((student, index) => {
       if (index > 0 && student.uts_sum === sortedByUts[index - 1].uts_sum) {
@@ -159,16 +225,28 @@ exports.getBinaanStudents = async (req, res) => {
       }
     });
 
+    // Calculate ranking for Tasks
+    const sortedByTasks = [...studentsData].sort((a, b) => b.task_sum - a.task_sum);
+    sortedByTasks.forEach((student, index) => {
+      if (index > 0 && student.task_sum === sortedByTasks[index - 1].task_sum) {
+        student.rank_task = sortedByTasks[index - 1].rank_task;
+      } else {
+        student.rank_task = index + 1;
+      }
+    });
+
     // Map the ranks back to studentsData
     const rankMapUts = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uts]));
     const rankMapUas = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uas]));
+    const rankMapTask = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_task]));
     
     const finalStudents = studentsData.map(s => {
       const sId = s._id.toString();
       return {
         ...s,
         rank_uts: rankMapUts[sId] || '-',
-        rank_uas: rankMapUas[sId] || '-'
+        rank_uas: rankMapUas[sId] || '-',
+        rank_task: rankMapTask[sId] || '-'
       };
     });
 
@@ -260,5 +338,99 @@ exports.getStudentGrades = async (req, res) => {
       success: false,
       message: 'Gagal mengambil data nilai siswa'
     });
+  }
+};
+
+exports.getClassGrades = async (req, res) => {
+  try {
+    const { classId, subjectId, type } = req.query;
+    if (!classId || !subjectId || !type) {
+      return res.status(400).json({ success: false, message: 'Parameter tidak lengkap (classId, subjectId, type)' });
+    }
+    
+    // Find all students in class
+    const studentCol = mongoose.connection.collection('users_siswa');
+    const students = await studentCol.find({
+      $or: [
+        { class_id: new mongoose.Types.ObjectId(classId) },
+        { class_id: classId }
+      ]
+    }).toArray();
+
+    if (!students || students.length === 0) {
+      return res.status(200).json({ success: true, data: [] });
+    }
+
+    const studentIds = students.map(s => s._id);
+    const studentIdStrings = students.map(s => s._id.toString());
+
+    // Fetch existing grades of this type for this subject and these students
+    const Grade = require('../models/Grade');
+    const grades = await Grade.find({
+      student: { $in: [...studentIds, ...studentIdStrings] },
+      subject: subjectId,
+      type: type
+    }).lean();
+
+    const gradesMap = Object.fromEntries(grades.map(g => [g.student.toString(), { score: g.score, note: g.note || '' }]));
+
+    const studentsData = students.map(s => ({
+      _id: s._id,
+      full_name: s.full_name,
+      nis: s.nis,
+      grade: gradesMap[s._id.toString()] || { score: '', note: '' }
+    }));
+
+    return res.status(200).json({ success: true, data: studentsData });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengambil nilai kelas' });
+  }
+};
+
+exports.saveClassGrades = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const { classId, subjectId, type, grades } = req.body; // grades is array: [{ student_id, score, note }]
+    if (!classId || !subjectId || !type || !Array.isArray(grades)) {
+      return res.status(400).json({ success: false, message: 'Payload tidak valid' });
+    }
+
+    const Grade = require('../models/Grade');
+
+    for (const item of grades) {
+      const { student_id, score, note } = item;
+      
+      // If score is empty/null, we skip it
+      if (score === undefined || score === null || score === '') continue;
+
+      let grade = await Grade.findOne({
+        student: student_id,
+        subject: subjectId,
+        type: type
+      });
+
+      if (grade) {
+        grade.score = Number(score);
+        grade.note = note || '';
+        grade.teacher = teacherId;
+        await grade.save();
+      } else {
+        grade = new Grade({
+          student: student_id,
+          subject: subjectId,
+          type: type,
+          score: Number(score),
+          note: note || '',
+          teacher: teacherId
+        });
+        await grade.save();
+      }
+    }
+
+    return res.status(200).json({ success: true, message: 'Nilai berhasil disimpan' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal menyimpan nilai kelas' });
   }
 };

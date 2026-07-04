@@ -630,4 +630,235 @@
 
 .font-semibold {
   font-weight: 600;
-}
+}
+
+/* REPORT CARD MODAL STYLES */
+.report-card-modal {
+  padding: 24px;
+}
+
+.report-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.report-card-header h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.report-card-header .subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.report-card-header .close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.report-card-header .close-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.student-profile-summary {
+  display: flex;
+  gap: 24px;
+  background: #f8fafc;
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.student-profile-summary .profile-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-profile-summary .profile-item .label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.student-profile-summary .profile-item .value {
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.report-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.report-grades-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.report-grades-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.report-grades-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  text-align: left;
+}
+
+.report-grades-table tr:last-child td {
+  border-bottom: none;
+}
+
+.report-grades-table .summary-row {
+  background: #f8fafc;
+}
+
+.report-grades-table .summary-row td {
+  color: #0f172a;
+}
+
+.border-top-double {
+  border-top: 3px double #cbd5e1 !important;
+}
+
+.text-red {
+  color: #dc2626 !important;
+}
+
+.text-blue {
+  color: #2563eb !important;
+}
+
+.rank-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  background: #f3e8ff;
+  color: #6b21a8;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.attendance-rekap-box h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 12px 0;
+}
+
+.attendance-grid-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.att-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: white;
+}
+
+.att-summary-item.sick {
+  border-left: 4px solid #eab308;
+  background: #fefdf0;
+}
+
+.att-summary-item.permit {
+  border-left: 4px solid #f97316;
+  background: #fffbf7;
+}
+
+.att-summary-item.absent {
+  border-left: 4px solid #ef4444;
+  background: #fdf2f2;
+}
+
+.att-summary-item.total {
+  border-left: 4px solid #be185d;
+  background: #fdf2f8;
+}
+
+.att-summary-item .title {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.att-summary-item .number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.th-section-header {
+  border-right: 2px solid #cbd5e1 !important;
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  font-weight: 700 !important;
+  padding: 8px 12px !important;
+}
+
+.th-subject-code-sub {
+  font-size: 0.75rem;
+  padding: 8px 6px !important;
+  border-right: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  background: #fafbfc !important;
+}
+
+.spreadsheet-actions .btn-action-view {
+  background: #2563eb;
+  color: white;
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.spreadsheet-actions .btn-action-view:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  color: white !important;
+}
+

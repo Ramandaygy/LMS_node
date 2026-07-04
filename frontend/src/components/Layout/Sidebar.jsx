@@ -54,6 +54,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
       { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
+      { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
       { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
       { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },

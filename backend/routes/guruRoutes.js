@@ -12,4 +12,9 @@ router.post('/grades/input', authMiddleware, guruController.inputGrade);
 // GET GRADES BY STUDENT
 router.get('/students/:id/grades', authMiddleware, guruController.getStudentGrades);
 
+// BULK GRADES BY CLASS
+router.get('/grades/class', authMiddleware, guruController.getClassGrades);
+router.post('/grades/class/save', authMiddleware, guruController.saveClassGrades);
+
 module.exports = router;
+
