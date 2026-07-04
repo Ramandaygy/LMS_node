@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/admin/admin-schedule.css';
 
@@ -14,6 +14,8 @@ const AdminSchedule = () => {
   const [importLoading, setImportLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
   const fileInputRef = React.createRef();
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsRef = useRef(null);
 
   const [scheduleData, setScheduleData] = useState({});
 
@@ -63,6 +65,16 @@ const AdminSchedule = () => {
   useEffect(() => {
     if (selectedYear) fetchExistingSchedule();
   }, [selectedYear]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (actionsRef.current && !actionsRef.current.contains(event.target)) {
+        setActionsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const fetchInitialData = async () => {
     try {
@@ -313,18 +325,112 @@ const AdminSchedule = () => {
             ))}
           </select>
 
-          <button onClick={handleDownloadTemplate} disabled={templateLoading} style={{ background: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>description</span>
-            {templateLoading ? '...' : 'Template'}
-          </button>
-          <button onClick={handleImportClick} disabled={importLoading} style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>upload_file</span>
-            {importLoading ? '...' : 'Import'}
-          </button>
-          <button onClick={handleSaveAll} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
-            {saving ? '...' : 'Simpan'}
-          </button>
+          <div className="compact-dropdown-wrapper" ref={actionsRef} style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setActionsOpen(!actionsOpen)} 
+              className="actions-trigger-btn"
+              style={{ 
+                background: '#0284c7', 
+                color: '#fff', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
+              Aksi Jadwal
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>keyboard_arrow_down</span>
+            </button>
+            
+            {actionsOpen && (
+              <div 
+                className="actions-dropdown-menu"
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: '100%',
+                  marginTop: '6px',
+                  background: '#fff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  zIndex: 1000,
+                  minWidth: '180px',
+                  overflow: 'hidden'
+                }}
+              >
+                <button 
+                  onClick={() => { setActionsOpen(false); handleSaveAll(); }}
+                  disabled={saving}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#334155',
+                    fontSize: '14px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>save</span>
+                  {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
+                </button>
+                
+                <button 
+                  onClick={() => { setActionsOpen(false); handleDownloadTemplate(); }}
+                  disabled={templateLoading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#334155',
+                    fontSize: '14px',
+                    borderTop: '1px solid #f1f5f9'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>description</span>
+                  {templateLoading ? 'Memproses...' : 'Unduh Template'}
+                </button>
+                
+                <button 
+                  onClick={() => { setActionsOpen(false); handleImportClick(); }}
+                  disabled={importLoading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    padding: '10px 16px',
+                    border: 'none',
+                    background: 'none',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#334155',
+                    fontSize: '14px',
+                    borderTop: '1px solid #f1f5f9'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>upload_file</span>
+                  {importLoading ? 'Memproses...' : 'Import Excel'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

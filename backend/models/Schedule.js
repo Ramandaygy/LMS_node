@@ -1,5 +1,10 @@
 const mongoose = require('mongoose');
 
+if (!mongoose.models.Teacher) {
+  const teacherSchema = new mongoose.Schema({}, { strict: false, collection: 'users_guru' });
+  mongoose.model('Teacher', teacherSchema);
+}
+
 const scheduleSchema = new mongoose.Schema(
   {
     academic_year_id: {
@@ -19,7 +24,7 @@ const scheduleSchema = new mongoose.Schema(
     },
     teacher_id: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Teacher',
       required: true,
     },
     day: {

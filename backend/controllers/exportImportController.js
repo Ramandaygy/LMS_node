@@ -809,10 +809,10 @@ exports.importSchedules = async (req, res) => {
       for (let col = 4; col <= 45; col++) {
         const gradeVal = gradeRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
         if (gradeVal) {
-          if (gradeVal.includes('VII') || gradeVal.includes('7')) {
-            currentGrade = '7';
-          } else if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
+          if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
             currentGrade = '8';
+          } else if (gradeVal.includes('VII') || gradeVal.includes('7')) {
+            currentGrade = '7';
           } else if (gradeVal.includes('IX') || gradeVal.includes('9')) {
             currentGrade = '9';
           }
