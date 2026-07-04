@@ -422,9 +422,6 @@ const AdminStudents = () => {
                       <button className="admin-action-btn reset" onClick={() => handleResetPassword(student)} title="Reset Password (siswa123)">
                         <span className="material-symbols-outlined">lock_reset</span>
                       </button>
-                      <button className="admin-action-btn delete" onClick={() => handleDelete(student.id)} title="Delete">
-                        <span className="material-symbols-outlined">delete</span>
-                      </button>
                     </td>
                   </tr>
                 ))

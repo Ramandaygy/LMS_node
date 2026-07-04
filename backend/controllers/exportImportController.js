@@ -137,7 +137,11 @@ exports.importStudents = async (req, res) => {
             if (!colNum) return '';
             const cell = row.getCell(colNum);
             if (!cell || cell.value === null || cell.value === undefined) return '';
-            if (cell.value.result !== undefined) return String(cell.value.result).trim();
+            if (typeof cell.value === 'object') {
+              if (cell.value.text !== undefined) return String(cell.value.text).trim();
+              if (cell.value.result !== undefined) return String(cell.value.result).trim();
+              if (cell.value.hyperlink !== undefined) return String(cell.value.hyperlink).replace(/^mailto:/i, '').trim();
+            }
             return String(cell.value).trim();
           };
 
@@ -208,6 +212,8 @@ exports.importStudents = async (req, res) => {
 
           // Flexible Parent Lookup
           let parent_id = null;
+          let student_id;
+
           if (parent_nama) {
             let parent = parentMap.find(p => p.full_name.trim().toLowerCase() === parent_nama.toLowerCase());
             if (!parent) {
@@ -219,12 +225,54 @@ exports.importStudents = async (req, res) => {
               parent = parentMap.find(p => normalizeString(p.full_name).includes(normInput) || normInput.includes(normalizeString(p.full_name)));
             }
             
+            const student_id_placeholder = new mongoose.Types.ObjectId();
+
             if (parent) {
-              parent_id = parent._id; 
-            } else { 
-              errors.push(`Sheet ${worksheet.name} Baris ${i}: Orang tua '${parent_nama}' tidak ditemukan`); 
-              continue; 
+              parent_id = parent._id;
+            } else {
+              // Auto-create parent account
+              const ortu_default_password = "ortu123";
+              const ortu_hashed = await bcrypt.hash(ortu_default_password, 10);
+              const parent_username = `ortu_${email.split('@')[0]}`;
+              const parent_email = `ortu.${email.split('@')[0]}@lms.sch.id`;
+              const parent_nik = `ORTU-${nis}`;
+
+              const newParentDoc = {
+                _id: new mongoose.Types.ObjectId(),
+                nik: parent_nik,
+                full_name: parent_nama,
+                email: parent_email,
+                username: parent_username,
+                password: ortu_hashed,
+                role: 'ortu',
+                children: [student_id_placeholder],
+                phone: '',
+                profile: { avatar: null, bio: '', address: '' },
+                created_at: new Date(),
+                updated_at: new Date()
+              };
+
+              // Insert parent into the database
+              await getCollection('users_ortu').insertOne(newParentDoc);
+              
+              // Add to parentMap so other sibling rows in same import match it
+              parentMap.push(newParentDoc);
+              parent_id = newParentDoc._id;
+              parent = newParentDoc;
             }
+
+            // Link the student to parent's children list in database if not already linked
+            if (parent && !parent.children.some(cId => cId.toString() === student_id_placeholder.toString())) {
+              parent.children.push(student_id_placeholder);
+              await getCollection('users_ortu').updateOne(
+                { _id: parent._id },
+                { $addToSet: { children: student_id_placeholder } }
+              );
+            }
+
+            student_id = student_id_placeholder;
+          } else {
+            student_id = new mongoose.Types.ObjectId();
           }
 
           let username = email.split('@')[0];
@@ -236,6 +284,7 @@ exports.importStudents = async (req, res) => {
           studentUsernameSet.add(username);
 
           studentsToInsert.push({
+            _id: student_id,
             nis, full_name, email, username, password: hashed_default, role: 'siswa',
             class_id: class_doc._id, parent_id, academic_year_id: year_id, status: status === 'active' ? 'active' : 'inactive',
             profile: { avatar: null, bio: '', phone: '', address: '' }, created_at: new Date(), updated_at: new Date()
@@ -493,7 +542,11 @@ exports.importParents = async (req, res) => {
           if (!colNum) return '';
           const cell = row.getCell(colNum);
           if (!cell || cell.value === null || cell.value === undefined) return '';
-          if (cell.value.result !== undefined) return String(cell.value.result).trim();
+          if (typeof cell.value === 'object') {
+            if (cell.value.text !== undefined) return String(cell.value.text).trim();
+            if (cell.value.result !== undefined) return String(cell.value.result).trim();
+            if (cell.value.hyperlink !== undefined) return String(cell.value.hyperlink).replace(/^mailto:/i, '').trim();
+          }
           return String(cell.value).trim();
         };
 

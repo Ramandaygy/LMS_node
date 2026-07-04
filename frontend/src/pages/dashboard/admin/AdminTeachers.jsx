@@ -453,7 +453,6 @@ const AdminTeachers = () => {
                     <td className="admin-table-actions">
                       <button className="admin-action-btn edit" onClick={() => handleEdit(teacher)} title="Edit"><span className="material-symbols-outlined">edit</span></button>
                       <button className="admin-action-btn reset" onClick={() => handleResetPassword(teacher)} title="Reset Password (guru123)"><span className="material-symbols-outlined">lock_reset</span></button>
-                      <button className="admin-action-btn delete" onClick={() => handleDelete(teacher.id)} title="Delete"><span className="material-symbols-outlined">delete</span></button>
                     </td>
                   </tr>
                 ))

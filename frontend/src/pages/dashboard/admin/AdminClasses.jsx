@@ -703,17 +703,6 @@ const AdminClasses = () => {
                         Edit
                       </button>
 
-                      <button
-                        className="btn-delete"
-                        onClick={() =>
-                          handleDelete(
-                            cls._id
-                          )
-                        }
-                      >
-                        Hapus
-                      </button>
-
                     </td>
                   </tr>
                 )

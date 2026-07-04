@@ -398,9 +398,6 @@ const AdminParents = () => {
                     <button className="btn-edit" onClick={() => handleEdit(parent)} title="Edit">
                       <span className="material-symbols-outlined">edit</span>
                     </button>
-                    <button className="btn-delete" onClick={() => handleDelete(parent._id)} title="Hapus">
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
                   </td>
                 </tr>
               ))

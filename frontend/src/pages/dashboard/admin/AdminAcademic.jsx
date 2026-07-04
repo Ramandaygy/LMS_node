@@ -224,7 +224,6 @@ const AdminAcademicYear = () => {
                     <button className="btn-edit" onClick={() => handleEdit(year)}>Edit</button>
                     <button className="btn-promote" onClick={() => openPromoteModal(year)}>Kenaikan Kelas</button>
                     <button className="btn-alumni" onClick={() => openAlumniModal(year)}>Alumni</button>
-                    <button className="btn-delete" onClick={() => handleDelete(year._id)}>Hapus</button>
                   </td>
                 </tr>
               ))

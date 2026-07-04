@@ -132,26 +132,35 @@ exports.getUsersByRole = async (role) => {
       users = await ortuCollection
         .find({})
         .toArray();
-      // Populate children (nama siswa)
+      // Populate children dynamically based on student.parent_id to avoid out-of-sync arrays
       if (users.length) {
-        // Kumpulkan semua childId
-        const allChildIds = users.flatMap(u => u.children || []).map(id => id.toString());
-        if (allChildIds.length) {
-          const siswaCol = mongoose.connection.collection('users_siswa');
-          const siswaList = await siswaCol.find({
-            _id: { $in: allChildIds.map(id => new mongoose.Types.ObjectId(id)) }
-          }).toArray();
-          const siswaMap = new Map();
-          siswaList.forEach(s => siswaMap.set(s._id.toString(), { _id: s._id, full_name: s.full_name, nis: s.nis }));
-          // Ganti children array dengan object berisi full_name
-          users = users.map(u => ({
-            ...u,
-            children: (u.children || []).map(childId => {
-              const student = siswaMap.get(childId.toString());
-              return student || childId; // fallback ke ID jika tidak ditemukan
-            })
-          }));
-        }
+        const parentIds = users.map(u => u._id);
+        const siswaCol = mongoose.connection.collection('users_siswa');
+        const activeStudents = await siswaCol.find({
+          parent_id: { $in: parentIds }
+        }).toArray();
+
+        // Group students by parent_id
+        const studentsByParent = {};
+        activeStudents.forEach(s => {
+          if (s.parent_id) {
+            const pIdStr = s.parent_id.toString();
+            if (!studentsByParent[pIdStr]) {
+              studentsByParent[pIdStr] = [];
+            }
+            studentsByParent[pIdStr].push({
+              _id: s._id,
+              full_name: s.full_name,
+              nis: s.nis
+            });
+          }
+        });
+
+        // Map parents and assign populated children
+        users = users.map(u => ({
+          ...u,
+          children: studentsByParent[u._id.toString()] || []
+        }));
       }
       break;
 

@@ -726,20 +726,6 @@ const AdminMapel = () => {
                           </span>
                         </button>
 
-                        <button
-                          className="admin-action-btn delete"
-                          onClick={() =>
-                            handleDelete(
-                              subject._id
-                            )
-                          }
-                          title="Delete"
-                        >
-                          <span className="material-symbols-outlined">
-                            delete
-                          </span>
-                        </button>
-
                       </td>
 
                     </tr>
