@@ -100,6 +100,55 @@ exports.saveAttendance = async (req, res) => {
       return res.status(400).json({ error: 'Data tidak lengkap (butuh attendance, schedule_id, class_id, date)' });
     }
     await attendanceService.saveAttendance(attendance, schedule_id, class_id, date, teacherId);
+
+    // Kirim push notification absensi ke siswa & orang tua secara background
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const ScheduleModel = require('../models/Schedule');
+      
+      // Ambil detail jadwal untuk mendapatkan nama mata pelajaran
+      const schedule = await ScheduleModel.findById(schedule_id).populate('subject_id', 'name');
+      const subjectName = schedule?.subject_id?.name || 'Mata Pelajaran';
+      
+      const formattedDate = new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      // Map status ke bahasa Indonesia
+      const statusMap = {
+        present: 'HADIR',
+        absent: 'ALPA (TIDAK HADIR)',
+        sick: 'SAKIT',
+        permit: 'IZIN'
+      };
+
+      for (const item of attendance) {
+        const student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(item.student_id) });
+        if (!student) continue;
+
+        const indonesianStatus = statusMap[item.status] || item.status.toUpperCase();
+
+        // 1. Kirim ke Siswa
+        notificationController.sendPushNotification(
+          student._id.toString(),
+          'Absensi Kelas',
+          `Kehadiran Anda pada mata pelajaran ${subjectName} tanggal ${formattedDate} tercatat sebagai: ${indonesianStatus}.`,
+          '/dashboard/siswa'
+        ).catch(e => console.error(e));
+
+        // 2. Kirim ke Orang Tua
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Absensi Anak Anda',
+            `Anak Anda (${student.full_name}) tercatat: ${indonesianStatus} pada mata pelajaran ${subjectName} tanggal ${formattedDate}.`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send attendance push notifications:', notifErr);
+    }
+
     return res.json({ success: true, message: 'Absensi berhasil disimpan' });
   } catch (err) {
     console.error(err);

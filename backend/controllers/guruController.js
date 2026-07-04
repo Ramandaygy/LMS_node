@@ -303,6 +303,41 @@ exports.inputGrade = async (req, res) => {
       await grade.save();
     }
 
+    // Kirim push notification nilai baru ke siswa & orang tua
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const subjectCol = mongoose.connection.collection('subjects');
+      
+      const student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(student_id) });
+      const subject = await subjectCol.findOne({ _id: new mongoose.Types.ObjectId(subject_id) });
+      
+      if (student && subject) {
+        const subjectName = subject.name;
+        const examType = type.toUpperCase(); // e.g. UTS, UAS, QUIZ
+        
+        // 1. Kirim ke Siswa
+        notificationController.sendPushNotification(
+          student._id.toString(),
+          'Nilai Baru!',
+          `Nilai ${examType} untuk mata pelajaran ${subjectName} telah dirilis: ${score}. Catatan: ${note || '-'}`,
+          '/dashboard/siswa/progress'
+        ).catch(e => console.error(e));
+
+        // 2. Kirim ke Orang Tua
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Nilai Baru Anak Anda',
+            `Nilai ${examType} baru untuk ${student.full_name} (Mapel: ${subjectName}) telah diinput: ${score}.`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send grade push notification:', notifErr);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Nilai berhasil disimpan',
@@ -426,6 +461,45 @@ exports.saveClassGrades = async (req, res) => {
         });
         await grade.save();
       }
+    }
+
+    // Kirim push notification nilai baru ke siswa & orang tua secara paralel/background
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const subjectCol = mongoose.connection.collection('subjects');
+      
+      const subject = await subjectCol.findOne({ _id: new mongoose.Types.ObjectId(subjectId) });
+      const subjectName = subject?.name || 'Mata Pelajaran';
+      const examType = type.toUpperCase();
+
+      for (const item of grades) {
+        const { student_id, score, note } = item;
+        if (score === undefined || score === null || score === '') continue;
+
+        const student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(student_id) });
+        if (!student) continue;
+
+        // 1. Kirim ke Siswa
+        notificationController.sendPushNotification(
+          student._id.toString(),
+          'Nilai Baru!',
+          `Nilai ${examType} untuk mata pelajaran ${subjectName} telah dirilis: ${score}. Catatan: ${note || '-'}`,
+          '/dashboard/siswa/progress'
+        ).catch(e => console.error(e));
+
+        // 2. Kirim ke Orang Tua
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Nilai Baru Anak Anda',
+            `Nilai ${examType} baru untuk ${student.full_name} (Mapel: ${subjectName}) telah diinput: ${score}.`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send class grades push notifications:', notifErr);
     }
 
     return res.status(200).json({ success: true, message: 'Nilai berhasil disimpan' });

@@ -36,10 +36,23 @@ exports.createAssignment = async (req, res) => {
     try {
       const notificationController = require('./notificationController');
       const siswaCol = mongoose.connection.collection('users_siswa');
-      const classIdObj = new mongoose.Types.ObjectId(req.body.class);
-      const subjectName = req.body.title; // Gunakan title tugas sebagai referensi singkat
+      const classIdStr = req.body.class.toString();
+      let classIdObj;
+      try {
+        classIdObj = new mongoose.Types.ObjectId(classIdStr);
+      } catch (e) {
+        classIdObj = null;
+      }
       
-      const students = await siswaCol.find({ class_id: classIdObj }).toArray();
+      const query = {
+        $or: [
+          { class_id: classIdStr },
+          ...(classIdObj ? [{ class_id: classIdObj }] : [])
+        ]
+      };
+      
+      const subjectName = req.body.title; // Gunakan title tugas sebagai referensi singkat
+      const students = await siswaCol.find(query).toArray();
       
       // Notifikasi untuk setiap siswa dan ortu
       for (const student of students) {

@@ -40,6 +40,52 @@ exports.createMaterial = async (req, res) => {
     };
 
     const material = await materialService.createMaterial(materialData);
+
+    // Kirim push notification ke siswa dan ortu
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const classIdStr = req.body.class_id.toString();
+      let classIdObj;
+      try {
+        classIdObj = new mongoose.Types.ObjectId(classIdStr);
+      } catch (e) {
+        classIdObj = null;
+      }
+      
+      const query = {
+        $or: [
+          { class_id: classIdStr },
+          ...(classIdObj ? [{ class_id: classIdObj }] : [])
+        ]
+      };
+      
+      const materialTitle = req.body.title;
+      const students = await siswaCol.find(query).toArray();
+      
+      for (const student of students) {
+        if (student._id) {
+          notificationController.sendPushNotification(
+            student._id.toString(),
+            'Materi Baru!',
+            `Materi baru telah diunggah: ${materialTitle}.`,
+            '/dashboard/siswa/materials'
+          ).catch(e => console.error(e));
+        }
+        
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Materi Baru untuk Anak Anda',
+            `Ada materi baru untuk ${student.full_name}: ${materialTitle}.`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send push notifications for new material:', notifErr);
+    }
+
     return res.status(201).json({ success: true, data: material });
   } catch (err) {
     console.error(err);
@@ -67,6 +113,52 @@ exports.generateMaterial = async (req, res) => {
       subject_id,
       uploaded_by: teacherId
     });
+
+    // Kirim push notification ke siswa dan ortu
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const classIdStr = class_id.toString();
+      let classIdObj;
+      try {
+        classIdObj = new mongoose.Types.ObjectId(classIdStr);
+      } catch (e) {
+        classIdObj = null;
+      }
+      
+      const query = {
+        $or: [
+          { class_id: classIdStr },
+          ...(classIdObj ? [{ class_id: classIdObj }] : [])
+        ]
+      };
+      
+      const materialTitle = material.title || titleSuggestion || 'Materi Baru';
+      const students = await siswaCol.find(query).toArray();
+      
+      for (const student of students) {
+        if (student._id) {
+          notificationController.sendPushNotification(
+            student._id.toString(),
+            'Materi Baru!',
+            `Materi baru telah digenerate oleh AI: ${materialTitle}.`,
+            '/dashboard/siswa/materials'
+          ).catch(e => console.error(e));
+        }
+        
+        if (student.parent_id) {
+          notificationController.sendPushNotification(
+            student.parent_id.toString(),
+            'Materi Baru untuk Anak Anda',
+            `Ada materi baru dari AI untuk ${student.full_name}: ${materialTitle}.`,
+            '/dashboard/ortu'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send push notifications for generated material:', notifErr);
+    }
+
     return res.json({ success: true, data: material });
   } catch (err) {
     console.error(err);
