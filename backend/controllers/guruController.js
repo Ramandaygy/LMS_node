@@ -56,7 +56,7 @@ exports.getBinaanStudents = async (req, res) => {
     const assignmentMap = Object.fromEntries(assignments.map(a => [a._id.toString(), {
       subject: a.subject?.toString(),
       max_score: a.max_score || 100
-    } gradients]));
+    } ]));
 
     // Calculate assignment average per student per subject
     const assignmentGradesByStudent = {};
