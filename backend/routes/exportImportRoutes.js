@@ -20,6 +20,7 @@ router.get('/export/subjects', controller.exportSubjects);
 router.get('/export/students-template', controller.exportStudentsTemplate);
 router.get('/export/teachers-template', controller.exportTeachersTemplate);
 router.get('/export/parents-template', controller.exportParentsTemplate);
+router.get('/export/schedules-template', controller.exportSchedulesTemplate);
 
 // IMPORT ROUTES
 router.post('/import/classes', upload.single('file'), controller.importClasses);
@@ -28,5 +29,6 @@ router.post('/import/teachers', upload.single('file'), controller.importTeachers
 router.post('/import/academic-years', upload.single('file'), controller.importAcademicYears);
 router.post('/import/parents', upload.single('file'), controller.importParents);
 router.post('/import/subjects', upload.single('file'), controller.importSubjects);
+router.post('/import/schedules', upload.single('file'), controller.importSchedules);
 
 module.exports = router;

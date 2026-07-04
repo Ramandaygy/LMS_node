@@ -10,6 +10,9 @@ const AdminSchedule = () => {
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('7');
+  const [importLoading, setImportLoading] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const fileInputRef = React.createRef();
 
   const [scheduleData, setScheduleData] = useState({});
 
@@ -194,6 +197,65 @@ const AdminSchedule = () => {
     }
   };
 
+  const handleDownloadTemplate = async () => {
+    try {
+      setTemplateLoading(true);
+      const response = await api.get('/admin/export/schedules-template', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'template_jadwal.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Gagal mendownload template' });
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    setImportLoading(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const response = await api.post('/admin/import/schedules', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const { success_count, error_count, errors } = response.data;
+      if (success_count > 0 && error_count > 0) {
+        setMessage({ 
+          type: 'success', 
+          text: `Import selesai: ${success_count} berhasil dimasukkan, namun ${error_count} baris gagal. Kesalahan pertama: ${errors.slice(0, 2).join(', ')}` 
+        });
+      } else if (success_count > 0) {
+        setMessage({ type: 'success', text: `Berhasil mengimport ${success_count} jadwal pelajaran!` });
+      } else {
+        setMessage({ 
+          type: 'error', 
+          text: `Gagal mengimport jadwal. Kesalahan: ${errors.slice(0, 5).join(', ')}` 
+        });
+      }
+      await fetchExistingSchedule();
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: 'error', text: error.response?.data?.error || 'Gagal mengimport file' });
+    } finally {
+      setImportLoading(false);
+      event.target.value = ''; // Reset file input
+    }
+  };
+
 
 
   const handleTimeEdit = (slotIndex) => {
@@ -212,6 +274,13 @@ const AdminSchedule = () => {
       <div className="compact-header">
         <h2>Penjadwalan Mengajar</h2>
         <div className="compact-actions">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            accept=".xlsx" 
+            style={{ display: 'none' }} 
+          />
           <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
             <option value="">Pilih Tahun Ajaran</option>
             {academicYears.map(y => (
@@ -227,8 +296,17 @@ const AdminSchedule = () => {
             <option value="all">Semua</option>
           </select>
 
-          <button onClick={handleSaveAll} disabled={saving}>
-            {saving ? '...' : '💾 Simpan'}
+          <button onClick={handleDownloadTemplate} disabled={templateLoading} style={{ background: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>description</span>
+            {templateLoading ? '...' : 'Template'}
+          </button>
+          <button onClick={handleImportClick} disabled={importLoading} style={{ background: '#0284c7', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>upload_file</span>
+            {importLoading ? '...' : 'Import'}
+          </button>
+          <button onClick={handleSaveAll} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+            {saving ? '...' : 'Simpan'}
           </button>
         </div>
       </div>

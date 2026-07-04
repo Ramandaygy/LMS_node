@@ -723,3 +723,164 @@ exports.exportTeachersTemplate = async (req, res) => {
     await sendExcelFile(res, workbook, 'template_guru.xlsx');
   } catch (error) { res.status(500).json({ error: `Gagal membuat template: ${error.message}` }); }
 };
+
+exports.exportSchedulesTemplate = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Template_Jadwal');
+    worksheet.columns = [
+      { header: 'hari', key: 'hari', width: 15 },
+      { header: 'jam_ke', key: 'jam_ke', width: 10 },
+      { header: 'waktu_mulai', key: 'waktu_mulai', width: 15 },
+      { header: 'waktu_selesai', key: 'waktu_selesai', width: 15 },
+      { header: 'kelas', key: 'kelas', width: 15 },
+      { header: 'mata_pelajaran', key: 'mata_pelajaran', width: 25 },
+      { header: 'guru', key: 'guru', width: 30 },
+      { header: 'ruang', key: 'ruang', width: 15 }
+    ];
+    // Contoh baris
+    worksheet.addRow({
+      hari: 'SENIN',
+      jam_ke: 1,
+      waktu_mulai: '07:20',
+      waktu_selesai: '08:00',
+      kelas: '7A',
+      mata_pelajaran: 'Matematika',
+      guru: 'Budi Utomo, S.Pd',
+      ruang: '7A'
+    });
+    await sendExcelFile(res, workbook, 'template_jadwal.xlsx');
+  } catch (error) { 
+    res.status(500).json({ error: `Gagal membuat template: ${error.message}` }); 
+  }
+};
+
+exports.importSchedules = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Tidak ada file' });
+    
+    const activeYear = await getCollection('academic_years').findOne({ is_active: true });
+    if (!activeYear) {
+      return res.status(400).json({ error: 'Tidak ada tahun ajaran aktif. Silakan aktifkan tahun ajaran terlebih dahulu.' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const worksheet = workbook.getWorksheet(1);
+    
+    let headers = {};
+    worksheet.getRow(1).eachCell((cell, colNumber) => { 
+      if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber; 
+    });
+
+    const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
+    for (const h of requiredHeaders) {
+      if (!headers[h]) {
+        return res.status(400).json({ error: `Kolom wajib "${h}" tidak ditemukan di file Excel` });
+      }
+    }
+
+    const classes = await getCollection('classes').find({}).toArray();
+    const subjects = await getCollection('subjects').find({}).toArray();
+    const teachers = await getCollection('users_guru').find({}).toArray();
+
+    const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+    
+    const findClass = (name) => {
+      const normName = normalize(name);
+      return classes.find(c => normalize(c.name) === normName);
+    };
+    
+    const findSubject = (name) => {
+      const normName = normalize(name);
+      return subjects.find(s => normalize(s.name) === normName);
+    };
+    
+    const findTeacher = (name) => {
+      const normName = normalize(name);
+      return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
+    };
+
+    let success = 0, errors = [];
+    const schedulesToInsert = [];
+
+    const validDays = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+
+    for (let i = 2; i <= worksheet.rowCount; i++) {
+      const row = worksheet.getRow(i);
+      if (!row.values || row.values.length === 0) continue;
+
+      try {
+        const hari = row.getCell(headers['hari']).text?.trim()?.toUpperCase();
+        const jamKe = row.getCell(headers['jam_ke']).value;
+        const waktuMulai = row.getCell(headers['waktu_mulai']).text?.trim();
+        const waktuSelesai = row.getCell(headers['waktu_selesai']).text?.trim();
+        const kelasName = row.getCell(headers['kelas']).text?.trim();
+        const mapelName = row.getCell(headers['mata_pelajaran']).text?.trim();
+        const guruName = row.getCell(headers['guru']).text?.trim();
+        const ruang = headers['ruang'] ? row.getCell(headers['ruang']).text?.trim() : '';
+
+        if (!hari || !jamKe || !waktuMulai || !waktuSelesai || !kelasName || !mapelName || !guruName) {
+          errors.push(`Baris ${i}: Kolom wajib ada yang kosong`);
+          continue;
+        }
+
+        if (!validDays.includes(hari)) {
+          errors.push(`Baris ${i}: Hari '${hari}' tidak valid. Pilihan: ${validDays.join(', ')}`);
+          continue;
+        }
+
+        const foundClass = findClass(kelasName);
+        if (!foundClass) {
+          errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
+          continue;
+        }
+
+        const foundSubject = findSubject(mapelName);
+        if (!foundSubject) {
+          errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
+          continue;
+        }
+
+        const foundTeacher = findTeacher(guruName);
+        if (!foundTeacher) {
+          errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
+          continue;
+        }
+
+        schedulesToInsert.push({
+          academic_year_id: activeYear._id,
+          class_id: foundClass._id,
+          subject_id: foundSubject._id,
+          teacher_id: foundTeacher._id,
+          day: hari,
+          time_slot: Number(jamKe) || 1,
+          start_time: waktuMulai,
+          end_time: waktuSelesai,
+          room: ruang || '',
+          generated_type: 'manual',
+          is_active: true,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+
+        success++;
+      } catch (e) {
+        errors.push(`Baris ${i}: ${e.message}`);
+      }
+    }
+
+    if (schedulesToInsert.length > 0) {
+      await getCollection('schedules').insertMany(schedulesToInsert);
+    }
+
+    res.json({ 
+      message: 'Import jadwal pelajaran selesai', 
+      success_count: success, 
+      error_count: errors.length, 
+      errors: errors.slice(0, 10) 
+    });
+  } catch (error) {
+    res.status(500).json({ error: `Gagal import jadwal: ${error.message}` });
+  }
+};
