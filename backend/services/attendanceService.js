@@ -5,7 +5,11 @@ const Attendance = require('../models/Attendance');
 exports.getStudentsByClass = async (classId) => {
   const siswaCollection = mongoose.connection.collection('users_siswa');
   const students = await siswaCollection
-    .find({ class_id: new mongoose.Types.ObjectId(classId) })
+    .find({
+      role: 'siswa',
+      is_active: true,
+      class_id: new mongoose.Types.ObjectId(classId)
+    })
     .toArray();
   return students.map(s => ({
     id: s._id,

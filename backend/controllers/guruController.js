@@ -383,9 +383,39 @@ exports.getClassGrades = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Parameter tidak lengkap (classId, subjectId, type)' });
     }
     
-    // Find all students in class
+    const teacherId = req.user.id;
+    const role = req.user.role;
+
+    // Verifikasi bahwa guru mengajar kelas & mapel ini
+    if (role === 'guru') {
+      const guruCollection = mongoose.connection.collection('users_guru');
+      const teacher = await guruCollection.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
+      if (!teacher) {
+        return res.status(404).json({ success: false, message: 'Guru tidak ditemukan' });
+      }
+
+      const hasClass = teacher.classes && teacher.classes.some(id => id.toString() === classId);
+      const hasSubject = teacher.subjects && teacher.subjects.some(id => id.toString() === subjectId);
+
+      if (!hasClass || !hasSubject) {
+        // Fallback: cek ke jadwal aktif
+        const scheduleCol = mongoose.connection.collection('schedules');
+        const schedule = await scheduleCol.findOne({
+          teacher_id: new mongoose.Types.ObjectId(teacherId),
+          class_id: new mongoose.Types.ObjectId(classId),
+          subject_id: new mongoose.Types.ObjectId(subjectId)
+        });
+        if (!schedule) {
+          return res.status(403).json({ success: false, message: 'Anda tidak mengajar mata pelajaran ini di kelas tersebut.' });
+        }
+      }
+    }
+    
+    // Find all active students in class
     const studentCol = mongoose.connection.collection('users_siswa');
     const students = await studentCol.find({
+      role: 'siswa',
+      is_active: true,
       $or: [
         { class_id: new mongoose.Types.ObjectId(classId) },
         { class_id: classId }
@@ -426,9 +456,35 @@ exports.getClassGrades = async (req, res) => {
 exports.saveClassGrades = async (req, res) => {
   try {
     const teacherId = req.user.id;
+    const role = req.user.role;
     const { classId, subjectId, type, grades } = req.body; // grades is array: [{ student_id, score, note }]
     if (!classId || !subjectId || !type || !Array.isArray(grades)) {
       return res.status(400).json({ success: false, message: 'Payload tidak valid' });
+    }
+
+    // Verifikasi bahwa guru mengajar kelas & mapel ini
+    if (role === 'guru') {
+      const guruCollection = mongoose.connection.collection('users_guru');
+      const teacher = await guruCollection.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
+      if (!teacher) {
+        return res.status(404).json({ success: false, message: 'Guru tidak ditemukan' });
+      }
+
+      const hasClass = teacher.classes && teacher.classes.some(id => id.toString() === classId);
+      const hasSubject = teacher.subjects && teacher.subjects.some(id => id.toString() === subjectId);
+
+      if (!hasClass || !hasSubject) {
+        // Fallback: cek ke jadwal aktif
+        const scheduleCol = mongoose.connection.collection('schedules');
+        const schedule = await scheduleCol.findOne({
+          teacher_id: new mongoose.Types.ObjectId(teacherId),
+          class_id: new mongoose.Types.ObjectId(classId),
+          subject_id: new mongoose.Types.ObjectId(subjectId)
+        });
+        if (!schedule) {
+          return res.status(403).json({ success: false, message: 'Anda tidak mengizinkan pengisian nilai untuk kelas/mapel ini.' });
+        }
+      }
     }
 
     const Grade = require('../models/Grade');

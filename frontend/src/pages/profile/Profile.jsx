@@ -284,9 +284,6 @@ const Profile = () => {
               <button className="btn-password" onClick={() => setIsChangingPassword(true)}>
                 Ganti Password
               </button>
-              <button className="btn-password" onClick={handleSubscribeNotification} style={{background: '#0284c7'}}>
-                Aktifkan Notifikasi
-              </button>
               <button className="btn-password" onClick={handleTestNotification} style={{background: '#28a745'}}>
                 Test Notifikasi Asli
               </button>
