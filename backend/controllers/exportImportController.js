@@ -99,6 +99,8 @@ exports.importStudents = async (req, res) => {
     let success = 0, errors = [];
     const default_password = "siswa123";
     const hashed_default = await bcrypt.hash(default_password, 10);
+    const ortu_default_password = "ortu123";
+    const hashed_ortu_default = await bcrypt.hash(ortu_default_password, 10);
     const classesMap = await getCollection('classes').find({}).toArray();
     const yearMap = await getCollection('academic_years').find({}).toArray();
     const parentMap = await getCollection('users_ortu').find({}).toArray();
@@ -231,8 +233,6 @@ exports.importStudents = async (req, res) => {
               parent_id = parent._id;
             } else {
               // Auto-create parent account
-              const ortu_default_password = "ortu123";
-              const ortu_hashed = await bcrypt.hash(ortu_default_password, 10);
               const parent_username = `ortu_${email.split('@')[0]}`;
               const parent_email = `ortu.${email.split('@')[0]}@lms.sch.id`;
               const parent_nik = `ORTU-${nis}`;
@@ -243,7 +243,7 @@ exports.importStudents = async (req, res) => {
                 full_name: parent_nama,
                 email: parent_email,
                 username: parent_username,
-                password: ortu_hashed,
+                password: hashed_ortu_default,
                 role: 'ortu',
                 children: [student_id_placeholder],
                 phone: '',
@@ -262,12 +262,17 @@ exports.importStudents = async (req, res) => {
             }
 
             // Link the student to parent's children list in database if not already linked
-            if (parent && !parent.children.some(cId => cId.toString() === student_id_placeholder.toString())) {
-              parent.children.push(student_id_placeholder);
-              await getCollection('users_ortu').updateOne(
-                { _id: parent._id },
-                { $addToSet: { children: student_id_placeholder } }
-              );
+            if (parent) {
+              if (!parent.children) {
+                parent.children = [];
+              }
+              if (!parent.children.some(cId => cId.toString() === student_id_placeholder.toString())) {
+                parent.children.push(student_id_placeholder);
+                await getCollection('users_ortu').updateOne(
+                  { _id: parent._id },
+                  { $addToSet: { children: student_id_placeholder } }
+                );
+              }
             }
 
             student_id = student_id_placeholder;
