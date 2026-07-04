@@ -42,7 +42,6 @@ const Navbar = ({ user, onLogout }) => {
         <div className={`navbar-links-modern ${isMenuOpen ? 'active' : ''}`}>
           <Link to="/" className="nav-link-modern" onClick={() => setIsMenuOpen(false)}>Beranda</Link>
           <Link to="/tentang" className="nav-link-modern" onClick={() => setIsMenuOpen(false)}>Tentang</Link>
-          <Link to="/kursus" className="nav-link-modern" onClick={() => setIsMenuOpen(false)}>Kursus</Link>
           <Link to="/kontak" className="nav-link-modern" onClick={() => setIsMenuOpen(false)}>Kontak</Link>
           
           {/*

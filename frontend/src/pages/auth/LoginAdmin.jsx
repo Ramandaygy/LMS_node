@@ -177,15 +177,6 @@ const LoginAdmin = () => {
                 <span className="material-symbols-outlined">arrow_forward</span>
               </button>
             </form>
-
-            {/* Register Link */}
-            <div className="auth-register-prompt">
-              <p>First time here? Register your administrator account.</p>
-              <Link to="/register/admin" className="auth-register-btn">
-                <span className="material-symbols-outlined">person_add</span>
-                Create Admin Account
-              </Link>
-            </div>
           </div>
 
           {/* Footer Info */}
