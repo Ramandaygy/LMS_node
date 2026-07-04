@@ -106,7 +106,7 @@ exports.importStudents = async (req, res) => {
 
     // Fetch existing students in-memory to prevent loop queries
     const existingStudents = await getCollection('users_siswa')
-      .find({}, { projection: { nis: 1, email: 1, username: 1 } })
+      .find({})
       .toArray();
 
     const studentNisSet = new Set(existingStudents.map(s => s.nis?.trim()));
@@ -392,7 +392,7 @@ exports.importParents = async (req, res) => {
 
     // Fetch existing parents in-memory to prevent loop queries
     const existingParents = await getCollection('users_ortu')
-      .find({}, { projection: { nik: 1, email: 1 } })
+      .find({})
       .toArray();
 
     const parentNikSet = new Set(existingParents.map(p => p.nik?.trim()));
@@ -400,7 +400,7 @@ exports.importParents = async (req, res) => {
 
     // Fetch all students in-memory to map child NIS lists instantly
     const existingStudents = await getCollection('users_siswa')
-      .find({}, { projection: { nis: 1 } })
+      .find({})
       .toArray();
     const studentNisMap = Object.fromEntries(existingStudents.map(s => [s.nis?.trim(), s._id]));
 
