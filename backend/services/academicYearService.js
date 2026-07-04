@@ -188,3 +188,17 @@ exports.promoteStudents = async (yearId) => {
     graduated: studentsGrade9.length
   };
 };
+
+// Drop the old single unique index if it exists, to allow year + semester duplicates
+mongoose.connection.once('open', async () => {
+  try {
+    const collection = mongoose.connection.collection('academic_years');
+    const indexes = await collection.indexes();
+    if (indexes.some(idx => idx.name === 'year_1')) {
+      await collection.dropIndex('year_1');
+      console.log('Successfully dropped old single unique index year_1 from academic_years');
+    }
+  } catch (err) {
+    console.error('Error dropping old index year_1:', err);
+  }
+});

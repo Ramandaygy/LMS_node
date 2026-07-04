@@ -6,7 +6,6 @@ const academicYearSchema =
       year: {
         type: String,
         required: true,
-        unique: true,
       },
 
       semester: {
@@ -37,6 +36,8 @@ const academicYearSchema =
       collection: 'academic_years'
     }
   );
+
+academicYearSchema.index({ year: 1, semester: 1 }, { unique: true });
 
 module.exports =
   mongoose.model(
