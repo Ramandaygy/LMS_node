@@ -195,16 +195,16 @@ exports.getUsersByRole = async (role) => {
     let subjectNames = [];
 
     if (Array.isArray(user.subjects)) {
-
       subjectNames = user.subjects.map(id => {
-
-        const subject = subjects.find(
-          s =>
-            s._id.toString() ===
-            id.toString()
-        );
-
-        return subject?.name || '-';
+        if (!id) return '-';
+        try {
+          const subject = subjects.find(
+            s => s && s._id && s._id.toString() === id.toString()
+          );
+          return subject?.name || '-';
+        } catch (e) {
+          return '-';
+        }
       });
     }
 
@@ -215,16 +215,16 @@ exports.getUsersByRole = async (role) => {
     let classNames = [];
 
     if (Array.isArray(user.classes)) {
-
       classNames = user.classes.map(id => {
-
-        const kelas = classes.find(
-          c =>
-            c._id.toString() ===
-            id.toString()
-        );
-
-        return kelas?.name || '-';
+        if (!id) return '-';
+        try {
+          const kelas = classes.find(
+            c => c && c._id && c._id.toString() === id.toString()
+          );
+          return kelas?.name || '-';
+        } catch (e) {
+          return '-';
+        }
       });
     }
 
@@ -235,14 +235,14 @@ exports.getUsersByRole = async (role) => {
     let className = '-';
 
     if (user.class_id) {
-
-      const kelas = classes.find(
-        c =>
-          c._id.toString() ===
-          user.class_id.toString()
-      );
-
-      className = kelas?.name || '-';
+      try {
+        const kelas = classes.find(
+          c => c && c._id && c._id.toString() === user.class_id.toString()
+        );
+        className = kelas?.name || '-';
+      } catch (e) {
+        className = '-';
+      }
     }
 
     return {

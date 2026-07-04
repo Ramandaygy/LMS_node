@@ -729,14 +729,14 @@ exports.exportSchedulesTemplate = async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Template_Jadwal');
     worksheet.columns = [
-      { header: 'hari', key: 'hari', width: 15 },
-      { header: 'jam_ke', key: 'jam_ke', width: 10 },
-      { header: 'waktu_mulai', key: 'waktu_mulai', width: 15 },
-      { header: 'waktu_selesai', key: 'waktu_selesai', width: 15 },
-      { header: 'kelas', key: 'kelas', width: 15 },
-      { header: 'mata_pelajaran', key: 'mata_pelajaran', width: 25 },
-      { header: 'guru', key: 'guru', width: 30 },
-      { header: 'ruang', key: 'ruang', width: 15 }
+      { header: 'HARI', key: 'hari', width: 15 },
+      { header: 'JAM_KE', key: 'jam_ke', width: 10 },
+      { header: 'WAKTU_MULAI', key: 'waktu_mulai', width: 15 },
+      { header: 'WAKTU_SELESAI', key: 'waktu_selesai', width: 15 },
+      { header: 'KELAS', key: 'kelas', width: 15 },
+      { header: 'MATA_PELAJARAN', key: 'mata_pelajaran', width: 25 },
+      { header: 'GURU', key: 'guru', width: 30 },
+      { header: 'RUANG', key: 'ruang', width: 15 }
     ];
     // Contoh baris
     worksheet.addRow({
