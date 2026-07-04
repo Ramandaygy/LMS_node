@@ -97,10 +97,19 @@ const AdminAcademicYear = () => {
 
   const handleEdit = (year) => {
     setEditingYear(year);
+    const parseDate = (d) => {
+      if (!d) return '';
+      if (typeof d === 'string') return d.split('T')[0];
+      try {
+        return new Date(d).toISOString().split('T')[0];
+      } catch (err) {
+        return '';
+      }
+    };
     setFormData({
-      year: year.year,
-      start_date: year.start_date?.split('T')[0] || '',
-      end_date: year.end_date?.split('T')[0] || '',
+      year: year.year || year.name || '',
+      start_date: parseDate(year.start_date),
+      end_date: parseDate(year.end_date),
       is_active: year.is_active,
       semester: year.semester || ''
     });

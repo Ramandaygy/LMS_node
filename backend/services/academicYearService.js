@@ -13,6 +13,8 @@ exports.getAll = async () => {
 exports.create = async (
   data
 ) => {
+  if (data.start_date === '') data.start_date = null;
+  if (data.end_date === '') data.end_date = null;
 
   if (data.is_active) {
 
@@ -35,6 +37,8 @@ exports.update = async (
   id,
   data
 ) => {
+  if (data.start_date === '') data.start_date = null;
+  if (data.end_date === '') data.end_date = null;
 
   if (data.is_active) {
 

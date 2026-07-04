@@ -61,8 +61,9 @@ const SiswaProgress = () => {
 
   return (
     <div className="progress-container">
-      <div className="page-header" style={{ marginBottom: '30px' }}>
+      <div className="page-header">
         <h2>Progres Belajar Saya</h2>
+        <p>Pantau perkembangan akademik, kehadiran kelas, dan analisis rekomendasi belajar berbasis AI.</p>
       </div>
       
       <div className="progress-dashboard">
