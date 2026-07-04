@@ -8,12 +8,14 @@ const SiswaSchedule = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const [timeSlots] = useState([
-    { slot: 1, label: '07:00-08:00' },
-    { slot: 2, label: '08:00-09:00' },
-    { slot: 3, label: '09:00-10:00' },
-    { slot: 4, label: '10:00-11:00' },
-    { slot: 5, label: '11:00-12:00' },
-    { slot: 6, label: '12:00-13:00' },
+    { slot: 1, label: '07:20-08:00' },
+    { slot: 2, label: '08:00-08:40' },
+    { slot: 3, label: '08:40-09:20' },
+    { slot: 4, label: '09:40-10:20' },
+    { slot: 5, label: '10:20-11:00' },
+    { slot: 6, label: '11:00-11:40' },
+    { slot: 7, label: '12:10-12:50' },
+    { slot: 8, label: '12:50-13:30' },
   ]);
 
   const [days] = useState(['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU']);

@@ -10,6 +10,7 @@ const AdminSchedule = () => {
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedGrade, setSelectedGrade] = useState('7');
+  const [selectedClass, setSelectedClass] = useState('all');
   const [importLoading, setImportLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
   const fileInputRef = React.createRef();
@@ -107,9 +108,9 @@ const AdminSchedule = () => {
           slot = slotIndex + 1;
         }
         if (!slot) return;
-        const classId = item.class_id?._id || item.class_id;
-        const subjectId = item.subject_id?._id || item.subject_id;
-        const teacherId = item.teacher_id?._id || item.teacher_id;
+        const classId = (item.class_id?._id || item.class_id)?.toString();
+        const subjectId = (item.subject_id?._id || item.subject_id)?.toString();
+        const teacherId = (item.teacher_id?._id || item.teacher_id)?.toString();
         if (!classId) return;
         const key = `${item.day}_${slot}_${classId}`;
         newData[key] = {
@@ -124,15 +125,9 @@ const AdminSchedule = () => {
     }
   };
 
-  const selectedYearObj = academicYears.find(y => y._id === selectedYear);
   const classes = allClasses.filter(cls => {
-    if (!selectedYearObj) return false;
-    const classYearId = cls.academic_year_id?._id || cls.academic_year_id;
-    const classYearObj = academicYears.find(y => y._id === classYearId);
-    
-    // Cocokkan berdasarkan nama tahun (misal: "2025/2026") agar kelas tampil di Ganjil maupun Genap
-    const yearMatch = classYearObj && classYearObj.year === selectedYearObj.year;
-    if (!yearMatch) return false;
+    // Tampilkan semua kelas yang aktif di sekolah
+    if (cls.is_active === false) return false;
     
     if (selectedGrade === 'all') return true;
     return String(cls.grade_level) === selectedGrade;
@@ -295,11 +290,27 @@ const AdminSchedule = () => {
               </option>
             ))}
           </select>
-          <select value={selectedGrade} onChange={e => setSelectedGrade(e.target.value)}>
+          <select 
+            value={selectedGrade} 
+            onChange={e => {
+              setSelectedGrade(e.target.value);
+              setSelectedClass('all');
+            }}
+          >
             <option value="7">Kelas 7</option>
             <option value="8">Kelas 8</option>
             <option value="9">Kelas 9</option>
             <option value="all">Semua</option>
+          </select>
+          <select 
+            value={selectedClass} 
+            onChange={e => setSelectedClass(e.target.value)}
+            style={{ minWidth: '130px' }}
+          >
+            <option value="all">Semua Kelas</option>
+            {classes.map(c => (
+              <option key={c._id} value={c._id}>{c.name}</option>
+            ))}
           </select>
 
           <button onClick={handleDownloadTemplate} disabled={templateLoading} style={{ background: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -325,51 +336,131 @@ const AdminSchedule = () => {
       )}
 
       <div className="compact-table-wrapper">
-        <table className="compact-schedule">
-          <thead>
-            <tr>
-              <th className="time-col">Hari / Jam</th>
-              {classes.map(c => <th key={c._id} className="class-col">{c.name}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            {days.map(day => (
-              <React.Fragment key={day}>
-                {timeSlots.map((slot, idx) => (
-                  <tr key={`${day}_${slot.slot}`}>
-                    <td className="time-cell" onClick={() => handleTimeEdit(idx)} title="Klik untuk edit waktu">
-                      <div className="day-name">{day}</div>
-                      <div className="time-range">{slot.label}</div>
-                    </td>
-                    {classes.map(cls => {
-                      const key = `${day}_${slot.slot}_${cls._id}`;
-                      const data = scheduleData[key] || {};
-                      const subject = subjects.find(s => s._id === data.subjectId);
-                      const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
-                      const subjectCode = subject?.code || (subject?.name?.slice(0, 4) || '—');
-                      let teacherCode = '-';
-                      if (teacher) {
-                        teacherCode = teacher.teacher_code || teacher.code || teacher.kode_guru || teacher.username || '-';
-                      }
-                      const bgColor = getMapelColor(data.subjectId);
-                      return (
-                        <td
-                          key={cls._id}
-                          className="assignment-cell"
-                          style={{ backgroundColor: data.subjectId ? bgColor : '#fff' }}
-                          onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
-                        >
-                          <div className="cell-subject">{subjectCode}</div>
-                          <div className="cell-teacher">{teacherCode}</div>
+        {selectedClass === 'all' ? (
+          <table className="compact-schedule">
+            <thead>
+              <tr>
+                <th className="time-col">Hari / Jam</th>
+                {classes.map(c => <th key={c._id} className="class-col">{c.name}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {days.map(day => (
+                <React.Fragment key={day}>
+                  {timeSlots.map((slot, idx) => (
+                    <tr key={`${day}_${slot.slot}`}>
+                      <td className="time-cell" onClick={() => handleTimeEdit(idx)} title="Klik untuk edit waktu">
+                        <div className="day-name">{day}</div>
+                        <div className="time-range">{slot.label}</div>
+                      </td>
+                      {classes.map(cls => {
+                        const key = `${day}_${slot.slot}_${cls._id}`;
+                        const data = scheduleData[key] || {};
+                        const subject = subjects.find(s => s._id === data.subjectId);
+                        const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
+                        const subjectCode = subject?.code || (subject?.name?.slice(0, 4) || '—');
+                        let teacherCode = '-';
+                        if (teacher) {
+                          teacherCode = teacher.teacher_code || teacher.code || teacher.kode_guru || teacher.username || '-';
+                        }
+                        const bgColor = getMapelColor(data.subjectId);
+                        return (
+                          <td
+                            key={cls._id}
+                            className="assignment-cell"
+                            style={{ backgroundColor: data.subjectId ? bgColor : '#fff' }}
+                            onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
+                          >
+                            <div className="cell-subject">{subjectCode}</div>
+                            <div className="cell-teacher">{teacherCode}</div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <table className="compact-schedule" style={{ width: '100%', borderCollapse: 'collapse', backgroundColor: '#fff' }}>
+            <thead>
+              <tr style={{ backgroundColor: '#f1f5f9', borderBottom: '2px solid #e2e8f0' }}>
+                <th style={{ width: '15%', padding: '16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Hari</th>
+                <th style={{ width: '20%', padding: '16px', textAlign: 'center', color: '#475569', fontWeight: '600' }}>Jam</th>
+                <th style={{ width: '65%', padding: '16px', textAlign: 'left', color: '#475569', fontWeight: '600' }}>Mata Pelajaran & Guru</th>
+              </tr>
+            </thead>
+            <tbody>
+              {days.map(day => (
+                <React.Fragment key={day}>
+                  {timeSlots.map((slot, index) => {
+                    const key = `${day}_${slot.slot}_${selectedClass}`;
+                    const data = scheduleData[key] || {};
+                    const subject = subjects.find(s => s._id === data.subjectId);
+                    const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
+                    const bgColor = getMapelColor(data.subjectId);
+                    
+                    return (
+                      <tr key={`${day}_${slot.slot}`} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        {index === 0 && (
+                          <td 
+                            rowSpan={timeSlots.length} 
+                            style={{ 
+                              verticalAlign: 'middle', 
+                              fontWeight: 'bold', 
+                              backgroundColor: '#f8fafc', 
+                              borderRight: '1px solid #e2e8f0', 
+                              textAlign: 'center',
+                              padding: '16px',
+                              color: '#334155'
+                            }}
+                          >
+                            {day}
+                          </td>
+                        )}
+                        <td style={{ textAlign: 'center', padding: '16px', borderRight: '1px solid #e2e8f0' }}>
+                          <div style={{ fontWeight: '500', color: '#475569' }}>
+                            {slot.label}
+                          </div>
                         </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </table>
+                        <td 
+                          style={{ 
+                            backgroundColor: data.subjectId ? bgColor : '#fff', 
+                            padding: '16px', 
+                            borderLeft: data.subjectId ? '4px solid #3b82f6' : 'none',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleCellClick(day, slot.slot, selectedClass, data.subjectId, data.teacherId, data.room)}
+                        >
+                          {data.subjectId ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ fontWeight: '600', fontSize: '15px', color: '#0f172a' }}>
+                                {subject?.name || subject?.code || '—'}
+                              </div>
+                              <div style={{ fontSize: '14px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span>
+                                {teacher?.full_name || teacher?.username || '-'}
+                              </div>
+                              {data.room && (
+                                <div style={{ fontSize: '13px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>meeting_room</span>
+                                  Ruang: {data.room}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{ color: '#cbd5e1', fontStyle: 'italic', fontSize: '14px' }}>Klik untuk tambah jadwal</div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {modal.open && (
@@ -378,7 +469,7 @@ const AdminSchedule = () => {
             <h3>Assign Jadwal</h3>
             <p>
               <strong>{modal.day} - {timeSlots.find(s => s.slot === modal.timeSlot)?.label}</strong>
-              {' '}| Kelas {allClasses.find(c => c._id === modal.classId)?.name}
+              {' '}| Kelas {allClasses.find(c => c._id && c._id.toString() === String(modal.classId))?.name}
             </p>
             <select value={modal.subjectId} onChange={e => handleModalChange('subjectId', e.target.value)}>
               <option value="">Pilih Mata Pelajaran</option>
