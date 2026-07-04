@@ -1,4 +1,5 @@
 const Schedule = require('../models/Schedule');
+const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 exports.createSchedule = async (data) => {
@@ -8,6 +9,10 @@ exports.createSchedule = async (data) => {
 exports.bulkSaveSchedule = async (scheduleList) => {
   const results = [];
   for (const item of scheduleList) {
+    if (!item.class_id || !item.subject_id || !item.teacher_id || !item.day || !item.time_slot || !item.start_time || !item.end_time) {
+      continue; // Skip invalid entries
+    }
+
     // Cari jadwal existing berdasarkan kombinasi unik
     const existing = await Schedule.findOne({
       class_id: item.class_id,
@@ -22,7 +27,6 @@ exports.bulkSaveSchedule = async (scheduleList) => {
       existing.start_time = item.start_time;
       existing.end_time = item.end_time;
       existing.room = item.room || '';
-      // generated_type dan generated_by bisa diupdate jika diperlukan
       await existing.save();
       results.push(existing);
     } else {
@@ -39,7 +43,7 @@ exports.bulkSaveSchedule = async (scheduleList) => {
     for (const tid of teacherIds) {
       // Find all schedules for this teacher across all active academic years or current ones
       const teacherSchedules = await Schedule.find({ teacher_id: tid });
-      const uniqueClasses = [...new Set(teacherSchedules.map(s => s.class_id.toString()))];
+      const uniqueClasses = [...new Set(teacherSchedules.map(s => s.class_id ? s.class_id.toString() : null).filter(Boolean))];
       const classObjectIds = uniqueClasses.map(id => new mongoose.Types.ObjectId(id));
       
       // Update the teacher's classes array
