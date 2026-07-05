@@ -1011,3 +1011,103 @@ exports.importSchedules = async (req, res) => {
     res.status(500).json({ error: `Gagal import jadwal: ${error.message}` });
   }
 };
+
+exports.exportSchedules = async (req, res) => {
+  try {
+    const schedules = await getCollection('schedules').aggregate([
+      { $lookup: { from: 'classes', localField: 'class_id', foreignField: '_id', as: 'kelas' } },
+      { $lookup: { from: 'subjects', localField: 'subject_id', foreignField: '_id', as: 'mapel' } },
+      { $lookup: { from: 'users_guru', localField: 'teacher_id', foreignField: '_id', as: 'guru' } },
+      {
+        $project: {
+          _id: 0,
+          day: 1,
+          time_slot: 1,
+          start_time: 1,
+          end_time: 1,
+          class_name: { $arrayElemAt: ['$kelas.name', 0] },
+          subject_name: { $arrayElemAt: ['$mapel.name', 0] },
+          teacher_name: { $arrayElemAt: ['$guru.full_name', 0] },
+          room: 1
+        }
+      }
+    ]).toArray();
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Jadwal Pelajaran');
+    worksheet.columns = [
+      { header: 'Hari', key: 'day', width: 15 },
+      { header: 'Jam Ke', key: 'time_slot', width: 10 },
+      { header: 'Waktu Mulai', key: 'start_time', width: 15 },
+      { header: 'Waktu Selesai', key: 'end_time', width: 15 },
+      { header: 'Kelas', key: 'class_name', width: 15 },
+      { header: 'Mata Pelajaran', key: 'subject_name', width: 25 },
+      { header: 'Guru Pengajar', key: 'teacher_name', width: 30 },
+      { header: 'Ruangan', key: 'room', width: 15 }
+    ];
+    schedules.forEach(s => worksheet.addRow(s));
+    await sendExcelFile(res, workbook, 'jadwal_pelajaran.xlsx');
+  } catch (error) {
+    res.status(500).json({ error: `Gagal export jadwal: ${error.message}` });
+  }
+};
+
+exports.exportActivities = async (req, res) => {
+  try {
+    const students = await getCollection('users_siswa').find({}).toArray();
+    const teachers = await getCollection('users_guru').find({}).toArray();
+    const parents = await getCollection('users_ortu').find({}).toArray();
+    
+    const activities = [];
+    students.forEach(s => {
+      activities.push({
+        time: s.created_at || new Date(),
+        user: 'System Admin',
+        action: 'Registrasi Siswa',
+        detail: `Menambahkan siswa ${s.full_name} (NIS: ${s.nis || '-'})`
+      });
+    });
+    teachers.forEach(t => {
+      activities.push({
+        time: t.created_at || new Date(),
+        user: 'System Admin',
+        action: 'Registrasi Guru',
+        detail: `Menambahkan guru ${t.full_name} (NIP: ${t.nip || '-'})`
+      });
+    });
+    parents.forEach(p => {
+      activities.push({
+        time: p.created_at || new Date(),
+        user: 'System Admin',
+        action: 'Registrasi Wali',
+        detail: `Menambahkan orang tua/wali ${p.full_name}`
+      });
+    });
+    
+    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+    
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Aktivitas Pengguna');
+    worksheet.columns = [
+      { header: 'Waktu', key: 'time_formatted', width: 25 },
+      { header: 'Pengguna', key: 'user', width: 20 },
+      { header: 'Aktivitas', key: 'action', width: 25 },
+      { header: 'Detail', key: 'detail', width: 45 }
+    ];
+    
+    activities.forEach(act => {
+      const date = new Date(act.time);
+      const time_formatted = date.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+      worksheet.addRow({
+        time_formatted,
+        user: act.user,
+        action: act.action,
+        detail: act.detail
+      });
+    });
+    
+    await sendExcelFile(res, workbook, 'aktivitas_pengguna.xlsx');
+  } catch (error) {
+    res.status(500).json({ error: `Gagal export aktivitas: ${error.message}` });
+  }
+};

@@ -8,7 +8,6 @@ const SiswaDashboard = () => {
   const [schedules, setSchedules] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [grades, setGrades] = useState([]);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -64,41 +63,18 @@ const SiswaDashboard = () => {
     }
   };
 
-  const toggleMenu = () => setMenuOpen(!menuOpen);
-
   if (loading) return <div className="loading">Memuat dashboard...</div>;
 
   return (
     <div className="siswa-dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-left">
-          <div className="avatar">
-            {user?.profileImage ? <img src={user.profileImage} alt="avatar" /> : <span className="material-symbols-outlined">account_circle</span>}
-          </div>
-          <div>
-            <h1 className="school-name">SMP N 1 LMS</h1>
-            <p className="user-greeting">Halo, {user?.full_name || 'Siswa'}</p>
-          </div>
-        </div>
-        <button className="hamburger" onClick={toggleMenu}>
-          <span className="material-symbols-outlined">{menuOpen ? 'close' : 'menu'}</span>
-        </button>
-      </header>
-
-      {/* Overlay menu (slide from right) */}
-      <div className={`menu-overlay ${menuOpen ? 'open' : ''}`} onClick={toggleMenu}></div>
-      <nav className={`mobile-nav ${menuOpen ? 'open' : ''}`}>
-        <ul>
-          <li><a href="/dashboard/siswa"><span className="material-symbols-outlined">dashboard</span> Dashboard</a></li>
-          <li><a href="/dashboard/siswa/courses"><span className="material-symbols-outlined">auto_stories</span> Courses</a></li>
-          <li><a href="/dashboard/siswa/schedule"><span className="material-symbols-outlined">calendar_today</span> Schedule</a></li>
-          <li><a href="/dashboard/siswa/grades"><span className="material-symbols-outlined">leaderboard</span> Grades</a></li>
-          <li><a href="/profile"><span className="material-symbols-outlined">person</span> Profile</a></li>
-        </ul>
-      </nav>
-
       <main className="dashboard-main">
+        {/* Welcome Header */}
+        <div className="welcome-header" style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 4px 0' }}>
+            Halo, {user?.full_name || 'Siswa'}!
+          </h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>Selamat datang di LMS SMP Negeri 1 Suradadi.</p>
+        </div>
         {/* Hero bento grid */}
         <div className="hero-grid">
           <div className="hero-card featured">
@@ -113,10 +89,10 @@ const SiswaDashboard = () => {
             <div className="bg-deco"></div>
           </div>
           <div className="hero-card points">
-            <span className="material-symbols-outlined">star</span>
-            <div className="points-value">{stats.enrolled_courses * 100 + stats.overall_progress * 10 || 1240}</div>
-            <div className="points-label">Poin Akademik</div>
-            <div className="points-today">+15 Hari Ini</div>
+            <span className="material-symbols-outlined">done_all</span>
+            <div className="points-value">{stats.completed_assignments || 0}</div>
+            <div className="points-label">Tugas Selesai</div>
+            <div className="points-today">{assignments.length} Tugas Pending</div>
           </div>
         </div>
 

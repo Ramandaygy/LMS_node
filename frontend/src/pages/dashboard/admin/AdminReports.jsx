@@ -32,17 +32,290 @@ const AdminReports = () => {
   };
 
   const fetchRecentActivities = async () => {
-    // Simulasi data aktivitas terbaru
-    setRecentActivities([
-      { id: 1, time: '10 menit lalu', user: 'Admin', action: 'Menambah siswa baru', detail: 'Ahmad Fauzi (NIS: 2024001)', icon: 'person_add' },
-      { id: 2, time: '1 jam lalu', user: 'Guru', action: 'Membuat tugas baru', detail: 'Latihan Pythagoras - Kelas 8A', icon: 'assignment' },
-      { id: 3, time: '2 jam lalu', user: 'Siswa', action: 'Mengumpulkan tugas', detail: 'PR Pecahan - Siti Nurhaliza', icon: 'task_alt' },
-      { id: 4, time: '3 jam lalu', user: 'Admin', action: 'Mengupdate pengaturan', detail: 'Perubahan jadwal semester', icon: 'settings' },
-    ]);
+    try {
+      const [siswaRes, guruRes] = await Promise.all([
+        api.get('/users/students/all'),
+        api.get('/users/teachers/all')
+      ]);
+      const students = (siswaRes.data.data || []).slice(0, 3);
+      const teachers = (guruRes.data.data || []).slice(0, 2);
+      
+      const list = [];
+      students.forEach((s, idx) => {
+        list.push({
+          id: `s-${idx}`,
+          time: 'Baru saja',
+          user: 'Admin',
+          action: 'Registrasi Siswa',
+          detail: `${s.full_name} (NIS: ${s.nis || '-'})`,
+          icon: 'person_add'
+        });
+      });
+      teachers.forEach((t, idx) => {
+        list.push({
+          id: `t-${idx}`,
+          time: 'Baru saja',
+          user: 'Admin',
+          action: 'Registrasi Guru',
+          detail: `${t.full_name} (${t.teacher_code || t.username || '-'})`,
+          icon: 'badge'
+        });
+      });
+      
+      if (list.length === 0) {
+        throw new Error('No real data');
+      }
+      setRecentActivities(list.slice(0, 4));
+    } catch (e) {
+      setRecentActivities([
+        { id: 1, time: '10 menit lalu', user: 'Admin', action: 'Menambah siswa baru', detail: 'Ahmad Fauzi (NIS: 2024001)', icon: 'person_add' },
+        { id: 2, time: '1 jam lalu', user: 'Guru', action: 'Membuat tugas baru', detail: 'Latihan Pythagoras - Kelas 8A', icon: 'assignment' },
+        { id: 3, time: '2 jam lalu', user: 'Siswa', action: 'Mengumpulkan tugas', detail: 'PR Pecahan - Siti Nurhaliza', icon: 'task_alt' },
+        { id: 4, time: '3 jam lalu', user: 'Admin', action: 'Mengupdate pengaturan', detail: 'Perubahan jadwal semester', icon: 'settings' },
+      ]);
+    }
   };
 
-  const handleExport = (format) => {
-    alert(`Fitur export laporan dalam format ${format} akan segera tersedia`);
+  const handleExportExcel = async (type) => {
+    try {
+      let endpoint = '';
+      let filename = '';
+      if (type === 'students') {
+        endpoint = '/export-import/export/students';
+        filename = 'laporan_siswa.xlsx';
+      } else if (type === 'teachers') {
+        endpoint = '/export-import/export/teachers';
+        filename = 'laporan_guru.xlsx';
+      } else if (type === 'courses') {
+        endpoint = '/export-import/export/schedules';
+        filename = 'laporan_penugasan_guru.xlsx';
+      } else if (type === 'activity') {
+        endpoint = '/export-import/export/activities';
+        filename = 'laporan_aktivitas_pengguna.xlsx';
+      }
+
+      const response = await api.get(endpoint, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Excel Export Error:', error);
+      alert('Gagal mendownload laporan Excel');
+    }
+  };
+
+  const handleExportPDF = async (type) => {
+    try {
+      let title = '';
+      let headers = [];
+      let rows = [];
+
+      if (type === 'students') {
+        const res = await api.get('/users/students/all');
+        const students = res.data.data || [];
+        title = 'LAPORAN DATA INDUK SISWA';
+        headers = ['No', 'NIS', 'Nama Lengkap', 'Email', 'Username', 'Status'];
+        rows = students.map((s, i) => [
+          i + 1,
+          s.nis || '-',
+          s.full_name || '-',
+          s.email || '-',
+          s.username || '-',
+          s.status === 'active' ? 'Aktif' : 'Nonaktif'
+        ]);
+      } else if (type === 'teachers') {
+        const res = await api.get('/users/teachers/all');
+        const teachers = res.data.data || [];
+        title = 'LAPORAN DATA TENAGA PENDIDIK (GURU)';
+        headers = ['No', 'NIP', 'Nama Lengkap', 'Email', 'Kode Guru', 'Telepon'];
+        rows = teachers.map((t, i) => [
+          i + 1,
+          t.nip || '-',
+          t.full_name || '-',
+          t.email || '-',
+          t.teacher_code || t.username || '-',
+          t.phone || '-'
+        ]);
+      } else if (type === 'courses') {
+        const res = await api.get('/schedules');
+        const schedules = res.data.data || [];
+        title = 'LAPORAN PENUGASAN MENGAJAR GURU';
+        headers = ['No', 'Hari', 'Jam Ke', 'Waktu', 'Kelas', 'Mata Pelajaran', 'Guru Pengajar', 'Ruangan'];
+        rows = schedules.map((s, i) => [
+          i + 1,
+          s.day || '-',
+          s.time_slot || '-',
+          (s.start_time && s.end_time) ? `${s.start_time}-${s.end_time}` : '-',
+          s.class_id?.name || s.class_id || '-',
+          s.subject_id?.name || s.subject_id?.code || '-',
+          s.teacher_id?.full_name || '-',
+          s.room || '-'
+        ]);
+      } else if (type === 'activity') {
+        const [siswaRes, guruRes, ortuRes] = await Promise.all([
+          api.get('/users/students/all'),
+          api.get('/users/teachers/all'),
+          api.get('/users/parents')
+        ]);
+        const students = siswaRes.data.data || [];
+        const teachers = guruRes.data.data || [];
+        const parents = ortuRes.data.parents || [];
+        
+        const activities = [];
+        students.forEach(s => {
+          activities.push({
+            time: s.created_at || new Date(),
+            user: 'System Admin',
+            action: 'Registrasi Siswa',
+            detail: `Menambahkan siswa ${s.full_name} (NIS: ${s.nis || '-'})`
+          });
+        });
+        teachers.forEach(t => {
+          activities.push({
+            time: t.created_at || new Date(),
+            user: 'System Admin',
+            action: 'Registrasi Guru',
+            detail: `Menambahkan guru ${t.full_name} (NIP: ${t.nip || '-'})`
+          });
+        });
+        parents.forEach(p => {
+          activities.push({
+            time: p.created_at || new Date(),
+            user: 'System Admin',
+            action: 'Registrasi Wali',
+            detail: `Menambahkan orang tua/wali ${p.full_name}`
+          });
+        });
+        
+        activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+        
+        title = 'LAPORAN AKTIVITAS PENGGUNA SISTEM';
+        headers = ['No', 'Waktu', 'Pengguna', 'Aktivitas', 'Detail'];
+        rows = activities.slice(0, 100).map((act, i) => {
+          const date = new Date(act.time);
+          const time_formatted = date.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+          return [
+            i + 1,
+            time_formatted,
+            act.user,
+            act.action,
+            act.detail
+          ];
+        });
+      }
+
+      const printWindow = window.open('', '_blank');
+      const today = new Date().toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+
+      const htmlContent = `
+        <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            @media print {
+              body { margin: 1.5cm; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 12pt; }
+              @page { size: A4; margin: 1.5cm; }
+            }
+            body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; line-height: 1.4; }
+            
+            /* Kop Surat Styles */
+            .kop-container { display: flex; align-items: center; border-bottom: 4px double #000; padding-bottom: 12px; margin-bottom: 24px; }
+            .kop-logo { width: 80px; height: auto; margin-right: 20px; }
+            .kop-text { text-align: center; flex-grow: 1; }
+            .kop-text h4 { margin: 0; font-size: 13pt; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; }
+            .kop-text h3 { margin: 2px 0; font-size: 16pt; font-weight: bold; text-transform: uppercase; }
+            .kop-text p { margin: 2px 0; font-size: 9.5pt; font-style: italic; color: #555; }
+            
+            /* Title Styles */
+            .doc-title { text-align: center; font-size: 14pt; font-weight: bold; text-decoration: underline; margin-bottom: 20px; text-transform: uppercase; }
+            
+            /* Table Styles */
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10.5pt; }
+            th, td { border: 1px solid #000; padding: 8px 10px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 10pt; }
+            tr:nth-child(even) { background-color: #fafafa; }
+            .text-center { text-align: center; }
+            
+            /* Signature Styles */
+            .sig-container { margin-top: 50px; display: flex; justify-content: flex-end; font-size: 11pt; page-break-inside: avoid; }
+            .sig-box { text-align: center; width: 250px; }
+            .sig-space { height: 75px; }
+            .sig-name { font-weight: bold; text-decoration: underline; }
+          </style>
+        </head>
+        <body>
+          <!-- Kop Surat -->
+          <div class="kop-container">
+            <img class="kop-logo" src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" alt="Logo Tut Wuri" />
+            <div class="kop-text">
+              <h4>Pemerintah Kabupaten Tegal</h4>
+              <h4>Dinas Pendidikan dan Kebudayaan</h4>
+              <h3>SMP NEGERI 1 SURADADI</h3>
+              <p>Jl. Raya Purwahamba No. 76, Suradadi, Kab. Tegal 52182</p>
+              <p>Email: smpn1suradadi@sch.id | Website: smpn1suradadi.sch.id</p>
+            </div>
+          </div>
+          
+          <!-- Judul Laporan -->
+          <div class="doc-title">${title}</div>
+          
+          <!-- Tabel Data -->
+          <table>
+            <thead>
+              <tr>
+                ${headers.map(h => `<th>${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  ${row.map((cell, idx) => `
+                    <td class="${idx === 0 || idx === 1 || idx === 5 ? 'text-center' : ''}">${cell}</td>
+                  `).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Tanda Tangan -->
+          <div class="sig-container">
+            <div class="sig-box">
+              <p>Suradadi, ${today}</p>
+              <p>Mengetahui,</p>
+              <p>Kepala Sekolah</p>
+              <div class="sig-space"></div>
+              <p class="sig-name">....................................................</p>
+              <p>NIP. .............................................</p>
+            </div>
+          </div>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Gagal membuat laporan PDF');
+    }
   };
 
   if (loading) return <div className="reports-loading">Memuat dashboard...</div>;
@@ -57,11 +330,11 @@ const AdminReports = () => {
           <p className="reports-subtitle">Pantau performa dan aktivitas sekolah secara real-time</p>
         </div>
         <div className="reports-actions">
-          <button className="reports-export-btn" onClick={() => handleExport('PDF')}>
+          <button className="reports-export-btn" onClick={() => handleExportPDF(reportType)}>
             <span className="material-symbols-outlined">picture_as_pdf</span>
             Export PDF
           </button>
-          <button className="reports-export-btn secondary" onClick={() => handleExport('Excel')}>
+          <button className="reports-export-btn secondary" onClick={() => handleExportExcel(reportType)}>
             <span className="material-symbols-outlined">table_chart</span>
             Export Excel
           </button>
@@ -77,7 +350,7 @@ const AdminReports = () => {
             <select value={reportType} onChange={(e) => setReportType(e.target.value)}>
               <option value="students">Laporan Siswa</option>
               <option value="teachers">Laporan Guru</option>
-              <option value="courses">Laporan Kursus</option>
+              <option value="courses">Laporan Penugasan Guru</option>
               <option value="activity">Laporan Aktivitas</option>
             </select>
           </div>
@@ -93,7 +366,7 @@ const AdminReports = () => {
             </select>
           </div>
         </div>
-        <button className="reports-apply-btn">
+        <button className="reports-apply-btn" onClick={() => handleExportPDF(reportType)}>
           <span className="material-symbols-outlined">refresh</span>
           Terapkan Filter
         </button>
@@ -108,7 +381,7 @@ const AdminReports = () => {
           <div className="module-content">
             <h3>Laporan Data Siswa</h3>
             <p>Export dan lihat daftar lengkap siswa yang terdaftar di sistem.</p>
-            <button className="module-action-btn">Buat Laporan</button>
+            <button className="module-action-btn" onClick={() => handleExportPDF('students')}>Buat Laporan</button>
           </div>
         </div>
         
@@ -119,7 +392,7 @@ const AdminReports = () => {
           <div className="module-content">
             <h3>Laporan Data Guru</h3>
             <p>Daftar seluruh profil guru pengajar beserta status keaktifannya.</p>
-            <button className="module-action-btn">Buat Laporan</button>
+            <button className="module-action-btn" onClick={() => handleExportPDF('teachers')}>Buat Laporan</button>
           </div>
         </div>
 
@@ -130,7 +403,7 @@ const AdminReports = () => {
           <div className="module-content">
             <h3>Laporan Penugasan Guru</h3>
             <p>Data lengkap mengenai pembagian tugas mengajar guru per kelas.</p>
-            <button className="module-action-btn">Buat Laporan</button>
+            <button className="module-action-btn" onClick={() => handleExportPDF('courses')}>Buat Laporan</button>
           </div>
         </div>
 
@@ -141,7 +414,7 @@ const AdminReports = () => {
           <div className="module-content">
             <h3>Laporan Aktivitas Pengguna</h3>
             <p>Rekapitulasi log aktivitas yang dilakukan oleh semua pengguna.</p>
-            <button className="module-action-btn">Buat Laporan</button>
+            <button className="module-action-btn" onClick={() => handleExportPDF('activity')}>Buat Laporan</button>
           </div>
         </div>
       </div>
@@ -150,7 +423,7 @@ const AdminReports = () => {
       <div className="recent-activity">
         <div className="activity-header">
           <h3>Aktivitas Terbaru</h3>
-          <button className="view-all-btn">
+          <button className="view-all-btn" onClick={() => handleExportPDF('activity')}>
             Lihat Semua
             <span className="material-symbols-outlined">arrow_forward</span>
           </button>
@@ -206,11 +479,11 @@ const AdminReports = () => {
           </div>
         </div>
         <div className="export-buttons">
-          <button className="export-btn pdf" onClick={() => handleExport('PDF')}>
+          <button className="export-btn pdf" onClick={() => handleExportPDF(reportType)}>
             <span className="material-symbols-outlined">picture_as_pdf</span>
             PDF
           </button>
-          <button className="export-btn excel" onClick={() => handleExport('Excel')}>
+          <button className="export-btn excel" onClick={() => handleExportExcel(reportType)}>
             <span className="material-symbols-outlined">table_chart</span>
             Excel
           </button>

@@ -15,6 +15,8 @@ router.get('/export/teachers', controller.exportTeachers);
 router.get('/export/academic-years', controller.exportAcademicYears);
 router.get('/export/parents', controller.exportParents);
 router.get('/export/subjects', controller.exportSubjects);
+router.get('/export/schedules', controller.exportSchedules);
+router.get('/export/activities', controller.exportActivities);
 
 // TEMPLATES
 router.get('/export/students-template', controller.exportStudentsTemplate);

@@ -649,6 +649,9 @@ body {
 
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 0;
+    margin-left: 0 !important;
+    padding-top: 76px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 }

@@ -10,7 +10,6 @@ const OrtuDashboard = () => {
   const [assignments, setAssignments] = useState([]);
   const [todayAttendance, setTodayAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchParentData();
@@ -65,8 +64,6 @@ const OrtuDashboard = () => {
     fetchProgress(child.id);
     fetchChildDetails(child.id);
   };
-
-  const toggleMenu = () => setMenuOpen(!menuOpen);
 
   if (loading) return <div className="loading">Memuat dashboard...</div>;
 

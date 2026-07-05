@@ -6,71 +6,62 @@ import '../../styles/dashboard/guru/guru.css';
 const GuruDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
-    total_students: 0,
-    total_courses: 0,
-    pending_assignments: 0
+    total_classes: 0,
+    total_assignments: 0
   });
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeClasses, setActiveClasses] = useState([]);
-  const [pendingTasks, setPendingTasks] = useState([]);
+  const [recentAssignments, setRecentAssignments] = useState([]);
 
   useEffect(() => {
-    fetchStats();
-    fetchTeacherData();
+    fetchTeacherDashboardData();
   }, []);
 
-  const fetchTeacherData = async () => {
+  const fetchTeacherDashboardData = async () => {
     try {
-      // Get teacher classes
+      setLoading(true);
+      
+      // 1. Get profile & teacher classes
       const profileRes = await api.get('/profile');
-      if (profileRes.data && profileRes.data.classes) {
-        const mappedClasses = profileRes.data.classes.map(c => ({
+      const profileData = profileRes.data || {};
+      setProfile(profileData);
+
+      // 2. Get students to calculate actual count per class
+      const studentsRes = await api.get('/users/students/all');
+      const allStudents = studentsRes.data.data || [];
+
+      // 3. Map active classes with actual student count
+      const mappedClasses = (profileData.classes || []).map(c => {
+        const studentCount = allStudents.filter(s => s.class_id === c._id || s.class_id?._id === c._id).length;
+        return {
           id: c._id,
           name: c.name,
-          room: 'LMS Online', // Ruang virtual default
-          students: 0, // Akan diperbarui jika ada endpoint detail
-          progress: Math.floor(Math.random() * 40) + 40, // Simulated progress for now as there's no class progress endpoint
-          time: 'Sesuai Jadwal',
-          thumbnail: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD6agdB1chHQ1hIabOPEJbhPbArKf5qeo3ffmnxx8GRQ5bFM1MxdSQzlWYUQ_JIKKyAR1_L5bYzMk_Y6w392oEYhU-fV-JdfCjbaXjVIB3yvxz6RcOEqJYj9YFQ7XO0q9xPVhoHAqP9qXcel4WSy6AdHUoXQaXJwu0gKRDRoQl9eXTscMVtk-XuA3twoIhMfjLPOBe32g1nxXJPP6yK1h4riv5Ql5VgbZc1kdeboZWxOzo20v5dLleslFQib_gltuubthhD3aDnFxk'
-        }));
-        setActiveClasses(mappedClasses);
-      }
+          students: studentCount,
+          room: 'Ruang Kelas ' + c.name
+        };
+      });
+      setActiveClasses(mappedClasses);
 
-      // Get pending tasks (assignments)
+      // 4. Get teacher assignments
       const assignmentsRes = await api.get('/assignments/teacher/me');
-      if (assignmentsRes.data && assignmentsRes.data.data) {
-        const allAssignments = assignmentsRes.data.data;
-        // Ambil 3 tugas terbaru sebagai pending tasks
-        const recentTasks = allAssignments.slice(0, 3).map(task => ({
-          id: task._id,
-          title: task.title,
-          class: task.class_name || 'Semua',
-          submitted: task.submissions ? task.submissions.length : 0,
-          total: 30, // Estimasi total siswa
-          icon: 'assignment'
-        }));
-        setPendingTasks(recentTasks);
-        setStats(prev => ({ ...prev, pending_assignments: allAssignments.length }));
-      }
-    } catch (err) {
-      console.error('Failed to fetch teacher data', err);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await api.get('/dashboard/stats');
-      setStats(response.data);
+      const allAssignments = assignmentsRes.data.data || [];
+      
+      setRecentAssignments(allAssignments.slice(0, 3));
+      
+      setStats({
+        total_classes: mappedClasses.length,
+        total_assignments: allAssignments.length
+      });
+      
       setLoading(false);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
+    } catch (err) {
+      console.error('Error loading teacher dashboard data', err);
       setError('Gagal memuat data dashboard');
       setLoading(false);
     }
   };
-
-
 
   if (loading) {
     return (
@@ -87,230 +78,87 @@ const GuruDashboard = () => {
 
   return (
     <div className="guru-dashboard-modern">
-      {/* Bento Layout Header */}
-      <div className="dashboard-header-grid">
-        {/* Current Session Card */}
-        <div className="current-session-card">
-          <div className="session-badge">
-            <span className="live-dot"></span>
-            Sesi Berlangsung
-          </div>
-          <div className="session-info">
-            <h2>{activeClasses.length > 0 ? activeClasses[0].name : 'Selamat Datang'}</h2>
-            <p>Pusat Aktivitas Kelas Anda</p>
-          </div>
-          <div className="session-meta">
-            <div className="meta-item">
-              <span className="material-symbols-outlined">schedule</span>
-              <span>{activeClasses.length > 0 ? activeClasses[0].time : 'Tidak ada jadwal terdekat'}</span>
-            </div>
-            <div className="meta-item">
-              <span className="material-symbols-outlined">group</span>
-              <span>32 Siswa Hadir</span>
-            </div>
-          </div>
-          <div className="session-actions">
-            <button className="btn-attendance">
-              <span className="material-symbols-outlined">how_to_reg</span>
-              Absensi Siswa
-            </button>
-            <button className="btn-materials">
-              <span className="material-symbols-outlined">description</span>
-              Materi &amp; Media
-            </button>
-          </div>
-          <div className="timer-card">
-            <p>Durasi Tersisa</p>
-            <p className="timer-value">42:15</p>
-          </div>
+      {/* Welcome Header */}
+      <section className="dashboard-header" style={{ marginBottom: '24px' }}>
+        <div className="header-left">
+          <span className="header-badge">Dashboard Guru</span>
+          <h2 className="header-title" style={{ fontSize: '28px', color: '#1e293b', fontWeight: 'bold' }}>
+            Selamat Datang, {profile?.full_name || 'Guru'}!
+          </h2>
+          <p className="header-subtitle">Ringkasan aktivitas mengajar dan kelola tugas kelas Anda secara real-time.</p>
         </div>
+      </section>
 
-        {/* Pending Tasks Card */}
-        <div className="pending-tasks-card">
-          <div className="tasks-header">
-            <h3>Perlu Dinilai</h3>
-            <span className="tasks-badge">{stats.pending_assignments || 12} TUGAS</span>
-          </div>
-          <div className="tasks-list">
-            {pendingTasks.map(task => (
-              <div key={task.id} className="task-item">
-                <div className="task-icon">
-                  <span className="material-symbols-outlined">{task.icon}</span>
-                </div>
-                <div className="task-info">
-                  <h4>{task.title}</h4>
-                  <p>{task.class} • {task.submitted} Dikumpulkan</p>
-                </div>
-                <button className="task-arrow">
-                  <span className="material-symbols-outlined">chevron_right</span>
-                </button>
-              </div>
-            ))}
-          </div>
-          <button className="view-all-btn" onClick={() => navigate('/dashboard/guru/assignments')}>
-            Lihat Semua
-          </button>
+      {/* Bento Grid Metrics */}
+      <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#3b82f6' }}>class</span>
+          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_classes}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Kelas Diajar</p>
+        </div>
+        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#10b981' }}>assignment</span>
+          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_assignments}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Total Tugas Dibuat</p>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="stats-cards-grid">
-        <div className="stat-card-item">
-          <div className="stat-icon-bg">
-            <span className="material-symbols-outlined">school</span>
-          </div>
-          <div className="stat-info">
-            <h4>{stats.total_students}</h4>
-            <p>Siswa Binaan</p>
-          </div>
-          <span className="stat-trend positive">+12% this term</span>
-        </div>
-        <div className="stat-card-item">
-          <div className="stat-icon-bg">
-            <span className="material-symbols-outlined">menu_book</span>
-          </div>
-          <div className="stat-info">
-            <h4>{stats.total_courses}</h4>
-            <p>Kursus Dibuat</p>
-          </div>
-          <span className="stat-trend positive">+5% this term</span>
-        </div>
-        <div className="stat-card-item">
-          <div className="stat-icon-bg">
-            <span className="material-symbols-outlined">assignment</span>
-          </div>
-          <div className="stat-info">
-            <h4>{stats.pending_assignments || 12}</h4>
-            <p>Tugas Menunggu</p>
-          </div>
-          <span className="stat-trend warning">3 Overdue</span>
-        </div>
-        <div className="stat-card-item system-status">
-          <div className="system-status-content">
-            <div className="status-icon">
-              <span className="material-symbols-outlined">cloud_done</span>
-            </div>
-            <div>
-              <p className="status-label">System Status</p>
-              <h5 className="status-title">LMS Core: Optimal</h5>
-            </div>
-          </div>
-          <div className="status-avatars">
-            <div className="avatar-more">+4</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Active Classes Section */}
-      <div className="active-classes-section">
-        <div className="section-header">
-          <div>
-            <h3 className="section-title">Kelas Aktif</h3>
-            <p className="section-subtitle">Kelola materi dan kemajuan siswa di setiap kelas.</p>
-          </div>
-          <div className="view-controls">
-            <button className="view-btn active">
-              <span className="material-symbols-outlined">grid_view</span>
-            </button>
-            <button className="view-btn">
-              <span className="material-symbols-outlined">format_list_bulleted</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="classes-grid">
-          {activeClasses.map(classItem => (
-            <div key={classItem.id} className="class-card">
-              <div className="class-thumbnail">
-                <img src={classItem.thumbnail} alt={classItem.name} />
-                <div className="thumbnail-overlay"></div>
-                <span className="semester-badge">GANJIL 2024</span>
-              </div>
-              <div className="class-content">
-                <div>
-                  <h4 className="class-name">{classItem.name}</h4>
-                  <p className="class-meta">{classItem.students} Siswa • {classItem.room}</p>
-                </div>
-                <div className="progress-section">
-                  <div className="progress-header">
-                    <span>Kurikulum</span>
-                    <span>{classItem.progress}%</span>
+      {/* Main Layout Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+        
+        {/* Left Column: Active Classes */}
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', marginBottom: '16px' }}>Kelas Aktif Anda</h3>
+          {activeClasses.length > 0 ? (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {activeClasses.map(cls => (
+                <div key={cls.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid #f1f5f9', borderRadius: '12px' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 'bold', color: '#1e293b' }}>{cls.name}</h4>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{cls.students} Siswa Terdaftar</p>
                   </div>
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: `${classItem.progress}%` }}></div>
-                  </div>
-                </div>
-                <div className="class-footer">
-                  <div className="student-avatars">
-                    <div className="avatar-more">+{classItem.students - 3}</div>
-                  </div>
-                  <button className="manage-btn" onClick={() => navigate(`/dashboard/guru/courses/${classItem.id}`)}>
+                  <button 
+                    onClick={() => navigate(`/dashboard/guru/courses`)} 
+                    style={{ background: '#eff6ff', color: '#2563eb', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                  >
                     Kelola
-                    <span className="material-symbols-outlined">arrow_forward</span>
                   </button>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Bottom Section */}
-      <div className="dashboard-bottom-grid">
-        {/* Messages Center */}
-        <div className="messages-card">
-          <div className="card-header">
-            <h3>Pesan Terakhir</h3>
-            <button className="link-btn">Buka Chat</button>
-          </div>
-          <div className="messages-list">
-            <div className="message-item">
-              <div className="message-avatar">
-                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQqEqhefhOWnv508KXS7etYZG24bJ1J9JZI4l6JU5jzmcWmFGYfuFtZ57Pn8leL0f69W0wCYgyzjGYZ9K3HP4DQ5DkiUMivwSHh_KJm-5xHenx5bAeSOGykfDbzjRvKuBfmlwsxg9NKOiTU_R6A6VdGjY9X-VnXpFct36w5Eq3E9VO0DIr2HhcWLtDWcih8xb49Zl7dpgbD37T7NVIlhogT0_3Gys_4eSrP3nvy3B1K8mDAIjeJWktD-P7y300URylNOWFdxfLzVc" alt="Student" />
-              </div>
-              <div className="message-content">
-                <div className="message-header">
-                  <h4>Rina Wijaya (8A)</h4>
-                  <span>12:30 PM</span>
-                </div>
-                <p>Pak, izin bertanya untuk soal nomor 5 di tugas Aljabar kemarin...</p>
-              </div>
-            </div>
-            <div className="message-item">
-              <div className="message-avatar">
-                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgUCS6nhoC_Pqv4OZmGu0UV3ToIGxn13Z1jS5Hdm8nJrKowJ8_0DXn97erq9VIc4NQwE_OfvKd_7VIKAf087ZwClEizP_vZvU4VuGFpla1qWD2DjhMri5aaSA9WUd9wR9b0F0aZIjPN0EBgp6P5uLrOmnycNj31F_4dZhOdfoheGCgkCvtJQglM9GhuB2Dh33BUFR9F2SjK7xtoe5XbMHyRO_Wje-boqVota4auaC3tKOulkfVJr3gp-7Z4x-O3aIgr62DGan4JvI" alt="Parent" />
-              </div>
-              <div className="message-content">
-                <div className="message-header">
-                  <h4>Orang Tua Andi (8B)</h4>
-                  <span>Yesterday</span>
-                </div>
-                <p>Selamat sore Pak, apakah besok ada remedial matematika?</p>
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '14px' }}>Belum ada kelas yang ditetapkan untuk Anda.</p>
+          )}
         </div>
 
-        {/* Information Center */}
-        <div className="info-card">
-          <div className="card-header">
-            <h3>Pusat Informasi Sekolah</h3>
-          </div>
-          <div className="info-list">
-            <div className="info-item primary">
-              <h4>Rapat Kurikulum Semester Genap</h4>
-              <p>Jumat, 15 Okt 2024 • 14:00 @ Ruang Guru Utama</p>
+        {/* Right Column: Recent Tasks */}
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', marginBottom: '16px' }}>Tugas Terbaru</h3>
+          {recentAssignments.length > 0 ? (
+            <div style={{ display: 'grid', gap: '16px' }}>
+              {recentAssignments.map(task => (
+                <div key={task._id} style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '12px', borderLeft: '4px solid #10b981', background: '#f8fafc', borderRadius: '0 12px 12px 0' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#10b981', fontSize: '24px' }}>assignment</span>
+                  <div style={{ flexGrow: 1 }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}>{task.title}</h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                      Tenggat: {new Date(task.deadline).toLocaleDateString('id-ID')}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <button 
+                onClick={() => navigate('/dashboard/guru/assignments')}
+                style={{ width: '100%', padding: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569', fontWeight: '600', marginTop: '8px' }}
+              >
+                Lihat Semua Tugas
+              </button>
             </div>
-            <div className="info-item secondary">
-              <h4>Pengisian Nilai Tengah Semester</h4>
-              <p>Batas akhir: 20 Okt 2024, 23:59 WIB</p>
-            </div>
-            <div className="info-item tertiary">
-              <h4>Pemeliharaan Server LMS</h4>
-              <p>Minggu, 10 Okt 2024 • 01:00 - 05:00 WIB</p>
-            </div>
-          </div>
+          ) : (
+            <p style={{ color: '#64748b', fontStyle: 'italic', fontSize: '14px' }}>Belum ada tugas yang dibuat.</p>
+          )}
         </div>
+
       </div>
     </div>
   );
