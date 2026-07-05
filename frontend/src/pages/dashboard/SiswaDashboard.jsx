@@ -76,8 +76,8 @@ const SiswaDashboard = () => {
           <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>Selamat datang di LMS SMP Negeri 1 Suradadi.</p>
         </div>
         {/* Hero bento grid */}
-        <div className="hero-grid">
-          <div className="hero-card featured">
+        <div className="hero-grid" style={{ display: 'block' }}>
+          <div className="hero-card featured" style={{ width: '100%' }}>
             <div className="badge">Info Terkini</div>
             <h2>Selamat Datang di LMS, {user?.full_name || 'Siswa'}!</h2>
             <p>Periksa jadwal pelajaran dan tugas hari ini untuk mulai belajar.</p>
@@ -87,12 +87,6 @@ const SiswaDashboard = () => {
               </div>
             )}
             <div className="bg-deco"></div>
-          </div>
-          <div className="hero-card points">
-            <span className="material-symbols-outlined">done_all</span>
-            <div className="points-value">{stats.completed_assignments || 0}</div>
-            <div className="points-label">Tugas Selesai</div>
-            <div className="points-today">{assignments.length} Tugas Pending</div>
           </div>
         </div>
 

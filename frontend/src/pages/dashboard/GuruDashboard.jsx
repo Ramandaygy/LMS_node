@@ -45,7 +45,7 @@ const GuruDashboard = () => {
       setActiveClasses(mappedClasses);
 
       // 4. Get teacher assignments
-      const assignmentsRes = await api.get('/assignments/teacher/me');
+      const assignmentsRes = await api.get('/assignments/guru/me');
       const allAssignments = assignmentsRes.data.data || [];
       
       setRecentAssignments(allAssignments.slice(0, 3));

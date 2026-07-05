@@ -30,10 +30,10 @@ const AdminDashboard = () => {
   };
 
   const commandCards = [
-    { id: 1, title: 'Data Master', description: 'Kelola data siswa, guru, kelas, dan mata pelajaran.', icon: 'database', path: '/dashboard/admin/data-master' },
-    { id: 2, title: 'Tahun Ajaran', description: 'Atur semester, kalender akademik, dan kenaikan kelas.', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
-    { id: 3, title: 'Penugasan Guru', description: 'Atur jadwal pelajaran and pembagian tugas mengajar guru.', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
-    { id: 4, title: 'Laporan', description: 'Lihat statistik, aktivitas, dan unduh laporan performa sekolah.', icon: 'analytics', path: '/dashboard/admin/reports' }
+    { id: 1, title: 'Data Master', description: 'Kelola data siswa, guru, kelas, dan mata pelajaran.', icon: 'database', path: '/dashboard/admin/data-master', borderLeft: '#3b82f6', iconBg: '#eff6ff', iconColor: '#2563eb' },
+    { id: 2, title: 'Tahun Ajaran', description: 'Atur semester, kalender akademik, dan kenaikan kelas.', icon: 'calendar_month', path: '/dashboard/admin/academic-year', borderLeft: '#10b981', iconBg: '#ecfdf5', iconColor: '#059669' },
+    { id: 3, title: 'Penugasan Guru', description: 'Atur jadwal pelajaran dan pembagian tugas mengajar guru.', icon: 'assignment_ind', path: '/dashboard/admin/schedule', borderLeft: '#f59e0b', iconBg: '#fffbeb', iconColor: '#d97706' },
+    { id: 4, title: 'Laporan', description: 'Lihat statistik, aktivitas, dan unduh laporan performa sekolah.', icon: 'analytics', path: '/dashboard/admin/reports', borderLeft: '#8b5cf6', iconBg: '#f5f3ff', iconColor: '#7c3aed' }
   ];
 
   if (loading) {
@@ -46,68 +46,102 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="admin-dashboard-modern">
+    <div className="admin-dashboard-modern" style={{ padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header Section */}
-      <section className="dashboard-header" style={{ marginBottom: '24px' }}>
-        <div className="header-left">
-          <span className="header-badge">Dashboard Administrator</span>
-          <h2 className="header-title" style={{ fontSize: '28px', color: '#1e293b', fontWeight: 'bold' }}>Sistem Informasi Akademik</h2>
-          <p className="header-subtitle">Ringkasan real-time aktivitas akademik dan administrasi sekolah.</p>
-        </div>
+      <section className="dashboard-header" style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <span className="header-badge" style={{ alignSelf: 'flex-start', background: '#e0e7ff', color: '#4f46e5', padding: '6px 14px', borderRadius: '30px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          DASHBOARD ADMINISTRATOR
+        </span>
+        <h2 className="header-title" style={{ fontSize: '32px', color: '#0f172a', fontWeight: '800', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+          Sistem Informasi Akademik
+        </h2>
+        <p className="header-subtitle" style={{ margin: 0, fontSize: '15px', color: '#64748b', fontWeight: '500' }}>
+          Ringkasan real-time aktivitas akademik dan administrasi sekolah.
+        </p>
       </section>
 
       {/* Bento Grid Metrics */}
-      <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#3b82f6' }}>school</span>
-          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_students}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Siswa Aktif</p>
+      <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+        
+        {/* Siswa Card */}
+        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+          <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#2563eb' }}>school</span>
+          </div>
+          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_students}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Siswa Aktif</p>
         </div>
-        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#10b981' }}>supervisor_account</span>
-          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_teachers}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Guru Aktif</p>
+
+        {/* Guru Card */}
+        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+          <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#059669' }}>supervisor_account</span>
+          </div>
+          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_teachers}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Guru Aktif</p>
         </div>
-        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#f59e0b' }}>family_restroom</span>
-          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_parents}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Orang Tua/Wali</p>
+
+        {/* Wali Card */}
+        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+          <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#d97706' }}>family_restroom</span>
+          </div>
+          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_parents}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Orang Tua/Wali</p>
         </div>
-        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#8b5cf6' }}>class</span>
-          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_classes}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Total Kelas</p>
+
+        {/* Kelas Card */}
+        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+          <div style={{ background: '#e0e7ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#4f46e5' }}>class</span>
+          </div>
+          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_classes}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Kelas</p>
         </div>
-        <div className="metric-small" style={{ background: '#fff', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#ec4899' }}>library_books</span>
-          <h4 style={{ fontSize: '24px', margin: 0, fontWeight: 'bold' }}>{stats.total_subjects}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Mata Pelajaran</p>
+
+        {/* Mapel Card */}
+        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+          <div style={{ background: '#fff1f2', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#e11d48' }}>library_books</span>
+          </div>
+          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_subjects}</h4>
+          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mata Pelajaran</p>
         </div>
+
       </div>
 
-      {/* Commands Center */}
-      <div className="commands-section">
-        <div className="commands-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <h3 className="commands-title" style={{ fontSize: '18px', color: '#0f172a', fontWeight: 'bold', marginBottom: '20px' }}>Pusat Kendali Admin</h3>
-          <div className="commands-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-            {commandCards.map(cmd => (
-              <div 
-                key={cmd.id} 
-                className="command-card"
-                onClick={() => navigate(cmd.path)}
-                style={{ cursor: 'pointer', border: '1px solid #f1f5f9', borderRadius: '16px', padding: '20px', transition: 'all 0.2s ease-in-out' }}
-              >
-                <div className="command-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div className="command-icon" style={{ background: '#eff6ff', padding: '8px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifycontent: 'center' }}>
-                    <span className="material-symbols-outlined" style={{ color: '#2563eb' }}>{cmd.icon}</span>
-                  </div>
-                  <span className="command-arrow material-symbols-outlined" style={{ color: '#94a3b8' }}>arrow_forward</span>
+      {/* Control Center */}
+      <div className="commands-section" style={{ background: '#fff', padding: '32px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.02)' }}>
+        <h3 className="commands-title" style={{ fontSize: '20px', color: '#0f172a', fontWeight: '800', marginBottom: '24px', fontFamily: 'Outfit, sans-serif' }}>
+          Pusat Kendali Admin
+        </h3>
+        <div className="commands-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+          {commandCards.map(cmd => (
+            <div 
+              key={cmd.id} 
+              className="command-card-premium"
+              onClick={() => navigate(cmd.path)}
+              style={{ 
+                cursor: 'pointer', 
+                background: '#fff',
+                border: '1px solid #e2e8f0', 
+                borderLeft: `5px solid ${cmd.borderLeft}`,
+                borderRadius: '16px', 
+                padding: '24px', 
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
+              }}
+            >
+              <div className="command-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div className="command-icon" style={{ background: cmd.iconBg, padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ color: cmd.iconColor, fontSize: '24px' }}>{cmd.icon}</span>
                 </div>
-                <h4 className="command-title" style={{ fontSize: '16px', fontWeight: 'bold', margin: '0 0 6px 0', color: '#1e293b' }}>{cmd.title}</h4>
-                <p className="command-description" style={{ margin: 0, fontSize: '13px', color: '#64748b', lineHeight: 1.4 }}>{cmd.description}</p>
+                <span className="command-arrow material-symbols-outlined" style={{ color: '#cbd5e1', fontSize: '20px' }}>arrow_forward</span>
               </div>
-            ))}
-          </div>
+              <h4 className="command-title" style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 8px 0', color: '#1e293b' }}>{cmd.title}</h4>
+              <p className="command-description" style={{ margin: 0, fontSize: '14px', color: '#64748b', lineHeight: 1.5, fontWeight: '500' }}>{cmd.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
