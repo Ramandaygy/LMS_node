@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/admin/admin-schedule.css';
+import '../../../styles/dashboard/admin/admin-students.css';
 
 const AdminSchedule = () => {
   const [loading, setLoading] = useState(true);
@@ -325,112 +326,34 @@ const AdminSchedule = () => {
             ))}
           </select>
 
-          <div className="compact-dropdown-wrapper" ref={actionsRef} style={{ position: 'relative' }}>
-            <button 
-              onClick={() => setActionsOpen(!actionsOpen)} 
-              className="actions-trigger-btn"
-              style={{ 
-                background: '#0284c7', 
-                color: '#fff', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>settings</span>
-              Aksi Jadwal
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>keyboard_arrow_down</span>
+          <div className="dropdown" ref={actionsRef} style={{ marginLeft: '8px' }}>
+            <button className="dropdown-btn" onClick={() => setActionsOpen(!actionsOpen)}>
+              <span className="material-symbols-outlined">file_present</span> Data
+              <span className="material-symbols-outlined dropdown-arrow">expand_more</span>
             </button>
-            
             {actionsOpen && (
-              <div 
-                className="actions-dropdown-menu"
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  marginTop: '6px',
-                  background: '#fff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                  zIndex: 1000,
-                  minWidth: '180px',
-                  overflow: 'hidden'
-                }}
-              >
-                <button 
-                  onClick={() => { setActionsOpen(false); handleSaveAll(); }}
-                  disabled={saving}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '10px 16px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#334155',
-                    fontSize: '14px'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#10b981' }}>save</span>
-                  {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
-                </button>
-                
-                <button 
-                  onClick={() => { setActionsOpen(false); handleDownloadTemplate(); }}
-                  disabled={templateLoading}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '10px 16px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#334155',
-                    fontSize: '14px',
-                    borderTop: '1px solid #f1f5f9'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>description</span>
-                  {templateLoading ? 'Memproses...' : 'Unduh Template'}
-                </button>
-                
-                <button 
-                  onClick={() => { setActionsOpen(false); handleImportClick(); }}
-                  disabled={importLoading}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    width: '100%',
-                    padding: '10px 16px',
-                    border: 'none',
-                    background: 'none',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#334155',
-                    fontSize: '14px',
-                    borderTop: '1px solid #f1f5f9'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>upload_file</span>
-                  {importLoading ? 'Memproses...' : 'Import Excel'}
-                </button>
+              <div className="dropdown-menu">
+                <div className="dropdown-group">
+                  <div className="dropdown-group-title">IMPORT</div>
+                  <button onClick={() => { setActionsOpen(false); handleImportClick(); }} disabled={importLoading}>
+                    <span className="material-symbols-outlined">upload_file</span>
+                    {importLoading ? 'Mengimport...' : 'Import Jadwal (Excel)'}
+                  </button>
+                </div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-group">
+                  <div className="dropdown-group-title">TEMPLATE</div>
+                  <button onClick={() => { setActionsOpen(false); handleDownloadTemplate(); }} disabled={templateLoading}>
+                    <span className="material-symbols-outlined">description</span>
+                    {templateLoading ? 'Memproses...' : 'Download Template Excel'}
+                  </button>
+                </div>
               </div>
             )}
           </div>
+          <button className="admin-add-user-btn" onClick={handleSaveAll} disabled={saving} style={{ background: '#0284c7', color: '#fff', borderRadius: '12px' }}>
+            <span className="material-symbols-outlined">save</span> {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
+          </button>
         </div>
       </div>
 
