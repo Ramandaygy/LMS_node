@@ -327,7 +327,7 @@ const AdminAcademicYear = () => {
                         <tr key={a._id}>
                           <td>{a.full_name}</td>
                           <td>{a.nis}</td>
-                          <td>{a.graduated_from_class || '-'}</td>
+                          <td>{a.graduated_from_class_name || a.graduated_from_class || '-'}</td>
                         </tr>
                       ))}
                     </tbody>

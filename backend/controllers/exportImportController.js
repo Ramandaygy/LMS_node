@@ -78,16 +78,43 @@ exports.exportStudents = async (req, res) => {
   try {
     const students = await getCollection('users_siswa').aggregate([
       { $lookup: { from: 'classes', localField: 'class_id', foreignField: '_id', as: 'kelas' } },
-      { $lookup: { from: 'academic_years', localField: 'academic_year_id', foreignField: '_id', as: 'tahun_ajaran' } },
       { $lookup: { from: 'users_ortu', localField: 'parent_id', foreignField: '_id', as: 'orang_tua' } },
-      { $project: { _id: 0, nis: 1, full_name: 1, email: 1, username: 1, status: 1, class_name: { $arrayElemAt: ['$kelas.name', 0] }, academic_year: { $arrayElemAt: ['$tahun_ajaran.name', 0] }, orang_tua_nama: { $arrayElemAt: ['$orang_tua.full_name', 0] }, created_at: 1 } }
+      {
+        $project: {
+          _id: 0,
+          nis: 1,
+          full_name: 1,
+          class_name: { $arrayElemAt: ['$kelas.name', 0] },
+          orang_tua_nama: { $arrayElemAt: ['$orang_tua.full_name', 0] },
+          status: 1
+        }
+      }
     ]).toArray();
+
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Siswa');
-    worksheet.columns = [{ header: 'nis', key: 'nis', width: 15 }, { header: 'full_name', key: 'full_name', width: 30 }, { header: 'email', key: 'email', width: 30 }, { header: 'username', key: 'username', width: 20 }, { header: 'status', key: 'status', width: 15 }, { header: 'class_name', key: 'class_name', width: 15 }, { header: 'academic_year', key: 'academic_year', width: 15 }, { header: 'orang_tua_nama', key: 'orang_tua_nama', width: 30 }, { header: 'created_at', key: 'created_at', width: 25 }];
-    students.forEach(s => worksheet.addRow(s));
-    await sendExcelFile(res, workbook, 'siswa.xlsx');
-  } catch (error) { res.status(500).json({ error: `Gagal export siswa: ${error.message}` }); }
+    const worksheet = workbook.addWorksheet('Data Siswa');
+    worksheet.columns = [
+      { header: 'NIS', key: 'nis', width: 15 },
+      { header: 'Nama Lengkap', key: 'full_name', width: 30 },
+      { header: 'Kelas', key: 'class_name', width: 15 },
+      { header: 'Orang Tua / Wali', key: 'orang_tua_nama', width: 30 },
+      { header: 'Status', key: 'status_formatted', width: 15 }
+    ];
+
+    students.forEach(s => {
+      worksheet.addRow({
+        nis: s.nis || '-',
+        full_name: s.full_name || '-',
+        class_name: s.class_name || '-',
+        orang_tua_nama: s.orang_tua_nama || '-',
+        status_formatted: s.status === 'active' ? 'Aktif' : 'Nonaktif'
+      });
+    });
+
+    await sendExcelFile(res, workbook, 'laporan_siswa.xlsx');
+  } catch (error) {
+    res.status(500).json({ error: `Gagal export siswa: ${error.message}` });
+  }
 };
 
 exports.importStudents = async (req, res) => {
@@ -332,25 +359,45 @@ exports.exportTeachers = async (req, res) => {
     const teachers = await getCollection('users_guru').aggregate([
       { $lookup: { from: 'subjects', localField: 'subjects', foreignField: '_id', as: 'subject_details' } },
       { $lookup: { from: 'classes', localField: 'classes', foreignField: '_id', as: 'class_details' } },
-      { $project: { _id: 0, nip: 1, full_name: 1, email: 1, username: 1, teacher_code: { $ifNull: ['$teacher_code', '$username'] }, subjects: { $map: { input: '$subject_details', as: 's', in: '$$s.name' } }, classes: { $map: { input: '$class_details', as: 'c', in: '$$c.name' } }, is_active: 1, phone: 1 } }
+      {
+        $project: {
+          _id: 0,
+          nip: 1,
+          full_name: 1,
+          teacher_code: { $ifNull: ['$teacher_code', '$username'] },
+          subjects: { $map: { input: '$subject_details', as: 's', in: '$$s.name' } },
+          phone: 1,
+          is_active: 1
+        }
+      }
     ]).toArray();
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Guru');
+    const worksheet = workbook.addWorksheet('Data Guru');
     worksheet.columns = [
-      { header: 'nip', key: 'nip', width: 20 }, { header: 'full_name', key: 'full_name', width: 30 },
-      { header: 'email', key: 'email', width: 30 }, { header: 'username', key: 'username', width: 20 },
-      { header: 'teacher_code', key: 'teacher_code', width: 15 }, { header: 'subjects', key: 'subjects', width: 30 },
-      { header: 'classes', key: 'classes', width: 30 }, { header: 'is_active', key: 'is_active', width: 15 },
-      { header: 'phone', key: 'phone', width: 20 }
+      { header: 'NIP', key: 'nip', width: 20 },
+      { header: 'Nama Lengkap', key: 'full_name', width: 30 },
+      { header: 'Kode Guru', key: 'teacher_code', width: 15 },
+      { header: 'Mata Pelajaran', key: 'subjects_formatted', width: 30 },
+      { header: 'Telepon', key: 'phone', width: 20 },
+      { header: 'Status', key: 'status_formatted', width: 15 }
     ];
+
     teachers.forEach(t => {
-      t.subjects = t.subjects ? t.subjects.join(', ') : '';
-      t.classes = t.classes ? t.classes.join(', ') : '';
-      worksheet.addRow(t);
+      worksheet.addRow({
+        nip: t.nip || '-',
+        full_name: t.full_name || '-',
+        teacher_code: t.teacher_code || '-',
+        subjects_formatted: t.subjects ? t.subjects.join(', ') : '-',
+        phone: t.phone || '-',
+        status_formatted: t.is_active ? 'Aktif' : 'Nonaktif'
+      });
     });
-    await sendExcelFile(res, workbook, 'guru.xlsx');
-  } catch (error) { res.status(500).json({ error: `Gagal export guru: ${error.message}` }); }
+
+    await sendExcelFile(res, workbook, 'laporan_guru.xlsx');
+  } catch (error) {
+    res.status(500).json({ error: `Gagal export guru: ${error.message}` });
+  }
 };
 
 exports.importTeachers = async (req, res) => {
@@ -819,8 +866,11 @@ exports.importSchedules = async (req, res) => {
         }
 
         const classLetter = classRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
-        if (currentGrade && classLetter && classLetter.length === 1) {
-          const className = `${currentGrade}${classLetter}`; // e.g. "7A"
+        if (classLetter) {
+          let className = classLetter;
+          if (!/^\d/.test(classLetter) && currentGrade) {
+            className = `${currentGrade}${classLetter}`;
+          }
           const foundClass = classes.find(c => normalize(c.name) === normalize(className));
           if (foundClass) {
             colToClassMap[col] = foundClass._id;

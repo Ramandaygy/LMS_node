@@ -116,31 +116,61 @@ const AdminReports = () => {
       let rows = [];
 
       if (type === 'students') {
-        const res = await api.get('/users/students/all');
+        const [res, classesRes, parentsRes] = await Promise.all([
+          api.get('/users/students/all'),
+          api.get('/classes'),
+          api.get('/users/parents')
+        ]);
         const students = res.data.data || [];
+        const classesList = classesRes.data.data || [];
+        const parentsList = parentsRes.data.parents || [];
+
+        const classMap = {};
+        classesList.forEach(c => classMap[c._id] = c.name);
+
+        const parentMap = {};
+        parentsList.forEach(p => parentMap[p._id] = p.full_name);
+
         title = 'LAPORAN DATA INDUK SISWA';
-        headers = ['No', 'NIS', 'Nama Lengkap', 'Email', 'Username', 'Status'];
-        rows = students.map((s, i) => [
-          i + 1,
-          s.nis || '-',
-          s.full_name || '-',
-          s.email || '-',
-          s.username || '-',
-          s.status === 'active' ? 'Aktif' : 'Nonaktif'
-        ]);
+        headers = ['No', 'NIS', 'Nama Lengkap', 'Kelas', 'Orang Tua / Wali', 'Status'];
+        rows = students.map((s, i) => {
+          const classId = s.class_id?._id || s.class_id;
+          const parentId = s.parent_id?._id || s.parent_id;
+          return [
+            i + 1,
+            s.nis || '-',
+            s.full_name || '-',
+            classMap[classId] || '-',
+            parentMap[parentId] || '-',
+            s.status === 'active' ? 'Aktif' : 'Nonaktif'
+          ];
+        });
       } else if (type === 'teachers') {
-        const res = await api.get('/users/teachers/all');
-        const teachers = res.data.data || [];
-        title = 'LAPORAN DATA TENAGA PENDIDIK (GURU)';
-        headers = ['No', 'NIP', 'Nama Lengkap', 'Email', 'Kode Guru', 'Telepon'];
-        rows = teachers.map((t, i) => [
-          i + 1,
-          t.nip || '-',
-          t.full_name || '-',
-          t.email || '-',
-          t.teacher_code || t.username || '-',
-          t.phone || '-'
+        const [res, subjectsRes] = await Promise.all([
+          api.get('/users/teachers/all'),
+          api.get('/subjects')
         ]);
+        const teachers = res.data.data || [];
+        const subjectsList = subjectsRes.data.data || [];
+
+        const subjectMap = {};
+        subjectsList.forEach(s => subjectMap[s._id] = s.name);
+
+        title = 'LAPORAN DATA TENAGA PENDIDIK (GURU)';
+        headers = ['No', 'NIP', 'Nama Lengkap', 'Kode Guru', 'Mata Pelajaran', 'Telepon'];
+        rows = teachers.map((t, i) => {
+          const mappedSubs = (t.subjects || t.subject_ids || [])
+            .map(subId => subjectMap[subId] || subId)
+            .join(', ') || '-';
+          return [
+            i + 1,
+            t.nip || '-',
+            t.full_name || '-',
+            t.teacher_code || t.username || '-',
+            mappedSubs,
+            t.phone || '-'
+          ];
+        });
       } else if (type === 'courses') {
         const res = await api.get('/schedules');
         const schedules = res.data.data || [];
