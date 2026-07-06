@@ -36,10 +36,30 @@ const GuruAttendance = () => {
       const schedulesData = response.data.schedules || [];
       setSchedules(schedulesData);
       if (schedulesData.length > 0) {
-        const first = schedulesData[0];
-        setSelectedSchedule(first.id || first._id);
-        setSelectedScheduleInfo(first);
-        setSelectedClass(first.class_id);
+        // Cari jadwal yang aktif secara real-time berdasarkan hari dan jam sekarang
+        const indonesianDays = ['MINGGU', 'SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+        const now = new Date();
+        const currentDayName = indonesianDays[now.getDay()];
+        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        // 1. Cari yang hari ini DAN jamnya sedang berlangsung
+        let active = schedulesData.find(s => {
+          const matchDay = String(s.day).toUpperCase().trim() === currentDayName;
+          const matchTime = s.start_time && s.end_time && currentTimeStr >= s.start_time && currentTimeStr <= s.end_time;
+          return matchDay && matchTime;
+        });
+
+        // 2. Jika tidak ada yang sedang berlangsung, cari yang hari ini saja
+        if (!active) {
+          active = schedulesData.find(s => String(s.day).toUpperCase().trim() === currentDayName);
+        }
+
+        // 3. Jika tidak ada, gunakan yang pertama
+        const defaultSelection = active || schedulesData[0];
+
+        setSelectedSchedule(defaultSelection.id || defaultSelection._id);
+        setSelectedScheduleInfo(defaultSelection);
+        setSelectedClass(defaultSelection.class_id);
       }
     } catch (error) {
       console.error('Error fetching schedules:', error);
