@@ -330,10 +330,10 @@ const GuruAttendance = () => {
                   const studentId = student._id || student.id;
                   const attendance = attendanceData[studentId] || { status: 'present', note: '' };
                   const statuses = [
-                    { key: 'present', label: 'Present', icon: 'check_circle', color: 'present' },
-                    { key: 'absent', label: 'Absent', icon: 'cancel', color: 'absent' },
-                    { key: 'late', label: 'Late', icon: 'schedule', color: 'late' },
-                    { key: 'sick', label: 'Sick', icon: 'medical_services', color: 'sick' }
+                    { key: 'present', label: 'Hadir (H)', letter: 'H', color: 'present' },
+                    { key: 'absent', label: 'Absen / Alfa (A)', letter: 'A', color: 'absent' },
+                    { key: 'late', label: 'Terlambat (T)', letter: 'T', color: 'late' },
+                    { key: 'sick', label: 'Sakit (S)', letter: 'S', color: 'sick' }
                   ];
                   return (
                     <tr key={studentId} className="attendance-row">
@@ -354,8 +354,9 @@ const GuruAttendance = () => {
                               className={`status-btn ${status.color} ${attendance.status === status.key ? 'active' : ''}`}
                               onClick={() => updateStatus(studentId, status.key)}
                               title={status.label}
+                              style={{ fontWeight: '800', fontSize: '15px' }}
                             >
-                              <span className="material-symbols-outlined">{status.icon}</span>
+                              {status.letter}
                             </button>
                           ))}
                         </div>
