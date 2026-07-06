@@ -23,8 +23,7 @@ const GuruAttendance = () => {
 
   useEffect(() => {
     if (selectedSchedule && selectedClass) {
-      fetchStudents();
-      fetchAttendance();
+      loadData();
     }
   }, [selectedSchedule, selectedClass, selectedDate]);
 
@@ -32,7 +31,6 @@ const GuruAttendance = () => {
   const fetchSchedules = async () => {
     try {
       const response = await api.get('/attendance/schedules');
-      // Backend mengembalikan { schedules: [...] }
       const schedulesData = response.data.schedules || [];
       setSchedules(schedulesData);
       if (schedulesData.length > 0) {
@@ -69,49 +67,38 @@ const GuruAttendance = () => {
     }
   };
 
-  // Ambil daftar siswa dalam satu kelas
-  const fetchStudents = async () => {
+  // Memuat data siswa beserta status absensi tersimpannya secara terkoordinasi (Mencegah Race Condition)
+  const loadData = async () => {
     try {
-      const response = await api.get(`/attendance/students/${selectedClass}`);
-      // Backend mengembalikan { students: [...] }
-      const studentsData = response.data.students || [];
+      setLoading(true);
+      setError('');
+      
+      const [studentsResponse, attendanceResponse] = await Promise.all([
+        api.get(`/attendance/students/${selectedClass}`),
+        api.get(`/attendance?schedule_id=${selectedSchedule}&date=${selectedDate}`)
+      ]);
+
+      const studentsData = studentsResponse.data.students || [];
+      const savedData = attendanceResponse.data.attendance || {};
+
       setStudents(studentsData);
-      const initialData = {};
+
+      const combinedData = {};
       studentsData.forEach(student => {
         const studentId = student._id || student.id;
-        initialData[studentId] = {
-          status: 'present',
-          note: ''
+        const saved = savedData[studentId];
+        combinedData[studentId] = {
+          status: saved ? saved.status : 'present',
+          note: saved ? (saved.note || '') : ''
         };
       });
-      setAttendanceData(initialData);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      setError('Gagal mengambil data siswa');
-    }
-  };
 
-  // Ambil data absensi yang sudah ada (untuk tanggal tertentu)
-  const fetchAttendance = async () => {
-    try {
-      const response = await api.get(`/attendance?schedule_id=${selectedSchedule}&date=${selectedDate}`);
-      // Backend mengembalikan { attendance: { [studentId]: { status, note } } }
-      const savedData = response.data.attendance || {};
-      setAttendanceData(prev => {
-        const newData = { ...prev };
-        Object.keys(savedData).forEach(studentId => {
-          if (newData[studentId]) {
-            newData[studentId] = {
-              ...newData[studentId],
-              status: savedData[studentId].status,
-              note: savedData[studentId].note || ''
-            };
-          }
-        });
-        return newData;
-      });
+      setAttendanceData(combinedData);
     } catch (error) {
-      console.error('Error fetching attendance:', error);
+      console.error('Error loading attendance data:', error);
+      setError('Gagal memuat data absensi siswa');
+    } finally {
+      setLoading(false);
     }
   };
 

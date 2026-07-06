@@ -9,10 +9,14 @@ exports.createGrade =
   async (req, res) => {
 
     try {
+      const payload = {
+        ...req.body,
+        teacher: req.user.id
+      };
 
       const grade =
         await gradeService.createGrade(
-          req.body
+          payload
         );
 
       return res.status(201).json({
