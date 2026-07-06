@@ -311,36 +311,84 @@ const AdminAcademicYear = () => {
       )}
 
       {/* MODAL ALUMNI */}
-      {alumniModal.open && (
-        <div className="modal-overlay" onClick={() => setAlumniModal({ open: false })}>
-          <div className="modal-content alumni-modal" onClick={e => e.stopPropagation()}>
-            <h3>Alumni - {alumniModal.yearName}</h3>
-            {alumniLoading ? <div className="loading-spinner">Memuat...</div> : (
-              <div className="alumni-list">
-                {alumniList.length === 0 ? (
-                  <p className="empty-message">Belum ada alumni tahun ini</p>
-                ) : (
-                  <table className="alumni-table">
-                    <thead><tr><th>Nama</th><th>NIS</th><th>Kelas Lulus</th></tr></thead>
-                    <tbody>
-                      {alumniList.map(a => (
-                        <tr key={a._id}>
-                          <td>{a.full_name}</td>
-                          <td>{a.nis}</td>
-                          <td>{a.graduated_from_class_name || a.graduated_from_class || '-'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+      {alumniModal.open && (() => {
+        // Group alumni by class name in memory
+        const groupedAlumni = {};
+        alumniList.forEach(a => {
+          const className = a.graduated_from_class || 'Lainnya';
+          if (!groupedAlumni[className]) {
+            groupedAlumni[className] = [];
+          }
+          groupedAlumni[className].push(a);
+        });
+        const classKeys = Object.keys(groupedAlumni).sort();
+
+        return (
+          <div className="modal-overlay" onClick={() => setAlumniModal({ open: false })}>
+            <div className="modal-content alumni-modal" onClick={e => e.stopPropagation()} style={{ width: '950px', maxWidth: '95%', minHeight: '550px', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', marginBottom: '8px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                Alumni - {alumniModal.yearName}
+              </h3>
+              {alumniLoading ? <div className="loading-spinner">Memuat data alumni...</div> : (
+                <div className="alumni-list" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+                  {alumniList.length === 0 ? (
+                    <p className="empty-message">Belum ada alumni tahun ini</p>
+                  ) : (
+                    <div>
+                      {classKeys.map(clsName => {
+                        const studentsInClass = groupedAlumni[clsName];
+                        return (
+                          <div key={clsName} style={{ marginBottom: '32px' }}>
+                            <h4 style={{ 
+                              fontSize: '15px', 
+                              fontWeight: '800', 
+                              color: '#1e293b', 
+                              padding: '8px 16px', 
+                              background: '#eff6ff', 
+                              borderRadius: '10px', 
+                              display: 'inline-block',
+                              marginBottom: '14px' 
+                            }}>
+                              Kelas {clsName} ({studentsInClass.length} Lulusan)
+                            </h4>
+                            <table className="alumni-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead>
+                                <tr>
+                                  <th style={{ width: '60px', padding: '10px', background: '#f8fafc', fontWeight: '700', textAlign: 'left' }}>No</th>
+                                  <th style={{ padding: '10px', background: '#f8fafc', fontWeight: '700', textAlign: 'left' }}>Nama Lengkap</th>
+                                  <th style={{ padding: '10px', background: '#f8fafc', fontWeight: '700', textAlign: 'left' }}>NIS</th>
+                                  <th style={{ width: '180px', padding: '10px', background: '#f8fafc', fontWeight: '700', textAlign: 'center' }}>Rata-Rata Nilai</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {studentsInClass.map((a, idx) => (
+                                  <tr key={a._id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                                    <td style={{ padding: '10px' }}>{idx + 1}</td>
+                                    <td style={{ padding: '10px', fontWeight: '600', color: '#0f172a' }}>{a.full_name}</td>
+                                    <td style={{ padding: '10px', color: '#64748b' }}>{a.nis}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: '800', color: a.average_score !== '-' ? '#2563eb' : '#94a3b8' }}>
+                                      {a.average_score}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="modal-buttons" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', marginTop: '12px' }}>
+                <button onClick={() => setAlumniModal({ open: false })} style={{ background: '#64748b', color: '#fff', borderRadius: '10px', padding: '10px 24px', fontWeight: '700' }}>
+                  Tutup
+                </button>
               </div>
-            )}
-            <div className="modal-buttons">
-              <button onClick={() => setAlumniModal({ open: false })}>Tutup</button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

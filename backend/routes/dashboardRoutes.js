@@ -12,4 +12,10 @@ router.get(
   dashboardController.getDashboardStats
 );
 
+router.get(
+  '/activities',
+  authMiddleware,
+  dashboardController.getActivityLogs
+);
+
 module.exports = router;

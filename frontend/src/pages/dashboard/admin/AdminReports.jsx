@@ -33,45 +33,50 @@ const AdminReports = () => {
 
   const fetchRecentActivities = async () => {
     try {
-      const [siswaRes, guruRes] = await Promise.all([
-        api.get('/users/students/all'),
-        api.get('/users/teachers/all')
-      ]);
-      const students = (siswaRes.data.data || []).slice(0, 3);
-      const teachers = (guruRes.data.data || []).slice(0, 2);
-      
-      const list = [];
-      students.forEach((s, idx) => {
-        list.push({
-          id: `s-${idx}`,
-          time: 'Baru saja',
-          user: 'Admin',
-          action: 'Registrasi Siswa',
-          detail: `${s.full_name} (NIS: ${s.nis || '-'})`,
-          icon: 'person_add'
-        });
+      const response = await api.get('/dashboard/activities');
+      const logs = response.data.data || [];
+      const list = logs.map(l => {
+        const date = new Date(l.created_at);
+        let timeStr = 'Baru saja';
+        const diffMs = new Date() - date;
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin > 0) {
+          if (diffMin < 60) {
+            timeStr = `${diffMin} menit lalu`;
+          } else {
+            const diffHour = Math.floor(diffMin / 60);
+            if (diffHour < 24) {
+              timeStr = `${diffHour} jam lalu`;
+            } else {
+              timeStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            }
+          }
+        }
+
+        let icon = 'settings';
+        if (l.action.includes('Registrasi') || l.action.includes('Import')) {
+          icon = 'person_add';
+        } else if (l.action.includes('Kenaikan')) {
+          icon = 'school';
+        } else if (l.action.includes('Hapus')) {
+          icon = 'person_remove';
+        }
+
+        return {
+          id: l._id,
+          time: timeStr,
+          user: l.user_name || 'System',
+          action: l.action,
+          detail: l.detail,
+          icon
+        };
       });
-      teachers.forEach((t, idx) => {
-        list.push({
-          id: `t-${idx}`,
-          time: 'Baru saja',
-          user: 'Admin',
-          action: 'Registrasi Guru',
-          detail: `${t.full_name} (${t.teacher_code || t.username || '-'})`,
-          icon: 'badge'
-        });
-      });
       
-      if (list.length === 0) {
-        throw new Error('No real data');
-      }
-      setRecentActivities(list.slice(0, 4));
+      setRecentActivities(list.slice(0, 10));
     } catch (e) {
+      console.error('Failed to fetch recent activities:', e);
       setRecentActivities([
-        { id: 1, time: '10 menit lalu', user: 'Admin', action: 'Menambah siswa baru', detail: 'Ahmad Fauzi (NIS: 2024001)', icon: 'person_add' },
-        { id: 2, time: '1 jam lalu', user: 'Guru', action: 'Membuat tugas baru', detail: 'Latihan Pythagoras - Kelas 8A', icon: 'assignment' },
-        { id: 3, time: '2 jam lalu', user: 'Siswa', action: 'Mengumpulkan tugas', detail: 'PR Pecahan - Siti Nurhaliza', icon: 'task_alt' },
-        { id: 4, time: '3 jam lalu', user: 'Admin', action: 'Mengupdate pengaturan', detail: 'Perubahan jadwal semester', icon: 'settings' },
+        { id: 1, time: '10 menit lalu', user: 'Admin', action: 'Sistem Inisialisasi', detail: 'Aktivitas logging siap digunakan', icon: 'settings' }
       ]);
     }
   };
@@ -187,52 +192,18 @@ const AdminReports = () => {
           s.room || '-'
         ]);
       } else if (type === 'activity') {
-        const [siswaRes, guruRes, ortuRes] = await Promise.all([
-          api.get('/users/students/all'),
-          api.get('/users/teachers/all'),
-          api.get('/users/parents')
-        ]);
-        const students = siswaRes.data.data || [];
-        const teachers = guruRes.data.data || [];
-        const parents = ortuRes.data.parents || [];
-        
-        const activities = [];
-        students.forEach(s => {
-          activities.push({
-            time: s.created_at || new Date(),
-            user: 'System Admin',
-            action: 'Registrasi Siswa',
-            detail: `Menambahkan siswa ${s.full_name} (NIS: ${s.nis || '-'})`
-          });
-        });
-        teachers.forEach(t => {
-          activities.push({
-            time: t.created_at || new Date(),
-            user: 'System Admin',
-            action: 'Registrasi Guru',
-            detail: `Menambahkan guru ${t.full_name} (NIP: ${t.nip || '-'})`
-          });
-        });
-        parents.forEach(p => {
-          activities.push({
-            time: p.created_at || new Date(),
-            user: 'System Admin',
-            action: 'Registrasi Wali',
-            detail: `Menambahkan orang tua/wali ${p.full_name}`
-          });
-        });
-        
-        activities.sort((a, b) => new Date(b.time) - new Date(a.time));
+        const response = await api.get('/dashboard/activities');
+        const logs = response.data.data || [];
         
         title = 'LAPORAN AKTIVITAS PENGGUNA SISTEM';
         headers = ['No', 'Waktu', 'Pengguna', 'Aktivitas', 'Detail'];
-        rows = activities.slice(0, 100).map((act, i) => {
-          const date = new Date(act.time);
+        rows = logs.slice(0, 100).map((act, i) => {
+          const date = new Date(act.created_at);
           const time_formatted = date.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
           return [
             i + 1,
             time_formatted,
-            act.user,
+            act.user_name || 'System',
             act.action,
             act.detail
           ];

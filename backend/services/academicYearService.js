@@ -79,6 +79,7 @@ exports.getCurrent =
   };
 
 const mongoose = require('mongoose');
+const Grade = require('../models/Grade');
 
 exports.getAlumniByYear = async (yearId) => {
   const siswaCollection = mongoose.connection.collection('users_siswa');
@@ -87,7 +88,36 @@ exports.getAlumniByYear = async (yearId) => {
     role: 'alumni',
     graduated_year_id: objectId
   }).toArray();
-  return alumni;
+
+  if (alumni.length === 0) return [];
+
+  const studentIds = alumni.map(a => a._id);
+  const allGrades = await Grade.find({ student: { $in: studentIds } });
+
+  const gradesByStudent = {};
+  allGrades.forEach(g => {
+    const sId = g.student.toString();
+    if (!gradesByStudent[sId]) {
+      gradesByStudent[sId] = [];
+    }
+    gradesByStudent[sId].push(g.score);
+  });
+
+  return alumni.map(a => {
+    const studentIdStr = a._id.toString();
+    const scores = gradesByStudent[studentIdStr] || [];
+    const averageScore = scores.length > 0
+      ? Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) * 10) / 10
+      : null;
+
+    return {
+      _id: a._id,
+      full_name: a.full_name,
+      nis: a.nis,
+      graduated_from_class: a.graduated_from_class_name || a.graduated_from_class || '-',
+      average_score: averageScore !== null ? averageScore : '-'
+    };
+  });
 };
 
 exports.promoteStudents = async (yearId) => {

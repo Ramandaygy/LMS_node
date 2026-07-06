@@ -102,3 +102,22 @@ exports.getDashboardStats =
       });
     }
   };
+
+exports.getActivityLogs = async (req, res) => {
+  try {
+    const ActivityLog = require('../models/ActivityLog');
+    const logs = await ActivityLog.find()
+      .sort({ created_at: -1 })
+      .limit(100);
+    return res.status(200).json({
+      success: true,
+      data: logs
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch activity logs'
+    });
+  }
+};

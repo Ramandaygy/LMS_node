@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const ExcelJS = require('exceljs');
+const { logActivity } = require('../utils/activityLogger');
 
 const getCollection = (name) => mongoose.connection.collection(name);
 
@@ -348,6 +349,11 @@ exports.importStudents = async (req, res) => {
 
     if (studentsToInsert.length > 0) {
       await getCollection('users_siswa').insertMany(studentsToInsert);
+      try {
+        await logActivity(req, 'Import Siswa', `Mengimport ${studentsToInsert.length} data siswa baru dari file Excel.`);
+      } catch (logErr) {
+        console.error('Failed to log importStudents:', logErr);
+      }
     }
 
     res.json({ message: 'Import siswa selesai', success_count: success, error_count: errors.length, errors: errors.slice(0, 20), default_password });
@@ -464,6 +470,13 @@ exports.importTeachers = async (req, res) => {
         });
         success++;
       } catch (e) { errors.push(`Baris ${i}: ${e.message}`); }
+    }
+    if (success > 0) {
+      try {
+        await logActivity(req, 'Import Guru', `Mengimport ${success} data guru baru dari file Excel.`);
+      } catch (logErr) {
+        console.error('Failed to log importTeachers:', logErr);
+      }
     }
     res.json({ message: 'Import guru selesai', success_count: success, error_count: errors.length, errors: errors.slice(0, 10), default_password });
   } catch (error) { res.status(500).json({ error: `Gagal import guru: ${error.message}` }); }
@@ -1050,6 +1063,11 @@ exports.importSchedules = async (req, res) => {
 
     if (schedulesToInsert.length > 0) {
       await getCollection('schedules').insertMany(schedulesToInsert);
+      try {
+        await logActivity(req, 'Import Jadwal', `Mengimport ${schedulesToInsert.length} jadwal pelajaran dari file Excel.`);
+      } catch (logErr) {
+        console.error('Failed to log importSchedules:', logErr);
+      }
     }
 
     res.json({ 
@@ -1105,38 +1123,9 @@ exports.exportSchedules = async (req, res) => {
 
 exports.exportActivities = async (req, res) => {
   try {
-    const students = await getCollection('users_siswa').find({}).toArray();
-    const teachers = await getCollection('users_guru').find({}).toArray();
-    const parents = await getCollection('users_ortu').find({}).toArray();
-    
-    const activities = [];
-    students.forEach(s => {
-      activities.push({
-        time: s.created_at || new Date(),
-        user: 'System Admin',
-        action: 'Registrasi Siswa',
-        detail: `Menambahkan siswa ${s.full_name} (NIS: ${s.nis || '-'})`
-      });
-    });
-    teachers.forEach(t => {
-      activities.push({
-        time: t.created_at || new Date(),
-        user: 'System Admin',
-        action: 'Registrasi Guru',
-        detail: `Menambahkan guru ${t.full_name} (NIP: ${t.nip || '-'})`
-      });
-    });
-    parents.forEach(p => {
-      activities.push({
-        time: p.created_at || new Date(),
-        user: 'System Admin',
-        action: 'Registrasi Wali',
-        detail: `Menambahkan orang tua/wali ${p.full_name}`
-      });
-    });
-    
-    activities.sort((a, b) => new Date(b.time) - new Date(a.time));
-    
+    const ActivityLog = require('../models/ActivityLog');
+    const logs = await ActivityLog.find().sort({ created_at: -1 }).limit(500);
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Aktivitas Pengguna');
     worksheet.columns = [
@@ -1145,18 +1134,18 @@ exports.exportActivities = async (req, res) => {
       { header: 'Aktivitas', key: 'action', width: 25 },
       { header: 'Detail', key: 'detail', width: 45 }
     ];
-    
-    activities.forEach(act => {
-      const date = new Date(act.time);
+
+    logs.forEach(l => {
+      const date = new Date(l.created_at);
       const time_formatted = date.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
       worksheet.addRow({
         time_formatted,
-        user: act.user,
-        action: act.action,
-        detail: act.detail
+        user: l.user_name || 'System',
+        action: l.action,
+        detail: l.detail
       });
     });
-    
+
     await sendExcelFile(res, workbook, 'aktivitas_pengguna.xlsx');
   } catch (error) {
     res.status(500).json({ error: `Gagal export aktivitas: ${error.message}` });

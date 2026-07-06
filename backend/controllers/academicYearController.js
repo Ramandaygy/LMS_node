@@ -75,6 +75,18 @@ exports.getAlumniByYear = async (req, res) => {
 exports.promoteStudents = async (req, res) => {
   try {
     const result = await service.promoteStudents(req.params.id);
+    
+    // Log Activity
+    try {
+      const AcademicYear = require('../models/AcademicYear');
+      const ay = await AcademicYear.findById(req.params.id);
+      const yearLabel = ay ? `${ay.year} - ${ay.semester}` : 'Tahun Ajaran';
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req, 'Kenaikan Kelas', `Kenaikan kelas pada ${yearLabel}. ${result.promotedTo8} siswa naik ke kelas 8, ${result.promotedTo9} siswa naik ke kelas 9, dan ${result.graduated} siswa lulus.`);
+    } catch (logErr) {
+      console.error('Failed to log promotion activity:', logErr);
+    }
+
     res.json({ success: true, message: 'Kenaikan kelas dan pengacakan siswa berhasil dilakukan.', data: result });
   } catch (err) {
     console.error(err);

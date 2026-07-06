@@ -86,7 +86,7 @@ exports.getBinaanStudents = async (req, res) => {
     // Group attendance by student
     const attendanceByStudent = {};
     students.forEach(s => {
-      attendanceByStudent[s._id.toString()] = { sick: 0, late: 0, absent: 0, total: 0 };
+      attendanceByStudent[s._id.toString()] = { sick: 0, permit: 0, absent: 0, total: 0 };
     });
     attendances.forEach(att => {
       const sId = att.student_id ? att.student_id.toString() : '';
@@ -94,8 +94,8 @@ exports.getBinaanStudents = async (req, res) => {
         if (att.status === 'sick') {
           attendanceByStudent[sId].sick++;
           attendanceByStudent[sId].total++;
-        } else if (att.status === 'late') {
-          attendanceByStudent[sId].late++;
+        } else if (att.status === 'permit' || att.status === 'late') {
+          attendanceByStudent[sId].permit++;
           attendanceByStudent[sId].total++;
         } else if (att.status === 'absent') {
           attendanceByStudent[sId].absent++;

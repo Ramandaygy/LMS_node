@@ -430,6 +430,7 @@
   color: white;
 }
 
+.status-btn.permit.active,
 .status-btn.late.active {
   background: #feb700;
   color: #6b4b00;

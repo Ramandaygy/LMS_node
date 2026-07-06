@@ -1,4 +1,5 @@
 const userService = require('../services/userService');
+const { logActivity } = require('../utils/activityLogger');
 
 // ======================================
 // GET ALL USERS
@@ -127,22 +128,20 @@ exports.getTeachers = async (
 // ======================================
 exports.createUser = async (req, res) => {
   try {
-
-    const user =
-      await userService.createUser(
-        req.body
-      );
+    const user = await userService.createUser(req.body);
+    
+    // Log Activity
+    const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+    const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
+    await logActivity(req, `Registrasi ${cleanRole}`, `Menambahkan ${user.role} ${user.full_name} (${user.nis || user.nip || user.username || '-'})`);
 
     return res.status(201).json({
       success: true,
       message: 'User created successfully',
       data: user,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(400).json({
       success: false,
       message: err.message,
@@ -155,23 +154,20 @@ exports.createUser = async (req, res) => {
 // ======================================
 exports.updateUser = async (req, res) => {
   try {
-
-    const user =
-      await userService.updateUser(
-        req.params.id,
-        req.body
-      );
+    const user = await userService.updateUser(req.params.id, req.body);
+    
+    // Log Activity
+    const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+    const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
+    await logActivity(req, `Update ${cleanRole}`, `Mengubah data ${user.role} ${user.full_name}`);
 
     return res.status(200).json({
       success: true,
       message: 'User updated successfully',
       data: user,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(400).json({
       success: false,
       message: err.message,
@@ -184,20 +180,23 @@ exports.updateUser = async (req, res) => {
 // ======================================
 exports.deleteUser = async (req, res) => {
   try {
-
-    await userService.deleteUser(
-      req.params.id
-    );
+    // Get user details first before deleting so we can write their name in the logs
+    const user = await userService.getUserById(req.params.id);
+    await userService.deleteUser(req.params.id);
+    
+    // Log Activity
+    if (user) {
+      const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+      const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
+      await logActivity(req, `Hapus ${cleanRole}`, `Menghapus ${user.role} ${user.full_name}`);
+    }
 
     return res.status(200).json({
       success: true,
       message: 'User deleted successfully',
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(400).json({
       success: false,
       message: err.message,

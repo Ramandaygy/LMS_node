@@ -30,21 +30,22 @@ const SiswaAttendance = () => {
   };
 
   const calculateSummary = (data) => {
-    let present = 0, absent = 0, late = 0, sick = 0;
+    let present = 0, absent = 0, permit = 0, sick = 0;
     data.forEach(item => {
       if (item.status === 'present') present++;
       else if (item.status === 'absent') absent++;
-      else if (item.status === 'late') late++;
+      else if (item.status === 'permit' || item.status === 'late') permit++;
       else if (item.status === 'sick') sick++;
     });
-    setSummary({ present, absent, late, sick });
+    setSummary({ present, absent, permit, sick });
   };
 
   const getStatusBadge = (status) => {
     const labels = {
       present: { text: 'Hadir', class: 'badge-present' },
-      absent: { text: 'Absen', class: 'badge-absent' },
-      late: { text: 'Terlambat', class: 'badge-late' },
+      absent: { text: 'Absen/Alfa', class: 'badge-absent' },
+      permit: { text: 'Izin', class: 'badge-late' },
+      late: { text: 'Izin', class: 'badge-late' },
       sick: { text: 'Sakit', class: 'badge-sick' },
     };
     const s = labels[status] || { text: status, class: '' };
@@ -70,8 +71,8 @@ const SiswaAttendance = () => {
           <div className="card-info"><h3>Absen</h3><p>{summary.absent} hari</p></div>
         </div>
         <div className="summary-card late">
-          <div className="card-icon">⏰</div>
-          <div className="card-info"><h3>Terlambat</h3><p>{summary.late} hari</p></div>
+          <div className="card-icon">✉️</div>
+          <div className="card-info"><h3>Izin</h3><p>{summary.permit} hari</p></div>
         </div>
         <div className="summary-card sick">
           <div className="card-icon">🤒</div>

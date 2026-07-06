@@ -291,25 +291,25 @@ const GuruAttendance = () => {
 
       <div className="attendance-table-container">
         <div className="table-header">
-          <h2>Student Attendance List</h2>
+          <h2>Daftar Kehadiran Siswa</h2>
           <div className="table-actions">
             <button className="mark-all-btn" onClick={markAllPresent}>
               <span className="material-symbols-outlined">done_all</span>
-              Mark All Present
+              Set Semua Hadir
             </button>
             <div className="filter-tabs">
-              <button className={`filter-tab ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>All Students</button>
-              <button className={`filter-tab ${activeFilter === 'present' ? 'active' : ''}`} onClick={() => setActiveFilter('present')}>Present</button>
-              <button className={`filter-tab ${activeFilter === 'absent' ? 'active' : ''}`} onClick={() => setActiveFilter('absent')}>Absent</button>
-              <button className={`filter-tab ${activeFilter === 'late' ? 'active' : ''}`} onClick={() => setActiveFilter('late')}>Late</button>
-              <button className={`filter-tab ${activeFilter === 'sick' ? 'active' : ''}`} onClick={() => setActiveFilter('sick')}>Sick</button>
+              <button className={`filter-tab ${activeFilter === 'all' ? 'active' : ''}`} onClick={() => setActiveFilter('all')}>Semua Siswa</button>
+              <button className={`filter-tab ${activeFilter === 'present' ? 'active' : ''}`} onClick={() => setActiveFilter('present')}>Hadir</button>
+              <button className={`filter-tab ${activeFilter === 'absent' ? 'active' : ''}`} onClick={() => setActiveFilter('absent')}>Absen/Alfa</button>
+              <button className={`filter-tab ${activeFilter === 'permit' ? 'active' : ''}`} onClick={() => setActiveFilter('permit')}>Izin</button>
+              <button className={`filter-tab ${activeFilter === 'sick' ? 'active' : ''}`} onClick={() => setActiveFilter('sick')}>Sakit</button>
             </div>
           </div>
         </div>
 
         <div className="search-bar">
           <span className="material-symbols-outlined">search</span>
-          <input type="text" placeholder="Search students by name or ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <input type="text" placeholder="Cari siswa berdasarkan nama atau NIS..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
 
         <div className="table-wrapper">
@@ -332,7 +332,7 @@ const GuruAttendance = () => {
                   const statuses = [
                     { key: 'present', label: 'Hadir (H)', letter: 'H', color: 'present' },
                     { key: 'absent', label: 'Absen / Alfa (A)', letter: 'A', color: 'absent' },
-                    { key: 'late', label: 'Terlambat (T)', letter: 'T', color: 'late' },
+                    { key: 'permit', label: 'Izin (I)', letter: 'I', color: 'permit' },
                     { key: 'sick', label: 'Sakit (S)', letter: 'S', color: 'sick' }
                   ];
                   return (

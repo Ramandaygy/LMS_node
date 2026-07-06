@@ -49,7 +49,7 @@ const OrtuAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
     const todayRecord = data.find(a => a.date.split('T')[0] === today);
     if (todayRecord && todayRecord.status !== 'present') {
-      const statusText = { absent: 'tidak hadir', late: 'terlambat', sick: 'sakit' };
+      const statusText = { absent: 'tidak hadir', permit: 'izin', late: 'izin', sick: 'sakit' };
       setNotification(`⚠️ Perhatian! Anak Anda tercatat ${statusText[todayRecord.status] || todayRecord.status} hari ini.`);
       setTimeout(() => setNotification(null), 8000);
     } else {
@@ -60,8 +60,9 @@ const OrtuAttendance = () => {
   const getStatusBadge = (status) => {
     const labels = {
       present: { text: 'Hadir', class: 'badge-present', icon: 'check_circle' },
-      absent: { text: 'Absen', class: 'badge-absent', icon: 'cancel' },
-      late: { text: 'Terlambat', class: 'badge-late', icon: 'schedule' },
+      absent: { text: 'Absen/Alfa', class: 'badge-absent', icon: 'cancel' },
+      permit: { text: 'Izin', class: 'badge-late', icon: 'mail' },
+      late: { text: 'Izin', class: 'badge-late', icon: 'mail' },
       sick: { text: 'Sakit', class: 'badge-sick', icon: 'local_hospital' },
     };
     const s = labels[status] || { text: status, class: '', icon: 'info' };
@@ -75,9 +76,12 @@ const OrtuAttendance = () => {
 
   // Calculate summaries
   const getSummary = () => {
-    const summary = { present: 0, absent: 0, sick: 0, late: 0 };
+    const summary = { present: 0, absent: 0, sick: 0, permit: 0 };
     attendance.forEach(a => {
-      if (summary[a.status] !== undefined) summary[a.status]++;
+      if (a.status === 'present') summary.present++;
+      else if (a.status === 'absent') summary.absent++;
+      else if (a.status === 'sick') summary.sick++;
+      else if (a.status === 'permit' || a.status === 'late') summary.permit++;
     });
     return summary;
   };
@@ -151,15 +155,15 @@ const OrtuAttendance = () => {
             <div className="summary-card">
               <div className="summary-icon sick"><span className="material-symbols-outlined">local_hospital</span></div>
               <div className="summary-details">
-                <h4>Sakit / Izin</h4>
+                <h4>Sakit</h4>
                 <span>{summary.sick}</span>
               </div>
             </div>
             <div className="summary-card">
-              <div className="summary-icon late"><span className="material-symbols-outlined">schedule</span></div>
+              <div className="summary-icon late"><span className="material-symbols-outlined">mail</span></div>
               <div className="summary-details">
-                <h4>Terlambat</h4>
-                <span>{summary.late}</span>
+                <h4>Izin</h4>
+                <span>{summary.permit}</span>
               </div>
             </div>
             <div className="summary-card">
