@@ -95,12 +95,12 @@ exports.promoteStudents = async (yearId) => {
   const classCollection = mongoose.connection.collection('classes');
 
   // 1. Dapatkan semua kelas
-  const classes = await classCollection.find({ is_active: true }).toArray();
-  const classesGrade8 = classes.filter(c => c.grade_level === 8);
-  const classesGrade9 = classes.filter(c => c.grade_level === 9);
+  const classes = await classCollection.find({ is_active: { $ne: false } }).toArray();
+  const classesGrade8 = classes.filter(c => Number(c.grade_level) === 8);
+  const classesGrade9 = classes.filter(c => Number(c.grade_level) === 9);
 
   // 2. Dapatkan semua siswa aktif
-  const students = await siswaCollection.find({ role: 'siswa', status: 'active' }).toArray();
+  const students = await siswaCollection.find({ role: 'siswa', status: { $ne: 'inactive' } }).toArray();
 
   // 3. Kelompokkan siswa berdasarkan kelas saat ini
   const studentsGrade7 = [];
@@ -108,13 +108,15 @@ exports.promoteStudents = async (yearId) => {
   const studentsGrade9 = [];
 
   for (const student of students) {
-    if (!student.class_id) continue;
-    const currentClass = classes.find(c => c._id.toString() === student.class_id.toString());
+    const studentClassId = student.class_id?._id || student.class_id;
+    if (!studentClassId) continue;
+    const currentClass = classes.find(c => c._id.toString() === studentClassId.toString());
     if (!currentClass) continue;
 
-    if (currentClass.grade_level === 7) studentsGrade7.push(student);
-    else if (currentClass.grade_level === 8) studentsGrade8.push(student);
-    else if (currentClass.grade_level === 9) {
+    const currentGrade = Number(currentClass.grade_level);
+    if (currentGrade === 7) studentsGrade7.push(student);
+    else if (currentGrade === 8) studentsGrade8.push(student);
+    else if (currentGrade === 9) {
       student.graduated_from_class_name = currentClass.name;
       studentsGrade9.push(student);
     }
