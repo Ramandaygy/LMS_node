@@ -99,8 +99,8 @@ exports.promoteStudents = async (yearId) => {
   const classesGrade8 = classes.filter(c => Number(c.grade_level) === 8);
   const classesGrade9 = classes.filter(c => Number(c.grade_level) === 9);
 
-  // 2. Dapatkan semua siswa aktif
-  const students = await siswaCollection.find({ role: 'siswa', status: { $ne: 'inactive' } }).toArray();
+  // 2. Dapatkan semua siswa aktif (yang masih memiliki kelas dan role siswa)
+  const students = await siswaCollection.find({ role: 'siswa', class_id: { $ne: null } }).toArray();
 
   // 3. Kelompokkan siswa berdasarkan kelas saat ini
   const studentsGrade7 = [];

@@ -337,7 +337,8 @@ exports.importStudents = async (req, res) => {
           studentsToInsert.push({
             _id: student_id,
             nis, full_name, email, username, password: hashed_default, role: 'siswa',
-            class_id: class_doc._id, parent_id, academic_year_id: year_id, status: status === 'active' ? 'active' : 'inactive',
+            class_id: class_doc._id, parent_id, academic_year_id: year_id,
+            status: (status.toLowerCase().trim() === 'inactive' || status.toLowerCase().trim() === 'nonaktif' || status.toLowerCase().trim() === 'non-aktif') ? 'inactive' : 'active',
             profile: { avatar: null, bio: '', phone: '', address: '' }, created_at: new Date(), updated_at: new Date()
           });
           success++;

@@ -7,7 +7,6 @@ exports.getStudentsByClass = async (classId) => {
   const students = await siswaCollection
     .find({
       role: 'siswa',
-      status: { $ne: 'inactive' },
       class_id: new mongoose.Types.ObjectId(classId)
     })
     .toArray();

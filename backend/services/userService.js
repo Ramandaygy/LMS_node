@@ -111,9 +111,22 @@ exports.getUsersByRole = async (role) => {
   switch (role) {
 
     case 'siswa':
-      users = await siswaCollection
-        .find({})
-        .toArray();
+      users = await siswaCollection.aggregate([
+        { $lookup: { from: 'classes', localField: 'class_id', foreignField: '_id', as: 'class_details' } },
+        { $lookup: { from: 'users_ortu', localField: 'parent_id', foreignField: '_id', as: 'parent_details' } },
+        {
+          $addFields: {
+            class_name: { $arrayElemAt: ['$class_details.name', 0] },
+            parent: { $arrayElemAt: ['$parent_details', 0] }
+          }
+        },
+        {
+          $project: {
+            class_details: 0,
+            parent_details: 0
+          }
+        }
+      ]).toArray();
       break;
 
     case 'guru':
