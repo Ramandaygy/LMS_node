@@ -2,8 +2,73 @@ const Schedule = require('../models/Schedule');
 const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+/**
+ * Sinkronisasi array 'classes' dan 'subjects' pada data guru
+ * berdasarkan seluruh jadwal mengajar guru tersebut yang terdaftar di database.
+ */
+async function syncTeacherClassesAndSubjects(teacherIds) {
+  if (!teacherIds || teacherIds.length === 0) return;
+  
+  try {
+    const guruCollection = mongoose.connection.collection('users_guru');
+    
+    for (const tid of teacherIds) {
+      if (!tid) continue;
+      const objTid = new mongoose.Types.ObjectId(tid.toString());
+      
+      // Ambil seluruh jadwal guru ini
+      const schedules = await Schedule.find({ teacher_id: objTid });
+      
+      // Kumpulkan class_id unik
+      const uniqueClasses = [...new Set(schedules.map(s => s.class_id ? s.class_id.toString() : null).filter(Boolean))];
+      const classObjectIds = uniqueClasses.map(id => new mongoose.Types.ObjectId(id));
+      
+      // Kumpulkan subject_id unik
+      const uniqueSubjects = [...new Set(schedules.map(s => s.subject_id ? s.subject_id.toString() : null).filter(Boolean))];
+      const subjectObjectIds = uniqueSubjects.map(id => new mongoose.Types.ObjectId(id));
+      
+      // Update data guru
+      await guruCollection.updateOne(
+        { _id: objTid },
+        { 
+          $set: { 
+            classes: classObjectIds,
+            subjects: subjectObjectIds
+          } 
+        }
+      );
+    }
+    console.log(`[ML/Sync] Berhasil sinkronisasi kelas & mapel untuk ${teacherIds.length} guru.`);
+  } catch (err) {
+    console.error('[ML/Sync] Gagal sinkronisasi data kelas & mapel guru:', err);
+  }
+}
+
+/**
+ * Sinkronisasi seluruh guru dengan seluruh jadwal di database.
+ * Dipanggil saat startup server.
+ */
+exports.syncAllTeachers = async () => {
+  try {
+    const guruCollection = mongoose.connection.collection('users_guru');
+    const teachers = await guruCollection.find({}, { projection: { _id: 1 } }).toArray();
+    const teacherIds = teachers.map(t => t._id.toString());
+    
+    if (teacherIds.length > 0) {
+      await syncTeacherClassesAndSubjects(teacherIds);
+      console.log('[ML/Sync] Semua data kelas & mapel guru berhasil diselaraskan dengan jadwal.');
+    }
+  } catch (err) {
+    console.error('[ML/Sync] Gagal sinkronisasi otomatis seluruh guru:', err);
+  }
+};
+
 exports.createSchedule = async (data) => {
-  return await Schedule.create(data);
+  const created = await Schedule.create(data);
+  if (created.teacher_id) {
+    await syncTeacherClassesAndSubjects([created.teacher_id.toString()]);
+  }
+  return created;
 };
 
 exports.bulkSaveSchedule = async (scheduleList) => {
@@ -35,26 +100,9 @@ exports.bulkSaveSchedule = async (scheduleList) => {
     }
   }
   
-  // -- Update class_ids for all affected teachers --
-  try {
-    const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(id => id))];
-    const guruCollection = mongoose.connection.collection('users_guru');
-    
-    for (const tid of teacherIds) {
-      // Find all schedules for this teacher across all active academic years or current ones
-      const teacherSchedules = await Schedule.find({ teacher_id: tid });
-      const uniqueClasses = [...new Set(teacherSchedules.map(s => s.class_id ? s.class_id.toString() : null).filter(Boolean))];
-      const classObjectIds = uniqueClasses.map(id => new mongoose.Types.ObjectId(id));
-      
-      // Update the teacher's classes array
-      await guruCollection.updateOne(
-        { _id: new mongoose.Types.ObjectId(tid) },
-        { $set: { classes: classObjectIds } }
-      );
-    }
-  } catch (err) {
-    console.error('Failed to update teacher classes from schedules:', err);
-  }
+  // Sinkronisasi seluruh guru yang terdampak jadwalnya
+  const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(id => id))];
+  await syncTeacherClassesAndSubjects(teacherIds);
 
   return results;
 };
@@ -100,11 +148,26 @@ exports.getTodaySchedule = async (teacherId, day) => {
 };
 
 exports.updateSchedule = async (id, data) => {
-  return await Schedule.findByIdAndUpdate(id, data, { new: true });
+  const oldSchedule = await Schedule.findById(id);
+  const updated = await Schedule.findByIdAndUpdate(id, data, { new: true });
+  
+  const teachersToSync = [];
+  if (oldSchedule && oldSchedule.teacher_id) teachersToSync.push(oldSchedule.teacher_id.toString());
+  if (updated && updated.teacher_id) teachersToSync.push(updated.teacher_id.toString());
+  
+  if (teachersToSync.length > 0) {
+    await syncTeacherClassesAndSubjects([...new Set(teachersToSync)]);
+  }
+  return updated;
 };
 
 exports.deleteSchedule = async (id) => {
-  return await Schedule.findByIdAndDelete(id);
+  const oldSchedule = await Schedule.findById(id);
+  const deleted = await Schedule.findByIdAndDelete(id);
+  if (oldSchedule && oldSchedule.teacher_id) {
+    await syncTeacherClassesAndSubjects([oldSchedule.teacher_id.toString()]);
+  }
+  return deleted;
 };
 
 exports.deleteByAcademicYear = async (academicYearId) => {

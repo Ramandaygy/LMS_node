@@ -15,7 +15,14 @@ const app = express();
 // =====================================
 // CONNECT DATABASE
 // =====================================
-connectDB();
+connectDB().then(async () => {
+  try {
+    const scheduleService = require('./services/scheduleService');
+    await scheduleService.syncAllTeachers();
+  } catch (err) {
+    console.error('Failed to sync teachers on startup:', err);
+  }
+});
 
 // =====================================
 // MIDDLEWARE
