@@ -32,18 +32,11 @@ function getOrGenerateDataset() {
   const labels = [];
   
   for (let i = 0; i < 922; i++) {
-    // Menghasilkan data dengan distribusi yang realistis (tidak seragam 0-100)
-    // Rata-rata nilai tugas: dominan di rentang 65-90
-    const avgScore = Math.min(100, Math.max(0, Math.round(75 + (Math.random() - 0.5) * 25)));
-    
-    // Kehadiran: mayoritas siswa rajin (>85%), beberapa ada yang bermasalah
-    const attendanceRate = Math.min(100, Math.max(0, Math.round(92 - (Math.random() * Math.random()) * 35)));
-    
-    // Penyelesaian materi: dominan di rentang 60-95%
-    const materialCompletionRate = Math.min(100, Math.max(0, Math.round(80 - (Math.random() * Math.random()) * 45)));
-    
-    // Rata-rata nilai kuis: dominan di rentang 60-88
-    const quizScore = Math.min(100, Math.max(0, Math.round(72 + (Math.random() - 0.5) * 30)));
+    // Menghasilkan data dengan distribusi yang mencakup rentang nilai hingga 100%
+    const avgScore = Math.floor(Math.random() * (100 - 50 + 1)) + 50; // 50 - 100
+    const attendanceRate = Math.floor(Math.random() * (100 - 60 + 1)) + 60; // 60 - 100
+    const materialCompletionRate = Math.floor(Math.random() * (100 - 40 + 1)) + 40; // 40 - 100
+    const quizScore = Math.floor(Math.random() * (100 - 40 + 1)) + 40; // 40 - 100
     
     let label = 2; // Low Risk (Aman)
     
