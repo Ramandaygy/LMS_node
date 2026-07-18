@@ -127,3 +127,81 @@ exports.getStudentProgress = async (studentId) => {
   const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate, data.avgQuizScore);
   return { ...data, ...prediction };
 };
+
+exports.checkAndNotifyEWS = async (studentId) => {
+  try {
+    const notificationController = require('../controllers/notificationController');
+    const siswaCol = mongoose.connection.collection('users_siswa');
+    const classCol = mongoose.connection.collection('classes');
+    const objStudentId = new mongoose.Types.ObjectId(studentId);
+
+    // 1. Get student
+    const student = await siswaCol.findOne({ _id: objStudentId });
+    if (!student) return;
+
+    // 2. Compute current progress and risk
+    const progress = await exports.getStudentProgress(studentId);
+    const currentRisk = progress.risk; // 'high', 'medium', 'low'
+
+    // Get previous risk from db
+    const lastRisk = student.last_ews_risk;
+
+    // 3. If risk is high and wasn't high before
+    if (currentRisk === 'high' && lastRisk !== 'high') {
+      // Send notification to student
+      await notificationController.sendPushNotification(
+        studentId,
+        'Peringatan Dini EWS!',
+        `Hasil analisis mendeteksi tingkat risiko belajar Anda berkategori TINGGI. Silakan tingkatkan nilai, kehadiran, atau penyelesaian materi Anda.`,
+        '/dashboard/siswa/progress'
+      ).catch(e => console.error('[EWS Notif Siswa Err]:', e));
+
+      // Send notification to parent
+      if (student.parent_id) {
+        await notificationController.sendPushNotification(
+          student.parent_id.toString(),
+          'Peringatan EWS Anak Anda',
+          `Hasil analisis mendeteksi tingkat risiko belajar anak Anda (${student.full_name}) berkategori TINGGI. Silakan pantau perkembangan belajar anak Anda.`,
+          '/dashboard/ortu'
+        ).catch(e => console.error('[EWS Notif Ortu Err]:', e));
+      }
+
+      // Send notification to homeroom teacher (wali kelas)
+      if (student.class_id) {
+        const classDoc = await classCol.findOne({ _id: new mongoose.Types.ObjectId(student.class_id.toString()) });
+        if (classDoc && classDoc.homeroom_teacher) {
+          await notificationController.sendPushNotification(
+            classDoc.homeroom_teacher.toString(),
+            'Peringatan EWS Siswa',
+            `Siswa Anda (${student.full_name}) di kelas ${classDoc.name} terdeteksi memiliki tingkat risiko belajar TINGGI. Harap pantau atau berikan bimbingan khusus.`,
+            '/dashboard/guru'
+          ).catch(e => console.error('[EWS Notif Guru Err]:', e));
+        }
+      }
+
+      // Update student document in database
+      await siswaCol.updateOne(
+        { _id: objStudentId },
+        { 
+          $set: { 
+            last_ews_risk: 'high',
+            last_ews_notified_at: new Date()
+          } 
+        }
+      );
+      console.log(`[EWS] Notified High Risk for student: ${student.full_name}`);
+    } else if (currentRisk !== lastRisk) {
+      // Sync last_ews_risk in db if it changed but isn't high
+      await siswaCol.updateOne(
+        { _id: objStudentId },
+        { 
+          $set: { 
+            last_ews_risk: currentRisk 
+          } 
+        }
+      );
+    }
+  } catch (err) {
+    console.error('[EWS] Error checking and notifying EWS:', err);
+  }
+};

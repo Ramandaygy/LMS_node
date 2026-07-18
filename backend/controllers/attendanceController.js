@@ -144,6 +144,10 @@ exports.saveAttendance = async (req, res) => {
             '/dashboard/ortu'
           ).catch(e => console.error(e));
         }
+
+        // 3. EWS check
+        const progressService = require('../services/progressService');
+        progressService.checkAndNotifyEWS(student._id.toString()).catch(e => console.error('[EWS Trigger Err]:', e));
       }
     } catch (notifErr) {
       console.error('Failed to send attendance push notifications:', notifErr);

@@ -338,6 +338,14 @@ exports.inputGrade = async (req, res) => {
       console.error('Failed to send grade push notification:', notifErr);
     }
 
+    // EWS check
+    try {
+      const progressService = require('../services/progressService');
+      progressService.checkAndNotifyEWS(student_id.toString()).catch(e => console.error('[EWS Trigger Err]:', e));
+    } catch (ewsErr) {
+      console.error('Failed to trigger EWS check:', ewsErr);
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Nilai berhasil disimpan',
@@ -556,6 +564,18 @@ exports.saveClassGrades = async (req, res) => {
       }
     } catch (notifErr) {
       console.error('Failed to send class grades push notifications:', notifErr);
+    }
+
+    // EWS check
+    try {
+      const progressService = require('../services/progressService');
+      for (const item of grades) {
+        if (item.student_id && item.score !== undefined && item.score !== null && item.score !== '') {
+          progressService.checkAndNotifyEWS(item.student_id.toString()).catch(e => console.error('[EWS Trigger Err]:', e));
+        }
+      }
+    } catch (ewsErr) {
+      console.error('Failed to trigger EWS checks for class grades:', ewsErr);
     }
 
     return res.status(200).json({ success: true, message: 'Nilai berhasil disimpan' });
