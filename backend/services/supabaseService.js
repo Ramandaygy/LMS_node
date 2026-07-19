@@ -1,6 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 
-// Ganti nilai berikut dengan credentials yang didapatkan
+
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tjjptbfwonkikfiyaaja.supabase.co';
 const SUPABASE_KEY = process.env.SUPABASE_KEY || 'sb_publishable_jrDX4PCI34LhvoIAe_MEeQ_rtlSTenM';
 
@@ -23,7 +23,7 @@ const uploadToSupabase = async (fileBuffer, originalName, mimetype, folder = '')
 
     const { data, error } = await supabase
       .storage
-      .from('materials') // Ganti dengan nama bucket Anda jika berbeda
+      .from('materials') 
       .upload(fileName, fileBuffer, {
         contentType: mimetype,
         upsert: false

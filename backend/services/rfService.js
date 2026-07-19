@@ -114,7 +114,7 @@ function trainModel() {
     seed: 42,
     maxFeatures: 2,
     replacement: false,
-    nEstimators: 50 // Menggunakan 50 pohon keputusan (sesuai laporan)
+    nEstimators: 50 // Menggunakan 50 pohon keputusan 
   };
 
   rfClassifier = new RandomForestClassifier(options);
