@@ -31,6 +31,7 @@ const AdminDashboard = () => {
 
   const commandCards = [
     { id: 1, title: 'Data Master', description: 'Kelola data siswa, guru, kelas, dan mata pelajaran.', icon: 'database', path: '/dashboard/admin/data-master', borderLeft: '#3b82f6', iconBg: '#eff6ff', iconColor: '#2563eb' },
+    { id: 5, title: 'Pusat Monitoring', description: 'Pantau siswa (EWS Risk), pemetaan guru-siswa, dan aktivitas mengajar.', icon: 'monitoring', path: '/dashboard/admin/monitoring', borderLeft: '#ec4899', iconBg: '#fce7f3', iconColor: '#db2777' },
     { id: 2, title: 'Tahun Ajaran', description: 'Atur semester, kalender akademik, dan kenaikan kelas.', icon: 'calendar_month', path: '/dashboard/admin/academic-year', borderLeft: '#10b981', iconBg: '#ecfdf5', iconColor: '#059669' },
     { id: 3, title: 'Penugasan Guru', description: 'Atur jadwal pelajaran dan pembagian tugas mengajar guru.', icon: 'assignment_ind', path: '/dashboard/admin/schedule', borderLeft: '#f59e0b', iconBg: '#fffbeb', iconColor: '#d97706' },
     { id: 4, title: 'Laporan', description: 'Lihat statistik, aktivitas, dan unduh laporan performa sekolah.', icon: 'analytics', path: '/dashboard/admin/reports', borderLeft: '#8b5cf6', iconBg: '#f5f3ff', iconColor: '#7c3aed' }

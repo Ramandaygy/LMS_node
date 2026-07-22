@@ -43,6 +43,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     admin: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
       { key: 'data-master', label: 'Data Master', icon: 'database', path: '/dashboard/admin/data-master' },
+      { key: 'monitoring', label: 'Pusat Monitoring', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Assign Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },

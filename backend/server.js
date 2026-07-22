@@ -75,6 +75,12 @@ app.use(
   require('./routes/exportImportRoutes')
 );
 
+// ADMIN MONITORING
+app.use(
+  '/api/admin/monitoring',
+  require('./routes/adminMonitoringRoutes')
+);
+
 // CLASSES
 app.use(
   '/api/classes',
