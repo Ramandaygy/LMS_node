@@ -26,6 +26,7 @@ const AdminMonitoring = () => {
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedClassFilter, setSelectedClassFilter] = useState('');
   const [selectedRiskFilter, setSelectedRiskFilter] = useState('');
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   // Selected Student Detail Modal
   const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
@@ -46,7 +47,7 @@ const AdminMonitoring = () => {
     if (classes.length > 0 && !selectedLegerClass) {
       setSelectedLegerClass(classes[0]._id);
     }
-  }, [classes]);
+  }, [classes, selectedLegerClass]);
 
   useEffect(() => {
     if (activeTab === 'leger' && selectedLegerClass) {
@@ -139,31 +140,24 @@ const AdminMonitoring = () => {
   };
 
   const fetchTeachersMonitoring = async () => {
-    setLoadingTeachers(true);
     try {
       const params = {};
       if (teacherSearch) params.search = teacherSearch;
       const res = await api.get('/admin/monitoring/teachers', { params });
       setTeachers(res.data.data || []);
-      setLoadingTeachers(false);
     } catch (e) {
       console.error('Error fetching teacher monitoring:', e);
-      setLoadingTeachers(false);
     }
   };
 
   const fetchTeacherActivities = async () => {
-    setLoadingActivities(true);
     try {
       const params = {};
       if (activityTeacherSearch) params.teacher_name = activityTeacherSearch;
       const res = await api.get('/admin/monitoring/teacher-activities', { params });
       setActivities(res.data.logs || []);
-      setActivitySummary(res.data.summary || []);
-      setLoadingActivities(false);
     } catch (e) {
       console.error('Error fetching teacher activities:', e);
-      setLoadingActivities(false);
     }
   };
 
@@ -221,7 +215,7 @@ const AdminMonitoring = () => {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>school</span>
-          Monitoring Risko Siswa (EWS)
+          Monitoring Risiko Siswa (EWS)
         </button>
 
         <button
@@ -421,6 +415,8 @@ const AdminMonitoring = () => {
               <span style={{ fontSize: '13px', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase' }}>Low Risk</span>
               <h2 style={{ fontSize: '32px', margin: '8px 0 0 0', fontWeight: '800', color: '#15803d' }}>{studentStats.low_risk_count || 0}</h2>
             </div>
+          </div>
+
           {/* Filter Bar */}
           <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
             <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
@@ -459,48 +455,49 @@ const AdminMonitoring = () => {
 
           {/* Table */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', fontWeight: '700' }}>
-                  <th style={{ padding: '16px 20px' }}>Siswa & NIS</th>
-                  <th style={{ padding: '16px 20px' }}>Kelas</th>
-                  <th style={{ padding: '16px 20px' }}>Nilai Rerata</th>
-                  <th style={{ padding: '16px 20px' }}>Kehadiran</th>
-                  <th style={{ padding: '16px 20px' }}>Risiko (RF EWS)</th>
-                  <th style={{ padding: '16px 20px', textAlign: 'right' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((st) => (
-                  <tr key={st._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '16px 20px' }}>
-                      <div style={{ fontWeight: '700', color: '#0f172a' }}>{st.full_name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>NIS: {st.nis}</div>
-                    </td>
-                    <td style={{ padding: '16px 20px', fontWeight: '600' }}>{st.class_name}</td>
-                    <td style={{ padding: '16px 20px', fontWeight: '700' }}>{st.avgScore} / 100</td>
-                    <td style={{ padding: '16px 20px' }}>{st.attendanceRate}%</td>
-                    <td style={{ padding: '16px 20px' }}>
-                      <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: st.risk === 'high' ? '#fee2e2' : st.risk === 'medium' ? '#fef3c7' : '#dcfce7', color: st.risk === 'high' ? '#991b1b' : st.risk === 'medium' ? '#92400e' : '#166534' }}>
-                        {st.risk.toUpperCase()} ({st.confidence}%)
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 20px', textAlign: 'right' }}>
-                      <button onClick={() => handleOpenStudentDetail(st._id)} style={{ padding: '6px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
-                        Detail Rapor
-                      </button>
-                    </td>
+            {loadingStudents ? (
+              <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>Memuat data siswa...</div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', fontWeight: '700' }}>
+                    <th style={{ padding: '16px 20px' }}>Siswa & NIS</th>
+                    <th style={{ padding: '16px 20px' }}>Kelas</th>
+                    <th style={{ padding: '16px 20px' }}>Nilai Rerata</th>
+                    <th style={{ padding: '16px 20px' }}>Kehadiran</th>
+                    <th style={{ padding: '16px 20px' }}>Risiko (RF EWS)</th>
+                    <th style={{ padding: '16px 20px', textAlign: 'right' }}>Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {students.map((st) => (
+                    <tr key={st._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '16px 20px' }}>
+                        <div style={{ fontWeight: '700', color: '#0f172a' }}>{st.full_name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b' }}>NIS: {st.nis}</div>
+                      </td>
+                      <td style={{ padding: '16px 20px', fontWeight: '600' }}>{st.class_name}</td>
+                      <td style={{ padding: '16px 20px', fontWeight: '700' }}>{st.avgScore} / 100</td>
+                      <td style={{ padding: '16px 20px' }}>{st.attendanceRate}%</td>
+                      <td style={{ padding: '16px 20px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', background: st.risk === 'high' ? '#fee2e2' : st.risk === 'medium' ? '#fef3c7' : '#dcfce7', color: st.risk === 'high' ? '#991b1b' : st.risk === 'medium' ? '#92400e' : '#166534' }}>
+                          {st.risk.toUpperCase()} ({st.confidence}%)
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 20px', textAlign: 'right' }}>
+                        <button onClick={() => handleOpenStudentDetail(st._id)} style={{ padding: '6px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
+                          Detail Rapor
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* TAB 3 & 4: TEACHERS & ACTIVITIES                                         */}
-      {/* ========================================================================= */}
       {/* ========================================================================= */}
       {/* TAB 3: PEMETAAN GURU                                                      */}
       {/* ========================================================================= */}
@@ -563,6 +560,23 @@ const AdminMonitoring = () => {
                 <div style={{ fontSize: '13px', color: '#334155' }}>{act.action} - {act.detail}</div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL: DETAIL SISWA                                                       */}
+      {/* ========================================================================= */}
+      {selectedStudentDetail && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>Transkrip Rapor Siswa: {selectedStudentDetail.student.full_name}</h3>
+              <button onClick={() => setSelectedStudentDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>close</span>
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: '14px', color: '#475569' }}>Kelas: {selectedStudentDetail.student.class_name} | NIS: {selectedStudentDetail.student.nis}</p>
           </div>
         </div>
       )}
