@@ -15,9 +15,23 @@ const GuruDashboard = () => {
   const [activeClasses, setActiveClasses] = useState([]);
   const [recentAssignments, setRecentAssignments] = useState([]);
 
+  const [homeroomStatus, setHomeroomStatus] = useState(null);
+
   useEffect(() => {
     fetchTeacherDashboardData();
+    checkHomeroomStatus();
   }, []);
+
+  const checkHomeroomStatus = async () => {
+    try {
+      const res = await api.get('/guru/homeroom-status');
+      if (res.data.success && res.data.is_homeroom) {
+        setHomeroomStatus(res.data.homeroom_class);
+      }
+    } catch (e) {
+      console.error('Error checking homeroom status:', e);
+    }
+  };
 
   const fetchTeacherDashboardData = async () => {
     try {
@@ -85,8 +99,20 @@ const GuruDashboard = () => {
     { title: 'Bagikan Materi', icon: 'auto_stories', path: '/dashboard/guru/materials', bg: '#eff6ff', color: '#2563eb', border: '#3b82f6', desc: 'Unggah file PDF/Link bahan ajar.' },
     { title: 'Tugas Kelas', icon: 'assignment', path: '/dashboard/guru/assignments', bg: '#ecfdf5', color: '#059669', border: '#10b981', desc: 'Buat & nilai tugas para siswa.' },
     { title: 'Absensi Harian', icon: 'done_all', path: '/dashboard/guru/attendance', bg: '#fffbeb', color: '#d97706', border: '#f59e0b', desc: 'Isi kehadiran kelas hari ini.' },
-    { title: 'Input Nilai Ujian', icon: 'percent', path: '/dashboard/guru/nilai', bg: '#fff1f2', color: '#e11d48', border: '#f43f5e', desc: 'Masukkan hasil ujian siswa.' }
+    { title: 'Input Nilai Ujian', icon: 'percent', path: '/dashboard/guru/input-nilai', bg: '#fff1f2', color: '#e11d48', border: '#f43f5e', desc: 'Masukkan hasil ujian siswa.' }
   ];
+
+  if (homeroomStatus) {
+    quickShortcuts.unshift({
+      title: `Leger Kelas ${homeroomStatus.name}`,
+      icon: 'table_view',
+      path: '/dashboard/admin/monitoring',
+      bg: '#f0fdf4',
+      color: '#16a34a',
+      border: '#22c55e',
+      desc: `Akses Leger Nilai & Monitoring Kelas Binaan ${homeroomStatus.name}.`,
+    });
+  }
 
   return (
     <div className="guru-dashboard-modern-container" style={{ padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>

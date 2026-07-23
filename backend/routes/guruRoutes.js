@@ -16,5 +16,8 @@ router.get('/students/:id/grades', authMiddleware, guruController.getStudentGrad
 router.get('/grades/class', authMiddleware, guruController.getClassGrades);
 router.post('/grades/class/save', authMiddleware, guruController.saveClassGrades);
 
+// GET HOMEROOM STATUS (HIDE & SEE)
+router.get('/homeroom-status', authMiddleware, guruController.getHomeroomStatus);
+
 module.exports = router;
 

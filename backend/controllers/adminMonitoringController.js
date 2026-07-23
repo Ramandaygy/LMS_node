@@ -357,3 +357,256 @@ exports.getTeacherActivities = async (req, res) => {
     });
   }
 };
+
+// ============================================================
+// 4. LEGER NILAI AKADEMIK KELAS (MODEL BOBOT 2 : 1 : 1)
+// ============================================================
+
+// Helper function to build Leger matrix
+async function computeLegerData(classId) {
+  const siswaCol = mongoose.connection.collection('users_siswa');
+  const classCol = mongoose.connection.collection('classes');
+  const subjectCol = mongoose.connection.collection('subjects');
+  const submissionsCol = mongoose.connection.collection('submissions');
+  const assignmentsCol = mongoose.connection.collection('assignments');
+  const gradesCol = mongoose.connection.collection('grades');
+  const attendancesCol = mongoose.connection.collection('attendances');
+  const guruCol = mongoose.connection.collection('users_guru');
+
+  const objClassId = new mongoose.Types.ObjectId(classId);
+
+  // 1. Get Class info & Homeroom teacher
+  const classDoc = await classCol.findOne({ _id: objClassId });
+  if (!classDoc) throw new Error('Kelas tidak ditemukan');
+
+  let homeroomTeacherName = 'Belum Diatur';
+  if (classDoc.homeroom_teacher) {
+    const hr = await guruCol.findOne({ _id: classDoc.homeroom_teacher });
+    if (hr) homeroomTeacherName = hr.full_name;
+  }
+
+  // 2. Get active subjects
+  const subjects = await subjectCol.find({ is_active: { $ne: false } }).toArray();
+
+  // 3. Get students in this class
+  const students = await siswaCol.find({ class_id: objClassId }).sort({ full_name: 1 }).toArray();
+
+  // Pre-fetch all assignments for quick mapping
+  const allAssignments = await assignmentsCol.find({}).toArray();
+  const assignmentMap = {};
+  allAssignments.forEach((a) => {
+    assignmentMap[a._id.toString()] = a;
+  });
+
+  // Calculate scores for each student
+  const studentLegerList = await Promise.all(
+    students.map(async (st) => {
+      const studentIdObj = st._id;
+      const studentIdStr = st._id.toString();
+
+      // Attendance rate
+      const attendances = await attendancesCol.find({ student_id: studentIdObj }).toArray();
+      const totalAtt = attendances.length;
+      const presentAtt = attendances.filter((a) => a.status === 'present').length;
+      const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 100;
+
+      let totalNASum = 0;
+      let subjectCount = 0;
+      const subjectGrades = {};
+
+      for (const sub of subjects) {
+        const subIdStr = sub._id.toString();
+
+        // Find submissions for assignments of this subject
+        const subAssignments = allAssignments.filter(
+          (a) => a.subject_id?.toString() === subIdStr
+        );
+        const subAssignmentIds = subAssignments.map((a) => a._id);
+
+        const submissions = await submissionsCol
+          .find({
+            student_id: studentIdObj,
+            assignment_id: { $in: subAssignmentIds },
+            score: { $ne: null },
+          })
+          .toArray();
+
+        let totalTugasScore = 0;
+        let totalTugasMax = 0;
+        submissions.forEach((s) => {
+          const assign = assignmentMap[s.assignment_id.toString()] || { total_score: 100 };
+          totalTugasScore += s.score;
+          totalTugasMax += assign.total_score || 100;
+        });
+
+        // Compute NH (Nilai Harian / Rata-rata Tugas)
+        const NH = totalTugasMax > 0 ? Math.round((totalTugasScore / totalTugasMax) * 100) : 75;
+
+        // Get PTS & PAS from Grade collection
+        const ptsGrade = await gradesCol.findOne({
+          student: studentIdObj,
+          subject: sub._id,
+          type: 'uts',
+        });
+        const pasGrade = await gradesCol.findOne({
+          student: studentIdObj,
+          subject: sub._id,
+          type: 'uas',
+        });
+
+        const PTS = ptsGrade ? ptsGrade.score : NH;
+        const PAS = pasGrade ? pasGrade.score : NH;
+
+        // Formula 2 : 1 : 1 -> NA = (2*NH + PTS + PAS) / 4
+        const NA = Math.round((2 * NH + PTS + PAS) / 4);
+
+        let predikat = 'C';
+        if (NA >= 88) predikat = 'A';
+        else if (NA >= 78) predikat = 'B';
+        else if (NA >= 75) predikat = 'C';
+        else predikat = 'D';
+
+        subjectGrades[subIdStr] = {
+          subject_name: sub.name,
+          NH,
+          PTS,
+          PAS,
+          NA,
+          predikat,
+        };
+
+        totalNASum += NA;
+        subjectCount++;
+      }
+
+      const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : 0;
+
+      return {
+        _id: st._id,
+        full_name: st.full_name,
+        nis: st.nis || '-',
+        subjectGrades,
+        totalNASum,
+        avgRapor,
+        attendanceRate,
+      };
+    })
+  );
+
+  // Compute Ranking (sort descending by avgRapor)
+  const sortedStudents = [...studentLegerList].sort((a, b) => b.avgRapor - a.avgRapor);
+  sortedStudents.forEach((st, idx) => {
+    st.rank = idx + 1;
+  });
+
+  return {
+    class_info: {
+      _id: classDoc._id,
+      name: classDoc.name,
+      grade_level: classDoc.grade_level,
+      homeroom_teacher: homeroomTeacherName,
+    },
+    subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
+    students: sortedStudents,
+  };
+}
+
+exports.getLegerByClass = async (req, res) => {
+  try {
+    const { class_id } = req.query;
+    if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
+      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
+    }
+
+    const legerData = await computeLegerData(class_id);
+    return res.status(200).json({ success: true, ...legerData });
+  } catch (error) {
+    console.error('[AdminMonitoring] Error in getLegerByClass:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Gagal menghitung leger nilai kelas.',
+    });
+  }
+};
+
+exports.exportLegerExcel = async (req, res) => {
+  try {
+    const { class_id } = req.query;
+    if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
+      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
+    }
+
+    const legerData = await computeLegerData(class_id);
+    const ExcelJS = require('exceljs');
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(`Leger ${legerData.class_info.name}`);
+
+    // Header Title
+    worksheet.mergeCells('A1:H1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = `LEGER NILAI AKADEMIK SISWA - KELAS ${legerData.class_info.name.toUpperCase()}`;
+    titleCell.font = { size: 16, bold: true };
+    titleCell.alignment = { horizontal: 'center' };
+
+    worksheet.getCell('A2').value = `Wali Kelas: ${legerData.class_info.homeroom_teacher}`;
+    worksheet.getCell('A2').font = { size: 11, italic: true };
+
+    // Build Table Header
+    const headerRow1 = ['No', 'NIS', 'Nama Siswa'];
+    const headerRow2 = ['', '', ''];
+
+    legerData.subjects.forEach((sub) => {
+      headerRow1.push(sub.name, '', '', '');
+      headerRow2.push('NH', 'PTS', 'PAS', 'NA');
+    });
+
+    headerRow1.push('Rata-Rata Rapor', 'Presensi', 'Ranking');
+    headerRow2.push('Nilai Akhir', '% Kehadiran', 'Peringkat');
+
+    worksheet.addRow([]);
+    worksheet.addRow(headerRow1);
+    worksheet.addRow(headerRow2);
+
+    // Style table headers
+    const row4 = worksheet.getRow(4);
+    const row5 = worksheet.getRow(5);
+    [row4, row5].forEach((r) => {
+      r.font = { bold: true, color: { argb: 'FFFFFF' } };
+      r.alignment = { horizontal: 'center', vertical: 'middle' };
+      r.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E3A8A' } };
+      });
+    });
+
+    // Populate Student Rows
+    legerData.students.forEach((st, idx) => {
+      const row = [idx + 1, st.nis, st.full_name];
+
+      legerData.subjects.forEach((sub) => {
+        const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
+        row.push(sg.NH, sg.PTS, sg.PAS, sg.NA);
+      });
+
+      row.push(st.avgRapor, `${st.attendanceRate}%`, st.rank);
+      worksheet.addRow(row);
+    });
+
+    // Send File Response
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Leger_Nilai_${legerData.class_info.name.replace(/\s+/g, '_')}.xlsx"`
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error('[AdminMonitoring] Error in exportLegerExcel:', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengekspor Leger ke Excel.' });
+  }
+};
+

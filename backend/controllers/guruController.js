@@ -584,3 +584,43 @@ exports.saveClassGrades = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal menyimpan nilai kelas' });
   }
 };
+
+// ======================================
+// GET HOMEROOM STATUS (HIDE & SEE PATTERN)
+// ======================================
+exports.getHomeroomStatus = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const ClassModel = require('../models/Class');
+
+    const homeroomClass = await ClassModel.findOne({
+      homeroom_teacher: new mongoose.Types.ObjectId(teacherId),
+      is_active: true,
+    });
+
+    if (homeroomClass) {
+      return res.status(200).json({
+        success: true,
+        is_homeroom: true,
+        homeroom_class: {
+          _id: homeroomClass._id,
+          name: homeroomClass.name,
+          grade_level: homeroomClass.grade_level,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      is_homeroom: false,
+      homeroom_class: null,
+    });
+  } catch (err) {
+    console.error('Error in getHomeroomStatus:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengecek status wali kelas',
+    });
+  }
+};
+

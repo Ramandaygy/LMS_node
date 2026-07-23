@@ -9,16 +9,16 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const [user, setUser] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const [homeroomStatus, setHomeroomStatus] = useState(null);
+
   // Fetch user profile for dynamic display
   const fetchUserProfile = async () => {
     try {
       const userData = await profileService.getProfile();
       setUser(userData);
-      // Update localStorage to keep consistency
       localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      // Fallback to localStorage
       const localUser = localStorage.getItem('user');
       if (localUser) {
         setUser(JSON.parse(localUser));
@@ -28,7 +28,21 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   useEffect(() => {
     fetchUserProfile();
-  }, []);
+    if (role === 'guru') {
+      const checkHomeroom = async () => {
+        try {
+          const api = (await import('../../services/api')).default;
+          const res = await api.get('/guru/homeroom-status');
+          if (res.data.success && res.data.is_homeroom) {
+            setHomeroomStatus(res.data.homeroom_class);
+          }
+        } catch (e) {
+          console.error('Failed to check homeroom status:', e);
+        }
+      };
+      checkHomeroom();
+    }
+  }, [role]);
 
   // Refresh user data when profile is updated
   useEffect(() => {
@@ -39,27 +53,39 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  const guruMenuList = [
+    { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/guru' },
+    { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
+    { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
+    { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
+    { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
+    { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
+    { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
+    { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
+  ];
+
+  if (homeroomStatus) {
+    guruMenuList.push({
+      key: 'monitoring',
+      label: `Leger Kelas ${homeroomStatus.name}`,
+      icon: 'table_view',
+      path: '/dashboard/admin/monitoring',
+    });
+  }
+
+  guruMenuList.push({ key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' });
+
   const menus = {
     admin: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
       { key: 'data-master', label: 'Data Master', icon: 'database', path: '/dashboard/admin/data-master' },
-      { key: 'monitoring', label: 'Pusat Monitoring', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
+      { key: 'monitoring', label: 'Pusat Monitoring & Leger', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Assign Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
-    guru: [
-      { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/guru' },
-      { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
-      { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
-      { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
-      { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
-      { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
-      { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
-      { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
-      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
-    ],
+    guru: guruMenuList,
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
       { key: 'progress', label: 'Progress', icon: 'trending_up', path: '/dashboard/siswa/progress' },
