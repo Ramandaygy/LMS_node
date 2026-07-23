@@ -421,6 +421,40 @@ const AdminMonitoring = () => {
               <span style={{ fontSize: '13px', fontWeight: '700', color: '#16a34a', textTransform: 'uppercase' }}>Low Risk</span>
               <h2 style={{ fontSize: '32px', margin: '8px 0 0 0', fontWeight: '800', color: '#15803d' }}>{studentStats.low_risk_count || 0}</h2>
             </div>
+          {/* Filter Bar */}
+          <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+            <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+              <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '8px' }}>search</span>
+              <input
+                type="text"
+                placeholder="Cari nama, NIS, atau email siswa..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
+              />
+            </div>
+
+            <select
+              value={selectedClassFilter}
+              onChange={(e) => setSelectedClassFilter(e.target.value)}
+              style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '14px', outline: 'none' }}
+            >
+              <option value="">Semua Kelas</option>
+              {classes.map((c) => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+
+            <select
+              value={selectedRiskFilter}
+              onChange={(e) => setSelectedRiskFilter(e.target.value)}
+              style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '14px', outline: 'none' }}
+            >
+              <option value="">Semua Status Risiko</option>
+              <option value="high">High Risk (Tinggi)</option>
+              <option value="medium">Medium Risk (Sedang)</option>
+              <option value="low">Low Risk (Rendah / Baik)</option>
+            </select>
           </div>
 
           {/* Table */}
@@ -467,24 +501,58 @@ const AdminMonitoring = () => {
       {/* ========================================================================= */}
       {/* TAB 3 & 4: TEACHERS & ACTIVITIES                                         */}
       {/* ========================================================================= */}
+      {/* ========================================================================= */}
+      {/* TAB 3: PEMETAAN GURU                                                      */}
+      {/* ========================================================================= */}
       {activeTab === 'teachers' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-          {teachers.map((t) => (
-            <div key={t._id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px' }}>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '800' }}>{t.full_name}</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>NIP: {t.nip} | Kode: {t.teacher_code}</p>
-              <div style={{ margin: '12px 0', fontSize: '13px' }}>
-                <div><strong>Mapel:</strong> {t.assigned_subjects.join(', ') || '-'}</div>
-                <div><strong>Kelas:</strong> {t.assigned_classes.join(', ') || '-'}</div>
-              </div>
+        <div>
+          <div style={{ background: '#fff', padding: '16px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
+              <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '8px' }}>search</span>
+              <input
+                type="text"
+                placeholder="Cari nama guru, NIP, atau kode guru..."
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
+              />
             </div>
-          ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+            {teachers.map((t) => (
+              <div key={t._id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px' }}>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{t.full_name}</h3>
+                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>NIP: {t.nip} | Kode: {t.teacher_code}</p>
+                <div style={{ margin: '12px 0', fontSize: '13px' }}>
+                  <div><strong style={{ color: '#475569' }}>Mapel: </strong>{t.assigned_subjects.join(', ') || '-'}</div>
+                  <div><strong style={{ color: '#475569' }}>Kelas: </strong>{t.assigned_classes.join(', ') || '-'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* TAB 4: AKTIVITAS GURU                                                     */}
+      {/* ========================================================================= */}
       {activeTab === 'activities' && (
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px' }}>
-          <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '800' }}>Log Aktivitas Mengajar Real-Time</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
+            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Log Aktivitas Mengajar Real-Time</h3>
+            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '6px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', width: '250px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '6px', fontSize: '18px' }}>search</span>
+              <input
+                type="text"
+                placeholder="Filter nama guru..."
+                value={activityTeacherSearch}
+                onChange={(e) => setActivityTeacherSearch(e.target.value)}
+                style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
+              />
+            </div>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {activities.map((act) => (
               <div key={act._id} style={{ paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
