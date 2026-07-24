@@ -860,6 +860,59 @@ exports.importSchedules = async (req, res) => {
       if (isGridFormat) break;
     }
 
+    const OFFICIAL_TEACHER_LEGEND = {
+      'A': 'Suharto',
+      'B': 'Titin Faridah',
+      'C': 'Srikhatun',
+      'D': 'Saijah',
+      'E': 'Ita Puspitasari',
+      'F': 'Atik Aflacha',
+      'G': 'Ali Mursyidi',
+      'H': 'Etikarwati',
+      'I': 'Catur Budiningsih',
+      'J': 'Martikno',
+      'K': 'Rustinah',
+      'L': 'Eni Nugraeni',
+      'M': 'Muzayin',
+      'N': 'Sulistyo Apriliawati',
+      'O': 'Istiqomah',
+      'P': 'Marukhi Yuliani',
+      'Q': 'Riski Pamedharsih',
+      'R': 'Nurul Arifiyah',
+      'S': 'Sahyudin',
+      'T': 'Andy Handayani',
+      'U': 'Azizah Tri Lestari',
+      'V': 'Ade Agung Pangabekti',
+      'W': 'Emi Fatriyah',
+      'X': 'Takhuri',
+      'Y': 'Nokipah',
+      'Z': 'Susi Herlina',
+      'Aa': 'Dwi Margaretna',
+      'Bb': 'Asmawi',
+      'Cc': 'Melisa Rahmawati',
+      'Dd': 'Alifia Nur Pramida',
+      'Ee': 'Herlambang Jatikusumo',
+      'Ff': 'Gilang Nefrizal Anggita',
+      'Gg': 'Wahyu Indrianto',
+      'Hh': 'Istifadah',
+      'Ii': 'Mohammad Teguh Arifiyanto',
+      'Jj': 'Nila Isnantika',
+      'Kk': 'Dara Amalia',
+      'Ll': 'Novita Gigih Praharani',
+      'Mm': 'Hikmah Putri Nofianti',
+      'Nn': 'Wiwin Ernawati',
+      'Oo': 'Catur Aji Krismawan',
+      'Pp': 'Moh. Takhril',
+      'Qq': 'Tri Toni Wulandari',
+      'Rr': 'Mutiatul Zakiyah',
+      'Ss': 'Satrio Nanda Nugroho',
+      'Tt': 'Murniasih',
+      'Uu': 'Nurkhasanah',
+      'Vv': 'Etik muzaenah',
+      'Ww': 'Reza Lutfi Ananda',
+      'Xx': 'Awening Wulan'
+    };
+
     let success = 0, errors = [];
     const schedulesToInsert = [];
     const validDays = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
@@ -958,7 +1011,23 @@ exports.importSchedules = async (req, res) => {
         if (timeParts.length < 2) continue;
         const startTime = timeParts[0];
         const endTime = timeParts[1];
-        const timeSlotNum = Number(periodVal) || 1;
+
+        // Slot Number (1..8) berdasarkan waktu mulai
+        let timeSlotNum = Number(periodVal) || 1;
+        if (startTime) {
+          const timeDigits = startTime.split(':').map(Number);
+          if (timeDigits.length === 2) {
+            const minutes = timeDigits[0] * 60 + timeDigits[1];
+            if (minutes < 480) timeSlotNum = 1;      // < 08:00
+            else if (minutes < 520) timeSlotNum = 2; // 08:00 - 08:40
+            else if (minutes < 570) timeSlotNum = 3; // 08:40 - 09:30
+            else if (minutes < 610) timeSlotNum = 4; // 09:40 - 10:20
+            else if (minutes < 650) timeSlotNum = 5; // 10:20 - 11:00
+            else if (minutes < 700) timeSlotNum = 6; // 11:00 - 11:40
+            else if (minutes < 750) timeSlotNum = 7; // 12:10 - 12:50
+            else timeSlotNum = 8;                    // >= 12:50
+          }
+        }
 
         for (const [colIndex, classId] of Object.entries(colToClassMap)) {
           let codeVal = row.getCell(Number(colIndex)).text || row.getCell(Number(colIndex)).value?.toString() || '';
@@ -974,7 +1043,21 @@ exports.importSchedules = async (req, res) => {
             continue;
           }
 
-          const foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toString().toLowerCase().trim() === codeVal.toLowerCase());
+          let foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toString().toLowerCase().trim() === codeVal.toLowerCase());
+          if (!foundTeacher) {
+            const teacherNameKey = OFFICIAL_TEACHER_LEGEND[codeVal] || OFFICIAL_TEACHER_LEGEND[codeVal.toUpperCase()];
+            if (teacherNameKey) {
+              foundTeacher = teachers.find(t => normalize(t.full_name).includes(normalize(teacherNameKey)));
+              if (foundTeacher) {
+                await getCollection('users_guru').updateOne(
+                  { _id: foundTeacher._id },
+                  { $set: { teacher_code: codeVal } }
+                );
+                foundTeacher.teacher_code = codeVal;
+              }
+            }
+          }
+
           if (!foundTeacher) {
             errors.push(`Baris ${r}: Guru dengan kode '${codeVal}' tidak ditemukan`);
             continue;
