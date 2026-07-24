@@ -3,36 +3,68 @@ const mongoose = require('mongoose');
 exports.getBinaanStudents = async (req, res) => {
   try {
     const teacherId = req.user.id;
+    const objTeacherId = new mongoose.Types.ObjectId(teacherId);
 
-    // 1. Find classes where homeroom_teacher is this teacher
     const classCol = mongoose.connection.collection('classes');
-    const classes = await classCol.find({ homeroom_teacher: new mongoose.Types.ObjectId(teacherId) }).toArray();
-    
-    if (!classes || classes.length === 0) {
-      return res.status(200).json({ success: true, students: [], subjects: [] });
-    }
+    const guruCol = mongoose.connection.collection('users_guru');
+    const guru = await guruCol.findOne({ _id: objTeacherId });
 
-    const classIds = classes.map(c => c._id);
-    const classMap = Object.fromEntries(classes.map(c => [c._id.toString(), c.name]));
+    // 1. Find Homeroom Class (for Wali Kelas Rapor view)
+    const homeroomClasses = await classCol.find({ homeroom_teacher: objTeacherId }).toArray();
+    const homeroomClassName = homeroomClasses.length > 0 ? homeroomClasses[0].name : null;
 
-    // 2. Find students in those classes
-    const studentCol = mongoose.connection.collection('users_siswa');
-    const classIdStrings = classes.map(c => c._id.toString());
-    const students = await studentCol.find({
+    // 2. Find All Classes Taught by this Teacher
+    const assignedClassIds = (guru?.classes || []).map((id) => id.toString());
+    const assignedClassObjIds = assignedClassIds
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+
+    const allClassesDocs = await classCol.find({
       $or: [
-        { class_id: { $in: classIds } },
-        { class_id: { $in: classIdStrings } }
+        { homeroom_teacher: objTeacherId },
+        { _id: { $in: assignedClassObjIds } },
+        { name: { $in: assignedClassIds } }
       ]
     }).toArray();
 
+    // Fallback: If no classes linked in profile, load all active classes
+    const targetClasses = allClassesDocs.length > 0
+      ? allClassesDocs
+      : await classCol.find({ is_active: { $ne: false } }).toArray();
+
+    const targetClassIds = targetClasses.map((c) => c._id);
+    const targetClassIdStrings = targetClasses.map((c) => c._id.toString());
+    const targetClassNames = targetClasses.map((c) => c.name);
+
+    const classMap = {};
+    targetClasses.forEach((c) => {
+      classMap[c._id.toString()] = c.name;
+      classMap[c.name] = c.name;
+    });
+
+    // 3. Find students in ALL target classes
+    const studentCol = mongoose.connection.collection('users_siswa');
+    const students = await studentCol.find({
+      is_active: { $ne: false },
+      $or: [
+        { class_id: { $in: targetClassIds } },
+        { class_id: { $in: targetClassIdStrings } },
+        { class_id: { $in: targetClassNames } },
+        { class_name: { $in: targetClassNames } }
+      ]
+    }).sort({ full_name: 1 }).toArray();
+
     if (!students || students.length === 0) {
-      return res.status(200).json({ success: true, students: [], subjects: [] });
+      return res.status(200).json({
+        success: true,
+        students: [],
+        subjects: [],
+        homeroom_class: homeroomClassName,
+        teacher_classes: targetClasses.map((c) => ({ id: c._id.toString(), name: c.name }))
+      });
     }
 
-    // 3. Fetch teacher profile for assigned subjects & classes
-    const guruCol = mongoose.connection.collection('users_guru');
-    const guru = await guruCol.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
-
+    // 4. Fetch teacher profile for assigned subjects
     const Subject = require('../models/Subject');
     const subjects = await Subject.find({ is_active: true }).lean();
 
@@ -40,11 +72,6 @@ exports.getBinaanStudents = async (req, res) => {
     const teacherSubjects = assignedSubjectIds.length > 0
       ? subjects.filter((s) => assignedSubjectIds.includes(s._id.toString()))
       : subjects;
-
-    const assignedClassIds = (guru?.classes || []).map((id) => id.toString());
-    const teacherClassesDocs = assignedClassIds.length > 0
-      ? await classCol.find({ _id: { $in: assignedClassIds.map((id) => new mongoose.Types.ObjectId(id)) } }).toArray()
-      : classes;
 
     // 4. Fetch grades for these students
     const Grade = require('../models/Grade');
@@ -266,8 +293,9 @@ exports.getBinaanStudents = async (req, res) => {
       success: true,
       students: studentsData,
       subjects,
+      homeroom_class: homeroomClassName,
       teacher_subjects: teacherSubjects,
-      teacher_classes: teacherClassesDocs.map(c => ({ id: c._id.toString(), name: c.name }))
+      teacher_classes: targetClasses.map((c) => ({ id: c._id.toString(), name: c.name }))
     });
 
   } catch (err) {

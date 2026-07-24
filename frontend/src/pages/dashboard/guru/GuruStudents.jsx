@@ -9,11 +9,12 @@ const GuruStudents = () => {
   const [subjects, setSubjects] = useState([]);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
+  const [homeroomClass, setHomeroomClass] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('');
-  const [availableClasses, setAvailableClasses] = useState([]);
 
   // Detail Rapor Modal State
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -49,21 +50,22 @@ const GuruStudents = () => {
     try {
       const response = await api.get('/guru/students');
       const studentsData = response.data.students || [];
-      const classSet = new Set(studentsData.map((s) => s.class_name));
-      const classList = Array.from(classSet).map((name) => ({ name, value: name }));
-      setAvailableClasses(classList);
-      setStudents(studentsData);
-
+      const hrClass = response.data.homeroom_class || null;
       const allSub = response.data.subjects || [];
       const tSub = response.data.teacher_subjects || allSub;
       const tCls = response.data.teacher_classes || [];
 
+      setStudents(studentsData);
+      setHomeroomClass(hrClass);
       setSubjects(allSub);
       setTeacherSubjects(tSub);
       setTeacherClasses(tCls);
 
       if (tSub.length > 0) {
         setSelectedSubjectFilter(tSub[0]._id);
+      }
+      if (tCls.length > 0) {
+        setSelectedClass(tCls[0].name);
       }
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -135,13 +137,23 @@ const GuruStudents = () => {
     return mapping[code] || code;
   };
 
+  // Filter students dynamically based on Active Tab
   const filteredStudents = students.filter((student) => {
     const fullName = student.full_name || '';
     const matchesSearch =
       fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.nis?.includes(searchTerm);
-    const matchesClass = !selectedClass || student.class_name === selectedClass;
-    return matchesSearch && matchesClass;
+
+    if (activeTab === 'rapor') {
+      // Tab 1: Strictly show Homeroom Class students (Wali Kelas)
+      const targetHrClass = homeroomClass || (teacherClasses.length > 0 ? teacherClasses[0].name : '');
+      const matchesHr = !targetHrClass || student.class_name === targetHrClass;
+      return matchesSearch && matchesHr;
+    } else {
+      // Tab 2: Show students of selected Taught Class (Guru Mapel)
+      const matchesClass = !selectedClass || student.class_name === selectedClass;
+      return matchesSearch && matchesClass;
+    }
   });
 
   const activeSubjectsForFilter = teacherSubjects.length > 0 ? teacherSubjects : subjects;
@@ -263,18 +275,19 @@ const GuruStudents = () => {
         </div>
 
         <div className="selectors-group">
-          {/* Class Filter */}
-          <div className="filter-select-wrapper">
-            <span className="select-icon material-symbols-outlined">class</span>
-            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
-              <option value="">Semua Kelas Diampu</option>
-              {(teacherClasses.length > 0 ? teacherClasses : availableClasses).map((cls) => (
-                <option key={cls.id || cls.value} value={cls.name || cls.value}>
-                  {cls.name || cls.value}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Class Filter for Tab 2 (Guru Mapel Classes) */}
+          {activeTab === 'tugas' && (
+            <div className="filter-select-wrapper">
+              <span className="select-icon material-symbols-outlined">class</span>
+              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
+                {teacherClasses.map((cls) => (
+                  <option key={cls.id || cls.name} value={cls.name}>
+                    Kelas {cls.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Subject Filter for Tab 2 (Only Teacher Assigned Subjects) */}
           {activeTab === 'tugas' && activeSubjectsForFilter.length > 0 && (
@@ -293,6 +306,18 @@ const GuruStudents = () => {
       {/* MAIN TABLE: TAB 1 (MATRIKS NA RAPOR LEGER WALI KELAS) */}
       {activeTab === 'rapor' && (
         <div className="student-table-container glass-container no-print">
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '24px' }}>stars</span>
+              <span style={{ fontSize: '14px', color: '#1e3a8a', fontWeight: '700' }}>
+                Kelas Binaan Rapor (Wali Kelas): <strong style={{ fontSize: '16px', color: '#0f172a' }}>{homeroomClass || (teacherClasses[0]?.name ? `Kelas ${teacherClasses[0].name}` : 'Semua Kelas')}</strong>
+              </span>
+            </div>
+            <span style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '600' }}>
+              Menampilkan {filteredStudents.length} Siswa Binaan Rapor
+            </span>
+          </div>
+
           <table className="student-table spreadsheet-table">
             <thead>
               <tr>
@@ -367,7 +392,7 @@ const GuruStudents = () => {
                 <tr>
                   <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
                     <span className="material-symbols-outlined empty-icon">group_off</span>
-                    <p>Tidak ada data siswa ditemukan</p>
+                    <p>Tidak ada data siswa binaan ditemukan untuk kelas ini</p>
                   </td>
                 </tr>
               )}
@@ -379,11 +404,16 @@ const GuruStudents = () => {
       {/* MAIN TABLE: TAB 2 (REKAP RINCIAN MAPEL GURU MAPEL: NH, PTS, PAS, NA & PRESENSI) */}
       {activeTab === 'tugas' && (
         <div className="student-table-container glass-container no-print">
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '24px' }}>menu_book</span>
-            <div style={{ fontSize: '14px', color: '#14532d', fontWeight: '600' }}>
-              Menampilkan Rincian Penilaian Mata Pelajaran Diampu: <strong style={{ color: '#0f172a' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '24px' }}>menu_book</span>
+              <div style={{ fontSize: '14px', color: '#14532d', fontWeight: '600' }}>
+                Rincian Penilaian Kelas: <strong style={{ color: '#0f172a', fontSize: '15px' }}>Kelas {selectedClass || teacherClasses[0]?.name || '-'}</strong> | Mata Pelajaran: <strong style={{ color: '#0f172a', fontSize: '15px' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
+              </div>
             </div>
+            <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '700' }}>
+              {filteredStudents.length} Siswa
+            </span>
           </div>
 
           <table className="student-table spreadsheet-table">
@@ -439,7 +469,7 @@ const GuruStudents = () => {
                 <tr>
                   <td colSpan="11" className="text-center empty-table-state">
                     <span className="material-symbols-outlined empty-icon">group_off</span>
-                    <p>Tidak ada data siswa ditemukan</p>
+                    <p>Tidak ada data siswa ditemukan untuk kelas ini</p>
                   </td>
                 </tr>
               )}
