@@ -3,6 +3,8 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-students.css';
 
 const GuruStudents = () => {
+  const [activeTab, setActiveTab] = useState('rapor'); // 'rapor' (Leger NA Wali Kelas) | 'tugas' (Rekap Tugas Guru Mapel)
+
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +15,21 @@ const GuruStudents = () => {
   // Detail Rapor Modal State
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [homeroomNote, setHomeroomNote] = useState('Fokus dan seriuslah dalam belajar di kelas ya. Semangat dan semoga sukses!');
+
+  // Editable Rapor Fields State
+  const [customCompetencies, setCustomCompetencies] = useState({});
+  const [homeroomNote, setHomeroomNote] = useState('Fokus dan seriuslah dalam belajar di kelas ya. Hindari melakukan hal yang tidak bermanfaat dan mengganggu kegiatan belajarmu. Semangat dan semoga sukses!');
+  const [placeDate, setPlaceDate] = useState('Suradadi, 20 Desember 2024');
+  const [teacherName, setTeacherName] = useState('Muzayin, M.Pd.I');
+  const [teacherNip, setTeacherNip] = useState('NIP. 19800512 200604 1 008');
+  const [headmasterName, setHeadmasterName] = useState('Drs. H. Ahmad Sudrajat, M.Pd');
+  const [headmasterNip, setHeadmasterNip] = useState('NIP. 19680315 199403 1 005');
+
+  // Editable Ekstrakurikuler
+  const [ekstraList, setEkstraList] = useState([
+    { id: 1, name: 'Pramuka (Wajib)', predikat: 'Baik', note: 'Telah menguasai berbagai teknik dasar kepramukaan dan kedisiplinan.' },
+    { id: 2, name: 'PMR / Olahraga', predikat: 'Baik', note: 'Aktif dan disiplin mengikuti kegiatan latihan mingguan.' }
+  ]);
 
   useEffect(() => {
     fetchMyStudents();
@@ -37,9 +53,45 @@ const GuruStudents = () => {
     }
   };
 
+  const generateCapaianKompetensi = (na, subjectName) => {
+    if (na >= 88) {
+      return `Sangat baik dalam memahami materi ${subjectName}. Mampu menguasai seluruh indikator Tujuan Pembelajaran (TP) dengan hasil optimal.`;
+    } else if (na >= 78) {
+      return `Menunjukkan penguasaan yang baik dalam memahami konsep dasar ${subjectName}. Perlu sedikit penguatan pada latihan soal mandiri.`;
+    } else if (na >= 75) {
+      return `Cukup menguasai materi ${subjectName}. Memerlukan pendampingan lebih lanjut untuk meningkatkan konsistensi belajar.`;
+    } else {
+      return `Perlu pendampingan dan bimbingan khusus dalam memahami kompetensi dasar ${subjectName}.`;
+    }
+  };
+
   const handleDetailClick = (student) => {
     setSelectedStudent(student);
+
+    // Initialize custom competencies for each subject based on auto-calculation
+    const initialComp = {};
+    subjects.forEach((sub) => {
+      const na = student.na_grades?.[sub._id.toString()] !== undefined
+        ? student.na_grades[sub._id.toString()]
+        : 75;
+      initialComp[sub._id] = generateCapaianKompetensi(na, sub.name);
+    });
+
+    setCustomCompetencies(initialComp);
     setShowDetailModal(true);
+  };
+
+  const handleCompetencyChange = (subId, value) => {
+    setCustomCompetencies((prev) => ({
+      ...prev,
+      [subId]: value,
+    }));
+  };
+
+  const handleEkstraChange = (idx, field, value) => {
+    const updated = [...ekstraList];
+    updated[idx][field] = value;
+    setEkstraList(updated);
   };
 
   const handlePrintRapor = () => {
@@ -61,18 +113,6 @@ const GuruStudents = () => {
       BJW: 'B. Jawa',
     };
     return mapping[code] || code;
-  };
-
-  const generateCapaianKompetensi = (na, subjectName) => {
-    if (na >= 88) {
-      return `Sangat baik dalam memahami materi ${subjectName}. Mampu menguasai seluruh indikator Tujuan Pembelajaran (TP) dengan hasil optimal.`;
-    } else if (na >= 78) {
-      return `Menunjukkan penguasaan yang baik dalam memahami konsep dasar ${subjectName}. Perlu sedikit penguatan pada latihan soal mandiri.`;
-    } else if (na >= 75) {
-      return `Cukup menguasai materi ${subjectName}. Memerlukan pendampingan lebih lanjut untuk meningkatkan konsistensi belajar.`;
-    } else {
-      return `Perlu pendampingan dan bimbingan khusus dalam memahami kompetensi dasar ${subjectName}.`;
-    }
   };
 
   const filteredStudents = students.filter((student) => {
@@ -117,6 +157,14 @@ const GuruStudents = () => {
           .no-print {
             display: none !important;
           }
+          textarea, input {
+            border: none !important;
+            background: transparent !important;
+            resize: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+          }
           .page-break {
             page-break-before: always;
           }
@@ -125,9 +173,9 @@ const GuruStudents = () => {
 
       <div className="page-header-flex no-print">
         <div>
-          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Siswa Binaan & Rapor Kelas (Wali Kelas)</h2>
+          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Siswa Binaan & Rekap Nilai Rapor Kelas</h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-            Rekapitulasi Capaian Akademik Siswa Binaan & Cetak Rapor Intrakurikulum Merdeka Resmi.
+            Rekapitulasi Nilai Akhir Rapor (Formula 2:1:1), Nilai Tugas Harian, dan Cetak Rapor Kurikulum Merdeka.
           </p>
         </div>
         <div className="grade-legend">
@@ -135,7 +183,51 @@ const GuruStudents = () => {
         </div>
       </div>
 
-      <div className="filter-bar spreadsheet-filter-bar no-print" style={{ marginTop: '20px' }}>
+      {/* Tabs View Selector */}
+      <div className="no-print" style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', margin: '20px 0 24px 0' }}>
+        <button
+          onClick={() => setActiveTab('rapor')}
+          style={{
+            padding: '12px 20px',
+            fontWeight: '700',
+            fontSize: '14px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'rapor' ? '3px solid #2563eb' : '3px solid transparent',
+            color: activeTab === 'rapor' ? '#2563eb' : '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>assignment_turned_in</span>
+          Matriks Nilai Akhir Rapor (NA 2:1:1 - Leger Wali Kelas)
+        </button>
+
+        <button
+          onClick={() => setActiveTab('tugas')}
+          style={{
+            padding: '12px 20px',
+            fontWeight: '700',
+            fontSize: '14px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            borderBottom: activeTab === 'tugas' ? '3px solid #2563eb' : '3px solid transparent',
+            color: activeTab === 'tugas' ? '#2563eb' : '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>menu_book</span>
+          Rekap Nilai Tugas Harian (NH Guru Mapel)
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="filter-bar spreadsheet-filter-bar no-print" style={{ marginBottom: '20px' }}>
         <div className="search-box">
           <span className="material-symbols-outlined search-icon">search</span>
           <input
@@ -151,7 +243,7 @@ const GuruStudents = () => {
           <div className="filter-select-wrapper">
             <span className="select-icon material-symbols-outlined">class</span>
             <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
-              <option value="">Semua Kelas Binaan</option>
+              <option value="">Semua Kelas</option>
               {availableClasses.map((cls) => (
                 <option key={cls.value} value={cls.value}>{cls.name}</option>
               ))}
@@ -160,105 +252,186 @@ const GuruStudents = () => {
         </div>
       </div>
 
-      {/* Main Table */}
-      <div className="student-table-container glass-container no-print">
-        <table className="student-table spreadsheet-table">
-          <thead>
-            <tr>
-              <th rowSpan="2" className="text-center">No</th>
-              <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
-              <th colSpan={subjects.length} className="text-center th-section-header">Rata-Rata Nilai Tugas Harian Mapel</th>
-              <th rowSpan="2" className="text-center th-bold-header">Jumlah</th>
-              <th rowSpan="2" className="text-center th-bold-header">Rata2</th>
-              <th rowSpan="2" className="text-center th-bold-header">Rank</th>
-              <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
-              <th rowSpan="2" className="text-center th-actions-sticky">Aksi Rapor</th>
-            </tr>
-            <tr>
-              {subjects.map((sub) => (
-                <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
-                  {getSubjectLabel(sub.code)}
-                </th>
-              ))}
-              <th className="text-center th-att-header" title="Sakit">S</th>
-              <th className="text-center th-att-header" title="Izin">I</th>
-              <th className="text-center th-att-header" title="Alpha">A</th>
-              <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student, idx) => {
-                const totalScore = student.task_sum;
-                const avgScore = student.task_avg;
-                const rank = student.rank_task;
-
-                return (
-                  <tr key={student._id} className="spreadsheet-row">
-                    <td className="text-center row-number">{idx + 1}</td>
-                    <td className="student-name-cell th-name-sticky">{student.full_name}</td>
-                    {subjects.map((sub) => {
-                      const score = student.tasks?.[sub._id.toString()];
-                      const displayScore = score !== undefined && score !== null ? score : '-';
-                      const isBelowKKM = typeof score === 'number' && score < 75;
-
-                      return (
-                        <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`}>
-                          {displayScore}
-                        </td>
-                      );
-                    })}
-                    <td className="text-center font-semibold total-score-cell">{totalScore !== undefined ? totalScore : '-'}</td>
-                    <td className="text-center font-semibold avg-score-cell">{avgScore !== undefined ? avgScore : '-'}</td>
-                    <td className="text-center rank-cell">
-                      <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
-                    </td>
-                    <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
-                    <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
-                    <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
-                    <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
-                    <td className="text-center th-actions-sticky">
-                      <button
-                        className="btn-action-view"
-                        onClick={() => handleDetailClick(student)}
-                        style={{ background: '#2563eb', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
-                        Cetak Rapor
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            ) : (
+      {/* MAIN TABLE: TAB 1 (NILAI AKHIR RAPOR NA 2:1:1) */}
+      {activeTab === 'rapor' && (
+        <div className="student-table-container glass-container no-print">
+          <table className="student-table spreadsheet-table">
+            <thead>
               <tr>
-                <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
-                  <span className="material-symbols-outlined empty-icon">group_off</span>
-                  <p>Tidak ada data siswa binaan ditemukan</p>
-                </td>
+                <th rowSpan="2" className="text-center">No</th>
+                <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
+                <th colSpan={subjects.length} className="text-center th-section-header" style={{ background: '#0284c7', color: '#fff' }}>
+                  Matriks Nilai Akhir (NA) Rapor per Mapel (2:1:1)
+                </th>
+                <th rowSpan="2" className="text-center th-bold-header">Jml NA</th>
+                <th rowSpan="2" className="text-center th-bold-header">Rata Rapor</th>
+                <th rowSpan="2" className="text-center th-bold-header">Rank</th>
+                <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
+                <th rowSpan="2" className="text-center th-actions-sticky">Aksi Rapor</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              <tr>
+                {subjects.map((sub) => (
+                  <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
+                    {getSubjectLabel(sub.code)}
+                  </th>
+                ))}
+                <th className="text-center th-att-header" title="Sakit">S</th>
+                <th className="text-center th-att-header" title="Izin">I</th>
+                <th className="text-center th-att-header" title="Alpha">A</th>
+                <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((student, idx) => {
+                  const naSum = student.rapor_sum;
+                  const naAvg = student.rapor_avg;
+                  const rank = student.rank_rapor;
+
+                  return (
+                    <tr key={student._id} className="spreadsheet-row">
+                      <td className="text-center row-number">{idx + 1}</td>
+                      <td className="student-name-cell th-name-sticky">{student.full_name}</td>
+                      {subjects.map((sub) => {
+                        const na = student.na_grades?.[sub._id.toString()];
+                        const displayNA = na !== undefined && na !== null ? na : '-';
+                        const isBelowKKM = typeof na === 'number' && na < 75;
+
+                        return (
+                          <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`} style={{ fontWeight: '800' }}>
+                            {displayNA}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center font-semibold total-score-cell">{naSum !== undefined ? naSum : '-'}</td>
+                      <td className="text-center font-semibold avg-score-cell" style={{ color: '#0284c7', fontSize: '15px' }}>{naAvg !== undefined ? naAvg : '-'}</td>
+                      <td className="text-center rank-cell">
+                        <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
+                      </td>
+                      <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
+                      <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
+                      <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
+                      <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
+                      <td className="text-center th-actions-sticky">
+                        <button
+                          className="btn-action-view"
+                          onClick={() => handleDetailClick(student)}
+                          style={{ background: '#2563eb', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
+                          Edit & Cetak Rapor
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
+                    <span className="material-symbols-outlined empty-icon">group_off</span>
+                    <p>Tidak ada data siswa ditemukan</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MAIN TABLE: TAB 2 (REKAP NILAI TUGAS HARIAN NH GURU MAPEL) */}
+      {activeTab === 'tugas' && (
+        <div className="student-table-container glass-container no-print">
+          <table className="student-table spreadsheet-table">
+            <thead>
+              <tr>
+                <th rowSpan="2" className="text-center">No</th>
+                <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
+                <th colSpan={subjects.length} className="text-center th-section-header">
+                  Rata-Rata Nilai Tugas Harian (NH) per Mapel
+                </th>
+                <th rowSpan="2" className="text-center th-bold-header">Jml NH</th>
+                <th rowSpan="2" className="text-center th-bold-header">Rata NH</th>
+                <th rowSpan="2" className="text-center th-bold-header">Rank</th>
+                <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
+              </tr>
+              <tr>
+                {subjects.map((sub) => (
+                  <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
+                    {getSubjectLabel(sub.code)}
+                  </th>
+                ))}
+                <th className="text-center th-att-header" title="Sakit">S</th>
+                <th className="text-center th-att-header" title="Izin">I</th>
+                <th className="text-center th-att-header" title="Alpha">A</th>
+                <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.length > 0 ? (
+                filteredStudents.map((student, idx) => {
+                  const taskSum = student.task_sum;
+                  const taskAvg = student.task_avg;
+                  const rank = student.rank_task;
+
+                  return (
+                    <tr key={student._id} className="spreadsheet-row">
+                      <td className="text-center row-number">{idx + 1}</td>
+                      <td className="student-name-cell th-name-sticky">{student.full_name}</td>
+                      {subjects.map((sub) => {
+                        const score = student.tasks?.[sub._id.toString()];
+                        const displayScore = score !== undefined && score !== null ? score : '-';
+                        const isBelowKKM = typeof score === 'number' && score < 75;
+
+                        return (
+                          <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`}>
+                            {displayScore}
+                          </td>
+                        );
+                      })}
+                      <td className="text-center font-semibold total-score-cell">{taskSum !== undefined ? taskSum : '-'}</td>
+                      <td className="text-center font-semibold avg-score-cell">{taskAvg !== undefined ? taskAvg : '-'}</td>
+                      <td className="text-center rank-cell">
+                        <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
+                      </td>
+                      <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
+                      <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
+                      <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
+                      <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={5 + subjects.length + 4} className="text-center empty-table-state">
+                    <span className="material-symbols-outlined empty-icon">group_off</span>
+                    <p>Tidak ada data siswa ditemukan</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* ========================================================================= */}
-      {/* MODAL RAPOR INTRAKURIKULER KURIKULUM MERDEKA (PRINTABLE E-RAPOR)           */}
+      {/* MODAL RAPOR INTRAKURIKULER KURIKULUM MERDEKA (EDITABLE & PRINTABLE)        */}
       {/* ========================================================================= */}
       {showDetailModal && selectedStudent && (
         <div className="modal-overlay" onClick={() => setShowDetailModal(false)} style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)' }}>
           <div
             className="modal-content rapor-print-container"
             onClick={(e) => e.stopPropagation()}
-            style={{ width: '920px', maxWidth: '95%', background: '#fff', borderRadius: '16px', padding: '36px', color: '#0f172a', maxHeight: '92vh', overflowY: 'auto' }}
+            style={{ width: '940px', maxWidth: '95%', background: '#fff', borderRadius: '16px', padding: '36px', color: '#0f172a', maxHeight: '92vh', overflowY: 'auto' }}
           >
             {/* Modal Top Action Controls */}
-            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px' }}>
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>
-                  📜 Pratinjau Rapor Intrakurikulum Merdeka
+                  📜 Edit & Pratinjau Rapor Kurikulum Merdeka
                 </h3>
-                <span style={{ fontSize: '13px', color: '#64748b' }}>Format Standar e-Rapor Kemendikbudristek</span>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>
+                  Format Resmi e-Rapor Kemendikbudristek (Formula 2:1:1: NA = (2*NH + PTS + PAS)/4)
+                </span>
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
@@ -318,32 +491,40 @@ const GuruStudents = () => {
               <thead>
                 <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
                   <th style={{ padding: '10px', borderRight: '1px solid #000', width: '40px' }}>No</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '210px', textAlign: 'left' }}>Mata Pelajaran</th>
                   <th style={{ padding: '10px', borderRight: '1px solid #000', width: '90px' }}>Nilai Akhir (NA)</th>
                   <th style={{ padding: '10px', textAlign: 'left' }}>Capaian Kompetensi</th>
                 </tr>
               </thead>
               <tbody>
                 {subjects.map((sub, idx) => {
-                  const taskScore = selectedStudent.tasks?.[sub._id.toString()];
-                  const examGrades = selectedStudent.grades?.[sub._id.toString()] || {};
-                  const utsScore = examGrades.uts;
-                  const uasScore = examGrades.uas;
-
-                  const NH = typeof taskScore === 'number' ? taskScore : 75;
-                  const PTS = typeof utsScore === 'number' ? utsScore : NH;
-                  const PAS = typeof uasScore === 'number' ? uasScore : NH;
-                  const NA = Math.round((2 * NH + PTS + PAS) / 4);
+                  const na = selectedStudent.na_grades?.[sub._id.toString()] !== undefined
+                    ? selectedStudent.na_grades[sub._id.toString()]
+                    : 75;
 
                   return (
                     <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800', fontSize: '13px' }}>
-                        {NA}
+                        {na}
                       </td>
-                      <td style={{ padding: '8px', lineHeight: '1.4' }}>
-                        {generateCapaianKompetensi(NA, sub.name)}
+                      <td style={{ padding: '6px 8px' }}>
+                        <textarea
+                          rows={2}
+                          value={customCompetencies[sub._id] || ''}
+                          onChange={(e) => handleCompetencyChange(sub._id, e.target.value)}
+                          style={{
+                            width: '100%',
+                            fontSize: '12px',
+                            lineHeight: '1.4',
+                            border: '1px dashed #cbd5e1',
+                            borderRadius: '4px',
+                            padding: '4px 6px',
+                            fontFamily: 'inherit',
+                            outline: 'none',
+                          }}
+                        />
                       </td>
                     </tr>
                   );
@@ -362,27 +543,44 @@ const GuruStudents = () => {
                   <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000' }}>
                     <th style={{ padding: '8px', borderRight: '1px solid #000', width: '40px', textAlign: 'center' }}>No</th>
                     <th style={{ padding: '8px', borderRight: '1px solid #000', width: '200px', textAlign: 'left' }}>Kegiatan Ekstrakurikuler</th>
-                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '100px', textAlign: 'center' }}>Predikat</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px', textAlign: 'center' }}>Predikat</th>
                     <th style={{ padding: '8px', textAlign: 'left' }}>Keterangan</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr style={{ borderBottom: '1px solid #000' }}>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>Pramuka (Wajib)</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '700' }}>Baik</td>
-                    <td style={{ padding: '8px' }}>Telah menguasai teknik dasar kepramukaan dan kedisiplinan.</td>
-                  </tr>
-                  <tr>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>2</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>PMR / Olahraga</td>
-                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '700' }}>Baik</td>
-                    <td style={{ padding: '8px' }}>Aktif mengikuti kegiatan latihan mingguan.</td>
-                  </tr>
+                  {ekstraList.map((ek, idx) => (
+                    <tr key={ek.id} style={{ borderBottom: idx < ekstraList.length - 1 ? '1px solid #000' : 'none' }}>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>
+                        <input
+                          type="text"
+                          value={ek.name}
+                          onChange={(e) => handleEkstraChange(idx, 'name', e.target.value)}
+                          style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '2px 4px', fontSize: '12px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          value={ek.predikat}
+                          onChange={(e) => handleEkstraChange(idx, 'predikat', e.target.value)}
+                          style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '2px 4px', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}
+                        />
+                      </td>
+                      <td style={{ padding: '8px' }}>
+                        <input
+                          type="text"
+                          value={ek.note}
+                          onChange={(e) => handleEkstraChange(idx, 'note', e.target.value)}
+                          style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '2px 4px', fontSize: '12px' }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
 
-              {/* Table Kehadiran */}
+              {/* Table Kehadiran & Catatan Wali Kelas */}
               <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px', marginBottom: '24px' }}>
                 <div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>KETIDAKHADIRAN</h4>
@@ -406,35 +604,73 @@ const GuruStudents = () => {
 
                 <div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>CATATAN WALI KELAS</h4>
-                  <div style={{ border: '1px solid #000', padding: '12px', fontSize: '12px', minHeight: '80px', lineHeight: '1.5', fontStyle: 'italic', background: '#fafafa' }}>
-                    "{homeroomNote}"
-                  </div>
+                  <textarea
+                    rows={3}
+                    value={homeroomNote}
+                    onChange={(e) => setHomeroomNote(e.target.value)}
+                    style={{
+                      width: '100%',
+                      border: '1px dashed #000',
+                      padding: '10px',
+                      fontSize: '12px',
+                      lineHeight: '1.5',
+                      fontStyle: 'italic',
+                      background: '#fafafa',
+                      borderRadius: '4px',
+                      outline: 'none',
+                    }}
+                  />
                 </div>
               </div>
 
               {/* SIGNATURE BLOCK */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center', fontSize: '12px', marginTop: '40px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center', fontSize: '12px', marginTop: '36px' }}>
                 <div>
                   <div>Mengetahui,</div>
                   <div>Orang Tua / Wali</div>
-                  <div style={{ height: '70px' }}></div>
+                  <div style={{ height: '60px' }}></div>
                   <div style={{ fontWeight: '700', textDecoration: 'underline' }}>( .................................... )</div>
                 </div>
 
                 <div>
-                  <div>Suradadi, 20 Desember 2024</div>
+                  <input
+                    type="text"
+                    value={placeDate}
+                    onChange={(e) => setPlaceDate(e.target.value)}
+                    style={{ border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '12px', marginBottom: '2px', width: '100%' }}
+                  />
                   <div>Wali Kelas</div>
-                  <div style={{ height: '70px' }}></div>
-                  <div style={{ fontWeight: '700', textDecoration: 'underline' }}>Muzayin, M.Pd.I</div>
-                  <div>NIP. 19800512 200604 1 008</div>
+                  <div style={{ height: '50px' }}></div>
+                  <input
+                    type="text"
+                    value={teacherName}
+                    onChange={(e) => setTeacherName(e.target.value)}
+                    style={{ border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '12px', fontWeight: '700', width: '100%', textDecoration: 'underline' }}
+                  />
+                  <input
+                    type="text"
+                    value={teacherNip}
+                    onChange={(e) => setTeacherNip(e.target.value)}
+                    style={{ border: 'none', textAlign: 'center', fontSize: '11px', color: '#475569', width: '100%' }}
+                  />
                 </div>
 
                 <div>
                   <div>Mengetahui,</div>
                   <div>Kepala Sekolah</div>
-                  <div style={{ height: '70px' }}></div>
-                  <div style={{ fontWeight: '700', textDecoration: 'underline' }}>Drs. H. Ahmad Sudrajat, M.Pd</div>
-                  <div>NIP. 19680315 199403 1 005</div>
+                  <div style={{ height: '50px' }}></div>
+                  <input
+                    type="text"
+                    value={headmasterName}
+                    onChange={(e) => setHeadmasterName(e.target.value)}
+                    style={{ border: '1px dashed #cbd5e1', textAlign: 'center', fontSize: '12px', fontWeight: '700', width: '100%', textDecoration: 'underline' }}
+                  />
+                  <input
+                    type="text"
+                    value={headmasterNip}
+                    onChange={(e) => setHeadmasterNip(e.target.value)}
+                    style={{ border: 'none', textAlign: 'center', fontSize: '11px', color: '#475569', width: '100%' }}
+                  />
                 </div>
               </div>
             </div>

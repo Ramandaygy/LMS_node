@@ -140,48 +140,54 @@ exports.getBinaanStudents = async (req, res) => {
       });
     });
 
-    // Calculate metrics for each student (e.g. totals, averages, and ranks)
+    // Calculate NA (Formula 2:1:1), Rapor Avg, and Rapor Rank for each student
     const studentsData = students.map(s => {
       const sId = s._id.toString();
       const studentGrades = gradesByStudent[sId] || {};
       const taskGrades = studentSubjectAssignmentAvg[sId] || {};
       
+      const subjectNA = {};
+      let naSum = 0;
+      let naCount = 0;
+
+      subjects.forEach(sub => {
+        const subId = sub._id.toString();
+        const nhScore = typeof taskGrades[subId] === 'number' ? taskGrades[subId] : 75;
+        const ptsScore = typeof studentGrades[subId]?.uts === 'number' ? studentGrades[subId].uts : nhScore;
+        const pasScore = typeof studentGrades[subId]?.uas === 'number' ? studentGrades[subId].uas : nhScore;
+
+        const na = Math.round((2 * nhScore + ptsScore + pasScore) / 4);
+        subjectNA[subId] = na;
+        naSum += na;
+        naCount++;
+      });
+
+      const raporAvg = naCount > 0 ? Number((naSum / naCount).toFixed(2)) : 0;
+
       // Calculate UTS sum and avg
       let utsSum = 0;
-      let utsCount = 0;
       subjects.forEach(sub => {
         const subId = sub._id.toString();
         const score = studentGrades[subId]?.uts;
-        if (typeof score === 'number') {
-          utsSum += score;
-          utsCount++;
-        }
+        if (typeof score === 'number') utsSum += score;
       });
       const utsAvg = subjects.length > 0 ? (utsSum / subjects.length) : 0;
       
       // Calculate UAS sum and avg
       let uasSum = 0;
-      let uasCount = 0;
       subjects.forEach(sub => {
         const subId = sub._id.toString();
         const score = studentGrades[subId]?.uas;
-        if (typeof score === 'number') {
-          uasSum += score;
-          uasCount++;
-        }
+        if (typeof score === 'number') uasSum += score;
       });
       const uasAvg = subjects.length > 0 ? (uasSum / subjects.length) : 0;
 
       // Calculate Task sum and avg (Nilai Tugas Mapel)
       let taskSum = 0;
-      let taskCount = 0;
       subjects.forEach(sub => {
         const subId = sub._id.toString();
         const score = taskGrades[subId];
-        if (typeof score === 'number') {
-          taskSum += score;
-          taskCount++;
-        }
+        if (typeof score === 'number') taskSum += score;
       });
       const taskAvg = subjects.length > 0 ? (taskSum / subjects.length) : 0;
 
@@ -192,36 +198,28 @@ exports.getBinaanStudents = async (req, res) => {
         class_name: classMap[s.class_id?.toString()] || '-',
         attendance: attendanceByStudent[sId] || { sick: 0, late: 0, absent: 0, total: 0 },
         grades: studentGrades, // for ATS/AAS detail
-        tasks: taskGrades, // for main table display
+        tasks: taskGrades, // for task details
+        na_grades: subjectNA, // NA per subject (2:1:1)
+        rapor_sum: naSum,
+        rapor_avg: raporAvg,
         uts_sum: utsSum,
         uts_avg: Number(utsAvg.toFixed(2)),
         uas_sum: uasSum,
         uas_avg: Number(uasAvg.toFixed(2)),
         task_sum: Number(taskSum.toFixed(2)),
         task_avg: Number(taskAvg.toFixed(2)),
-        rank_uts: 0,
-        rank_uas: 0,
+        rank_rapor: 0,
         rank_task: 0
       };
     });
 
-    // Calculate ranking for UTS
-    const sortedByUts = [...studentsData].sort((a, b) => b.uts_sum - a.uts_sum);
-    sortedByUts.forEach((student, index) => {
-      if (index > 0 && student.uts_sum === sortedByUts[index - 1].uts_sum) {
-        student.rank_uts = sortedByUts[index - 1].rank_uts;
+    // Calculate ranking for Rapor (NA)
+    const sortedByRapor = [...studentsData].sort((a, b) => b.rapor_avg - a.rapor_avg);
+    sortedByRapor.forEach((student, index) => {
+      if (index > 0 && student.rapor_avg === sortedByRapor[index - 1].rapor_avg) {
+        student.rank_rapor = sortedByRapor[index - 1].rank_rapor;
       } else {
-        student.rank_uts = index + 1;
-      }
-    });
-
-    // Calculate ranking for UAS
-    const sortedByUas = [...studentsData].sort((a, b) => b.uas_sum - a.uas_sum);
-    sortedByUas.forEach((student, index) => {
-      if (index > 0 && student.uas_sum === sortedByUas[index - 1].uas_sum) {
-        student.rank_uas = sortedByUas[index - 1].rank_uas;
-      } else {
-        student.rank_uas = index + 1;
+        student.rank_rapor = index + 1;
       }
     });
 
@@ -236,24 +234,17 @@ exports.getBinaanStudents = async (req, res) => {
     });
 
     // Map the ranks back to studentsData
-    const rankMapUts = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uts]));
-    const rankMapUas = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_uas]));
-    const rankMapTask = Object.fromEntries(studentsData.map(s => [s._id.toString(), s.rank_task]));
-    
-    const finalStudents = studentsData.map(s => {
-      const sId = s._id.toString();
-      return {
-        ...s,
-        rank_uts: rankMapUts[sId] || '-',
-        rank_uas: rankMapUas[sId] || '-',
-        rank_task: rankMapTask[sId] || '-'
-      };
-    });
+    const rankMapRapor = Object.fromEntries(sortedByRapor.map(s => [s._id.toString(), s.rank_rapor]));
+    const rankMapTask = Object.fromEntries(sortedByTasks.map(s => [s._id.toString(), s.rank_task]));
 
+    studentsData.forEach(s => {
+      s.rank_rapor = rankMapRapor[s._id.toString()];
+      s.rank_task = rankMapTask[s._id.toString()];
+    });
     return res.status(200).json({
       success: true,
-      students: finalStudents,
-      subjects: subjects
+      students: studentsData,
+      subjects
     });
 
   } catch (err) {
