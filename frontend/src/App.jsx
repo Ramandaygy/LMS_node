@@ -125,7 +125,11 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   }
 
   // Role tidak sesuai
-  if (allowedRole && currentUser.role !== allowedRole) {
+  const isAllowed = Array.isArray(allowedRole)
+    ? allowedRole.includes(currentUser.role)
+    : currentUser.role === allowedRole;
+
+  if (allowedRole && !isAllowed) {
     return (
       <Navigate
         to={`/dashboard/${currentUser.role}`}
@@ -693,8 +697,19 @@ function App() {
         <Route
           path="/dashboard/admin/monitoring"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'guru']}>
               <DashboardLayout role="admin">
+                <AdminMonitoring />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/leger"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'guru']}>
+              <DashboardLayout role="guru">
                 <AdminMonitoring />
               </DashboardLayout>
             </ProtectedRoute>

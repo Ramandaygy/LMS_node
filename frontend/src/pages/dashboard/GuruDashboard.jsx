@@ -106,7 +106,7 @@ const GuruDashboard = () => {
     quickShortcuts.unshift({
       title: `Leger Kelas ${homeroomStatus.name}`,
       icon: 'table_view',
-      path: '/dashboard/admin/monitoring',
+      path: '/dashboard/guru/leger',
       bg: '#f0fdf4',
       color: '#16a34a',
       border: '#22c55e',
