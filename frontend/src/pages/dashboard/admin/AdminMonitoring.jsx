@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
+import authService from '../../../services/authService';
 import '../../../styles/dashboard/admin/admin-students.css';
 import '../../../styles/dashboard/admin/admin-reports.css';
 
 const AdminMonitoring = () => {
+  const currentUser = authService.getCurrentUser();
+  const isGuru = currentUser?.role === 'guru';
+
   const [activeTab, setActiveTab] = useState('leger'); // 'leger' | 'students' | 'teachers' | 'activities'
 
   // Classes list
@@ -30,6 +34,7 @@ const AdminMonitoring = () => {
 
   // Selected Student Detail Modal
   const [selectedStudentDetail, setSelectedStudentDetail] = useState(null);
+  const [loadingDetailModal, setLoadingDetailModal] = useState(false);
 
   // Teacher State
   const [teachers, setTeachers] = useState([]);
@@ -52,14 +57,14 @@ const AdminMonitoring = () => {
   useEffect(() => {
     if (activeTab === 'leger' && selectedLegerClass) {
       fetchLegerData();
-    } else if (activeTab === 'students') {
+    } else if (activeTab === 'students' && !isGuru) {
       fetchStudentsMonitoring();
-    } else if (activeTab === 'teachers') {
+    } else if (activeTab === 'teachers' && !isGuru) {
       fetchTeachersMonitoring();
-    } else if (activeTab === 'activities') {
+    } else if (activeTab === 'activities' && !isGuru) {
       fetchTeacherActivities();
     }
-  }, [activeTab, selectedLegerClass, studentSearch, selectedClassFilter, selectedRiskFilter, teacherSearch, activityTeacherSearch]);
+  }, [activeTab, selectedLegerClass, studentSearch, selectedClassFilter, selectedRiskFilter, teacherSearch, activityTeacherSearch, isGuru]);
 
   const fetchClasses = async () => {
     try {
@@ -131,11 +136,14 @@ const AdminMonitoring = () => {
   };
 
   const handleOpenStudentDetail = async (studentId) => {
+    setLoadingDetailModal(true);
     try {
       const res = await api.get(`/admin/monitoring/students/${studentId}`);
       setSelectedStudentDetail(res.data);
     } catch (e) {
       console.error('Error fetching student detail:', e);
+    } finally {
+      setLoadingDetailModal(false);
     }
   };
 
@@ -168,96 +176,100 @@ const AdminMonitoring = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#3b82f6' }}>monitoring</span>
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800', color: '#0f172a', fontFamily: 'Outfit, sans-serif' }}>
-            Pusat Monitoring & Leger Nilai Sekolah
+            {isGuru ? 'Matriks Leger Nilai Sekolah' : 'Pusat Monitoring & Leger Nilai Sekolah'}
           </h1>
         </div>
         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>
-          Rekapitulasi Leger Nilai Akademik (Formula 2:1:1), Rapor Siswa, Pemetaan Guru, dan Audit Log Aktivitas.
+          {isGuru
+            ? 'Rekapitulasi Leger Nilai Akademik Seluruh Kelas (Formula 2:1:1) & Cetak Excel Leger.'
+            : 'Rekapitulasi Leger Nilai Akademik (Formula 2:1:1), Monitoring EWS, Pemetaan Guru, dan Audit Log Aktivitas.'}
         </p>
       </div>
 
-      {/* Main Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', marginBottom: '28px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveTab('leger')}
-          style={{
-            padding: '12px 24px',
-            fontWeight: '700',
-            fontSize: '15px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'leger' ? '3px solid #3b82f6' : '3px solid transparent',
-            color: activeTab === 'leger' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>table_view</span>
-          Matriks Leger Nilai Kelas (2:1:1)
-        </button>
+      {/* Main Tabs Navigation (For Admin shows 4 tabs, for Guru shows 1 tab) */}
+      {!isGuru && (
+        <div style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', marginBottom: '28px', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setActiveTab('leger')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: '700',
+              fontSize: '15px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'leger' ? '3px solid #3b82f6' : '3px solid transparent',
+              color: activeTab === 'leger' ? '#2563eb' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>table_view</span>
+            Matriks Leger Nilai Kelas (2:1:1)
+          </button>
 
-        <button
-          onClick={() => setActiveTab('students')}
-          style={{
-            padding: '12px 24px',
-            fontWeight: '700',
-            fontSize: '15px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'students' ? '3px solid #3b82f6' : '3px solid transparent',
-            color: activeTab === 'students' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>school</span>
-          Monitoring Risiko Siswa (EWS)
-        </button>
+          <button
+            onClick={() => setActiveTab('students')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: '700',
+              fontSize: '15px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'students' ? '3px solid #3b82f6' : '3px solid transparent',
+              color: activeTab === 'students' ? '#2563eb' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>school</span>
+            Monitoring Risiko Siswa (EWS)
+          </button>
 
-        <button
-          onClick={() => setActiveTab('teachers')}
-          style={{
-            padding: '12px 24px',
-            fontWeight: '700',
-            fontSize: '15px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'teachers' ? '3px solid #3b82f6' : '3px solid transparent',
-            color: activeTab === 'teachers' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>supervisor_account</span>
-          Pemetaan Guru & Siswa
-        </button>
+          <button
+            onClick={() => setActiveTab('teachers')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: '700',
+              fontSize: '15px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'teachers' ? '3px solid #3b82f6' : '3px solid transparent',
+              color: activeTab === 'teachers' ? '#2563eb' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>supervisor_account</span>
+            Pemetaan Guru & Pengampuan
+          </button>
 
-        <button
-          onClick={() => setActiveTab('activities')}
-          style={{
-            padding: '12px 24px',
-            fontWeight: '700',
-            fontSize: '15px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'activities' ? '3px solid #3b82f6' : '3px solid transparent',
-            color: activeTab === 'activities' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
-          Log Aktivitas Mengajar
-        </button>
-      </div>
+          <button
+            onClick={() => setActiveTab('activities')}
+            style={{
+              padding: '12px 24px',
+              fontWeight: '700',
+              fontSize: '15px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              borderBottom: activeTab === 'activities' ? '3px solid #3b82f6' : '3px solid transparent',
+              color: activeTab === 'activities' ? '#2563eb' : '#64748b',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
+            Log Aktivitas Mengajar
+          </button>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: MATRIKS LEGER NILAI KELAS (RUMUS 2 : 1 : 1)                        */}
@@ -299,7 +311,7 @@ const AdminMonitoring = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>file_download</span>
@@ -393,9 +405,9 @@ const AdminMonitoring = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 2: MONITORING SISWA & PREDIKSI RISIKO BELAJAR (EWS)                  */}
+      {/* TAB 2: MONITORING SISWA & PREDIKSI RISIKO BELAJAR (ADMIN ONLY)            */}
       {/* ========================================================================= */}
-      {activeTab === 'students' && (
+      {!isGuru && activeTab === 'students' && (
         <div>
           {/* Summary Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '28px' }}>
@@ -486,7 +498,7 @@ const AdminMonitoring = () => {
                       </td>
                       <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                         <button onClick={() => handleOpenStudentDetail(st._id)} style={{ padding: '6px 12px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>
-                          Detail Rapor
+                          Detail Rapor & Analisis
                         </button>
                       </td>
                     </tr>
@@ -499,9 +511,9 @@ const AdminMonitoring = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: PEMETAAN GURU                                                      */}
+      {/* TAB 3: PEMETAAN GURU (ADMIN ONLY)                                         */}
       {/* ========================================================================= */}
-      {activeTab === 'teachers' && (
+      {!isGuru && activeTab === 'teachers' && (
         <div>
           <div style={{ background: '#fff', padding: '16px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
@@ -516,14 +528,44 @@ const AdminMonitoring = () => {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
             {teachers.map((t) => (
-              <div key={t._id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px' }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{t.full_name}</h3>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>NIP: {t.nip} | Kode: {t.teacher_code}</p>
-                <div style={{ margin: '12px 0', fontSize: '13px' }}>
-                  <div><strong style={{ color: '#475569' }}>Mapel: </strong>{t.assigned_subjects.join(', ') || '-'}</div>
-                  <div><strong style={{ color: '#475569' }}>Kelas: </strong>{t.assigned_classes.join(', ') || '-'}</div>
+              <div key={t._id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{t.full_name}</h3>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>NIP: {t.nip || '-'} | Kode: {t.teacher_code || '-'}</p>
+                  </div>
+                  <span style={{ padding: '4px 10px', borderRadius: '20px', background: '#f1f5f9', fontSize: '12px', fontWeight: '700', color: '#475569' }}>
+                    {t.total_students_taught || 0} Siswa Diajar
+                  </span>
+                </div>
+
+                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '16px', border: '1px solid #f1f5f9' }}>
+                  <div style={{ fontSize: '13px', marginBottom: '6px' }}>
+                    <strong style={{ color: '#334155' }}>Mata Pelajaran: </strong>
+                    <span style={{ color: '#0284c7', fontWeight: '700' }}>{t.assigned_subjects.join(', ') || '-'}</span>
+                  </div>
+                  <div style={{ fontSize: '13px' }}>
+                    <strong style={{ color: '#334155' }}>Kelas Diampu: </strong>
+                    <span style={{ color: '#0f172a', fontWeight: '600' }}>{t.assigned_classes.join(', ') || '-'}</span>
+                  </div>
+                </div>
+
+                {/* Metrics Stats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>MATERI</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>{t.total_materials || 0}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>TUGAS</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>{t.total_assignments || 0}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>TERDINILAI</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#16a34a', marginTop: '2px' }}>{t.graded_submissions || 0}</div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -532,9 +574,9 @@ const AdminMonitoring = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 4: AKTIVITAS GURU                                                     */}
+      {/* TAB 4: AKTIVITAS GURU (ADMIN ONLY)                                        */}
       {/* ========================================================================= */}
-      {activeTab === 'activities' && (
+      {!isGuru && activeTab === 'activities' && (
         <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Log Aktivitas Mengajar Real-Time</h3>
@@ -565,18 +607,109 @@ const AdminMonitoring = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL: DETAIL SISWA                                                       */}
+      {/* MODAL: DETAIL RAPOR SISWA & ANALISIS PROSES BELAJAR (EWS)                */}
       {/* ========================================================================= */}
       {selectedStudentDetail && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>Transkrip Rapor Siswa: {selectedStudentDetail.student.full_name}</h3>
-              <button onClick={() => setSelectedStudentDetail(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>close</span>
+          <div style={{ background: '#fff', borderRadius: '24px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '32px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '22px', fontWeight: '800', color: '#0f172a' }}>
+                  Transkrip Rapor & Analisis Siswa
+                </h3>
+                <div style={{ fontSize: '14px', color: '#475569', marginTop: '4px' }}>
+                  <strong>{selectedStudentDetail.student.full_name}</strong> (NIS: {selectedStudentDetail.student.nis}) — Kelas: <strong>{selectedStudentDetail.student.class_name}</strong>
+                </div>
+              </div>
+              <button onClick={() => setSelectedStudentDetail(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>close</span>
               </button>
             </div>
-            <p style={{ margin: 0, fontSize: '14px', color: '#475569' }}>Kelas: {selectedStudentDetail.student.class_name} | NIS: {selectedStudentDetail.student.nis}</p>
+
+            {/* Summary Stat Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '24px' }}>
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>RATA-RATA NILAI</span>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: '#2563eb', marginTop: '4px' }}>
+                  {selectedStudentDetail.progress?.summary?.avg_score || 0} / 100
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>KEHADIRAN</span>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: '#16a34a', marginTop: '4px' }}>
+                  {selectedStudentDetail.progress?.summary?.attendance_rate || 0}%
+                </div>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>PENGERJAAN TUGAS</span>
+                <div style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>
+                  {selectedStudentDetail.progress?.summary?.submitted_assignments || 0} / {selectedStudentDetail.progress?.summary?.total_assignments || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* ML EWS Recommendation Box */}
+            {selectedStudentDetail.progress?.summary?.risk_assessment && (
+              <div style={{ background: selectedStudentDetail.progress.summary.risk_assessment.risk === 'high' ? '#fef2f2' : selectedStudentDetail.progress.summary.risk_assessment.risk === 'medium' ? '#fffbeb' : '#f0fdf4', border: `1px solid ${selectedStudentDetail.progress.summary.risk_assessment.risk === 'high' ? '#fecdd3' : selectedStudentDetail.progress.summary.risk_assessment.risk === 'medium' ? '#fef3c7' : '#bbf7d0'}`, borderRadius: '14px', padding: '16px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: selectedStudentDetail.progress.summary.risk_assessment.risk === 'high' ? '#dc2626' : selectedStudentDetail.progress.summary.risk_assessment.risk === 'medium' ? '#d97706' : '#16a34a' }}>
+                    psychology
+                  </span>
+                  <strong style={{ fontSize: '14px', color: '#0f172a' }}>
+                    Status Risiko Akademis (AI EWS): {selectedStudentDetail.progress.summary.risk_assessment.risk.toUpperCase()} ({selectedStudentDetail.progress.summary.risk_assessment.confidence}%)
+                  </strong>
+                </div>
+                <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
+                  {selectedStudentDetail.progress.summary.risk_assessment.recommendation}
+                </p>
+              </div>
+            )}
+
+            {/* Subject Breakdown Table */}
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>
+              Rincian Nilai & Kehadiran Per Mata Pelajaran
+            </h4>
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', marginBottom: '24px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '12px', fontWeight: '700' }}>
+                    <th style={{ padding: '12px 16px' }}>Mata Pelajaran</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Nilai Rerata</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Tugas Terkumpul</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Sesi Kehadiran</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedStudentDetail.progress?.subject_breakdown || []).map((sub, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: '700', color: '#0f172a' }}>{sub.subject_name}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '800', color: sub.avg_score < 75 ? '#dc2626' : '#0284c7' }}>
+                        {sub.avg_score}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569' }}>
+                        {sub.submission_count} Tugas
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569' }}>
+                        {sub.attendance_count} Hadir
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Parent Info */}
+            {selectedStudentDetail.student.parent && (
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#475569', marginBottom: '4px' }}>DATA ORANG TUA / WALI:</div>
+                <div style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+                  {selectedStudentDetail.student.parent.full_name} | HP: {selectedStudentDetail.student.parent.phone || '-'} | Email: {selectedStudentDetail.student.parent.email || '-'}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
