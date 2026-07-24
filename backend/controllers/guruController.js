@@ -261,33 +261,37 @@ exports.getBinaanStudents = async (req, res) => {
       };
     });
 
-    // Calculate ranking for Rapor (NA)
-    const sortedByRapor = [...studentsData].sort((a, b) => b.rapor_avg - a.rapor_avg);
-    sortedByRapor.forEach((student, index) => {
-      if (index > 0 && student.rapor_avg === sortedByRapor[index - 1].rapor_avg) {
-        student.rank_rapor = sortedByRapor[index - 1].rank_rapor;
-      } else {
-        student.rank_rapor = index + 1;
-      }
+    // Group students by class_name for per-class ranking
+    const studentsByClass = {};
+    studentsData.forEach((s) => {
+      const cName = s.class_name || 'Unassigned';
+      if (!studentsByClass[cName]) studentsByClass[cName] = [];
+      studentsByClass[cName].push(s);
     });
 
-    // Calculate ranking for Tasks
-    const sortedByTasks = [...studentsData].sort((a, b) => b.task_sum - a.task_sum);
-    sortedByTasks.forEach((student, index) => {
-      if (index > 0 && student.task_sum === sortedByTasks[index - 1].task_sum) {
-        student.rank_task = sortedByTasks[index - 1].rank_task;
-      } else {
-        student.rank_task = index + 1;
-      }
-    });
+    // Calculate per-class rankings for Rapor (NA) and Tasks (NH)
+    Object.keys(studentsByClass).forEach((cName) => {
+      const classStudents = studentsByClass[cName];
 
-    // Map the ranks back to studentsData
-    const rankMapRapor = Object.fromEntries(sortedByRapor.map(s => [s._id.toString(), s.rank_rapor]));
-    const rankMapTask = Object.fromEntries(sortedByTasks.map(s => [s._id.toString(), s.rank_task]));
+      // Per-Class Rapor Rank
+      classStudents.sort((a, b) => b.rapor_avg - a.rapor_avg);
+      classStudents.forEach((student, index) => {
+        if (index > 0 && student.rapor_avg === classStudents[index - 1].rapor_avg) {
+          student.rank_rapor = classStudents[index - 1].rank_rapor;
+        } else {
+          student.rank_rapor = index + 1;
+        }
+      });
 
-    studentsData.forEach(s => {
-      s.rank_rapor = rankMapRapor[s._id.toString()];
-      s.rank_task = rankMapTask[s._id.toString()];
+      // Per-Class Task Rank
+      classStudents.sort((a, b) => b.task_sum - a.task_sum);
+      classStudents.forEach((student, index) => {
+        if (index > 0 && student.task_sum === classStudents[index - 1].task_sum) {
+          student.rank_task = classStudents[index - 1].rank_task;
+        } else {
+          student.rank_task = index + 1;
+        }
+      });
     });
     return res.status(200).json({
       success: true,

@@ -11,17 +11,25 @@ async function getStudentData(studentId) {
   const siswaCol = mongoose.connection.collection('users_siswa');
 
   const objStudentId = new mongoose.Types.ObjectId(studentId);
+  const strStudentId = studentId.toString();
 
   // 1. Get submissions and assignments
-  const submissions = await submissionsCol.find({ student_id: objStudentId, score: { $ne: null } }).toArray();
+  const submissions = await submissionsCol.find({
+    student_id: { $in: [objStudentId, strStudentId] },
+    score: { $ne: null }
+  }).toArray();
+
   const assignmentIds = submissions.map(s => s.assignment_id);
-  const assignments = await assignmentsCol.find({ _id: { $in: assignmentIds } }).toArray();
+  const assignmentIdStrings = assignmentIds.map(id => id.toString());
+  const assignments = await assignmentsCol.find({
+    _id: { $in: [...assignmentIds, ...assignmentIdStrings] }
+  }).toArray();
   
   const assignmentMap = {};
   assignments.forEach(a => {
     assignmentMap[a._id.toString()] = {
       title: a.title,
-      total_score: a.total_score || 100
+      total_score: a.total_score || a.max_score || 100
     };
   });
 
@@ -44,7 +52,9 @@ async function getStudentData(studentId) {
   const avgScore = totalMax > 0 ? (totalScore / totalMax) * 100 : 0;
 
   // 2. Get attendance
-  const attendances = await attendancesCol.find({ student_id: objStudentId }).toArray();
+  const attendances = await attendancesCol.find({
+    student_id: { $in: [objStudentId, strStudentId] }
+  }).toArray();
   const totalDays = attendances.length;
   const presentDays = attendances.filter(a => a.status === 'present').length;
   const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
@@ -56,7 +66,9 @@ async function getStudentData(studentId) {
     : 0;
 
   // 4. Get quiz & exam grades
-  const grades = await gradesCol.find({ student: objStudentId }).toArray();
+  const grades = await gradesCol.find({
+    student: { $in: [objStudentId, strStudentId] }
+  }).toArray();
   const subjectIds = grades.map(g => g.subject).filter(Boolean);
   const subjects = await subjectsCol.find({ _id: { $in: subjectIds } }).toArray();
   const subjectMap = {};
