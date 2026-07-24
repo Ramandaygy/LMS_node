@@ -94,9 +94,49 @@ async function getStudentData(studentId) {
   });
   const avgQuizScore = quizCount > 0 ? quizScoreSum / quizCount : 0;
 
-  // 5. Construct timeline of grades over time for line chart
+  // 5. Compute subject breakdown for all subjects
+  const allSubjectDocs = await subjectsCol.find({ is_active: { $ne: false } }).toArray();
+  const subjectBreakdown = allSubjectDocs.map((sub) => {
+    const subIdStr = sub._id.toString();
+
+    const subAssignments = assignments.filter((a) => (a.subject || a.subject_id || a.subjectId)?.toString() === subIdStr);
+    const subAssignIds = subAssignments.map((a) => a._id.toString());
+    const subSubmissions = submissions.filter((s) => subAssignIds.includes(s.assignment_id.toString()));
+
+    let subTaskScoreSum = 0;
+    let subTaskMaxSum = 0;
+    subSubmissions.forEach((s) => {
+      const assign = assignmentMap[s.assignment_id.toString()] || { total_score: 100 };
+      subTaskScoreSum += s.score;
+      subTaskMaxSum += assign.total_score || 100;
+    });
+    const subNH = subTaskMaxSum > 0 ? Math.round((subTaskScoreSum / subTaskMaxSum) * 100) : null;
+
+    const subGrades = grades.filter((g) => g.subject?.toString() === subIdStr);
+    const ptsObj = subGrades.find((g) => g.type === 'uts');
+    const pasObj = subGrades.find((g) => g.type === 'uas');
+    const pts = ptsObj ? ptsObj.score : null;
+    const pas = pasObj ? pasObj.score : null;
+
+    let subAvgScore = '-';
+    if (subNH !== null || pts !== null || pas !== null) {
+      const nhVal = subNH !== null ? subNH : (pts !== null ? pts : (pas !== null ? pas : 0));
+      const ptsVal = pts !== null ? pts : nhVal;
+      const pasVal = pas !== null ? pas : nhVal;
+      subAvgScore = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+    }
+
+    return {
+      subject_name: sub.name,
+      avg_score: subAvgScore,
+      submission_count: subSubmissions.length,
+      attendance_count: presentDays
+    };
+  });
+
+  // 6. Construct timeline of grades over time for line chart
   const allScores = [
-    ...submissions.map(s => {
+    ...submissions.map((s) => {
       const assign = assignmentMap[s.assignment_id.toString()] || { title: 'Tugas', total_score: 100 };
       const pctScore = assign.total_score > 0 ? (s.score / assign.total_score) * 100 : 0;
       return {
@@ -105,7 +145,7 @@ async function getStudentData(studentId) {
         title: assign.title
       };
     }),
-    ...grades.map(g => {
+    ...grades.map((g) => {
       const subName = subjectMap[g.subject?.toString()] || 'Ujian';
       return {
         date: new Date(g.createdAt || g.created_at || new Date()),
@@ -117,19 +157,35 @@ async function getStudentData(studentId) {
 
   const timeline = allScores
     .sort((a, b) => a.date - b.date)
-    .map(s => ({
+    .map((s) => ({
       date: s.date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
       score: Math.round(s.score),
       title: s.title
     }));
 
+  // Summary object for frontend modal
+  const numericNaScores = subjectBreakdown.map((s) => s.avg_score).filter((v) => typeof v === 'number');
+  const computedOverallAvg = numericNaScores.length > 0
+    ? Math.round(numericNaScores.reduce((a, b) => a + b, 0) / numericNaScores.length)
+    : (avgScore > 0 ? Math.round(avgScore) : 0);
+
+  const summary = {
+    avg_score: computedOverallAvg,
+    attendance_rate: Math.round(attendanceRate),
+    material_completion_rate: Math.round(materialCompletionRate),
+    submitted_assignments: submissions.length,
+    total_assignments: assignments.length || submissions.length,
+  };
+
   return { 
-    avgScore, 
+    avgScore: computedOverallAvg, 
     attendanceRate, 
     materialCompletionRate, 
     avgQuizScore,
     detailedAssignments,
     detailedGrades,
+    subject_breakdown: subjectBreakdown,
+    summary,
     timeline
   };
 }
@@ -137,6 +193,7 @@ async function getStudentData(studentId) {
 exports.getStudentProgress = async (studentId) => {
   const data = await getStudentData(studentId);
   const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate, data.avgQuizScore);
+  data.summary.risk_assessment = prediction;
   return { ...data, ...prediction };
 };
 
