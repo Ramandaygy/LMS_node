@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
-import authService from '../../../services/authService';
+import { authService } from '../../../services/auth';
 import '../../../styles/dashboard/admin/admin-students.css';
 import '../../../styles/dashboard/admin/admin-reports.css';
 
