@@ -84,7 +84,7 @@ const GuruInputNilai = () => {
       setStudents(mapped);
     } catch (err) {
       console.error(err);
-      setMessage({ type: 'error', text: 'Gagal memuat nilai siswa kelas ini.' });
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Gagal memuat nilai siswa kelas ini.' });
     } finally {
       setLoading(false);
     }
