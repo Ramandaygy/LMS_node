@@ -3,28 +3,9 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 
 // ======================================
-// COLLECTIONS
+// DYNAMIC COLLECTION GETTER
 // ======================================
-
-const adminCollection =
-  mongoose.connection.collection(
-    'users_admin'
-  );
-
-const guruCollection =
-  mongoose.connection.collection(
-    'users_guru'
-  );
-
-const siswaCollection =
-  mongoose.connection.collection(
-    'users_siswa'
-  );
-
-const ortuCollection =
-  mongoose.connection.collection(
-    'users_ortu'
-  );
+const getCollection = (name) => mongoose.connection.collection(name);
 
 // ======================================
 // REGISTER
@@ -49,105 +30,64 @@ exports.register = async (body) => {
   let collection;
 
   switch (role) {
-
     case 'admin':
-      collection = adminCollection;
+      collection = getCollection('users_admin');
       break;
-
     case 'guru':
-      collection = guruCollection;
+      collection = getCollection('users_guru');
       break;
-
     case 'siswa':
-      collection = siswaCollection;
+      collection = getCollection('users_siswa');
       break;
-
     case 'ortu':
-      collection = ortuCollection;
+      collection = getCollection('users_ortu');
       break;
-
     default:
-      throw new Error(
-        'Invalid role'
-      );
+      throw new Error('Invalid role');
   }
 
-  const existingUser =
-    await collection.findOne({
-      email: emailLower,
-    });
+  const existingUser = await collection.findOne({
+    email: emailLower,
+  });
 
   if (existingUser) {
-    throw new Error(
-      'Email already registered'
-    );
+    throw new Error('Email already registered');
   }
 
   let children = [];
 
   if (role === 'ortu' && student_nis) {
-    const student = await siswaCollection.findOne({ nis: student_nis });
+    const student = await getCollection('users_siswa').findOne({ nis: student_nis });
     if (!student) {
       throw new Error('Data siswa dengan NIS tersebut tidak ditemukan');
     }
     children.push(student._id);
   }
 
-  const hashedPassword =
-    await bcrypt.hash(
-      password,
-      10
-    );
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  const result =
-    await collection.insertOne({
-
-      username,
-
-      email: emailLower,
-
-      password: hashedPassword,
-
-      role,
-
-      full_name:
-        full_name || '',
-
-      phone:
-        phone || '',
-
-      nik:
-        nik || '',
-
-      children: children,
-
-      is_active: true,
-
-      is_verified: false,
-
-      permissions: [],
-
-      profileImage: '',
-
-      profile: {},
-
-      created_at:
-        new Date(),
-
-      updated_at:
-        new Date(),
-    });
+  const result = await collection.insertOne({
+    username,
+    email: emailLower,
+    password: hashedPassword,
+    role,
+    full_name: full_name || '',
+    phone: phone || '',
+    nik: nik || '',
+    children: children,
+    is_active: true,
+    is_verified: false,
+    permissions: [],
+    profileImage: '',
+    profile: {},
+    created_at: new Date(),
+    updated_at: new Date(),
+  });
 
   return {
-
-    id:
-      result.insertedId,
-
+    id: result.insertedId,
     username,
-
-    email:
-      emailLower,
-
+    email: emailLower,
     role,
   };
 };
@@ -157,66 +97,17 @@ exports.register = async (body) => {
 // ======================================
 
 exports.login = async (body) => {
+  const { email, password } = body;
 
-  const {
-    email,
-    password,
-  } = body;
+  console.log('LOGIN BODY:', body);
 
-  console.log(
-    'LOGIN BODY:',
-    body
-  );
-
-  const emailLower =
-    email.toLowerCase();
-
+  const emailLower = email.toLowerCase();
   let user = null;
 
-  // ======================================
-  // SEARCH ADMIN
-  // ======================================
-
-  user =
-    await adminCollection.findOne({
-      email: emailLower,
-    });
-
-  // ======================================
-  // SEARCH GURU
-  // ======================================
-
-  if (!user) {
-
-    user =
-      await guruCollection.findOne({
-        email: emailLower,
-      });
-  }
-
-  // ======================================
-  // SEARCH SISWA
-  // ======================================
-
-  if (!user) {
-
-    user =
-      await siswaCollection.findOne({
-        email: emailLower,
-      });
-  }
-
-  // ======================================
-  // SEARCH ORTU
-  // ======================================
-
-  if (!user) {
-
-    user =
-      await ortuCollection.findOne({
-        email: emailLower,
-      });
-  }
+  user = await getCollection('users_admin').findOne({ email: emailLower });
+  if (!user) user = await getCollection('users_guru').findOne({ email: emailLower });
+  if (!user) user = await getCollection('users_siswa').findOne({ email: emailLower });
+  if (!user) user = await getCollection('users_ortu').findOne({ email: emailLower });
 
   console.log(
     'FOUND USER:',

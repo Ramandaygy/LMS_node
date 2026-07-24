@@ -2,60 +2,19 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 // ======================================
-// COLLECTION REFERENCES
+// DYNAMIC COLLECTION GETTER
 // ======================================
-
-const siswaCollection =
-  mongoose.connection.collection(
-    'users_siswa'
-  );
-
-const guruCollection =
-  mongoose.connection.collection(
-    'users_guru'
-  );
-
-const adminCollection =
-  mongoose.connection.collection(
-    'users_admin'
-  );
-
-const ortuCollection =
-  mongoose.connection.collection(
-    'users_ortu'
-  );
-
-// ======================================
-// MASTER COLLECTIONS
-// ======================================
-
-const subjectCollection =
-  mongoose.connection.collection(
-    'subjects'
-  );
-
-const classCollection =
-  mongoose.connection.collection(
-    'classes'
-  );
+const getCollection = (name) => mongoose.connection.collection(name);
 
 // ======================================
 // GET ALL USERS
 // ======================================
 
 exports.getAllUsers = async () => {
-
-  const siswa =
-    await siswaCollection.find({}).toArray();
-
-  const guru =
-    await guruCollection.find({}).toArray();
-
-  const admin =
-    await adminCollection.find({}).toArray();
-
-  const ortu =
-    await ortuCollection.find({}).toArray();
+  const siswa = await getCollection('users_siswa').find({}).toArray();
+  const guru = await getCollection('users_guru').find({}).toArray();
+  const admin = await getCollection('users_admin').find({}).toArray();
+  const ortu = await getCollection('users_ortu').find({}).toArray();
 
   return [
     ...siswa,
@@ -70,32 +29,12 @@ exports.getAllUsers = async () => {
 // ======================================
 
 exports.getUserById = async (id) => {
+  const objectId = new mongoose.Types.ObjectId(id);
 
-  const objectId =
-    new mongoose.Types.ObjectId(id);
-
-  let user =
-    await siswaCollection.findOne({
-      _id: objectId
-    });
-
-  if (!user) {
-    user = await guruCollection.findOne({
-      _id: objectId
-    });
-  }
-
-  if (!user) {
-    user = await adminCollection.findOne({
-      _id: objectId
-    });
-  }
-
-  if (!user) {
-    user = await ortuCollection.findOne({
-      _id: objectId
-    });
-  }
+  let user = await getCollection('users_siswa').findOne({ _id: objectId });
+  if (!user) user = await getCollection('users_guru').findOne({ _id: objectId });
+  if (!user) user = await getCollection('users_admin').findOne({ _id: objectId });
+  if (!user) user = await getCollection('users_ortu').findOne({ _id: objectId });
 
   return user;
 };
@@ -105,13 +44,11 @@ exports.getUserById = async (id) => {
 // ======================================
 
 exports.getUsersByRole = async (role) => {
-
   let users = [];
 
   switch (role) {
-
     case 'siswa':
-      users = await siswaCollection.aggregate([
+      users = await getCollection('users_siswa').aggregate([
         { $lookup: { from: 'classes', localField: 'class_id', foreignField: '_id', as: 'class_details' } },
         { $lookup: { from: 'users_ortu', localField: 'parent_id', foreignField: '_id', as: 'parent_details' } },
         {
@@ -130,30 +67,21 @@ exports.getUsersByRole = async (role) => {
       break;
 
     case 'guru':
-      users = await guruCollection
-        .find({})
-        .toArray();
+      users = await getCollection('users_guru').find({}).toArray();
       break;
 
     case 'admin':
-      users = await adminCollection
-        .find({})
-        .toArray();
+      users = await getCollection('users_admin').find({}).toArray();
       break;
 
     case 'ortu':
-      users = await ortuCollection
-        .find({})
-        .toArray();
-      // Populate children dynamically based on student.parent_id to avoid out-of-sync arrays
+      users = await getCollection('users_ortu').find({}).toArray();
       if (users.length) {
         const parentIds = users.map(u => u._id);
-        const siswaCol = mongoose.connection.collection('users_siswa');
-        const activeStudents = await siswaCol.find({
+        const activeStudents = await getCollection('users_siswa').find({
           parent_id: { $in: parentIds }
         }).toArray();
 
-        // Group students by parent_id
         const studentsByParent = {};
         activeStudents.forEach(s => {
           if (s.parent_id) {
@@ -169,7 +97,6 @@ exports.getUsersByRole = async (role) => {
           }
         });
 
-        // Map parents and assign populated children
         users = users.map(u => ({
           ...u,
           children: studentsByParent[u._id.toString()] || []
@@ -185,15 +112,8 @@ exports.getUsersByRole = async (role) => {
   // GET MASTER DATA
   // ======================================
 
-  const subjects =
-    await subjectCollection
-      .find({})
-      .toArray();
-
-  const classes =
-    await classCollection
-      .find({})
-      .toArray();
+  const subjects = await getCollection('subjects').find({}).toArray();
+  const classes = await getCollection('classes').find({}).toArray();
 
   // ======================================
   // FORMAT DATA
@@ -303,27 +223,21 @@ exports.getUsersByRole = async (role) => {
 // ======================================
 
 exports.createUser = async (userData) => {
-
   let collection;
 
   switch (userData.role) {
-
     case 'siswa':
-      collection = siswaCollection;
+      collection = getCollection('users_siswa');
       break;
-
     case 'guru':
-      collection = guruCollection;
+      collection = getCollection('users_guru');
       break;
-
     case 'admin':
-      collection = adminCollection;
+      collection = getCollection('users_admin');
       break;
-
     case 'ortu':
-      collection = ortuCollection;
+      collection = getCollection('users_ortu');
       break;
-
     default:
       throw new Error('Role tidak valid');
   }
@@ -354,16 +268,10 @@ exports.createUser = async (userData) => {
     } catch (err) {}
   }
 
-  const result =
-    await collection.insertOne({
-
-      ...userData,
-
-      is_active:
-        userData.is_active !== undefined
-          ? userData.is_active
-          : true,
-    });
+  const result = await collection.insertOne({
+    ...userData,
+    is_active: userData.is_active !== undefined ? userData.is_active : true,
+  });
 
   return result;
 };
@@ -372,19 +280,13 @@ exports.createUser = async (userData) => {
 // UPDATE USER
 // ======================================
 
-exports.updateUser = async (
-  id,
-  updateData
-) => {
-
-  const objectId =
-    new mongoose.Types.ObjectId(id);
-
+exports.updateUser = async (id, updateData) => {
+  const objectId = new mongoose.Types.ObjectId(id);
   const collections = [
-    siswaCollection,
-    guruCollection,
-    adminCollection,
-    ortuCollection
+    getCollection('users_siswa'),
+    getCollection('users_guru'),
+    getCollection('users_admin'),
+    getCollection('users_ortu')
   ];
 
   if (updateData.password) {
@@ -444,15 +346,12 @@ exports.updateUser = async (
 // ======================================
 
 exports.deleteUser = async (id) => {
-
-  const objectId =
-    new mongoose.Types.ObjectId(id);
-
+  const objectId = new mongoose.Types.ObjectId(id);
   const collections = [
-    siswaCollection,
-    guruCollection,
-    adminCollection,
-    ortuCollection
+    getCollection('users_siswa'),
+    getCollection('users_guru'),
+    getCollection('users_admin'),
+    getCollection('users_ortu')
   ];
 
   for (const collection of collections) {
