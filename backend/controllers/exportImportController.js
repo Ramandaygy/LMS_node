@@ -851,7 +851,7 @@ exports.importSchedules = async (req, res) => {
       const row = worksheet.getRow(r);
       for (let c = 1; c <= 30; c++) {
         const val = (row.getCell(c).text || row.getCell(c).value?.toString() || '').toUpperCase().trim();
-        if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX') || val.includes('SEMESTER'))) {
+        if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX') || val.includes('KELAS 7') || val.includes('KELAS 8') || val.includes('KELAS 9'))) {
           isGridFormat = true;
           gridHeaderRow = r;
           break;
@@ -899,7 +899,13 @@ exports.importSchedules = async (req, res) => {
           if (/^[A-Z]$/.test(classCellText) && currentGrade) {
             className = `${currentGrade}${classCellText}`;
           }
-          const foundClass = classes.find(c => normalize(c.name) === normalize(className) || normalize(c.name) === normalize(classCellText));
+          const foundClass = classes.find(c => {
+            const normC = normalize(c.name);
+            const normTarget = normalize(className);
+            const normCell = normalize(classCellText);
+            return normC === normTarget || normC === normCell;
+          });
+
           if (foundClass) {
             colToClassMap[col] = foundClass._id;
           }
@@ -911,31 +917,44 @@ exports.importSchedules = async (req, res) => {
       for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
         
-        // Kolom 1 (A) atau Kolom 2 (B) untuk Hari (bisa jadi merged/kosong)
-        let dayVal = row.getCell(1).text || row.getCell(1).value?.toString() || row.getCell(2).text || '';
-        if (typeof dayVal === 'object') dayVal = dayVal.result || dayVal.text || '';
-        dayVal = dayVal.toUpperCase().trim();
-
-        const matchedDay = validDays.find(d => dayVal.includes(d));
-        if (matchedDay) {
-          currentDay = matchedDay;
+        // Cek Kolom 1..3 untuk deteksi Hari
+        for (let c = 1; c <= 3; c++) {
+          let cellText = row.getCell(c).text || row.getCell(c).value?.toString() || '';
+          if (typeof cellText === 'object') cellText = cellText.result || cellText.text || '';
+          cellText = cellText.toUpperCase().trim();
+          const matchedDay = validDays.find(d => cellText.includes(d));
+          if (matchedDay) {
+            currentDay = matchedDay;
+            break;
+          }
         }
 
         if (!currentDay) continue;
 
-        // Kolom 2 (B) adalah Jam Ke (period), Kolom 3 (C) adalah Waktu
-        let periodVal = row.getCell(2).text || row.getCell(2).value?.toString() || '';
-        let timeVal = row.getCell(3).text || row.getCell(3).value?.toString() || '';
-        if (typeof timeVal === 'object') timeVal = timeVal.result || timeVal.text || '';
+        // Cari Waktu (misal 07:20-08:00) dan Jam Ke (misal 1, 2) dari kolom 1..5
+        let timeVal = '';
+        let periodVal = '';
+
+        for (let c = 1; c <= 5; c++) {
+          let cellStr = row.getCell(c).text || row.getCell(c).value?.toString() || '';
+          if (typeof cellStr === 'object') cellStr = cellStr.result || cellStr.text || '';
+          cellStr = cellStr.trim();
+
+          if (/^\d{1,2}$/.test(cellStr) && !periodVal) {
+            periodVal = cellStr;
+          } else if (/\d{1,2}[:.]\d{2}/.test(cellStr) && !timeVal) {
+            timeVal = cellStr;
+          }
+        }
 
         if (!timeVal) continue;
 
-        const cleanTimeVal = timeVal.toString().toUpperCase();
+        const cleanTimeVal = timeVal.toUpperCase();
         if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
           continue;
         }
 
-        const timeParts = timeVal.toString().split(/[-–]/).map(t => t.trim().replace('.', ':'));
+        const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
         if (timeParts.length < 2) continue;
         const startTime = timeParts[0];
         const endTime = timeParts[1];
