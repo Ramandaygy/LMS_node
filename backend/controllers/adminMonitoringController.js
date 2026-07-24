@@ -216,51 +216,76 @@ exports.getTeachersMonitoring = async (req, res) => {
         let totalStudentsTaught = 0;
         let studentsTaught = [];
         if (assignedClassIds.length > 0) {
-          const classObjIds = assignedClassIds.map((id) => new mongoose.Types.ObjectId(id));
-          const students = await siswaCol.find({ class_id: { $in: classObjIds } }).toArray();
+          const classObjIds = assignedClassIds.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id));
+          const classNames = assignedClasses.filter((c) => c !== 'Kelas');
+
+          const students = await siswaCol.find({
+            is_active: { $ne: false },
+            $or: [
+              { class_id: { $in: [...classObjIds, ...assignedClassIds] } },
+              { class_id: { $in: classNames } },
+              { class_name: { $in: classNames } }
+            ]
+          }).toArray();
+
           totalStudentsTaught = students.length;
           studentsTaught = students.map((st) => ({
             _id: st._id,
             full_name: st.full_name,
             nis: st.nis,
-            class_name: classMap[st.class_id?.toString()] || '-',
+            class_name: classMap[st.class_id?.toString()] || st.class_name || '-',
           }));
         }
 
         // Materials uploaded count
         const totalMaterials = await Material.countDocuments({
           $or: [
+            { teacher: teacherIdObj },
+            { teacher: teacherIdStr },
             { teacher_id: teacherIdObj },
+            { teacher_id: teacherIdStr },
             { created_by: teacherIdObj },
+            { created_by: teacherIdStr },
           ],
         });
 
         // Assignments created count
         const assignments = await Assignment.find({
           $or: [
+            { teacher: teacherIdObj },
+            { teacher: teacherIdStr },
             { teacher_id: teacherIdObj },
+            { teacher_id: teacherIdStr },
             { created_by: teacherIdObj },
+            { created_by: teacherIdStr },
           ],
         });
+
         const totalAssignments = assignments.length;
         const assignmentIds = assignments.map((a) => a._id);
+        const assignmentIdStrings = assignments.map((a) => a._id.toString());
 
         // Submissions graded count
         let totalSubmissions = 0;
         let gradedSubmissions = 0;
         if (assignmentIds.length > 0) {
           totalSubmissions = await submissionCol.countDocuments({
-            assignment_id: { $in: assignmentIds },
+            assignment_id: { $in: [...assignmentIds, ...assignmentIdStrings] },
           });
           gradedSubmissions = await submissionCol.countDocuments({
-            assignment_id: { $in: assignmentIds },
+            assignment_id: { $in: [...assignmentIds, ...assignmentIdStrings] },
             score: { $ne: null },
           });
         }
 
         // Attendance sessions logged by teacher
         const totalAttendanceSessions = await Attendance.distinct('date', {
-          teacher_id: teacherIdObj,
+          $or: [
+            { teacher: teacherIdObj },
+            { teacher: teacherIdStr },
+            { teacher_id: teacherIdObj },
+            { teacher_id: teacherIdStr },
+          ]
         });
 
         return {
@@ -273,6 +298,10 @@ exports.getTeachersMonitoring = async (req, res) => {
           assigned_subjects: assignedSubjects,
           assigned_classes: assignedClasses,
           total_students_taught: totalStudentsTaught,
+          total_materials: totalMaterials,
+          total_assignments: totalAssignments,
+          total_submissions: totalSubmissions,
+          graded_submissions: gradedSubmissions,
           students_taught_sample: studentsTaught.slice(0, 10),
           stats: {
             total_materials: totalMaterials,

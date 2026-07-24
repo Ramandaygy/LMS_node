@@ -511,65 +511,203 @@ const AdminMonitoring = () => {
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: PEMETAAN GURU (ADMIN ONLY)                                         */}
+      {/* TAB 3: PEMETAAN GURU & BEBAN MENGAJAR (ADMIN ONLY)                        */}
       {/* ========================================================================= */}
       {!isGuru && activeTab === 'teachers' && (
         <div>
-          <div style={{ background: '#fff', padding: '16px 20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
-              <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '8px' }}>search</span>
-              <input
-                type="text"
-                placeholder="Cari nama guru, NIP, atau kode guru..."
-                value={teacherSearch}
-                onChange={(e) => setTeacherSearch(e.target.value)}
-                style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
-              />
+          {/* Header Summary & Filter Bar */}
+          <div style={{ background: '#fff', padding: '20px 24px', borderRadius: '20px', border: '1px solid #e2e8f0', marginBottom: '24px', boxShadow: '0 4px 12px -2px rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#2563eb' }}>badge</span>
+                  Pemetaan Guru & Beban Mengajar Real-Time
+                </h3>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>Monitoring aktivitas pemuatan materi, pembuatan tugas, dan penilain siswa per guru.</span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '10px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', width: '280px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '8px', fontSize: '20px' }}>search</span>
+                  <input
+                    type="text"
+                    placeholder="Cari nama guru, NIP, atau kode..."
+                    value={teacherSearch}
+                    onChange={(e) => setTeacherSearch(e.target.value)}
+                    style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '14px', fontFamily: 'inherit' }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
-            {teachers.map((t) => (
-              <div key={t._id} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{t.full_name}</h3>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>NIP: {t.nip || '-'} | Kode: {t.teacher_code || '-'}</p>
-                  </div>
-                  <span style={{ padding: '4px 10px', borderRadius: '20px', background: '#f1f5f9', fontSize: '12px', fontWeight: '700', color: '#475569' }}>
-                    {t.total_students_taught || 0} Siswa Diajar
-                  </span>
-                </div>
+          {/* Teacher Cards Grid */}
+          {loadingTeachers ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>Memuat data pemetaan guru...</div>
+          ) : teachers.length === 0 ? (
+            <div style={{ padding: '60px', textAlign: 'center', background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>person_off</span>
+              <p style={{ marginTop: '8px', color: '#64748b', fontWeight: '600' }}>Tidak ada data guru ditemukan.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '24px' }}>
+              {teachers.map((t) => {
+                const initials = t.full_name
+                  ? t.full_name.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase()
+                  : 'GR';
 
-                <div style={{ background: '#f8fafc', borderRadius: '12px', padding: '14px', marginBottom: '16px', border: '1px solid #f1f5f9' }}>
-                  <div style={{ fontSize: '13px', marginBottom: '6px' }}>
-                    <strong style={{ color: '#334155' }}>Mata Pelajaran: </strong>
-                    <span style={{ color: '#0284c7', fontWeight: '700' }}>{t.assigned_subjects.join(', ') || '-'}</span>
-                  </div>
-                  <div style={{ fontSize: '13px' }}>
-                    <strong style={{ color: '#334155' }}>Kelas Diampu: </strong>
-                    <span style={{ color: '#0f172a', fontWeight: '600' }}>{t.assigned_classes.join(', ') || '-'}</span>
-                  </div>
-                </div>
+                const totalMat = t.total_materials !== undefined ? t.total_materials : (t.stats?.total_materials || 0);
+                const totalTug = t.total_assignments !== undefined ? t.total_assignments : (t.stats?.total_assignments || 0);
+                const totalNilai = t.graded_submissions !== undefined ? t.graded_submissions : (t.stats?.graded_submissions || 0);
+                const totalSiswa = t.total_students_taught || 0;
 
-                {/* Metrics Stats Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>MATERI</div>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>{t.total_materials || 0}</div>
+                return (
+                  <div
+                    key={t._id}
+                    style={{
+                      background: '#fff',
+                      borderRadius: '20px',
+                      border: '1px solid #e2e8f0',
+                      padding: '24px',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.04)',
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justify: 'space-between'
+                    }}
+                  >
+                    <div>
+                      {/* Top Header Avatar & Status */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <div
+                            style={{
+                              width: '48px',
+                              height: '48px',
+                              borderRadius: '14px',
+                              background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                              color: '#fff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: '900',
+                              fontSize: '18px',
+                              boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
+                            }}
+                          >
+                            {initials}
+                          </div>
+                          <div>
+                            <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#0f172a', lineHeight: '1.3' }}>
+                              {t.full_name}
+                            </h3>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                              NIP: {t.nip || '-'} <span style={{ color: '#cbd5e1' }}>•</span> Kode: <span style={{ fontWeight: '700', color: '#2563eb' }}>{t.teacher_code || '-'}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <span
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            background: totalSiswa > 0 ? '#eff6ff' : '#f1f5f9',
+                            color: totalSiswa > 0 ? '#2563eb' : '#64748b',
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>group</span>
+                          {totalSiswa} Siswa
+                        </span>
+                      </div>
+
+                      {/* Subject & Classes Mapping Section */}
+                      <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '16px', marginBottom: '20px', border: '1px solid #f1f5f9' }}>
+                        {/* Subjects Pills */}
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            Mata Pelajaran Diampu
+                          </div>
+                          {t.assigned_subjects && t.assigned_subjects.length > 0 && t.assigned_subjects[0] !== '-' ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {t.assigned_subjects.map((sub, sIdx) => (
+                                <span
+                                  key={sIdx}
+                                  style={{
+                                    padding: '4px 10px',
+                                    borderRadius: '8px',
+                                    background: '#e0f2fe',
+                                    color: '#0369a1',
+                                    fontSize: '12px',
+                                    fontWeight: '700',
+                                  }}
+                                >
+                                  {sub}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>Belum ada mapel di-assign</span>
+                          )}
+                        </div>
+
+                        {/* Classes Pills */}
+                        <div>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            Kelas Diampu ({t.assigned_classes ? t.assigned_classes.length : 0})
+                          </div>
+                          {t.assigned_classes && t.assigned_classes.length > 0 && t.assigned_classes[0] !== '-' ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', maxHeight: '70px', overflowY: 'auto' }}>
+                              {t.assigned_classes.map((cls, cIdx) => (
+                                <span
+                                  key={cIdx}
+                                  style={{
+                                    padding: '3px 8px',
+                                    borderRadius: '6px',
+                                    background: '#fff',
+                                    color: '#334155',
+                                    fontSize: '11px',
+                                    fontWeight: '700',
+                                    border: '1px solid #cbd5e1'
+                                  }}
+                                >
+                                  {cls}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>Belum ada kelas di-assign</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 3 Metrics Stats Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '12px 8px', textAlign: 'center', border: '1px solid #dbeafe' }}>
+                        <div style={{ fontSize: '11px', color: '#1d4ed8', fontWeight: '800', textTransform: 'uppercase' }}>MATERI</div>
+                        <div style={{ fontSize: '20px', fontWeight: '900', color: '#1e40af', marginTop: '2px' }}>{totalMat}</div>
+                      </div>
+
+                      <div style={{ background: '#faf5ff', borderRadius: '12px', padding: '12px 8px', textAlign: 'center', border: '1px solid #f3e8ff' }}>
+                        <div style={{ fontSize: '11px', color: '#7e22ce', fontWeight: '800', textTransform: 'uppercase' }}>TUGAS</div>
+                        <div style={{ fontSize: '20px', fontWeight: '900', color: '#6b21a8', marginTop: '2px' }}>{totalTug}</div>
+                      </div>
+
+                      <div style={{ background: '#ecfdf5', borderRadius: '12px', padding: '12px 8px', textAlign: 'center', border: '1px solid #d1fae5' }}>
+                        <div style={{ fontSize: '11px', color: '#047857', fontWeight: '800', textTransform: 'uppercase' }}>TER-NILAI</div>
+                        <div style={{ fontSize: '20px', fontWeight: '900', color: '#065f46', marginTop: '2px' }}>{totalNilai}</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>TUGAS</div>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', marginTop: '2px' }}>{t.total_assignments || 0}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>TERDINILAI</div>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: '#16a34a', marginTop: '2px' }}>{t.graded_submissions || 0}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
