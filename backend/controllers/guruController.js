@@ -152,14 +152,22 @@ exports.getBinaanStudents = async (req, res) => {
 
       subjects.forEach(sub => {
         const subId = sub._id.toString();
-        const nhScore = typeof taskGrades[subId] === 'number' ? taskGrades[subId] : 75;
-        const ptsScore = typeof studentGrades[subId]?.uts === 'number' ? studentGrades[subId].uts : nhScore;
-        const pasScore = typeof studentGrades[subId]?.uas === 'number' ? studentGrades[subId].uas : nhScore;
+        const nhScore = typeof taskGrades[subId] === 'number' ? taskGrades[subId] : null;
+        const ptsScore = typeof studentGrades[subId]?.uts === 'number' ? studentGrades[subId].uts : null;
+        const pasScore = typeof studentGrades[subId]?.uas === 'number' ? studentGrades[subId].uas : null;
 
-        const na = Math.round((2 * nhScore + ptsScore + pasScore) / 4);
-        subjectNA[subId] = na;
-        naSum += na;
-        naCount++;
+        if (nhScore !== null || ptsScore !== null || pasScore !== null) {
+          const nhVal = nhScore !== null ? nhScore : (ptsScore !== null ? ptsScore : (pasScore !== null ? pasScore : 0));
+          const ptsVal = ptsScore !== null ? ptsScore : nhVal;
+          const pasVal = pasScore !== null ? pasScore : nhVal;
+          const na = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+
+          subjectNA[subId] = na;
+          naSum += na;
+          naCount++;
+        } else {
+          subjectNA[subId] = '-';
+        }
       });
 
       const raporAvg = naCount > 0 ? Number((naSum / naCount).toFixed(2)) : 0;

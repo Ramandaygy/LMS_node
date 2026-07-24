@@ -3,13 +3,14 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-students.css';
 
 const GuruStudents = () => {
-  const [activeTab, setActiveTab] = useState('rapor'); // 'rapor' (Leger NA Wali Kelas) | 'tugas' (Rekap Tugas Guru Mapel)
+  const [activeTab, setActiveTab] = useState('rapor'); // 'rapor' (Leger NA Wali Kelas) | 'tugas' (Rekap Mapel Guru Mapel)
 
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('');
   const [availableClasses, setAvailableClasses] = useState([]);
 
   // Detail Rapor Modal State
@@ -35,6 +36,12 @@ const GuruStudents = () => {
     fetchMyStudents();
   }, []);
 
+  useEffect(() => {
+    if (subjects.length > 0 && !selectedSubjectFilter) {
+      setSelectedSubjectFilter(subjects[0]._id);
+    }
+  }, [subjects, selectedSubjectFilter]);
+
   const fetchMyStudents = async () => {
     try {
       const response = await api.get('/guru/students');
@@ -45,6 +52,9 @@ const GuruStudents = () => {
       setStudents(studentsData);
       if (response.data.subjects) {
         setSubjects(response.data.subjects);
+        if (response.data.subjects.length > 0) {
+          setSelectedSubjectFilter(response.data.subjects[0]._id);
+        }
       }
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -54,15 +64,18 @@ const GuruStudents = () => {
   };
 
   const generateCapaianKompetensi = (na, subjectName) => {
-    if (na >= 88) {
-      return `Sangat baik dalam memahami materi ${subjectName}. Mampu menguasai seluruh indikator Tujuan Pembelajaran (TP) dengan hasil optimal.`;
-    } else if (na >= 78) {
-      return `Menunjukkan penguasaan yang baik dalam memahami konsep dasar ${subjectName}. Perlu sedikit penguatan pada latihan soal mandiri.`;
-    } else if (na >= 75) {
-      return `Cukup menguasai materi ${subjectName}. Memerlukan pendampingan lebih lanjut untuk meningkatkan konsistensi belajar.`;
-    } else {
-      return `Perlu pendampingan dan bimbingan khusus dalam memahami kompetensi dasar ${subjectName}.`;
+    if (typeof na === 'number') {
+      if (na >= 88) {
+        return `Sangat baik dalam memahami materi ${subjectName}. Mampu menguasai seluruh indikator Tujuan Pembelajaran (TP) dengan hasil optimal.`;
+      } else if (na >= 78) {
+        return `Menunjukkan penguasaan yang baik dalam memahami konsep dasar ${subjectName}. Perlu sedikit penguatan pada latihan soal mandiri.`;
+      } else if (na >= 75) {
+        return `Cukup menguasai materi ${subjectName}. Memerlukan pendampingan lebih lanjut untuk meningkatkan konsistensi belajar.`;
+      } else {
+        return `Perlu pendampingan dan bimbingan khusus dalam memahami kompetensi dasar ${subjectName}.`;
+      }
     }
+    return `Belum ada nilai akhir yang diinputkan untuk mata pelajaran ${subjectName}.`;
   };
 
   const handleDetailClick = (student) => {
@@ -71,9 +84,7 @@ const GuruStudents = () => {
     // Initialize custom competencies for each subject based on auto-calculation
     const initialComp = {};
     subjects.forEach((sub) => {
-      const na = student.na_grades?.[sub._id.toString()] !== undefined
-        ? student.na_grades[sub._id.toString()]
-        : 75;
+      const na = student.na_grades?.[sub._id.toString()];
       initialComp[sub._id] = generateCapaianKompetensi(na, sub.name);
     });
 
@@ -124,7 +135,9 @@ const GuruStudents = () => {
     return matchesSearch && matchesClass;
   });
 
-  if (loading) return <div className="loading">Memuat data siswa binaan...</div>;
+  const selectedSubjectDoc = subjects.find(s => s._id.toString() === selectedSubjectFilter) || subjects[0];
+
+  if (loading) return <div className="loading">Memuat data siswa...</div>;
 
   return (
     <div className="guru-dashboard-content">
@@ -173,9 +186,9 @@ const GuruStudents = () => {
 
       <div className="page-header-flex no-print">
         <div>
-          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Siswa Binaan & Rekap Nilai Rapor Kelas</h2>
+          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Siswa Binaan & Rekap Penilaian Kelas</h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-            Rekapitulasi Nilai Akhir Rapor (Formula 2:1:1), Nilai Tugas Harian, dan Cetak Rapor Kurikulum Merdeka.
+            Rekapitulasi Nilai Akhir Rapor Wali Kelas (Leger NA) & Rekapitulasi Rincian Nilai Guru Mapel (NH, PTS, PAS, Presensi).
           </p>
         </div>
         <div className="grade-legend">
@@ -184,7 +197,7 @@ const GuruStudents = () => {
       </div>
 
       {/* Tabs View Selector */}
-      <div className="no-print" style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', margin: '20px 0 24px 0' }}>
+      <div className="no-print" style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', margin: '20px 0 24px 0', flexWrap: 'wrap' }}>
         <button
           onClick={() => setActiveTab('rapor')}
           style={{
@@ -202,7 +215,7 @@ const GuruStudents = () => {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>assignment_turned_in</span>
-          Matriks Nilai Akhir Rapor (NA 2:1:1 - Leger Wali Kelas)
+          Matriks Leger Nilai Akhir Rapor (NA 2:1:1 - Wali Kelas)
         </button>
 
         <button
@@ -222,13 +235,13 @@ const GuruStudents = () => {
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>menu_book</span>
-          Rekap Nilai Tugas Harian (NH Guru Mapel)
+          Rekap Rincian Nilai Mapel Saya (NH, PTS, PAS, Presensi)
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="filter-bar spreadsheet-filter-bar no-print" style={{ marginBottom: '20px' }}>
-        <div className="search-box">
+      <div className="filter-bar spreadsheet-filter-bar no-print" style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+        <div className="search-box" style={{ flex: '1 1 250px' }}>
           <span className="material-symbols-outlined search-icon">search</span>
           <input
             type="text"
@@ -249,10 +262,21 @@ const GuruStudents = () => {
               ))}
             </select>
           </div>
+
+          {activeTab === 'tugas' && subjects.length > 0 && (
+            <div className="filter-select-wrapper">
+              <span className="select-icon material-symbols-outlined">subject</span>
+              <select value={selectedSubjectFilter} onChange={(e) => setSelectedSubjectFilter(e.target.value)} className="modern-select" style={{ minWidth: '220px' }}>
+                {subjects.map((s) => (
+                  <option key={s._id} value={s._id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* MAIN TABLE: TAB 1 (NILAI AKHIR RAPOR NA 2:1:1) */}
+      {/* MAIN TABLE: TAB 1 (MATRIKS NA RAPOR LEGER WALI KELAS) */}
       {activeTab === 'rapor' && (
         <div className="student-table-container glass-container no-print">
           <table className="student-table spreadsheet-table">
@@ -261,7 +285,7 @@ const GuruStudents = () => {
                 <th rowSpan="2" className="text-center">No</th>
                 <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
                 <th colSpan={subjects.length} className="text-center th-section-header" style={{ background: '#0284c7', color: '#fff' }}>
-                  Matriks Nilai Akhir (NA) Rapor per Mapel (2:1:1)
+                  Matriks Nilai Akhir (NA) Rapor per Mapel (Formula 2:1:1)
                 </th>
                 <th rowSpan="2" className="text-center th-bold-header">Jml NA</th>
                 <th rowSpan="2" className="text-center th-bold-header">Rata Rapor</th>
@@ -338,71 +362,68 @@ const GuruStudents = () => {
         </div>
       )}
 
-      {/* MAIN TABLE: TAB 2 (REKAP NILAI TUGAS HARIAN NH GURU MAPEL) */}
+      {/* MAIN TABLE: TAB 2 (REKAP RINCIAN MAPEL GURU MAPEL: NH, PTS, PAS, NA & PRESENSI) */}
       {activeTab === 'tugas' && (
         <div className="student-table-container glass-container no-print">
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '24px' }}>menu_book</span>
+            <div style={{ fontSize: '14px', color: '#14532d', fontWeight: '600' }}>
+              Menampilkan Rincian Penilaian Mata Pelajaran: <strong style={{ color: '#0f172a' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
+            </div>
+          </div>
+
           <table className="student-table spreadsheet-table">
             <thead>
-              <tr>
-                <th rowSpan="2" className="text-center">No</th>
-                <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
-                <th colSpan={subjects.length} className="text-center th-section-header">
-                  Rata-Rata Nilai Tugas Harian (NH) per Mapel
-                </th>
-                <th rowSpan="2" className="text-center th-bold-header">Jml NH</th>
-                <th rowSpan="2" className="text-center th-bold-header">Rata NH</th>
-                <th rowSpan="2" className="text-center th-bold-header">Rank</th>
-                <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
-              </tr>
-              <tr>
-                {subjects.map((sub) => (
-                  <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
-                    {getSubjectLabel(sub.code)}
-                  </th>
-                ))}
-                <th className="text-center th-att-header" title="Sakit">S</th>
-                <th className="text-center th-att-header" title="Izin">I</th>
-                <th className="text-center th-att-header" title="Alpha">A</th>
-                <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
+              <tr style={{ background: '#0f172a', color: '#fff', textAlign: 'center', fontSize: '13px' }}>
+                <th style={{ width: '50px', padding: '12px' }}>No</th>
+                <th style={{ textAlign: 'left', padding: '12px' }}>Nama Siswa</th>
+                <th style={{ width: '130px', padding: '12px' }}>NIS</th>
+                <th style={{ width: '110px', color: '#38bdf8', padding: '12px' }}>NH (Tugas)</th>
+                <th style={{ width: '110px', color: '#fbbf24', padding: '12px' }}>PTS (UTS)</th>
+                <th style={{ width: '110px', color: '#a78bfa', padding: '12px' }}>PAS (UAS)</th>
+                <th style={{ width: '110px', color: '#4ade80', padding: '12px', fontWeight: '800', background: '#1e293b' }}>NA (2:1:1)</th>
+                <th style={{ width: '70px', padding: '12px' }}>Sakit</th>
+                <th style={{ width: '70px', padding: '12px' }}>Izin</th>
+                <th style={{ width: '70px', padding: '12px' }}>Alfa</th>
+                <th style={{ width: '110px', padding: '12px', fontWeight: '700' }}>Total Presensi</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student, idx) => {
-                  const taskSum = student.task_sum;
-                  const taskAvg = student.task_avg;
-                  const rank = student.rank_task;
+                  const subId = selectedSubjectFilter;
+                  const nh = student.tasks?.[subId];
+                  const pts = student.grades?.[subId]?.uts;
+                  const pas = student.grades?.[subId]?.uas;
+                  const na = student.na_grades?.[subId];
 
                   return (
-                    <tr key={student._id} className="spreadsheet-row">
-                      <td className="text-center row-number">{idx + 1}</td>
-                      <td className="student-name-cell th-name-sticky">{student.full_name}</td>
-                      {subjects.map((sub) => {
-                        const score = student.tasks?.[sub._id.toString()];
-                        const displayScore = score !== undefined && score !== null ? score : '-';
-                        const isBelowKKM = typeof score === 'number' && score < 75;
-
-                        return (
-                          <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`}>
-                            {displayScore}
-                          </td>
-                        );
-                      })}
-                      <td className="text-center font-semibold total-score-cell">{taskSum !== undefined ? taskSum : '-'}</td>
-                      <td className="text-center font-semibold avg-score-cell">{taskAvg !== undefined ? taskAvg : '-'}</td>
-                      <td className="text-center rank-cell">
-                        <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
+                    <tr key={student._id} className="spreadsheet-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td className="text-center">{idx + 1}</td>
+                      <td className="font-semibold">{student.full_name}</td>
+                      <td className="text-center" style={{ color: '#64748b' }}>{student.nis}</td>
+                      <td className="text-center font-bold" style={{ color: typeof nh === 'number' && nh < 75 ? '#dc2626' : '#0f172a' }}>
+                        {nh !== undefined && nh !== null ? nh : '-'}
+                      </td>
+                      <td className="text-center font-bold" style={{ color: typeof pts === 'number' && pts < 75 ? '#dc2626' : '#0f172a' }}>
+                        {pts !== undefined && pts !== null ? pts : '-'}
+                      </td>
+                      <td className="text-center font-bold" style={{ color: typeof pas === 'number' && pas < 75 ? '#dc2626' : '#0f172a' }}>
+                        {pas !== undefined && pas !== null ? pas : '-'}
+                      </td>
+                      <td className="text-center font-bold" style={{ color: typeof na === 'number' && na < 75 ? '#dc2626' : '#0284c7', background: '#f8fafc', fontSize: '15px' }}>
+                        {na !== undefined && na !== null ? na : '-'}
                       </td>
                       <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
                       <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
                       <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
-                      <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
+                      <td className="text-center att-cell font-bold total-att-color">{student.attendance?.total || 0} hari</td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={5 + subjects.length + 4} className="text-center empty-table-state">
+                  <td colSpan="11" className="text-center empty-table-state">
                     <span className="material-symbols-outlined empty-icon">group_off</span>
                     <p>Tidak ada data siswa ditemukan</p>
                   </td>
@@ -498,16 +519,15 @@ const GuruStudents = () => {
               </thead>
               <tbody>
                 {subjects.map((sub, idx) => {
-                  const na = selectedStudent.na_grades?.[sub._id.toString()] !== undefined
-                    ? selectedStudent.na_grades[sub._id.toString()]
-                    : 75;
+                  const na = selectedStudent.na_grades?.[sub._id.toString()];
+                  const displayNA = na !== undefined && na !== null ? na : '-';
 
                   return (
                     <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800', fontSize: '13px' }}>
-                        {na}
+                        {displayNA}
                       </td>
                       <td style={{ padding: '6px 8px' }}>
                         <textarea

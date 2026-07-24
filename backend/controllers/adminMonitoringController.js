@@ -440,7 +440,8 @@ async function computeLegerData(classId) {
         });
 
         // Compute NH (Nilai Harian / Rata-rata Tugas)
-        const NH = totalTugasMax > 0 ? Math.round((totalTugasScore / totalTugasMax) * 100) : 75;
+        const hasNH = totalTugasMax > 0;
+        const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
 
         // Get PTS & PAS from Grade collection
         const ptsGrade = await gradesCol.findOne({
@@ -454,29 +455,39 @@ async function computeLegerData(classId) {
           type: 'uas',
         });
 
-        const PTS = ptsGrade ? ptsGrade.score : NH;
-        const PAS = pasGrade ? pasGrade.score : NH;
+        const PTS = ptsGrade ? ptsGrade.score : null;
+        const PAS = pasGrade ? pasGrade.score : null;
 
         // Formula 2 : 1 : 1 -> NA = (2*NH + PTS + PAS) / 4
-        const NA = Math.round((2 * NH + PTS + PAS) / 4);
+        let NA = null;
+        if (NH !== null || PTS !== null || PAS !== null) {
+          const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
+          const ptsVal = PTS !== null ? PTS : nhVal;
+          const pasVal = PAS !== null ? PAS : nhVal;
+          NA = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+        }
 
-        let predikat = 'C';
-        if (NA >= 88) predikat = 'A';
-        else if (NA >= 78) predikat = 'B';
-        else if (NA >= 75) predikat = 'C';
-        else predikat = 'D';
+        let predikat = '-';
+        if (NA !== null) {
+          if (NA >= 88) predikat = 'A';
+          else if (NA >= 78) predikat = 'B';
+          else if (NA >= 75) predikat = 'C';
+          else predikat = 'D';
+        }
 
         subjectGrades[subIdStr] = {
           subject_name: sub.name,
-          NH,
-          PTS,
-          PAS,
-          NA,
+          NH: NH !== null ? NH : '-',
+          PTS: PTS !== null ? PTS : '-',
+          PAS: PAS !== null ? PAS : '-',
+          NA: NA !== null ? NA : '-',
           predikat,
         };
 
-        totalNASum += NA;
-        subjectCount++;
+        if (NA !== null) {
+          totalNASum += NA;
+          subjectCount++;
+        }
       }
 
       const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : 0;
