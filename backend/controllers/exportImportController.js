@@ -788,31 +788,260 @@ exports.exportTeachersTemplate = async (req, res) => {
 exports.exportSchedulesTemplate = async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Template_Jadwal');
-    worksheet.columns = [
-      { header: 'HARI', key: 'hari', width: 15 },
-      { header: 'JAM_KE', key: 'jam_ke', width: 10 },
-      { header: 'WAKTU_MULAI', key: 'waktu_mulai', width: 15 },
-      { header: 'WAKTU_SELESAI', key: 'waktu_selesai', width: 15 },
-      { header: 'KELAS', key: 'kelas', width: 15 },
-      { header: 'MATA_PELAJARAN', key: 'mata_pelajaran', width: 25 },
-      { header: 'GURU', key: 'guru', width: 30 },
-      { header: 'RUANG', key: 'ruang', width: 15 }
-    ];
-    // Contoh baris
-    worksheet.addRow({
-      hari: 'SENIN',
-      jam_ke: 1,
-      waktu_mulai: '07:20',
-      waktu_selesai: '08:00',
-      kelas: '7A',
-      mata_pelajaran: 'Matematika',
-      guru: 'Budi Utomo, S.Pd',
-      ruang: '7A'
+    const worksheet = workbook.addWorksheet('A4 Januari 2026');
+
+    // Setup column widths
+    const colWidths = [12, 6, 14]; // HARI, JAM KE, WAKTU
+    for (let i = 0; i < 29; i++) colWidths.push(5); // 7A-7J, 8A-8J, 9A-9I
+    colWidths.push(8); // PIKET
+
+    worksheet.columns = colWidths.map((w) => ({ width: w }));
+
+    // Styles
+    const borderStyle = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    };
+
+    const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+    const grade7Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } };
+    const grade8Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+    const grade9Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFE6FF' } };
+
+    // Row 1 - 5: Title Headers
+    worksheet.mergeCells('A1:AG1');
+    worksheet.getCell('A1').value = 'JADWAL PELAJARAN';
+    worksheet.getCell('A1').font = { bold: true, size: 14, name: 'Times New Roman' };
+    worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A2:AG2');
+    worksheet.getCell('A2').value = 'SEMESTER GENAP';
+    worksheet.getCell('A2').font = { bold: true, size: 12, name: 'Times New Roman' };
+    worksheet.getCell('A2').alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A3:AG3');
+    worksheet.getCell('A3').value = 'SMP NEGERI 1 SURADADI';
+    worksheet.getCell('A3').font = { bold: true, size: 12, name: 'Times New Roman' };
+    worksheet.getCell('A3').alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A4:AG4');
+    worksheet.getCell('A4').value = 'TAHUN PELAJARAN 2025/2026';
+    worksheet.getCell('A4').font = { bold: true, size: 11, name: 'Times New Roman' };
+    worksheet.getCell('A4').alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A5:AG5');
+    worksheet.getCell('A5').value = 'BERLAKU MULAI 31 MARET 2026';
+    worksheet.getCell('A5').font = { italic: true, size: 10, name: 'Times New Roman' };
+    worksheet.getCell('A5').alignment = { horizontal: 'center' };
+
+    // Row 6: Grade Headers
+    worksheet.mergeCells('A6:A7');
+    worksheet.getCell('A6').value = 'HARI';
+
+    worksheet.mergeCells('B6:B7');
+    worksheet.getCell('B6').value = 'JK';
+
+    worksheet.mergeCells('C6:C7');
+    worksheet.getCell('C6').value = 'WAKTU';
+
+    worksheet.mergeCells('D6:M6');
+    worksheet.getCell('D6').value = 'KELAS VII';
+
+    worksheet.mergeCells('N6:W6');
+    worksheet.getCell('N6').value = 'KELAS VIII';
+
+    worksheet.mergeCells('X6:AF6');
+    worksheet.getCell('X6').value = 'KELAS IX';
+
+    worksheet.mergeCells('AG6:AG7');
+    worksheet.getCell('AG6').value = 'PIKET';
+
+    // Format Row 6 Grade Cells
+    ['A6', 'B6', 'C6', 'AG6'].forEach((ref) => {
+      const cell = worksheet.getCell(ref);
+      cell.font = { bold: true, size: 10, name: 'Times New Roman' };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = headerFill;
     });
-    await sendExcelFile(res, workbook, 'template_jadwal.xlsx');
-  } catch (error) { 
-    res.status(500).json({ error: `Gagal membuat template: ${error.message}` }); 
+
+    const g7Cell = worksheet.getCell('D6');
+    g7Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
+    g7Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    g7Cell.fill = grade7Fill;
+
+    const g8Cell = worksheet.getCell('N6');
+    g8Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
+    g8Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    g8Cell.fill = grade8Fill;
+
+    const g9Cell = worksheet.getCell('X6');
+    g9Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
+    g9Cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    g9Cell.fill = grade9Fill;
+
+    // Row 7: Class Letter Subheaders (D7..AF7)
+    const grade7Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    const grade8Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    const grade9Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+
+    grade7Letters.forEach((letter, idx) => {
+      const colNum = 4 + idx;
+      const cell = worksheet.getRow(7).getCell(colNum);
+      cell.value = letter;
+      cell.font = { bold: true, size: 9, name: 'Times New Roman' };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = grade7Fill;
+    });
+
+    grade8Letters.forEach((letter, idx) => {
+      const colNum = 14 + idx;
+      const cell = worksheet.getRow(7).getCell(colNum);
+      cell.value = letter;
+      cell.font = { bold: true, size: 9, name: 'Times New Roman' };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = grade8Fill;
+    });
+
+    grade9Letters.forEach((letter, idx) => {
+      const colNum = 24 + idx;
+      const cell = worksheet.getRow(7).getCell(colNum);
+      cell.value = letter;
+      cell.font = { bold: true, size: 9, name: 'Times New Roman' };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.fill = grade9Fill;
+    });
+
+    // Schedule Template Sample Data Rows
+    const scheduleRows = [
+      // SENIN
+      { day: 'SENIN', jk: '1', time: '07.00-08.00', isSpecial: true, specialText: 'U P A C A R A   B E N D E R A' },
+      { day: 'SENIN', jk: '2', time: '08.00-08.40', codes: ['Oo', 'C', 'E', 'Gg', 'Ww', 'Ss', 'Pp', 'S', 'Aa', 'Uu', 'I', 'O', 'P', 'K', 'L', 'Z', 'T', 'X', 'Ii', 'Jj', 'J', 'N', 'Y', 'F', 'U', 'Xx', 'Hh', 'Ff', 'Tt'], piket: 'C' },
+      { day: 'SENIN', jk: '3', time: '08.40-09.20', codes: ['Oo', 'C', 'E', 'Gg', 'Ww', 'Ss', 'Pp', 'S', 'Aa', 'Uu', 'I', 'O', 'P', 'K', 'L', 'Z', 'T', 'X', 'M', 'Jj', 'J', 'N', 'Y', 'F', 'U', 'Xx', 'Hh', 'Ff', 'Qq'], piket: 'H' },
+      { day: 'SENIN', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'I' },
+      { day: 'SENIN', jk: '4', time: '09.40-10.20', codes: ['C', 'Oo', 'Vv', 'Xx', 'Ww', 'S', 'Ss', 'V', 'Pp', 'Uu', 'P', 'I', 'Q', 'K', 'Z', 'Gg', 'L', 'X', 'M', 'Ii', 'Y', 'J', 'Tt', 'F', 'B', 'U', 'Qq', 'Ff', 'W'], piket: 'Aa' },
+      { day: 'SENIN', jk: '5', time: '10.20-11.00', codes: ['C', 'Oo', 'Vv', 'Xx', 'H', 'S', 'Ss', 'V', 'Pp', 'Ii', 'P', 'I', 'Q', 'D', 'Z', 'Gg', 'L', 'T', 'X', 'Aa', 'Y', 'J', 'F', 'Hh', 'B', 'U', 'Mm', 'O', 'W'], piket: 'Bb' },
+      { day: 'SENIN', jk: '6', time: '11.00-11.40', codes: ['Vv', 'Oo', 'C', 'Ww', 'H', 'Rr', 'Ss', 'W', 'Uu', 'Ii', 'Q', 'N', 'R', 'D', 'K', 'Gg', 'Z', 'T', 'X', 'Aa', 'Jj', 'J', 'F', 'Hh', 'Qq', 'Tt', 'Mm', 'O', 'Ff'], piket: 'Uu' },
+      { day: 'SENIN', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
+      { day: 'SENIN', jk: '7', time: '12.10-12.50', codes: ['H', 'Pp', 'C', 'Ww', 'E', 'Vv', 'V', 'W', 'Uu', 'S', 'Q', 'D', 'R', 'P', 'K', 'Ii', 'Z', 'L', 'X', 'Rr', 'Jj', 'G', 'F', 'B', 'Hh', 'Tt', 'U', 'Xx', 'Ff'] },
+      { day: 'SENIN', jk: '8', time: '12.50-13.30', codes: ['H', 'Pp', 'Oo', 'Ww', 'E', 'Vv', 'V', 'W', 'Uu', 'S', 'X', 'D', 'R', 'P', 'K', 'Ii', 'Z', 'L', 'Qq', 'Rr', 'Jj', 'G', 'J', 'B', 'Hh', 'Tt', 'U', 'Xx', 'Ff'] },
+
+      // SELASA
+      { day: 'SELASA', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
+      { day: 'SELASA', jk: '1', time: '07.20-08.00', codes: ['Mm', 'Vv', 'Oo', 'C', 'Gg', 'Rr', 'S', 'Ss', 'Ww', 'Ii', 'R', 'Q', 'Z', 'O', 'I', 'L', 'K', 'T', 'Qq', 'X', 'G', 'Y', 'J', 'Hh', 'U', 'Ff', 'V', 'W', 'Xx'], piket: 'K' },
+      { day: 'SELASA', jk: '2', time: '08.00-08.40', codes: ['Mm', 'Vv', 'Oo', 'C', 'Gg', 'Rr', 'S', 'Ss', 'Ww', 'Ii', 'R', 'Q', 'Z', 'O', 'P', 'L', 'K', 'T', 'Qq', 'X', 'G', 'Y', 'J', 'Hh', 'U', 'Ff', 'V', 'W', 'Xx'], piket: 'L' },
+      { day: 'SELASA', jk: '3', time: '08.40-09.20', codes: ['Mm', 'Pp', 'H', 'Oo', 'C', 'Gg', 'Xx', 'Ww', 'Ss', 'Aa', 'N', 'Z', 'O', 'I', 'P', 'Ii', 'K', 'M', 'T', 'X', 'F', 'G', 'B', 'J', 'Y', 'Ff', 'V', 'Tt', 'Hh'], piket: 'M' },
+      { day: 'SELASA', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'W' },
+      { day: 'SELASA', jk: '4', time: '09.40-10.20', codes: ['Vv', 'Mm', 'H', 'Oo', 'C', 'Gg', 'Xx', 'V', 'Ss', 'Aa', 'N', 'Z', 'O', 'I', 'R', 'P', 'Qq', 'M', 'T', 'Jj', 'F', 'G', 'B', 'J', 'Y', 'U', 'Ff', 'Tt', 'Hh'], piket: 'Ff' },
+      { day: 'SELASA', jk: '5', time: '10.20-11.00', codes: ['Vv', 'Mm', 'E', 'Oo', 'H', 'S', 'V', 'T', 'Ss', 'Ww', 'N', 'R', 'I', 'D', 'L', 'P', 'Aa', 'Qq', 'Rr', 'Jj', 'B', 'F', 'Q', 'Tt', 'M', 'U', 'Ff', 'Hh', 'W'], piket: 'Gg' },
+      { day: 'SELASA', jk: '6', time: '11.00-11.40', codes: ['Vv', 'Mm', 'E', 'Gg', 'H', 'S', 'Ww', 'T', 'W', 'Pp', 'X', 'R', 'I', 'D', 'L', 'K', 'Aa', 'Qq', 'Rr', 'Jj', 'B', 'F', 'Q', 'Tt', 'M', 'Y', 'Ff', 'Hh', 'V'], piket: 'W' },
+      { day: 'SELASA', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
+      { day: 'SELASA', jk: '7', time: '12.10-12.50', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Ss', 'Ww', 'S', 'Aa', 'Pp', 'X', 'D', 'R', 'N', 'P', 'K', 'Ii', 'Qq', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'M', 'Y', 'U', 'O', 'V'] },
+      { day: 'SELASA', jk: '8', time: '12.50-13.30', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Pp', 'Ww', 'S', 'Aa', 'Ff', 'Oo', 'D', 'R', 'N', 'P', 'Ss', 'Ii', 'M', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'J', 'Y', 'U', 'O', 'V'] },
+    ];
+
+    let startRowIndex = 8;
+    let prevDay = '';
+    let dayStartRow = 8;
+
+    scheduleRows.forEach((sr, idx) => {
+      const currentR = startRowIndex + idx;
+      const row = worksheet.getRow(currentR);
+
+      // Hari
+      if (sr.day !== prevDay) {
+        if (prevDay && dayStartRow < currentR - 1) {
+          worksheet.mergeCells(`A${dayStartRow}:A${currentR - 1}`);
+        }
+        row.getCell(1).value = sr.day;
+        dayStartRow = currentR;
+        prevDay = sr.day;
+      }
+
+      row.getCell(2).value = sr.jk || '';
+      row.getCell(3).value = sr.time || '';
+
+      if (sr.isSpecial) {
+        worksheet.mergeCells(`D${currentR}:AF${currentR}`);
+        const specCell = row.getCell(4);
+        specCell.value = sr.specialText;
+        specCell.font = { bold: true, size: 9, name: 'Times New Roman' };
+        specCell.alignment = { horizontal: 'center', vertical: 'middle' };
+        specCell.fill = headerFill;
+      } else if (sr.codes && Array.isArray(sr.codes)) {
+        sr.codes.forEach((code, cIdx) => {
+          const colNum = 4 + cIdx;
+          const cell = row.getCell(colNum);
+          cell.value = code;
+          cell.font = { size: 9, name: 'Times New Roman' };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+      }
+
+      if (sr.piket) {
+        const piketCell = row.getCell(33); // Col AG
+        piketCell.value = sr.piket;
+        piketCell.font = { bold: true, size: 9, name: 'Times New Roman' };
+        piketCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      }
+
+      // Border and Font for A..C
+      [1, 2, 3].forEach((colNum) => {
+        const cell = row.getCell(colNum);
+        cell.font = { bold: colNum === 1, size: 9, name: 'Times New Roman' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+    });
+
+    if (dayStartRow < startRowIndex + scheduleRows.length - 1) {
+      worksheet.mergeCells(`A${dayStartRow}:A${startRowIndex + scheduleRows.length - 1}`);
+    }
+
+    // Add Teacher Legend at the Bottom
+    let legendRowIndex = startRowIndex + scheduleRows.length + 3;
+    worksheet.getCell(`A${legendRowIndex}`).value = 'Keterangan Kode Guru:';
+    worksheet.getCell(`A${legendRowIndex}`).font = { bold: true, size: 11, name: 'Times New Roman' };
+
+    const legendData = [
+      ['A', 'Suharto, S.Pd.,M.M.', 'O', 'Istiqomah, S.Pd', 'Cc', 'Melisa Rahmawati, S.Pd', 'Qq', 'Tri Toni Wulandari, S.Pd', 'Ww', 'Reza Lutfi Ananda, S.T'],
+      ['B', 'Dra. Titin Faridah, M.M.', 'P', 'Marukhi Yuliani, S.Pd', 'Dd', 'Alifia Nur Pramida, S.Pd', 'Rr', 'Mutiatul Zakiyah, S.Pd', 'Xx', 'Awening Wulan N.R.,S.Pd.,Gr.'],
+      ['C', 'Srikhatun, S.Pd', 'Q', 'Riski Pamedharsih, S.Pd', 'Ee', 'Herlambang Jatikusumo, S,Pd', 'Ss', 'Satrio Nanda Nugroho, S.Pd', '', ''],
+      ['D', 'Dra. Saijah SW', 'R', 'Nurul Arifiyah, S.Pd', 'Ff', 'Gilang Nefrizal Anggita, S.Pd.', 'Tt', 'Murniasih, S.Kom', '', ''],
+      ['E', 'Ita Puspitasari, S.Pd.,M.Pd', 'S', 'M. Sahyudin, S.Pd.', 'Gg', 'Wahyu Indrianto, S.Pd', 'Uu', 'Nurkhasanah, S.Ag', '', ''],
+      ['F', 'Atik Aflacha, S.Pd', 'T', 'Andy Handayani, S.Pd', 'Hh', 'Istifadah, S.Pd', 'Vv', 'Etik muzaenah, SE', '', ''],
+      ['G', 'Ali Mursyidi, S.Pd', 'U', 'Azizah Tri Lestari, S.Pd', 'Ii', 'Mohammad Teguh Arifiyanto, S.Pd', '', '', '', ''],
+      ['H', 'Dra. Etikarwati', 'V', 'Ade Agung Pangabekti, S.Pd.', 'Jj', 'Nila Isnantika Y, S.pd', '', '', '', ''],
+      ['I', 'Catur Budiningsih,S.Pd', 'W', 'Emi Fatriyah, S.Pd', 'Kk', 'Dara Amalia AW, S.Pd', '', '', '', ''],
+      ['J', 'Martikno, S.Pd', 'X', 'Takhuri, s.Pd', 'Ll', 'Novita Gigih Praharani, S.Pd', '', '', '', ''],
+      ['K', 'Rustinah, S.Ag', 'Y', 'Nokipah, S.Pd', 'Mm', 'Hikmah Putri Nofianti, S.Pd', '', '', '', ''],
+      ['L', 'Eni Nugraeni, S.Pd', 'Z', 'Susi Herlina, S.Kom', 'Nn', 'Wiwin Ernawati, S.Kom', '', '', '', ''],
+      ['M', 'Muzayin,S.Pd.I', 'Aa', 'Dwi Margaretna, S.Pd', 'Oo', 'Catur Aji Krismawan, S.Pd.', '', '', '', ''],
+      ['N', 'Sulistyo Apriliawati, S.Pd.', 'Bb', 'Asmawi, S.Pd', 'Pp', 'Moh. Takhril, S.Pd', '', '', '', '']
+    ];
+
+    legendData.forEach((rowVals, rIdx) => {
+      const row = worksheet.getRow(legendRowIndex + 1 + rIdx);
+      let colPos = 1;
+      for (let i = 0; i < rowVals.length; i += 2) {
+        const code = rowVals[i];
+        const name = rowVals[i + 1];
+        if (code) {
+          row.getCell(colPos).value = code;
+          row.getCell(colPos).font = { bold: true, size: 9, name: 'Times New Roman' };
+          row.getCell(colPos).alignment = { horizontal: 'center' };
+          
+          row.getCell(colPos + 1).value = name;
+          row.getCell(colPos + 1).font = { size: 9, name: 'Times New Roman' };
+          colPos += 4;
+        }
+      }
+    });
+
+    await sendExcelFile(res, workbook, 'Jadwal KBM Januari 2026.xlsx');
+  } catch (error) {
+    console.error('Error generating schedule template:', error);
+    res.status(500).json({ error: `Gagal membuat template: ${error.message}` });
   }
 };
 
