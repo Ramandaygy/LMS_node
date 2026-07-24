@@ -18,6 +18,20 @@ router.get('/export/subjects', controller.exportSubjects);
 router.get('/export/schedules', controller.exportSchedules);
 router.get('/export/activities', controller.exportActivities);
 
+// 5 PILAR REPORT APIS
+router.get('/reports/academic-master', controller.getAcademicMasterReport);
+router.get('/reports/attendance-recap', controller.getAttendanceRecapReport);
+router.get('/reports/user-management', controller.getUserManagementReport);
+router.get('/reports/evaluations', controller.getEvaluationsReport);
+router.get('/reports/audit-trail', controller.getAuditTrailReport);
+
+// 5 PILAR EXCEL EXPORT ROUTES
+router.get('/export/academic-master', controller.exportAcademicMaster);
+router.get('/export/attendance-recap', controller.exportAttendanceRecap);
+router.get('/export/user-management', controller.exportUserManagement);
+router.get('/export/evaluations', controller.exportEvaluations);
+router.get('/export/audit-trail', controller.exportAuditTrail);
+
 // TEMPLATES
 router.get('/export/students-template', controller.exportStudentsTemplate);
 router.get('/export/teachers-template', controller.exportTeachersTemplate);

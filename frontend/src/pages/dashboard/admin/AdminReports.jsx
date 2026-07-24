@@ -3,211 +3,173 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/admin/admin-reports.css';
 
 const AdminReports = () => {
-  const [stats, setStats] = useState({
-    total_students: 0,
-    total_teachers: 0,
-    total_courses: 0,
-    total_parents: 0,
-    active_today: 0
-  });
   const [loading, setLoading] = useState(true);
-  const [reportType, setReportType] = useState('students');
-  const [dateRange, setDateRange] = useState('month');
+  const [classesList, setClassesList] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [dateRange, setDateRange] = useState('semester');
   const [recentActivities, setRecentActivities] = useState([]);
+  
+  // Modal Preview States
+  const [previewModal, setPreviewModal] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewType, setPreviewType] = useState('');
+  const [previewData, setPreviewData] = useState(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
-    fetchStats();
-    fetchRecentActivities();
+    fetchInitialData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchInitialData = async () => {
     try {
-      const response = await api.get('/dashboard/stats');
-      setStats(response.data);
+      setLoading(true);
+      const [classRes, activityRes] = await Promise.all([
+        api.get('/classes'),
+        api.get('/admin/reports/audit-trail')
+      ]);
+      setClassesList(classRes.data.data || []);
+      
+      const logs = activityRes.data.logs || [];
+      setRecentActivities(logs.slice(0, 8));
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error('Error loading report dashboard:', error);
       setLoading(false);
     }
   };
 
-  const fetchRecentActivities = async () => {
+  // -------------------------------------------------------------
+  // PREVIEW MODAL HANDLER
+  // -------------------------------------------------------------
+  const handleOpenPreview = async (type, title) => {
+    setPreviewTitle(title);
+    setPreviewType(type);
+    setPreviewModal(true);
+    setLoadingPreview(true);
+    setPreviewData(null);
+
     try {
-      const response = await api.get('/dashboard/activities');
-      const logs = response.data.data || [];
-      const list = logs.map(l => {
-        const date = new Date(l.created_at);
-        let timeStr = 'Baru saja';
-        const diffMs = new Date() - date;
-        const diffMin = Math.floor(diffMs / 60000);
-        if (diffMin > 0) {
-          if (diffMin < 60) {
-            timeStr = `${diffMin} menit lalu`;
-          } else {
-            const diffHour = Math.floor(diffMin / 60);
-            if (diffHour < 24) {
-              timeStr = `${diffHour} jam lalu`;
-            } else {
-              timeStr = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-            }
-          }
-        }
+      let endpoint = '';
+      if (type === 'academic-master') {
+        endpoint = `/admin/reports/academic-master?class_id=${selectedClass}`;
+      } else if (type === 'attendance-recap') {
+        endpoint = `/admin/reports/attendance-recap?class_id=${selectedClass}`;
+      } else if (type === 'user-management') {
+        endpoint = `/admin/reports/user-management`;
+      } else if (type === 'evaluations') {
+        endpoint = `/admin/reports/evaluations`;
+      } else if (type === 'audit-trail') {
+        endpoint = `/admin/reports/audit-trail`;
+      }
 
-        let icon = 'settings';
-        if (l.action.includes('Registrasi') || l.action.includes('Import')) {
-          icon = 'person_add';
-        } else if (l.action.includes('Kenaikan')) {
-          icon = 'school';
-        } else if (l.action.includes('Hapus')) {
-          icon = 'person_remove';
-        }
-
-        return {
-          id: l._id,
-          time: timeStr,
-          user: l.user_name || 'System',
-          action: l.action,
-          detail: l.detail,
-          icon
-        };
-      });
-      
-      setRecentActivities(list.slice(0, 10));
-    } catch (e) {
-      console.error('Failed to fetch recent activities:', e);
-      setRecentActivities([
-        { id: 1, time: '10 menit lalu', user: 'Admin', action: 'Sistem Inisialisasi', detail: 'Aktivitas logging siap digunakan', icon: 'settings' }
-      ]);
+      const response = await api.get(endpoint);
+      setPreviewData(response.data);
+      setLoadingPreview(false);
+    } catch (err) {
+      console.error('Preview error:', err);
+      alert('Gagal memuat pratinjau data laporan.');
+      setLoadingPreview(false);
     }
   };
 
+  // -------------------------------------------------------------
+  // EXCEL EXPORT HANDLER
+  // -------------------------------------------------------------
   const handleExportExcel = async (type) => {
     try {
-      let endpoint = '';
-      let filename = '';
-      if (type === 'students') {
-        endpoint = '/export-import/export/students';
-        filename = 'laporan_siswa.xlsx';
-      } else if (type === 'teachers') {
-        endpoint = '/export-import/export/teachers';
-        filename = 'laporan_guru.xlsx';
-      } else if (type === 'courses') {
-        endpoint = '/export-import/export/schedules';
-        filename = 'laporan_penugasan_guru.xlsx';
-      } else if (type === 'activity') {
-        endpoint = '/export-import/export/activities';
-        filename = 'laporan_aktivitas_pengguna.xlsx';
+      let endpoint = `/admin/export/${type}`;
+      if (type === 'academic-master' || type === 'attendance-recap') {
+        endpoint += `?class_id=${selectedClass}`;
       }
-
+      
       const response = await api.get(endpoint, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', filename);
+      link.setAttribute('download', `rekap_${type}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Excel Export Error:', error);
-      alert('Gagal mendownload laporan Excel');
+      alert('Gagal mengunduh berkas Excel laporan');
     }
   };
 
-  const handleExportPDF = async (type) => {
+  // -------------------------------------------------------------
+  // PDF PRINT HANDLER WITH OFFICIAL KOP SURAT
+  // -------------------------------------------------------------
+  const handleExportPDF = async (type, titleName) => {
     try {
-      let title = '';
+      let title = titleName || 'LAPORAN REKAPITULASI SEKOLAH';
       let headers = [];
       let rows = [];
 
-      if (type === 'students') {
-        const [res, classesRes, parentsRes] = await Promise.all([
-          api.get('/users/students/all'),
-          api.get('/classes'),
-          api.get('/users/parents')
-        ]);
-        const students = res.data.data || [];
-        const classesList = classesRes.data.data || [];
-        const parentsList = parentsRes.data.parents || [];
-
-        const classMap = {};
-        classesList.forEach(c => classMap[c._id] = c.name);
-
-        const parentMap = {};
-        parentsList.forEach(p => parentMap[p._id] = p.full_name);
-
-        title = 'LAPORAN DATA INDUK SISWA';
-        headers = ['No', 'NIS', 'Nama Lengkap', 'Kelas', 'Orang Tua / Wali', 'Status'];
-        rows = students.map((s, i) => {
-          const classId = s.class_id?._id || s.class_id;
-          const parentId = s.parent_id?._id || s.parent_id;
-          return [
-            i + 1,
-            s.nis || '-',
-            s.full_name || '-',
-            classMap[classId] || '-',
-            parentMap[parentId] || '-',
-            s.status === 'active' ? 'Aktif' : 'Nonaktif'
-          ];
-        });
-      } else if (type === 'teachers') {
-        const [res, subjectsRes] = await Promise.all([
-          api.get('/users/teachers/all'),
-          api.get('/subjects')
-        ]);
-        const teachers = res.data.data || [];
-        const subjectsList = subjectsRes.data.data || [];
-
-        const subjectMap = {};
-        subjectsList.forEach(s => subjectMap[s._id] = s.name);
-
-        title = 'LAPORAN DATA TENAGA PENDIDIK (GURU)';
-        headers = ['No', 'NIP', 'Nama Lengkap', 'Kode Guru', 'Mata Pelajaran', 'Telepon'];
-        rows = teachers.map((t, i) => {
-          const mappedSubs = (t.subjects || t.subject_ids || [])
-            .map(subId => subjectMap[subId] || subId)
-            .join(', ') || '-';
-          return [
-            i + 1,
-            t.nip || '-',
-            t.full_name || '-',
-            t.teacher_code || t.username || '-',
-            mappedSubs,
-            t.phone || '-'
-          ];
-        });
-      } else if (type === 'courses') {
-        const res = await api.get('/schedules');
-        const schedules = res.data.data || [];
-        title = 'LAPORAN PENUGASAN MENGAJAR GURU';
-        headers = ['No', 'Hari', 'Jam Ke', 'Waktu', 'Kelas', 'Mata Pelajaran', 'Guru Pengajar', 'Ruangan'];
-        rows = schedules.map((s, i) => [
+      if (type === 'academic-master') {
+        const res = await api.get(`/admin/reports/academic-master?class_id=${selectedClass}`);
+        const data = res.data.students_leger || [];
+        title = 'LAPORAN REKAPITULASI LEGER AKADEMIK (AGREGAT SEKOLAH)';
+        headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Total Nilai', 'Rata-Rata', 'Ketuntasan (KKM 75)'];
+        rows = data.map((st, i) => [
           i + 1,
-          s.day || '-',
-          s.time_slot || '-',
-          (s.start_time && s.end_time) ? `${s.start_time}-${s.end_time}` : '-',
-          s.class_id?.name || s.class_id || '-',
-          s.subject_id?.name || s.subject_id?.code || '-',
-          s.teacher_id?.full_name || '-',
-          s.room || '-'
+          st.nis,
+          st.name,
+          st.class_name,
+          st.total_score,
+          st.avg_score,
+          st.is_tuntas ? 'TUNTAS' : 'BELUM TUNTAS'
         ]);
-      } else if (type === 'activity') {
-        const response = await api.get('/dashboard/activities');
-        const logs = response.data.data || [];
-        
-        title = 'LAPORAN AKTIVITAS PENGGUNA SISTEM';
-        headers = ['No', 'Waktu', 'Pengguna', 'Aktivitas', 'Detail'];
-        rows = logs.slice(0, 100).map((act, i) => {
-          const date = new Date(act.created_at);
-          const time_formatted = date.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
-          return [
-            i + 1,
-            time_formatted,
-            act.user_name || 'System',
-            act.action,
-            act.detail
-          ];
-        });
+      } else if (type === 'attendance-recap') {
+        const res = await api.get(`/admin/reports/attendance-recap?class_id=${selectedClass}`);
+        const data = res.data.class_summary || [];
+        title = 'LAPORAN REKAPITULASI PRESENSI / KEHADIRAN SISWA PER KELAS';
+        headers = ['No', 'Nama Kelas', 'Jumlah Siswa', 'Hadir', 'Sakit', 'Izin', 'Alpa', '% Kehadiran'];
+        rows = data.map((c, i) => [
+          i + 1,
+          c.class_name,
+          c.total_students,
+          c.hadir,
+          c.sakit,
+          c.izin,
+          c.alpa,
+          `${c.pct_hadir}%`
+        ]);
+      } else if (type === 'user-management') {
+        const res = await api.get('/admin/reports/user-management');
+        const data = res.data.rombel_summary || [];
+        title = 'LAPORAN REKAPITULASI MANAJEMEN AKUN & KELAS (ROMBEL)';
+        headers = ['No', 'Nama Kelas (Rombel)', 'Jumlah Siswa Terdaftar'];
+        rows = data.map((r, i) => [
+          i + 1,
+          r.class_name,
+          `${r.student_count} Siswa`
+        ]);
+      } else if (type === 'evaluations') {
+        const res = await api.get('/admin/reports/evaluations');
+        const data = res.data.evaluations || [];
+        title = 'LAPORAN REKAPITULASI EVALUASI UJIAN & TUGAS';
+        headers = ['No', 'Judul Tugas / Evaluasi', 'Kelas Target', 'Total Mengumpulkan', 'Sudah Dinilai', 'Belum Dinilai'];
+        rows = data.map((e, i) => [
+          i + 1,
+          e.title,
+          e.class_name,
+          e.total_submissions,
+          e.total_graded,
+          e.total_pending
+        ]);
+      } else if (type === 'audit-trail') {
+        const res = await api.get('/admin/reports/audit-trail');
+        const data = res.data.logs || [];
+        title = 'LAPORAN AUDIT TRAIL & LOG KEAMANAN SISTEM';
+        headers = ['No', 'Stempel Waktu', 'Pengguna', 'Aktivitas / Aksi', 'Detail Rincian'];
+        rows = data.map((l, i) => [
+          i + 1,
+          l.time,
+          l.user,
+          l.action,
+          l.detail
+        ]);
       }
 
       const printWindow = window.open('', '_blank');
@@ -223,38 +185,33 @@ const AdminReports = () => {
           <title>${title}</title>
           <style>
             @media print {
-              body { margin: 1.5cm; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 12pt; }
-              @page { size: A4; margin: 1.5cm; }
+              body { margin: 1.2cm; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 11pt; }
+              @page { size: A4 portrait; margin: 1.2cm; }
             }
             body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; line-height: 1.4; }
             
             /* Kop Surat Styles */
-            .kop-container { display: flex; align-items: center; border-bottom: 4px double #000; padding-bottom: 12px; margin-bottom: 24px; }
-            .kop-logo { width: 80px; height: auto; margin-right: 20px; }
+            .kop-container { display: flex; align-items: center; border-bottom: 4px double #000; padding-bottom: 12px; margin-bottom: 20px; }
+            .kop-logo { width: 75px; height: auto; margin-right: 18px; }
             .kop-text { text-align: center; flex-grow: 1; }
-            .kop-text h4 { margin: 0; font-size: 13pt; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; }
-            .kop-text h3 { margin: 2px 0; font-size: 16pt; font-weight: bold; text-transform: uppercase; }
-            .kop-text p { margin: 2px 0; font-size: 9.5pt; font-style: italic; color: #555; }
+            .kop-text h4 { margin: 0; font-size: 12pt; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; }
+            .kop-text h3 { margin: 2px 0; font-size: 15pt; font-weight: bold; text-transform: uppercase; }
+            .kop-text p { margin: 2px 0; font-size: 9pt; font-style: italic; color: #444; }
             
-            /* Title Styles */
-            .doc-title { text-align: center; font-size: 14pt; font-weight: bold; text-decoration: underline; margin-bottom: 20px; text-transform: uppercase; }
+            .doc-title { text-align: center; font-size: 13pt; font-weight: bold; text-decoration: underline; margin-bottom: 18px; text-transform: uppercase; }
             
-            /* Table Styles */
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10.5pt; }
-            th, td { border: 1px solid #000; padding: 8px 10px; text-align: left; }
-            th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 10pt; }
-            tr:nth-child(even) { background-color: #fafafa; }
+            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 10pt; }
+            th, td { border: 1px solid #000; padding: 7px 9px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9.5pt; }
             .text-center { text-align: center; }
             
-            /* Signature Styles */
-            .sig-container { margin-top: 50px; display: flex; justify-content: flex-end; font-size: 11pt; page-break-inside: avoid; }
-            .sig-box { text-align: center; width: 250px; }
-            .sig-space { height: 75px; }
+            .sig-container { margin-top: 45px; display: flex; justify-content: flex-end; font-size: 11pt; page-break-inside: avoid; }
+            .sig-box { text-align: center; width: 240px; }
+            .sig-space { height: 65px; }
             .sig-name { font-weight: bold; text-decoration: underline; }
           </style>
         </head>
         <body>
-          <!-- Kop Surat -->
           <div class="kop-container">
             <img class="kop-logo" src="https://upload.wikimedia.org/wikipedia/commons/9/9c/Logo_Tut_Wuri_Handayani.png" alt="Logo Tut Wuri" />
             <div class="kop-text">
@@ -266,10 +223,8 @@ const AdminReports = () => {
             </div>
           </div>
           
-          <!-- Judul Laporan -->
           <div class="doc-title">${title}</div>
           
-          <!-- Tabel Data -->
           <table>
             <thead>
               <tr>
@@ -280,22 +235,21 @@ const AdminReports = () => {
               ${rows.map(row => `
                 <tr>
                   ${row.map((cell, idx) => `
-                    <td class="${idx === 0 || idx === 1 || idx === 5 ? 'text-center' : ''}">${cell}</td>
+                    <td class="${idx === 0 || idx === 1 || idx === 3 || idx === 4 || idx === 5 || idx === 6 ? 'text-center' : ''}">${cell}</td>
                   `).join('')}
                 </tr>
               `).join('')}
             </tbody>
           </table>
           
-          <!-- Tanda Tangan -->
           <div class="sig-container">
             <div class="sig-box">
               <p>Suradadi, ${today}</p>
               <p>Mengetahui,</p>
               <p>Kepala Sekolah</p>
               <div class="sig-space"></div>
-              <p class="sig-name">....................................................</p>
-              <p>NIP. .............................................</p>
+              <p class="sig-name">SUHARTO, S.Pd.,M.M.</p>
+              <p>NIP. 19671022 199401 1 001</p>
             </div>
           </div>
           
@@ -315,181 +269,494 @@ const AdminReports = () => {
       printWindow.document.close();
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Gagal membuat laporan PDF');
+      alert('Gagal mencetak laporan PDF');
     }
   };
 
-  if (loading) return <div className="reports-loading">Memuat dashboard...</div>;
+  if (loading) {
+    return (
+      <div className="reports-loading-screen">
+        <div className="spinner"></div>
+        <p>Memuat Dashboard Rekapitulasi Laporan Eksekutif...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="reports-container">
       {/* Page Header */}
       <div className="reports-header">
         <div>
-          <span className="reports-badge">Analytics & Insights</span>
-          <h2 className="reports-title">Laporan Statistik</h2>
-          <p className="reports-subtitle">Pantau performa dan aktivitas sekolah secara real-time</p>
-        </div>
-        <div className="reports-actions">
-          <button className="reports-export-btn" onClick={() => handleExportPDF(reportType)}>
-            <span className="material-symbols-outlined">picture_as_pdf</span>
-            Export PDF
-          </button>
-          <button className="reports-export-btn secondary" onClick={() => handleExportExcel(reportType)}>
-            <span className="material-symbols-outlined">table_chart</span>
-            Export Excel
-          </button>
+          <span className="reports-badge">Executive Reporting Engine</span>
+          <h2 className="reports-title">Pusat Laporan & Rekapitulasi Sekolah</h2>
+          <p className="reports-subtitle">Rekapitulasi teragregasi 5 pilar utama akademik, presensi, KBM, dan pengawasan sistem LMS</p>
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="reports-filters">
-        <div className="filter-group">
-          <label>Tipe Laporan</label>
-          <div className="filter-select">
-            <span className="material-symbols-outlined">analytics</span>
-            <select value={reportType} onChange={(e) => setReportType(e.target.value)}>
-              <option value="students">Laporan Siswa</option>
-              <option value="teachers">Laporan Guru</option>
-              <option value="courses">Laporan Penugasan Guru</option>
-              <option value="activity">Laporan Aktivitas</option>
-            </select>
-          </div>
+      {/* Filter Bar Toolbar */}
+      <div className="reports-filters-toolbar">
+        <div className="filter-item">
+          <label><span className="material-symbols-outlined">class</span> Filter Kelas / Rombel</label>
+          <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)}>
+            <option value="all">Semua Kelas (Agregat Sekolah)</option>
+            {classesList.map(c => (
+              <option key={c._id} value={c._id}>Kelas {c.name}</option>
+            ))}
+          </select>
         </div>
-        <div className="filter-group">
-          <label>Periode</label>
-          <div className="filter-select">
-            <span className="material-symbols-outlined">calendar_today</span>
-            <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
-              <option value="week">Minggu Ini</option>
-              <option value="month">Bulan Ini</option>
-              <option value="year">Tahun Ini</option>
-            </select>
-          </div>
+
+        <div className="filter-item">
+          <label><span className="material-symbols-outlined">date_range</span> Periode Akademik</label>
+          <select value={dateRange} onChange={(e) => setDateRange(e.target.value)}>
+            <option value="semester">Semester Genap 2025/2026</option>
+            <option value="month">Bulan Ini</option>
+            <option value="year">Tahun Ajaran 2025/2026</option>
+          </select>
         </div>
-        <button className="reports-apply-btn" onClick={() => handleExportPDF(reportType)}>
-          <span className="material-symbols-outlined">refresh</span>
-          Terapkan Filter
-        </button>
       </div>
 
-      {/* Report Modules Grid */}
-      <div className="reports-modules-grid">
-        <div className="report-module-card">
-          <div className="module-icon academic">
-            <span className="material-symbols-outlined">school</span>
-          </div>
-          <div className="module-content">
-            <h3>Laporan Data Siswa</h3>
-            <p>Export dan lihat daftar lengkap siswa yang terdaftar di sistem.</p>
-            <button className="module-action-btn" onClick={() => handleExportPDF('students')}>Buat Laporan</button>
-          </div>
-        </div>
+      {/* 5 PILAR REPORT CARDS GRID */}
+      <div className="reports-pillars-grid">
         
-        <div className="report-module-card">
-          <div className="module-icon attendance">
-            <span className="material-symbols-outlined">person_pin</span>
+        {/* PILAR 1: AKADEMIK MASTER */}
+        <div className="pillar-card academic">
+          <div className="pillar-card-header">
+            <div className="pillar-icon academic">
+              <span className="material-symbols-outlined">military_tech</span>
+            </div>
+            <div className="pillar-tags">
+              <span className="tag">Leger Master</span>
+              <span className="tag">Ketuntasan KKM 75</span>
+            </div>
           </div>
-          <div className="module-content">
-            <h3>Laporan Data Guru</h3>
-            <p>Daftar seluruh profil guru pengajar beserta status keaktifannya.</p>
-            <button className="module-action-btn" onClick={() => handleExportPDF('teachers')}>Buat Laporan</button>
+          <div className="pillar-card-body">
+            <h3>🎓 1. Rekap Data Akademik Master (Agregat Sekolah)</h3>
+            <p>Rekapitulasi Leger Nilai master seluruh kelas (7A-7J, 8A-8J, 9A-9I), statistik rata-rata per mata pelajaran, dan ketuntasan KKM.</p>
+          </div>
+          <div className="pillar-card-footer">
+            <button className="btn-preview" onClick={() => handleOpenPreview('academic-master', 'Pratinjau Leger Master Akademik')}>
+              <span className="material-symbols-outlined">visibility</span> Pratinjau Data
+            </button>
+            <div className="btn-group">
+              <button className="btn-export pdf" onClick={() => handleExportPDF('academic-master', 'LAPORAN REKAPITULASI LEGER AKADEMIK SEKOLAH')}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> PDF
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel('academic-master')}>
+                <span className="material-symbols-outlined">table_chart</span> Excel
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="report-module-card">
-          <div className="module-icon finance">
-            <span className="material-symbols-outlined">assignment_ind</span>
+        {/* PILAR 2: PRESENSI & RED FLAG */}
+        <div className="pillar-card attendance">
+          <div className="pillar-card-header">
+            <div className="pillar-icon attendance">
+              <span className="material-symbols-outlined">how_to_reg</span>
+            </div>
+            <div className="pillar-tags">
+              <span className="tag warning">Red Flag BK (Alpa)</span>
+              <span className="tag">% Kehadiran</span>
+            </div>
           </div>
-          <div className="module-content">
-            <h3>Laporan Penugasan Guru</h3>
-            <p>Data lengkap mengenai pembagian tugas mengajar guru per kelas.</p>
-            <button className="module-action-btn" onClick={() => handleExportPDF('courses')}>Buat Laporan</button>
+          <div className="pillar-card-body">
+            <h3>📋 2. Rekap Kehadiran (Presensi) & Siswa Red Flag</h3>
+            <p>Persentase presensi harian/bulanan per kelas dan deteksi otomatis daftar siswa bermasalah (Alpa $\ge 3$ hari) untuk BK & Wali Kelas.</p>
+          </div>
+          <div className="pillar-card-footer">
+            <button className="btn-preview" onClick={() => handleOpenPreview('attendance-recap', 'Pratinjau Presensi Kelas & Red Flag')}>
+              <span className="material-symbols-outlined">visibility</span> Pratinjau Data
+            </button>
+            <div className="btn-group">
+              <button className="btn-export pdf" onClick={() => handleExportPDF('attendance-recap', 'LAPORAN REKAPITULASI PRESENSI & RED FLAG SISWA')}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> PDF
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel('attendance-recap')}>
+                <span className="material-symbols-outlined">table_chart</span> Excel
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="report-module-card">
-          <div className="module-icon users">
-            <span className="material-symbols-outlined">manage_accounts</span>
+        {/* PILAR 3: USER MANAGEMENT & ROMBEL */}
+        <div className="pillar-card users">
+          <div className="pillar-card-header">
+            <div className="pillar-icon users">
+              <span className="material-symbols-outlined">groups</span>
+            </div>
+            <div className="pillar-tags">
+              <span className="tag">Master User</span>
+              <span className="tag">Rombel Kelas</span>
+            </div>
           </div>
-          <div className="module-content">
-            <h3>Laporan Aktivitas Pengguna</h3>
-            <p>Rekapitulasi log aktivitas yang dilakukan oleh semua pengguna.</p>
-            <button className="module-action-btn" onClick={() => handleExportPDF('activity')}>Buat Laporan</button>
+          <div className="pillar-card-body">
+            <h3>👥 3. Rekap Pengguna & Manajemen Akun (Rombel)</h3>
+            <p>Pengelompokan jumlah siswa aktif per kelas (rombel), data induk guru pengampu, serta analisis keaktifan login pengguna LMS.</p>
+          </div>
+          <div className="pillar-card-footer">
+            <button className="btn-preview" onClick={() => handleOpenPreview('user-management', 'Pratinjau Data Master User & Rombel')}>
+              <span className="material-symbols-outlined">visibility</span> Pratinjau Data
+            </button>
+            <div className="btn-group">
+              <button className="btn-export pdf" onClick={() => handleExportPDF('user-management', 'LAPORAN REKAPITULASI AKUN PENGGUNA & ROMBEL')}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> PDF
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel('user-management')}>
+                <span className="material-symbols-outlined">table_chart</span> Excel
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* PILAR 4: EVALUASI & CBT */}
+        <div className="pillar-card cbt">
+          <div className="pillar-card-header">
+            <div className="pillar-icon cbt">
+              <span className="material-symbols-outlined">assignment_turn_in</span>
+            </div>
+            <div className="pillar-tags">
+              <span className="tag">Partisipasi Ujian</span>
+              <span className="tag">Koreksi Guru</span>
+            </div>
+          </div>
+          <div className="pillar-card-body">
+            <h3>📝 4. Rekap Evaluasi & Pelaksanaan Ujian (CBT / Asesmen)</h3>
+            <p>Rekapitulasi partisipasi pengerjaan tugas & ujian siswa, persentase koreksi nilai oleh guru, serta ekspor nilai murni CBT.</p>
+          </div>
+          <div className="pillar-card-footer">
+            <button className="btn-preview" onClick={() => handleOpenPreview('evaluations', 'Pratinjau Evaluasi Ujian & Tugas')}>
+              <span className="material-symbols-outlined">visibility</span> Pratinjau Data
+            </button>
+            <div className="btn-group">
+              <button className="btn-export pdf" onClick={() => handleExportPDF('evaluations', 'LAPORAN REKAPITULASI EVALUASI UJIAN & TUGAS')}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> PDF
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel('evaluations')}>
+                <span className="material-symbols-outlined">table_chart</span> Excel
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* PILAR 5: AUDIT TRAIL & LOG AKSES */}
+        <div className="pillar-card audit">
+          <div className="pillar-card-header">
+            <div className="pillar-icon audit">
+              <span className="material-symbols-outlined">admin_panel_settings</span>
+            </div>
+            <div className="pillar-tags">
+              <span className="tag">Audit Security</span>
+              <span className="tag">Activity Log</span>
+            </div>
+          </div>
+          <div className="pillar-card-body">
+            <h3>🛡️ 5. Rekap Sistem & Audit Trail (Pengawasan)</h3>
+            <p>Catatan audit trail riwayat aksi pengguna, perubahan data sensitif, waktu login, dan log keamanan platform LMS.</p>
+          </div>
+          <div className="pillar-card-footer">
+            <button className="btn-preview" onClick={() => handleOpenPreview('audit-trail', 'Pratinjau Audit Trail & Log Sistem')}>
+              <span className="material-symbols-outlined">visibility</span> Pratinjau Data
+            </button>
+            <div className="btn-group">
+              <button className="btn-export pdf" onClick={() => handleExportPDF('audit-trail', 'LAPORAN REKAPITULASI AUDIT TRAIL KEAMANAN SISTEM')}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> PDF
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel('audit-trail')}>
+                <span className="material-symbols-outlined">table_chart</span> Excel
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      {/* Recent Activity Table */}
-      <div className="recent-activity">
-        <div className="activity-header">
-          <h3>Aktivitas Terbaru</h3>
-          <button className="view-all-btn" onClick={() => handleExportPDF('activity')}>
-            Lihat Semua
-            <span className="material-symbols-outlined">arrow_forward</span>
+      {/* RECENT AUDIT TRAIL TABLE */}
+      <div className="recent-activity-section">
+        <div className="activity-section-header">
+          <div>
+            <h3>🛡️ Riwayat Aktivitas Audit Trail Terkini</h3>
+            <p>Daftar 8 aksi terakhir yang dilakukan di dalam sistem</p>
+          </div>
+          <button className="btn-view-all" onClick={() => handleOpenPreview('audit-trail', 'Seluruh Log Audit Trail')}>
+            Lihat Semua Log <span className="material-symbols-outlined">arrow_forward</span>
           </button>
         </div>
-        <div className="activity-table-container">
+        <div className="activity-table-wrapper">
           <table className="activity-table">
             <thead>
               <tr>
                 <th>Waktu</th>
                 <th>Pengguna</th>
                 <th>Aktivitas</th>
-                <th>Detail</th>
+                <th>Detail Rincian</th>
               </tr>
             </thead>
             <tbody>
-              {recentActivities.map((activity) => (
-                <tr key={activity.id}>
-                  <td>
-                    <div className="activity-time">
-                      <span className="material-symbols-outlined">schedule</span>
-                      {activity.time}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="activity-user">
-                      <div className="user-avatar">
-                        <span className="material-symbols-outlined">account_circle</span>
-                      </div>
-                      {activity.user}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="activity-action">
-                      <span className="material-symbols-outlined">{activity.icon}</span>
-                      {activity.action}
-                    </div>
-                  </td>
-                  <td className="activity-detail">{activity.detail}</td>
+              {recentActivities.length > 0 ? (
+                recentActivities.map((act, i) => (
+                  <tr key={i}>
+                    <td><span className="time-badge">{act.time}</span></td>
+                    <td><strong>{act.user}</strong></td>
+                    <td><span className="action-tag">{act.action}</span></td>
+                    <td className="detail-cell">{act.detail}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="empty-cell">Belum ada catatan aktivitas log audit.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Export Section */}
-      <div className="reports-export-section">
-        <div className="export-content">
-          <span className="material-symbols-outlined">download</span>
-          <div>
-            <h4>Unduh Laporan Lengkap</h4>
-            <p>Dapatkan data lengkap dalam format PDF atau Excel untuk keperluan arsip</p>
+      {/* PREVIEW MODAL */}
+      {previewModal && (
+        <div className="reports-modal-overlay">
+          <div className="reports-modal-container">
+            <div className="reports-modal-header">
+              <h3>{previewTitle}</h3>
+              <button className="btn-close" onClick={() => setPreviewModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="reports-modal-body">
+              {loadingPreview ? (
+                <div className="preview-loading">
+                  <div className="spinner"></div>
+                  <p>Memproses agregasi data laporan...</p>
+                </div>
+              ) : previewData ? (
+                <div className="preview-content">
+                  
+                  {/* PRATINJAU LEGER AKADEMIK */}
+                  {previewType === 'academic-master' && (
+                    <div>
+                      <div className="preview-stat-bar">
+                        <span>Total Siswa: <strong>{previewData.total_students}</strong></span>
+                        <span>Tahun Ajaran: <strong>{previewData.academic_year}</strong></span>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>NIS</th>
+                              <th>Nama Siswa</th>
+                              <th>Kelas</th>
+                              <th>Rata-Rata</th>
+                              <th>Status Ketuntasan</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.students_leger || []).map((s, idx) => (
+                              <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td>{s.nis}</td>
+                                <td><strong>{s.name}</strong></td>
+                                <td>{s.class_name}</td>
+                                <td><strong>{s.avg_score}</strong></td>
+                                <td>
+                                  <span className={`status-pill ${s.is_tuntas ? 'tuntas' : 'belum'}`}>
+                                    {s.is_tuntas ? 'TUNTAS' : 'BELUM TUNTAS'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRATINJAU PRESENSI & RED FLAG */}
+                  {previewType === 'attendance-recap' && (
+                    <div>
+                      <h4 className="preview-subtitle">Daftar Siswa Red Flag (Alpa $\ge 3$ / Perlu Perhatian BK)</h4>
+                      <div className="table-responsive mb-4">
+                        <table className="preview-table redflag">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>NIS</th>
+                              <th>Nama Siswa</th>
+                              <th>Kelas</th>
+                              <th>Total Alpa</th>
+                              <th>Orang Tua / Wali</th>
+                              <th>Kontak HP</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.red_flag_students || []).length > 0 ? (
+                              (previewData.red_flag_students || []).map((s, idx) => (
+                                <tr key={idx}>
+                                  <td>{idx + 1}</td>
+                                  <td>{s.nis}</td>
+                                  <td><strong>{s.name}</strong></td>
+                                  <td>{s.class_name}</td>
+                                  <td><span className="alpa-count">{s.alpa} Hari</span></td>
+                                  <td>{s.parent_name}</td>
+                                  <td>{s.parent_phone}</td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan="7" className="empty-cell">Tidak ada siswa dengan catatan Alpa tinggi. Seluruh siswa disiplin!</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <h4 className="preview-subtitle">Ringkasan Kehadiran Kelas</h4>
+                      <div className="table-responsive">
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>Kelas</th>
+                              <th>Jumlah Siswa</th>
+                              <th>Hadir</th>
+                              <th>Sakit</th>
+                              <th>Izin</th>
+                              <th>Alpa</th>
+                              <th>% Kehadiran</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.class_summary || []).map((c, idx) => (
+                              <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td><strong>{c.class_name}</strong></td>
+                                <td>{c.total_students}</td>
+                                <td>{c.hadir}</td>
+                                <td>{c.sakit}</td>
+                                <td>{c.izin}</td>
+                                <td>{c.alpa}</td>
+                                <td><strong>{c.pct_hadir}%</strong></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRATINJAU USER MANAGEMENT */}
+                  {previewType === 'user-management' && (
+                    <div>
+                      <div className="preview-stat-bar">
+                        <span>Total Siswa: <strong>{previewData.total_students}</strong></span>
+                        <span>Total Guru: <strong>{previewData.total_teachers}</strong></span>
+                        <span>Total Orang Tua: <strong>{previewData.total_parents}</strong></span>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>Nama Kelas (Rombel)</th>
+                              <th>Jumlah Siswa Terdaftar</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.rombel_summary || []).map((r, idx) => (
+                              <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td><strong>Kelas {r.class_name}</strong></td>
+                                <td>{r.student_count} Siswa</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRATINJAU EVALUASI */}
+                  {previewType === 'evaluations' && (
+                    <div>
+                      <div className="preview-stat-bar">
+                        <span>Total Tugas: <strong>{previewData.total_assignments}</strong></span>
+                        <span>Total Pengerjaan: <strong>{previewData.total_submissions}</strong></span>
+                      </div>
+                      <div className="table-responsive">
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>Judul Tugas / Evaluasi</th>
+                              <th>Kelas Target</th>
+                              <th>Total Pengumpulan</th>
+                              <th>Sudah Dinilai</th>
+                              <th>Belum Dinilai</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.evaluations || []).map((e, idx) => (
+                              <tr key={idx}>
+                                <td>{idx + 1}</td>
+                                <td><strong>{e.title}</strong></td>
+                                <td>{e.class_name}</td>
+                                <td>{e.total_submissions}</td>
+                                <td><span className="text-success">{e.total_graded}</span></td>
+                                <td><span className="text-warning">{e.total_pending}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* PRATINJAU AUDIT TRAIL */}
+                  {previewType === 'audit-trail' && (
+                    <div>
+                      <div className="table-responsive">
+                        <table className="preview-table">
+                          <thead>
+                            <tr>
+                              <th>No</th>
+                              <th>Stempel Waktu</th>
+                              <th>Pengguna</th>
+                              <th>Aktivitas</th>
+                              <th>Detail Rincian</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(previewData.logs || []).map((l, idx) => (
+                              <tr key={idx}>
+                                <td>{l.no}</td>
+                                <td>{l.time}</td>
+                                <td><strong>{l.user}</strong></td>
+                                <td><span className="action-tag">{l.action}</span></td>
+                                <td>{l.detail}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              ) : null}
+            </div>
+
+            <div className="reports-modal-footer">
+              <button className="btn-secondary" onClick={() => setPreviewModal(false)}>Tutup Pratinjau</button>
+              <button className="btn-export pdf" onClick={() => handleExportPDF(previewType, previewTitle)}>
+                <span className="material-symbols-outlined">picture_as_pdf</span> Cetak PDF (KOP)
+              </button>
+              <button className="btn-export excel" onClick={() => handleExportExcel(previewType)}>
+                <span className="material-symbols-outlined">table_chart</span> Download Excel
+              </button>
+            </div>
           </div>
         </div>
-        <div className="export-buttons">
-          <button className="export-btn pdf" onClick={() => handleExportPDF(reportType)}>
-            <span className="material-symbols-outlined">picture_as_pdf</span>
-            PDF
-          </button>
-          <button className="export-btn excel" onClick={() => handleExportExcel(reportType)}>
-            <span className="material-symbols-outlined">table_chart</span>
-            Excel
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
