@@ -39,6 +39,7 @@ const AdminMonitoring = () => {
   // Teacher State
   const [teachers, setTeachers] = useState([]);
   const [teacherSearch, setTeacherSearch] = useState('');
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
 
   // Activity State
   const [activities, setActivities] = useState([]);
@@ -148,6 +149,7 @@ const AdminMonitoring = () => {
   };
 
   const fetchTeachersMonitoring = async () => {
+    setLoadingTeachers(true);
     try {
       const params = {};
       if (teacherSearch) params.search = teacherSearch;
@@ -155,6 +157,8 @@ const AdminMonitoring = () => {
       setTeachers(res.data.data || []);
     } catch (e) {
       console.error('Error fetching teacher monitoring:', e);
+    } finally {
+      setLoadingTeachers(false);
     }
   };
 
