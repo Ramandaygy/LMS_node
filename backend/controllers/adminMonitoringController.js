@@ -418,15 +418,21 @@ async function computeLegerData(classId) {
         const subIdStr = sub._id.toString();
 
         // Find submissions for assignments of this subject
-        const subAssignments = allAssignments.filter(
-          (a) => a.subject_id?.toString() === subIdStr
-        );
+        const subAssignments = allAssignments.filter((a) => {
+          const sId = (a.subject || a.subject_id || a.subjectId)?.toString();
+          return sId === subIdStr;
+        });
+
         const subAssignmentIds = subAssignments.map((a) => a._id);
+        const subAssignmentIdStrings = subAssignments.map((a) => a._id.toString());
 
         const submissions = await submissionsCol
           .find({
-            student_id: studentIdObj,
-            assignment_id: { $in: subAssignmentIds },
+            $or: [
+              { student_id: studentIdObj },
+              { student_id: studentIdStr }
+            ],
+            assignment_id: { $in: [...subAssignmentIds, ...subAssignmentIdStrings] },
             score: { $ne: null },
           })
           .toArray();
@@ -434,9 +440,9 @@ async function computeLegerData(classId) {
         let totalTugasScore = 0;
         let totalTugasMax = 0;
         submissions.forEach((s) => {
-          const assign = assignmentMap[s.assignment_id.toString()] || { total_score: 100 };
+          const assign = assignmentMap[s.assignment_id.toString()] || { max_score: 100, total_score: 100 };
           totalTugasScore += s.score;
-          totalTugasMax += assign.total_score || 100;
+          totalTugasMax += assign.max_score || assign.total_score || 100;
         });
 
         // Compute NH (Nilai Harian / Rata-rata Tugas)
@@ -445,13 +451,13 @@ async function computeLegerData(classId) {
 
         // Get PTS & PAS from Grade collection
         const ptsGrade = await gradesCol.findOne({
-          student: studentIdObj,
-          subject: sub._id,
+          student: { $in: [studentIdObj, studentIdStr] },
+          subject: { $in: [sub._id, sub._id.toString()] },
           type: 'uts',
         });
         const pasGrade = await gradesCol.findOne({
-          student: studentIdObj,
-          subject: sub._id,
+          student: { $in: [studentIdObj, studentIdStr] },
+          subject: { $in: [sub._id, sub._id.toString()] },
           type: 'uas',
         });
 
