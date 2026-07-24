@@ -1518,6 +1518,14 @@ exports.exportActivities = async (req, res) => {
 // =========================================================================
 // 5 PILAR LAPORAN REKAPITULASI EKSEKUTIF
 // =========================================================================
+// 5 PILAR LAPORAN REKAPITULASI EKSEKUTIF
+// =========================================================================
+
+const getIdStr = (val) => {
+  if (!val) return '';
+  if (val._id) return val._id.toString();
+  return val.toString();
+};
 
 // PILAR 1: Rekap Data Akademik Master (Agregat Sekolah)
 exports.getAcademicMasterReport = async (req, res) => {
@@ -1525,6 +1533,8 @@ exports.getAcademicMasterReport = async (req, res) => {
     const { class_id } = req.query;
     const activeYear = await getCollection('academic_years').findOne({ is_active: true });
     const classes = await getCollection('classes').find({}).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
     const subjects = await getCollection('subjects').find({}).toArray();
     let queryStudents = {};
     if (class_id && class_id !== 'all') {
@@ -1536,17 +1546,17 @@ exports.getAcademicMasterReport = async (req, res) => {
 
     // Map Leger Master
     const studentLegers = students.map(s => {
-      const sIdStr = s._id.toString();
-      const sClass = classes.find(c => c._id.toString() === s.class_id?.toString());
+      const sIdStr = getIdStr(s._id);
+      const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
       
       const subjectScores = {};
       let totalScore = 0;
       let countScore = 0;
 
       subjects.forEach(sub => {
-        const subIdStr = sub._id.toString();
+        const subIdStr = getIdStr(sub._id);
         const studentSubs = submissions.filter(subm => 
-          subm.student_id?.toString() === sIdStr && 
+          getIdStr(subm.student_id) === sIdStr && 
           subm.score !== undefined && 
           subm.score !== null
         );
@@ -1557,8 +1567,8 @@ exports.getAcademicMasterReport = async (req, res) => {
         }
 
         const gradeDoc = grades.find(g => 
-          g.student_id?.toString() === sIdStr && 
-          g.subject_id?.toString() === subIdStr
+          getIdStr(g.student_id) === sIdStr && 
+          getIdStr(g.subject_id) === subIdStr
         );
 
         const uts = gradeDoc ? Number(gradeDoc.uts || gradeDoc.score_uts || 0) : 0;
@@ -1585,35 +1595,10 @@ exports.getAcademicMasterReport = async (req, res) => {
       };
     });
 
-    // Subject Breakdown Stats
-    const subjectStats = subjects.map(sub => {
-      const subIdStr = sub._id.toString();
-      let allScores = [];
-      studentLegers.forEach(st => {
-        if (st.subject_scores[sub.name] !== undefined) {
-          allScores.push(st.subject_scores[sub.name]);
-        }
-      });
-      const avg = allScores.length ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
-      const max = allScores.length ? Math.max(...allScores) : 0;
-      const min = allScores.length ? Math.min(...allScores) : 0;
-      const tuntasCount = allScores.filter(sc => sc >= 75).length;
-      const tuntasPct = allScores.length ? Math.round((tuntasCount / allScores.length) * 100) : 0;
-
-      return {
-        subject_name: sub.name,
-        avg_score: avg,
-        max_score: max,
-        min_score: min,
-        tuntas_percentage: tuntasPct
-      };
-    });
-
     return res.json({
       success: true,
       academic_year: activeYear ? activeYear.name : 'Genap 2025/2026',
       total_students: students.length,
-      subject_stats: subjectStats,
       students_leger: studentLegers
     });
   } catch (error) {
@@ -1625,6 +1610,8 @@ exports.exportAcademicMaster = async (req, res) => {
   try {
     const { class_id } = req.query;
     const classes = await getCollection('classes').find({}).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
     const subjects = await getCollection('subjects').find({}).toArray();
     let queryStudents = {};
     if (class_id && class_id !== 'all') {
@@ -1640,19 +1627,18 @@ exports.exportAcademicMaster = async (req, res) => {
     const headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', ...subjects.map(s => s.name), 'Rata-Rata', 'Status Ketuntasan'];
     worksheet.addRow(headers);
     worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
 
     students.forEach((s, idx) => {
-      const sIdStr = s._id.toString();
-      const sClass = classes.find(c => c._id.toString() === s.class_id?.toString());
+      const sIdStr = getIdStr(s._id);
+      const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
       let total = 0, count = 0;
       const rowData = [idx + 1, s.nis || '-', s.full_name, sClass ? sClass.name : '-'];
 
       subjects.forEach(sub => {
-        const subIdStr = sub._id.toString();
-        const studentSubs = submissions.filter(subm => subm.student_id?.toString() === sIdStr && subm.score !== undefined);
+        const subIdStr = getIdStr(sub._id);
+        const studentSubs = submissions.filter(subm => getIdStr(subm.student_id) === sIdStr && subm.score !== undefined);
         let avgNh = studentSubs.length ? studentSubs.reduce((a, b) => a + (Number(b.score) || 0), 0) / studentSubs.length : 0;
-        const gradeDoc = grades.find(g => g.student_id?.toString() === sIdStr && g.subject_id?.toString() === subIdStr);
+        const gradeDoc = grades.find(g => getIdStr(g.student_id) === sIdStr && getIdStr(g.subject_id) === subIdStr);
         const uts = gradeDoc ? Number(gradeDoc.uts || gradeDoc.score_uts || 0) : 0;
         const uas = gradeDoc ? Number(gradeDoc.uas || gradeDoc.score_uas || 0) : 0;
         const finalScore = gradeDoc?.final_score !== undefined ? Number(gradeDoc.final_score) : Math.round((avgNh * 0.4) + (uts * 0.3) + (uas * 0.3));
@@ -1678,23 +1664,30 @@ exports.getAttendanceRecapReport = async (req, res) => {
   try {
     const { class_id } = req.query;
     const classes = await getCollection('classes').find({}).toArray();
-    let queryStudents = {};
-    if (class_id && class_id !== 'all') {
-      try { queryStudents.class_id = new mongoose.Types.ObjectId(class_id); } catch(e) { queryStudents.class_id = class_id; }
-    }
-    const students = await getCollection('users_siswa').find(queryStudents).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
+    const students = await getCollection('users_siswa').find({}).toArray();
     const parents = await getCollection('users_ortu').find({}).toArray();
-    const attendances = await getCollection('attendance').find({}).toArray();
+    
+    let attendances = await getCollection('attendances').find({}).toArray();
+    if (!attendances.length) {
+      attendances = await getCollection('attendance').find({}).toArray();
+    }
 
     const parentMap = {};
-    parents.forEach(p => parentMap[p._id.toString()] = p);
+    parents.forEach(p => parentMap[getIdStr(p._id)] = p);
 
     // Class level summary
-    const classSummary = classes.map(c => {
-      const cIdStr = c._id.toString();
-      const classStudents = students.filter(s => s.class_id?.toString() === cIdStr);
-      const studentIds = classStudents.map(s => s._id.toString());
-      const classAtts = attendances.filter(a => studentIds.includes(a.student_id?.toString()));
+    let targetClasses = classes;
+    if (class_id && class_id !== 'all') {
+      targetClasses = classes.filter(c => getIdStr(c._id) === class_id);
+    }
+
+    const classSummary = targetClasses.map(c => {
+      const cIdStr = getIdStr(c._id);
+      const classStudents = students.filter(s => getIdStr(s.class_id) === cIdStr);
+      const studentIds = classStudents.map(s => getIdStr(s._id));
+      const classAtts = attendances.filter(a => studentIds.includes(getIdStr(a.student_id)));
 
       let hadir = 0, sakit = 0, izin = 0, alpa = 0;
       classAtts.forEach(a => {
@@ -1716,19 +1709,21 @@ exports.getAttendanceRecapReport = async (req, res) => {
       };
     });
 
-    // Red Flag Students (Alpa >= 3)
+    // Red Flag Students (Alpa >= 1)
     const redFlagStudents = [];
-    students.forEach(s => {
-      const sIdStr = s._id.toString();
-      const sAtts = attendances.filter(a => a.student_id?.toString() === sIdStr);
+    const targetStudents = class_id && class_id !== 'all' ? students.filter(s => getIdStr(s.class_id) === class_id) : students;
+
+    targetStudents.forEach(s => {
+      const sIdStr = getIdStr(s._id);
+      const sAtts = attendances.filter(a => getIdStr(a.student_id) === sIdStr);
       const alpaCount = sAtts.filter(a => (a.status || '').toLowerCase() === 'alpa').length;
       const sakitCount = sAtts.filter(a => (a.status || '').toLowerCase() === 'sakit').length;
       const izinCount = sAtts.filter(a => (a.status || '').toLowerCase() === 'izin').length;
       const hadirCount = sAtts.filter(a => (a.status || '').toLowerCase() === 'hadir').length;
 
-      if (alpaCount >= 1 || (sAtts.length > 0 && alpaCount >= 1)) {
-        const sClass = classes.find(c => c._id.toString() === s.class_id?.toString());
-        const parent = parentMap[s.parent_id?.toString()];
+      if (alpaCount >= 1) {
+        const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
+        const parent = parentMap[getIdStr(s.parent_id)];
         redFlagStudents.push({
           student_id: s._id,
           nis: s.nis || '-',
@@ -1757,12 +1752,18 @@ exports.getAttendanceRecapReport = async (req, res) => {
 exports.exportAttendanceRecap = async (req, res) => {
   try {
     const classes = await getCollection('classes').find({}).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
     const students = await getCollection('users_siswa').find({}).toArray();
     const parents = await getCollection('users_ortu').find({}).toArray();
-    const attendances = await getCollection('attendance').find({}).toArray();
+    
+    let attendances = await getCollection('attendances').find({}).toArray();
+    if (!attendances.length) {
+      attendances = await getCollection('attendance').find({}).toArray();
+    }
 
     const parentMap = {};
-    parents.forEach(p => parentMap[p._id.toString()] = p);
+    parents.forEach(p => parentMap[getIdStr(p._id)] = p);
 
     const workbook = new ExcelJS.Workbook();
     
@@ -1772,10 +1773,10 @@ exports.exportAttendanceRecap = async (req, res) => {
     ws1.getRow(1).font = { bold: true };
 
     classes.forEach((c, idx) => {
-      const cIdStr = c._id.toString();
-      const classStudents = students.filter(s => s.class_id?.toString() === cIdStr);
-      const studentIds = classStudents.map(s => s._id.toString());
-      const classAtts = attendances.filter(a => studentIds.includes(a.student_id?.toString()));
+      const cIdStr = getIdStr(c._id);
+      const classStudents = students.filter(s => getIdStr(s.class_id) === cIdStr);
+      const studentIds = classStudents.map(s => getIdStr(s._id));
+      const classAtts = attendances.filter(a => studentIds.includes(getIdStr(a.student_id)));
 
       let hadir = 0, sakit = 0, izin = 0, alpa = 0;
       classAtts.forEach(a => {
@@ -1797,11 +1798,11 @@ exports.exportAttendanceRecap = async (req, res) => {
 
     let rIdx = 1;
     students.forEach(s => {
-      const sIdStr = s._id.toString();
-      const alpaCount = attendances.filter(a => a.student_id?.toString() === sIdStr && (a.status || '').toLowerCase() === 'alpa').length;
+      const sIdStr = getIdStr(s._id);
+      const alpaCount = attendances.filter(a => getIdStr(a.student_id) === sIdStr && (a.status || '').toLowerCase() === 'alpa').length;
       if (alpaCount >= 1) {
-        const sClass = classes.find(c => c._id.toString() === s.class_id?.toString());
-        const parent = parentMap[s.parent_id?.toString()];
+        const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
+        const parent = parentMap[getIdStr(s.parent_id)];
         ws2.addRow([
           rIdx++,
           s.nis || '-',
@@ -1827,9 +1828,10 @@ exports.getUserManagementReport = async (req, res) => {
     const teachers = await getCollection('users_guru').find({}).toArray();
     const parents = await getCollection('users_ortu').find({}).toArray();
     const classes = await getCollection('classes').find({}).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
     const activities = await getCollection('activities').find({}).sort({ created_at: -1 }).toArray();
 
-    // Group active vs passive
     const userLastLogins = {};
     activities.forEach(a => {
       if (a.user_name && !userLastLogins[a.user_name]) {
@@ -1838,7 +1840,7 @@ exports.getUserManagementReport = async (req, res) => {
     });
 
     const rombelSummary = classes.map(c => {
-      const count = students.filter(s => s.class_id?.toString() === c._id.toString()).length;
+      const count = students.filter(s => getIdStr(s.class_id) === getIdStr(c._id)).length;
       return {
         class_name: c.name,
         student_count: count
@@ -1863,6 +1865,7 @@ exports.exportUserManagement = async (req, res) => {
     const students = await getCollection('users_siswa').find({}).toArray();
     const teachers = await getCollection('users_guru').find({}).toArray();
     const classes = await getCollection('classes').find({}).toArray();
+    classes.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
 
     const workbook = new ExcelJS.Workbook();
     const ws = workbook.addWorksheet('Master Akun & Rombel');
@@ -1871,7 +1874,7 @@ exports.exportUserManagement = async (req, res) => {
 
     let i = 1;
     students.forEach(s => {
-      const sClass = classes.find(c => c._id.toString() === s.class_id?.toString());
+      const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
       ws.addRow([i++, s.full_name, 'Siswa', s.nis || '-', sClass ? sClass.name : '-', s.is_active !== false ? 'Aktif' : 'Nonaktif']);
     });
     teachers.forEach(t => {
@@ -1892,10 +1895,10 @@ exports.getEvaluationsReport = async (req, res) => {
     const classes = await getCollection('classes').find({}).toArray();
 
     const evalSummary = assignments.map(a => {
-      const aIdStr = a._id.toString();
-      const subms = submissions.filter(s => s.assignment_id?.toString() === aIdStr);
+      const aIdStr = getIdStr(a._id);
+      const subms = submissions.filter(s => getIdStr(s.assignment_id) === aIdStr);
       const graded = subms.filter(s => s.score !== undefined && s.score !== null).length;
-      const aClass = classes.find(c => c._id.toString() === a.class_id?.toString());
+      const aClass = classes.find(c => getIdStr(c._id) === getIdStr(a.class_id));
 
       return {
         assignment_id: a._id,
@@ -1930,10 +1933,10 @@ exports.exportEvaluations = async (req, res) => {
     ws.getRow(1).font = { bold: true };
 
     assignments.forEach((a, idx) => {
-      const aIdStr = a._id.toString();
-      const subms = submissions.filter(s => s.assignment_id?.toString() === aIdStr);
+      const aIdStr = getIdStr(a._id);
+      const subms = submissions.filter(s => getIdStr(s.assignment_id) === aIdStr);
       const graded = subms.filter(s => s.score !== undefined && s.score !== null).length;
-      const aClass = classes.find(c => c._id.toString() === a.class_id?.toString());
+      const aClass = classes.find(c => getIdStr(c._id) === getIdStr(a.class_id));
 
       ws.addRow([idx + 1, a.title, aClass ? aClass.name : '-', subms.length, graded, subms.length - graded]);
     });

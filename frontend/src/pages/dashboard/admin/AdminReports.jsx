@@ -27,7 +27,9 @@ const AdminReports = () => {
         api.get('/classes'),
         api.get('/admin/reports/audit-trail')
       ]);
-      setClassesList(classRes.data.data || []);
+      const fetchedClasses = classRes.data.data || [];
+      fetchedClasses.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { numeric: true, sensitivity: 'base' }));
+      setClassesList(fetchedClasses);
       
       const logs = activityRes.data.logs || [];
       setRecentActivities(logs.slice(0, 8));
@@ -110,7 +112,7 @@ const AdminReports = () => {
         const res = await api.get(`/admin/reports/academic-master?class_id=${selectedClass}`);
         const data = res.data.students_leger || [];
         title = 'LAPORAN REKAPITULASI LEGER AKADEMIK (AGREGAT SEKOLAH)';
-        headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Total Nilai', 'Rata-Rata', 'Ketuntasan (KKM 75)'];
+        headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Total Nilai', 'Rata-Rata', 'Status Ketuntasan'];
         rows = data.map((st, i) => [
           i + 1,
           st.nis,
@@ -123,6 +125,9 @@ const AdminReports = () => {
       } else if (type === 'attendance-recap') {
         const res = await api.get(`/admin/reports/attendance-recap?class_id=${selectedClass}`);
         const data = res.data.class_summary || [];
+        // Natural sort classes for print PDF
+        data.sort((a, b) => (a.class_name || '').localeCompare(b.class_name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
         title = 'LAPORAN REKAPITULASI PRESENSI / KEHADIRAN SISWA PER KELAS';
         headers = ['No', 'Nama Kelas', 'Jumlah Siswa', 'Hadir', 'Sakit', 'Izin', 'Alpa', '% Kehadiran'];
         rows = data.map((c, i) => [
@@ -138,6 +143,8 @@ const AdminReports = () => {
       } else if (type === 'user-management') {
         const res = await api.get('/admin/reports/user-management');
         const data = res.data.rombel_summary || [];
+        data.sort((a, b) => (a.class_name || '').localeCompare(b.class_name || '', undefined, { numeric: true, sensitivity: 'base' }));
+
         title = 'LAPORAN REKAPITULASI MANAJEMEN AKUN & KELAS (ROMBEL)';
         headers = ['No', 'Nama Kelas (Rombel)', 'Jumlah Siswa Terdaftar'];
         rows = data.map((r, i) => [
@@ -185,29 +192,29 @@ const AdminReports = () => {
           <title>${title}</title>
           <style>
             @media print {
-              body { margin: 1.2cm; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 11pt; }
-              @page { size: A4 portrait; margin: 1.2cm; }
+              body { margin: 1cm; font-family: 'Times New Roman', Times, serif; color: #000; font-size: 11pt; }
+              @page { size: A4 portrait; margin: 1cm; }
             }
-            body { font-family: 'Arial', sans-serif; padding: 20px; color: #333; line-height: 1.4; }
+            body { font-family: 'Times New Roman', Times, serif; padding: 20px; color: #000; line-height: 1.3; }
             
             /* Kop Surat Styles */
-            .kop-container { display: flex; align-items: center; border-bottom: 4px double #000; padding-bottom: 12px; margin-bottom: 20px; }
-            .kop-logo { width: 75px; height: auto; margin-right: 18px; }
+            .kop-container { display: flex; align-items: center; border-bottom: 3px double #000; padding-bottom: 8px; margin-bottom: 20px; }
+            .kop-logo { width: 70px; height: auto; margin-right: 15px; }
             .kop-text { text-align: center; flex-grow: 1; }
-            .kop-text h4 { margin: 0; font-size: 12pt; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; }
-            .kop-text h3 { margin: 2px 0; font-size: 15pt; font-weight: bold; text-transform: uppercase; }
-            .kop-text p { margin: 2px 0; font-size: 9pt; font-style: italic; color: #444; }
+            .kop-text h4 { margin: 0; font-size: 11pt; font-weight: normal; text-transform: uppercase; letter-spacing: 0.5px; }
+            .kop-text h3 { margin: 2px 0; font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+            .kop-text p { margin: 2px 0; font-size: 9pt; font-style: italic; color: #333; }
             
-            .doc-title { text-align: center; font-size: 13pt; font-weight: bold; text-decoration: underline; margin-bottom: 18px; text-transform: uppercase; }
+            .doc-title { text-align: center; font-size: 12pt; font-weight: bold; text-decoration: underline; margin-bottom: 16px; text-transform: uppercase; }
             
-            table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 10pt; }
-            th, td { border: 1px solid #000; padding: 7px 9px; text-align: left; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 10pt; }
+            th, td { border: 1px solid #000; padding: 6px 8px; text-align: left; }
             th { background-color: #f2f2f2; font-weight: bold; text-align: center; text-transform: uppercase; font-size: 9.5pt; }
             .text-center { text-align: center; }
             
-            .sig-container { margin-top: 45px; display: flex; justify-content: flex-end; font-size: 11pt; page-break-inside: avoid; }
-            .sig-box { text-align: center; width: 240px; }
-            .sig-space { height: 65px; }
+            .sig-container { margin-top: 40px; display: flex; justify-content: flex-end; font-size: 11pt; page-break-inside: avoid; }
+            .sig-box { text-align: center; width: 230px; }
+            .sig-space { height: 60px; }
             .sig-name { font-weight: bold; text-decoration: underline; }
           </style>
         </head>
@@ -235,7 +242,7 @@ const AdminReports = () => {
               ${rows.map(row => `
                 <tr>
                   ${row.map((cell, idx) => `
-                    <td class="${idx === 0 || idx === 1 || idx === 3 || idx === 4 || idx === 5 || idx === 6 ? 'text-center' : ''}">${cell}</td>
+                    <td class="${idx === 0 || idx === 1 || idx === 3 || idx === 4 || idx === 5 || idx === 6 || idx === 7 ? 'text-center' : ''}">${cell}</td>
                   `).join('')}
                 </tr>
               `).join('')}
@@ -361,7 +368,7 @@ const AdminReports = () => {
           </div>
           <div className="pillar-card-body">
             <h3>📋 2. Rekap Kehadiran (Presensi) & Siswa Red Flag</h3>
-            <p>Persentase presensi harian/bulanan per kelas dan deteksi otomatis daftar siswa bermasalah (Alpa $\ge 3$ hari) untuk BK & Wali Kelas.</p>
+            <p>Persentase presensi harian/bulanan per kelas dan deteksi otomatis daftar siswa bermasalah (Alpa ≥ 3 hari) untuk BK & Wali Kelas.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('attendance-recap', 'Pratinjau Presensi Kelas & Red Flag')}>
@@ -412,7 +419,7 @@ const AdminReports = () => {
         <div className="pillar-card cbt">
           <div className="pillar-card-header">
             <div className="pillar-icon cbt">
-              <span className="material-symbols-outlined">assignment_turn_in</span>
+              <span className="material-symbols-outlined">fact_check</span>
             </div>
             <div className="pillar-tags">
               <span className="tag">Partisipasi Ujian</span>
@@ -574,7 +581,7 @@ const AdminReports = () => {
                   {/* PRATINJAU PRESENSI & RED FLAG */}
                   {previewType === 'attendance-recap' && (
                     <div>
-                      <h4 className="preview-subtitle">Daftar Siswa Red Flag (Alpa $\ge 3$ / Perlu Perhatian BK)</h4>
+                      <h4 className="preview-subtitle">Daftar Siswa Red Flag (Alpa ≥ 3 / Perlu Perhatian BK)</h4>
                       <div className="table-responsive mb-4">
                         <table className="preview-table redflag">
                           <thead>
@@ -689,7 +696,7 @@ const AdminReports = () => {
                               <th>No</th>
                               <th>Judul Tugas / Evaluasi</th>
                               <th>Kelas Target</th>
-                              <th>Total Pengumpulan</th>
+                              <th>Total Pengumpulkan</th>
                               <th>Sudah Dinilai</th>
                               <th>Belum Dinilai</th>
                             </tr>
