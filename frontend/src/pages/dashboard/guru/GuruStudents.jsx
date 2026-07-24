@@ -217,9 +217,11 @@ const GuruStudents = () => {
                 <thead>
                   <tr>
                     <th>Mata Pelajaran</th>
-                    <th className="text-center">Rata-Rata Tugas (Harian)</th>
-                    <th className="text-center">Nilai ATS (UTS)</th>
-                    <th className="text-center">Nilai AAS (UAS)</th>
+                    <th className="text-center">NH (Tugas)</th>
+                    <th className="text-center">PTS (UTS)</th>
+                    <th className="text-center">PAS (UAS)</th>
+                    <th className="text-center" style={{ background: '#e0f2fe', color: '#0369a1' }}>NA (2:1:1)</th>
+                    <th className="text-center">Predikat</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -228,6 +230,17 @@ const GuruStudents = () => {
                     const examGrades = selectedStudent.grades?.[sub._id.toString()] || {};
                     const utsScore = examGrades.uts;
                     const uasScore = examGrades.uas;
+
+                    const NH = typeof taskScore === 'number' ? taskScore : 75;
+                    const PTS = typeof utsScore === 'number' ? utsScore : NH;
+                    const PAS = typeof uasScore === 'number' ? uasScore : NH;
+                    const NA = Math.round((2 * NH + PTS + PAS) / 4);
+
+                    let predikat = 'C';
+                    if (NA >= 88) predikat = 'A';
+                    else if (NA >= 78) predikat = 'B';
+                    else if (NA >= 75) predikat = 'C';
+                    else predikat = 'D';
 
                     return (
                       <tr key={sub._id}>
@@ -241,6 +254,14 @@ const GuruStudents = () => {
                         <td className={`text-center ${typeof uasScore === 'number' && uasScore < 75 ? 'text-red font-bold' : ''}`}>
                           {uasScore !== undefined && uasScore !== null ? uasScore : '-'}
                         </td>
+                        <td className="text-center font-bold" style={{ color: NA < 75 ? '#dc2626' : '#0284c7', background: '#f8fafc' }}>
+                          {NA}
+                        </td>
+                        <td className="text-center font-bold">
+                          <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '12px', background: predikat === 'A' ? '#dcfce7' : predikat === 'B' ? '#e0f2fe' : predikat === 'C' ? '#fef3c7' : '#fee2e2', color: predikat === 'A' ? '#166534' : predikat === 'B' ? '#0369a1' : predikat === 'C' ? '#92400e' : '#991b1b' }}>
+                            {predikat}
+                          </span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -250,23 +271,15 @@ const GuruStudents = () => {
                     <td className="text-center font-bold">{selectedStudent.task_sum || '-'}</td>
                     <td className="text-center font-bold">{selectedStudent.uts_sum || '-'}</td>
                     <td className="text-center font-bold">{selectedStudent.uas_sum || '-'}</td>
+                    <td colSpan="2" className="text-center font-bold text-blue">Rapor Resmi</td>
                   </tr>
                   <tr className="summary-row">
-                    <td className="font-bold">Rata-Rata Nilai</td>
+                    <td className="font-bold">Rata-Rata Rapor</td>
                     <td className="text-center font-bold text-blue">{selectedStudent.task_avg || '-'}</td>
                     <td className="text-center font-bold text-blue">{selectedStudent.uts_avg || '-'}</td>
                     <td className="text-center font-bold text-blue">{selectedStudent.uas_avg || '-'}</td>
-                  </tr>
-                  <tr className="summary-row">
-                    <td className="font-bold">Peringkat Kelas (Rank)</td>
-                    <td className="text-center font-bold">
-                      <span className="rank-badge-inline">Rank {selectedStudent.rank_task}</span>
-                    </td>
-                    <td className="text-center font-bold">
-                      <span className="rank-badge-inline">Rank {selectedStudent.rank_uts}</span>
-                    </td>
-                    <td className="text-center font-bold">
-                      <span className="rank-badge-inline">Rank {selectedStudent.rank_uas}</span>
+                    <td colSpan="2" className="text-center font-bold text-blue">
+                      Rank #{selectedStudent.rank_task}
                     </td>
                   </tr>
                 </tbody>
