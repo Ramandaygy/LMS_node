@@ -408,16 +408,32 @@ exports.getClassGrades = async (req, res) => {
     const teacherId = req.user.id;
     const role = req.user.role;
 
+    // Fetch class document to get class name if classId is ObjectId
+    const classCol = mongoose.connection.collection('classes');
+    let classDoc = null;
+    let objClassId = null;
+
+    if (mongoose.Types.ObjectId.isValid(classId)) {
+      objClassId = new mongoose.Types.ObjectId(classId);
+      classDoc = await classCol.findOne({ _id: objClassId });
+    } else {
+      classDoc = await classCol.findOne({ name: classId });
+    }
+
+    const classConditions = [];
+    if (objClassId) classConditions.push({ class_id: objClassId });
+    classConditions.push({ class_id: classId.toString() });
+    if (classDoc && classDoc.name) {
+      classConditions.push({ class_id: classDoc.name });
+      classConditions.push({ class_name: classDoc.name });
+    }
+
     // Fetch students of class
     const studentCol = mongoose.connection.collection('users_siswa');
     const students = await studentCol.find({
-      role: 'siswa',
-      is_active: true,
-      $or: [
-        { class_id: new mongoose.Types.ObjectId(classId) },
-        { class_id: classId }
-      ]
-    }).toArray();
+      is_active: { $ne: false },
+      $or: classConditions
+    }).sort({ full_name: 1 }).toArray();
 
     if (!students || students.length === 0) {
       return res.status(200).json({ success: true, data: [] });
