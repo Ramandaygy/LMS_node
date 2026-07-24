@@ -29,9 +29,22 @@ exports.getBinaanStudents = async (req, res) => {
       return res.status(200).json({ success: true, students: [], subjects: [] });
     }
 
-    // 3. Fetch all active subjects
+    // 3. Fetch teacher profile for assigned subjects & classes
+    const guruCol = mongoose.connection.collection('users_guru');
+    const guru = await guruCol.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
+
     const Subject = require('../models/Subject');
     const subjects = await Subject.find({ is_active: true }).lean();
+
+    const assignedSubjectIds = (guru?.subjects || []).map((id) => id.toString());
+    const teacherSubjects = assignedSubjectIds.length > 0
+      ? subjects.filter((s) => assignedSubjectIds.includes(s._id.toString()))
+      : subjects;
+
+    const assignedClassIds = (guru?.classes || []).map((id) => id.toString());
+    const teacherClassesDocs = assignedClassIds.length > 0
+      ? await classCol.find({ _id: { $in: assignedClassIds.map((id) => new mongoose.Types.ObjectId(id)) } }).toArray()
+      : classes;
 
     // 4. Fetch grades for these students
     const Grade = require('../models/Grade');
@@ -252,7 +265,9 @@ exports.getBinaanStudents = async (req, res) => {
     return res.status(200).json({
       success: true,
       students: studentsData,
-      subjects
+      subjects,
+      teacher_subjects: teacherSubjects,
+      teacher_classes: teacherClassesDocs.map(c => ({ id: c._id.toString(), name: c.name }))
     });
 
   } catch (err) {

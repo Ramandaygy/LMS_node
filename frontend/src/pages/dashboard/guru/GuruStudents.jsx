@@ -7,6 +7,8 @@ const GuruStudents = () => {
 
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
+  const [teacherClasses, setTeacherClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState('');
@@ -37,10 +39,11 @@ const GuruStudents = () => {
   }, []);
 
   useEffect(() => {
-    if (subjects.length > 0 && !selectedSubjectFilter) {
-      setSelectedSubjectFilter(subjects[0]._id);
+    const activeSubjectList = teacherSubjects.length > 0 ? teacherSubjects : subjects;
+    if (activeSubjectList.length > 0 && !selectedSubjectFilter) {
+      setSelectedSubjectFilter(activeSubjectList[0]._id);
     }
-  }, [subjects, selectedSubjectFilter]);
+  }, [teacherSubjects, subjects, selectedSubjectFilter]);
 
   const fetchMyStudents = async () => {
     try {
@@ -50,11 +53,17 @@ const GuruStudents = () => {
       const classList = Array.from(classSet).map((name) => ({ name, value: name }));
       setAvailableClasses(classList);
       setStudents(studentsData);
-      if (response.data.subjects) {
-        setSubjects(response.data.subjects);
-        if (response.data.subjects.length > 0) {
-          setSelectedSubjectFilter(response.data.subjects[0]._id);
-        }
+
+      const allSub = response.data.subjects || [];
+      const tSub = response.data.teacher_subjects || allSub;
+      const tCls = response.data.teacher_classes || [];
+
+      setSubjects(allSub);
+      setTeacherSubjects(tSub);
+      setTeacherClasses(tCls);
+
+      if (tSub.length > 0) {
+        setSelectedSubjectFilter(tSub[0]._id);
       }
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -135,7 +144,8 @@ const GuruStudents = () => {
     return matchesSearch && matchesClass;
   });
 
-  const selectedSubjectDoc = subjects.find(s => s._id.toString() === selectedSubjectFilter) || subjects[0];
+  const activeSubjectsForFilter = teacherSubjects.length > 0 ? teacherSubjects : subjects;
+  const selectedSubjectDoc = activeSubjectsForFilter.find((s) => s._id.toString() === selectedSubjectFilter) || activeSubjectsForFilter[0];
 
   if (loading) return <div className="loading">Memuat data siswa...</div>;
 
@@ -211,7 +221,7 @@ const GuruStudents = () => {
             color: activeTab === 'rapor' ? '#2563eb' : '#64748b',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>assignment_turned_in</span>
@@ -231,7 +241,7 @@ const GuruStudents = () => {
             color: activeTab === 'tugas' ? '#2563eb' : '#64748b',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
           }}
         >
           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>menu_book</span>
@@ -253,21 +263,25 @@ const GuruStudents = () => {
         </div>
 
         <div className="selectors-group">
+          {/* Class Filter */}
           <div className="filter-select-wrapper">
             <span className="select-icon material-symbols-outlined">class</span>
             <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
-              <option value="">Semua Kelas</option>
-              {availableClasses.map((cls) => (
-                <option key={cls.value} value={cls.value}>{cls.name}</option>
+              <option value="">Semua Kelas Diampu</option>
+              {(teacherClasses.length > 0 ? teacherClasses : availableClasses).map((cls) => (
+                <option key={cls.id || cls.value} value={cls.name || cls.value}>
+                  {cls.name || cls.value}
+                </option>
               ))}
             </select>
           </div>
 
-          {activeTab === 'tugas' && subjects.length > 0 && (
+          {/* Subject Filter for Tab 2 (Only Teacher Assigned Subjects) */}
+          {activeTab === 'tugas' && activeSubjectsForFilter.length > 0 && (
             <div className="filter-select-wrapper">
               <span className="select-icon material-symbols-outlined">subject</span>
-              <select value={selectedSubjectFilter} onChange={(e) => setSelectedSubjectFilter(e.target.value)} className="modern-select" style={{ minWidth: '220px' }}>
-                {subjects.map((s) => (
+              <select value={selectedSubjectFilter} onChange={(e) => setSelectedSubjectFilter(e.target.value)} className="modern-select" style={{ minWidth: '240px' }}>
+                {activeSubjectsForFilter.map((s) => (
                   <option key={s._id} value={s._id}>{s.name}</option>
                 ))}
               </select>
@@ -368,7 +382,7 @@ const GuruStudents = () => {
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '24px' }}>menu_book</span>
             <div style={{ fontSize: '14px', color: '#14532d', fontWeight: '600' }}>
-              Menampilkan Rincian Penilaian Mata Pelajaran: <strong style={{ color: '#0f172a' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
+              Menampilkan Rincian Penilaian Mata Pelajaran Diampu: <strong style={{ color: '#0f172a' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
             </div>
           </div>
 
@@ -391,7 +405,7 @@ const GuruStudents = () => {
             <tbody>
               {filteredStudents.length > 0 ? (
                 filteredStudents.map((student, idx) => {
-                  const subId = selectedSubjectFilter;
+                  const subId = selectedSubjectDoc?._id?.toString();
                   const nh = student.tasks?.[subId];
                   const pts = student.grades?.[subId]?.uts;
                   const pas = student.grades?.[subId]?.uas;

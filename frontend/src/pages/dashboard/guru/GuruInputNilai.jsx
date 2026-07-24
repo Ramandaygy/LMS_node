@@ -39,22 +39,31 @@ const GuruInputNilai = () => {
 
   const fetchClassesAndSubjects = async () => {
     try {
-      const [classesRes, subjectsRes] = await Promise.all([
+      const [classesRes, subjectsRes, binaanRes] = await Promise.all([
         api.get('/classes'),
         api.get('/subjects'),
+        api.get('/guru/students'),
       ]);
 
-      const classList = classesRes.data.data || [];
-      const subjectList = subjectsRes.data.data || [];
+      const allClassList = classesRes.data.data || [];
+      const allSubjectList = subjectsRes.data.data || [];
+      const teacherSub = binaanRes.data.teacher_subjects || [];
+      const teacherCls = binaanRes.data.teacher_classes || [];
 
-      setClasses(classList);
-      setSubjects(subjectList);
+      const finalSubjects = teacherSub.length > 0 ? teacherSub : allSubjectList;
+      const teacherClsIds = teacherCls.map((c) => c.id);
+      const finalClasses = teacherClsIds.length > 0
+        ? allClassList.filter((c) => teacherClsIds.includes(c._id.toString()))
+        : allClassList;
 
-      if (classList.length > 0) setSelectedClass(classList[0]._id);
-      if (subjectList.length > 0) setSelectedSubject(subjectList[0]._id);
+      setClasses(finalClasses);
+      setSubjects(finalSubjects);
+
+      if (finalClasses.length > 0) setSelectedClass(finalClasses[0]._id);
+      if (finalSubjects.length > 0) setSelectedSubject(finalSubjects[0]._id);
     } catch (err) {
       console.error('Error fetching master classes/subjects:', err);
-      setMessage({ type: 'error', text: 'Gagal memuat daftar kelas dan mata pelajaran.' });
+      setMessage({ type: 'error', text: 'Gagal memuat daftar kelas dan mata pelajaran profil guru.' });
     }
   };
 
