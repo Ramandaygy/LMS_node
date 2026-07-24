@@ -827,7 +827,15 @@ exports.importSchedules = async (req, res) => {
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
-    const worksheet = workbook.getWorksheet(1);
+    // Find the worksheet containing schedule data
+    let worksheet = workbook.getWorksheet(1);
+    for (const ws of workbook.worksheets) {
+      const sheetNameUpper = ws.name.toUpperCase();
+      if (sheetNameUpper.includes('JADWAL') || sheetNameUpper.includes('KBM') || sheetNameUpper.includes('GENAP') || sheetNameUpper.includes('GANJIL')) {
+        worksheet = ws;
+        break;
+      }
+    }
     
     const classes = await getCollection('classes').find({}).toArray();
     const subjects = await getCollection('subjects').find({}).toArray();
@@ -839,11 +847,11 @@ exports.importSchedules = async (req, res) => {
     let isGridFormat = false;
     let gridHeaderRow = 6;
     
-    for (let r = 1; r <= 10; r++) {
+    for (let r = 1; r <= 15; r++) {
       const row = worksheet.getRow(r);
-      for (let c = 1; c <= 20; c++) {
-        const val = row.getCell(c).value?.toString()?.toUpperCase()?.trim();
-        if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX'))) {
+      for (let c = 1; c <= 30; c++) {
+        const val = (row.getCell(c).text || row.getCell(c).value?.toString() || '').toUpperCase().trim();
+        if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX') || val.includes('SEMESTER'))) {
           isGridFormat = true;
           gridHeaderRow = r;
           break;
@@ -866,9 +874,12 @@ exports.importSchedules = async (req, res) => {
       const gradeRow = worksheet.getRow(gridHeaderRow);
       const classRow = worksheet.getRow(gridHeaderRow + 1);
 
-      // Pindai dari kolom 4 (D) ke kanan
-      for (let col = 4; col <= 45; col++) {
-        const gradeVal = gradeRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
+      // Pindai dari kolom 1 ke kolom 50
+      for (let col = 1; col <= 50; col++) {
+        let gradeVal = gradeRow.getCell(col).text || gradeRow.getCell(col).value?.toString() || '';
+        if (typeof gradeVal === 'object') gradeVal = gradeVal.result || gradeVal.text || '';
+        gradeVal = gradeVal.toUpperCase().trim();
+
         if (gradeVal) {
           if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
             currentGrade = '8';
@@ -879,13 +890,16 @@ exports.importSchedules = async (req, res) => {
           }
         }
 
-        const classLetter = classRow.getCell(col).value?.toString()?.toUpperCase()?.trim();
-        if (classLetter) {
-          let className = classLetter;
-          if (!/^\d/.test(classLetter) && currentGrade) {
-            className = `${currentGrade}${classLetter}`;
+        let classCellText = classRow.getCell(col).text || classRow.getCell(col).value?.toString() || '';
+        if (typeof classCellText === 'object') classCellText = classCellText.result || classCellText.text || '';
+        classCellText = classCellText.toUpperCase().trim();
+
+        if (classCellText) {
+          let className = classCellText;
+          if (/^[A-Z]$/.test(classCellText) && currentGrade) {
+            className = `${currentGrade}${classCellText}`;
           }
-          const foundClass = classes.find(c => normalize(c.name) === normalize(className));
+          const foundClass = classes.find(c => normalize(c.name) === normalize(className) || normalize(c.name) === normalize(classCellText));
           if (foundClass) {
             colToClassMap[col] = foundClass._id;
           }
@@ -897,49 +911,61 @@ exports.importSchedules = async (req, res) => {
       for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
         
-        // Kolom 1 (A) adalah Hari (bisa jadi merged/kosong)
-        const dayVal = row.getCell(1).value?.toString()?.toUpperCase()?.trim();
-        if (dayVal && validDays.includes(dayVal)) {
-          currentDay = dayVal;
+        // Kolom 1 (A) atau Kolom 2 (B) untuk Hari (bisa jadi merged/kosong)
+        let dayVal = row.getCell(1).text || row.getCell(1).value?.toString() || row.getCell(2).text || '';
+        if (typeof dayVal === 'object') dayVal = dayVal.result || dayVal.text || '';
+        dayVal = dayVal.toUpperCase().trim();
+
+        const matchedDay = validDays.find(d => dayVal.includes(d));
+        if (matchedDay) {
+          currentDay = matchedDay;
         }
 
         if (!currentDay) continue;
 
         // Kolom 2 (B) adalah Jam Ke (period), Kolom 3 (C) adalah Waktu
-        const periodVal = row.getCell(2).value?.toString()?.trim();
-        const timeVal = row.getCell(3).value?.toString()?.trim();
+        let periodVal = row.getCell(2).text || row.getCell(2).value?.toString() || '';
+        let timeVal = row.getCell(3).text || row.getCell(3).value?.toString() || '';
+        if (typeof timeVal === 'object') timeVal = timeVal.result || timeVal.text || '';
 
         if (!timeVal) continue;
 
-        const cleanTimeVal = timeVal.toUpperCase();
-        if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT') || cleanTimeVal.includes('JUMAT')) {
+        const cleanTimeVal = timeVal.toString().toUpperCase();
+        if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
           continue;
         }
 
-        const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
+        const timeParts = timeVal.toString().split(/[-–]/).map(t => t.trim().replace('.', ':'));
         if (timeParts.length < 2) continue;
         const startTime = timeParts[0];
         const endTime = timeParts[1];
         const timeSlotNum = Number(periodVal) || 1;
 
         for (const [colIndex, classId] of Object.entries(colToClassMap)) {
-          const codeVal = row.getCell(Number(colIndex)).value?.toString()?.trim();
+          let codeVal = row.getCell(Number(colIndex)).text || row.getCell(Number(colIndex)).value?.toString() || '';
+          if (typeof codeVal === 'object') codeVal = codeVal.result || codeVal.text || '';
+          codeVal = codeVal.trim();
+
           if (!codeVal || codeVal === '-' || codeVal === '/' || codeVal === '.') {
             continue;
           }
 
           const cleanCode = codeVal.toUpperCase();
-          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || cleanCode.includes('JUMAT') || cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
+          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
             continue;
           }
 
-          const foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toLowerCase().trim() === codeVal.toLowerCase());
+          const foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toString().toLowerCase().trim() === codeVal.toLowerCase());
           if (!foundTeacher) {
             errors.push(`Baris ${r}: Guru dengan kode '${codeVal}' tidak ditemukan`);
             continue;
           }
 
-          const subjectId = foundTeacher.subjects && foundTeacher.subjects[0];
+          let subjectId = (foundTeacher.subjects && foundTeacher.subjects[0]) || foundTeacher.subject_id || foundTeacher.subject;
+          if (!subjectId && subjects.length > 0) {
+            subjectId = subjects[0]._id;
+          }
+
           if (!subjectId) {
             errors.push(`Baris ${r}: Guru '${foundTeacher.full_name}' tidak memiliki bidang studi`);
             continue;
@@ -1062,7 +1088,13 @@ exports.importSchedules = async (req, res) => {
     }
 
     if (schedulesToInsert.length > 0) {
+      await getCollection('schedules').deleteMany({ academic_year_id: activeYear._id });
       await getCollection('schedules').insertMany(schedulesToInsert);
+
+      // Auto-sync teachers' assigned classes and subjects
+      const scheduleService = require('../services/scheduleService');
+      await scheduleService.syncAllTeachers();
+
       try {
         await logActivity(req, 'Import Jadwal', `Mengimport ${schedulesToInsert.length} jadwal pelajaran dari file Excel.`);
       } catch (logErr) {

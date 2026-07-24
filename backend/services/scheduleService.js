@@ -13,7 +13,7 @@ async function syncTeacherClassesAndSubjects(teacherIds) {
     const guruCollection = mongoose.connection.collection('users_guru');
     
     for (const tid of teacherIds) {
-      if (!tid) continue;
+      if (!tid || !mongoose.Types.ObjectId.isValid(tid.toString())) continue;
       const objTid = new mongoose.Types.ObjectId(tid.toString());
       
       // Ambil seluruh jadwal guru ini
@@ -21,11 +21,11 @@ async function syncTeacherClassesAndSubjects(teacherIds) {
       
       // Kumpulkan class_id unik
       const uniqueClasses = [...new Set(schedules.map(s => s.class_id ? s.class_id.toString() : null).filter(Boolean))];
-      const classObjectIds = uniqueClasses.map(id => new mongoose.Types.ObjectId(id));
+      const classObjectIds = uniqueClasses.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
       
       // Kumpulkan subject_id unik
       const uniqueSubjects = [...new Set(schedules.map(s => s.subject_id ? s.subject_id.toString() : null).filter(Boolean))];
-      const subjectObjectIds = uniqueSubjects.map(id => new mongoose.Types.ObjectId(id));
+      const subjectObjectIds = uniqueSubjects.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
       
       // Update data guru
       await guruCollection.updateOne(
