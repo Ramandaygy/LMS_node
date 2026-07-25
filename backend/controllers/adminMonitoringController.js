@@ -434,9 +434,12 @@ async function computeLegerData(classId) {
       const studentIdStr = st._id.toString();
 
       // Attendance rate
-      const attendances = await attendancesCol.find({ student_id: studentIdObj }).toArray();
+      const attendances = await attendancesCol.find({ student_id: { $in: [studentIdObj, studentIdStr] } }).toArray();
       const totalAtt = attendances.length;
-      const presentAtt = attendances.filter((a) => a.status === 'present').length;
+      const presentAtt = attendances.filter((a) => {
+        const st = (a.status || '').toLowerCase();
+        return st === 'hadir' || st === 'present';
+      }).length;
       const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 100;
 
       let totalNASum = 0;

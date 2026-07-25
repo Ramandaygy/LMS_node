@@ -56,7 +56,10 @@ async function getStudentData(studentId) {
     student_id: { $in: [objStudentId, strStudentId] }
   }).toArray();
   const totalDays = attendances.length;
-  const presentDays = attendances.filter(a => a.status === 'present').length;
+  const presentDays = attendances.filter(a => {
+    const st = (a.status || '').toLowerCase();
+    return st === 'hadir' || st === 'present';
+  }).length;
   const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
 
   // 3. Get material completion

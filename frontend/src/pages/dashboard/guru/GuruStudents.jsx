@@ -35,6 +35,15 @@ const GuruStudents = () => {
     { id: 2, name: 'PMR / Olahraga', predikat: 'Baik', note: 'Aktif dan disiplin mengikuti kegiatan latihan mingguan.' }
   ]);
 
+  // Dynamic & Editable Rapor Kop / Identity States (Connected to Admin Academic Year Data)
+  const [raporSchoolName, setRaporSchoolName] = useState('SMP NEGERI 1 SURADADI');
+  const [raporSchoolAddress, setRaporSchoolAddress] = useState('Jl. Raya Purwahamba No. 76, Suradadi, Kab. Tegal 52182');
+  const [raporPhase, setRaporPhase] = useState('D');
+  const [raporSemester, setRaporSemester] = useState('2 (Genap)');
+  const [raporAcademicYear, setRaporAcademicYear] = useState('2025/2026');
+  const [raporNisn, setRaporNisn] = useState('0081293810');
+  const [showKopEditForm, setShowKopEditForm] = useState(false);
+
   useEffect(() => {
     fetchMyStudents();
   }, []);
@@ -48,7 +57,11 @@ const GuruStudents = () => {
 
   const fetchMyStudents = async () => {
     try {
-      const response = await api.get('/guru/students');
+      const [response, ayRes] = await Promise.all([
+        api.get('/guru/students'),
+        api.get('/academic-years').catch(() => ({ data: [] }))
+      ]);
+
       const studentsData = response.data.students || [];
       const hrClass = response.data.homeroom_class || null;
       const allSub = response.data.subjects || [];
@@ -60,6 +73,14 @@ const GuruStudents = () => {
       setSubjects(allSub);
       setTeacherSubjects(tSub);
       setTeacherClasses(tCls);
+
+      // Auto-connect with Admin Active Academic Year
+      const ayList = ayRes.data || [];
+      const activeAy = ayList.find(a => a.is_active);
+      if (activeAy) {
+        setRaporAcademicYear(activeAy.name || '2025/2026');
+        setRaporSemester(activeAy.semester ? `${activeAy.semester}` : '2 (Genap)');
+      }
 
       if (tSub.length > 0) {
         setSelectedSubjectFilter(tSub[0]._id);
@@ -498,7 +519,26 @@ const GuruStudents = () => {
                   Format Resmi e-Rapor Kemendikbudristek (Formula 2:1:1: NA = (2*NH + PTS + PAS)/4)
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setShowKopEditForm(!showKopEditForm)}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    background: showKopEditForm ? '#cbd5e1' : '#eff6ff',
+                    color: showKopEditForm ? '#0f172a' : '#2563eb',
+                    border: '1px solid #bfdbfe',
+                    fontWeight: '700',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    align-items: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_note</span>
+                  {showKopEditForm ? 'Tutup Edit Kop' : '✏️ Edit Kop & Identitas'}
+                </button>
                 <button
                   onClick={handlePrintRapor}
                   style={{ padding: '8px 18px', borderRadius: '10px', background: '#16a34a', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
@@ -515,12 +555,48 @@ const GuruStudents = () => {
               </div>
             </div>
 
+            {/* EXPANDABLE EDIT KOP & IDENTITAS FORM (NO PRINT) */}
+            {showKopEditForm && (
+              <div className="no-print" style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #94a3b8' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#2563eb' }}>tune</span>
+                  Edit Kop Surat & Identitas Rapor (Otomatis Terhubung Data Admin)
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', fontSize: '12px' }}>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Nama Sekolah</label>
+                    <input type="text" value={raporSchoolName} onChange={e => setRaporSchoolName(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Alamat Sekolah</label>
+                    <input type="text" value={raporSchoolAddress} onChange={e => setRaporSchoolAddress(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Tahun Pelajaran (Admin)</label>
+                    <input type="text" value={raporAcademicYear} onChange={e => setRaporAcademicYear(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#2563eb' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Semester (Admin)</label>
+                    <input type="text" value={raporSemester} onChange={e => setRaporSemester(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#2563eb' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Fase</label>
+                    <input type="text" value={raporPhase} onChange={e => setRaporPhase(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>NISN Siswa</label>
+                    <input type="text" value={raporNisn} onChange={e => setRaporNisn(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* RAPOR HEADER / KOP */}
             <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>
                 RAPOR INTRAKURIKULER
               </h2>
-              <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>SMP NEGERI 1 SURADADI</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{raporSchoolName}</div>
             </div>
 
             {/* IDENTITY HEADER GRID */}
@@ -528,10 +604,10 @@ const GuruStudents = () => {
               <div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
-                    <tr><td style={{ width: '120px', padding: '3px 0' }}>Nama Sekolah</td><td>: SMP NEGERI 1 SURADADI</td></tr>
-                    <tr><td style={{ padding: '3px 0' }}>Alamat</td><td>: Jl. Raya Suradadi No. 12</td></tr>
+                    <tr><td style={{ width: '120px', padding: '3px 0' }}>Nama Sekolah</td><td>: {raporSchoolName}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Alamat</td><td>: {raporSchoolAddress}</td></tr>
                     <tr><td style={{ padding: '3px 0' }}>Nama Siswa</td><td>: <strong>{selectedStudent.full_name}</strong></td></tr>
-                    <tr><td style={{ padding: '3px 0' }}>NIS / NISN</td><td>: {selectedStudent.nis || '-'} / 0081293810</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>NIS / NISN</td><td>: {selectedStudent.nis || '-'} / {raporNisn}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -539,9 +615,9 @@ const GuruStudents = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     <tr><td style={{ width: '120px', padding: '3px 0' }}>Kelas</td><td>: <strong>{selectedStudent.class_name}</strong></td></tr>
-                    <tr><td style={{ padding: '3px 0' }}>Fase</td><td>: D</td></tr>
-                    <tr><td style={{ padding: '3px 0' }}>Semester</td><td>: 1 (Ganjil)</td></tr>
-                    <tr><td style={{ padding: '3px 0' }}>Tahun Pelajaran</td><td>: 2024/2025</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Fase</td><td>: {raporPhase}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Semester</td><td>: {raporSemester}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Tahun Pelajaran</td><td>: {raporAcademicYear}</td></tr>
                   </tbody>
                 </table>
               </div>
