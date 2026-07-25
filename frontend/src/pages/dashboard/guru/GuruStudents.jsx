@@ -532,7 +532,7 @@ const GuruStudents = () => {
                     fontSize: '13px',
                     cursor: 'pointer',
                     display: 'flex',
-                    align-items: 'center',
+                    alignItems: 'center',
                     gap: '6px'
                   }}
                 >
