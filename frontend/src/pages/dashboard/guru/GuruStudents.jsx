@@ -22,6 +22,7 @@ const GuruStudents = () => {
 
   // Editable Rapor Fields State
   const [customCompetencies, setCustomCompetencies] = useState({});
+  const [customPredikats, setCustomPredikats] = useState({});
   const [homeroomNote, setHomeroomNote] = useState('Fokus dan seriuslah dalam belajar di kelas ya. Hindari melakukan hal yang tidak bermanfaat dan mengganggu kegiatan belajarmu. Semangat dan semoga sukses!');
   const [placeDate, setPlaceDate] = useState('Suradadi, 20 Desember 2024');
   const [teacherName, setTeacherName] = useState('Muzayin, M.Pd.I');
