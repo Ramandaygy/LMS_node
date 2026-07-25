@@ -95,6 +95,22 @@ const GuruStudents = () => {
     }
   };
 
+  const calculatePredikat = (na) => {
+    if (typeof na !== 'number') return '-';
+    if (na >= 95) return 'A+';
+    if (na >= 90) return 'A';
+    if (na >= 85) return 'A-';
+    if (na >= 82) return 'B+';
+    if (na >= 78) return 'B';
+    if (na >= 75) return 'B-';
+    if (na >= 70) return 'C+';
+    if (na >= 65) return 'C';
+    if (na >= 60) return 'C-';
+    if (na >= 55) return 'D+';
+    if (na >= 50) return 'D';
+    return 'D-';
+  };
+
   const generateCapaianKompetensi = (na, subjectName) => {
     if (typeof na === 'number') {
       if (na >= 88) {
@@ -113,19 +129,29 @@ const GuruStudents = () => {
   const handleDetailClick = (student) => {
     setSelectedStudent(student);
 
-    // Initialize custom competencies for each subject based on auto-calculation
+    // Initialize custom competencies & predikats for each subject based on auto-calculation
     const initialComp = {};
+    const initialPred = {};
     subjects.forEach((sub) => {
       const na = student.na_grades?.[sub._id.toString()];
       initialComp[sub._id] = generateCapaianKompetensi(na, sub.name);
+      initialPred[sub._id] = calculatePredikat(na);
     });
 
     setCustomCompetencies(initialComp);
+    setCustomPredikats(initialPred);
     setShowDetailModal(true);
   };
 
   const handleCompetencyChange = (subId, value) => {
     setCustomCompetencies((prev) => ({
+      ...prev,
+      [subId]: value,
+    }));
+  };
+
+  const handlePredikatChange = (subId, value) => {
+    setCustomPredikats((prev) => ({
       ...prev,
       [subId]: value,
     }));
@@ -631,9 +657,10 @@ const GuruStudents = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '28px', border: '1px solid #000' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '40px' }}>No</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '210px', textAlign: 'left' }}>Mata Pelajaran</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '90px' }}>Nilai Akhir (NA)</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '35px' }}>No</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '180px', textAlign: 'left' }}>Mata Pelajaran</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '85px' }}>Nilai Akhir (NA)</th>
+                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '75px', textAlign: 'center' }}>Predikat / Range</th>
                   <th style={{ padding: '10px', textAlign: 'left' }}>Capaian Kompetensi</th>
                 </tr>
               </thead>
@@ -641,6 +668,7 @@ const GuruStudents = () => {
                 {subjects.map((sub, idx) => {
                   const na = selectedStudent.na_grades?.[sub._id.toString()];
                   const displayNA = na !== undefined && na !== null ? na : '-';
+                  const pred = customPredikats[sub._id] || calculatePredikat(na);
 
                   return (
                     <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
@@ -648,6 +676,24 @@ const GuruStudents = () => {
                       <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
                       <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800', fontSize: '13px' }}>
                         {displayNA}
+                      </td>
+                      <td style={{ padding: '4px 6px', borderRight: '1px solid #000', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          value={pred}
+                          onChange={(e) => handlePredikatChange(sub._id, e.target.value)}
+                          style={{
+                            width: '100%',
+                            textAlign: 'center',
+                            fontWeight: '900',
+                            fontSize: '13px',
+                            border: '1px dashed #cbd5e1',
+                            borderRadius: '4px',
+                            padding: '3px 0',
+                            color: pred.startsWith('A') ? '#047857' : pred.startsWith('B') ? '#1d4ed8' : pred.startsWith('C') ? '#a16207' : pred.startsWith('D') ? '#b91c1c' : '#0f172a',
+                            background: pred.startsWith('A') ? '#ecfdf5' : pred.startsWith('B') ? '#eff6ff' : pred.startsWith('C') ? '#fefce8' : pred.startsWith('D') ? '#fef2f2' : '#ffffff'
+                          }}
+                        />
                       </td>
                       <td style={{ padding: '6px 8px' }}>
                         <textarea
