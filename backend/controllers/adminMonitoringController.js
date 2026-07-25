@@ -496,13 +496,13 @@ async function computeLegerData(classId) {
         const PTS = ptsGrade ? ptsGrade.score : null;
         const PAS = pasGrade ? pasGrade.score : null;
 
-        // Formula 2 : 1 : 1 -> NA = (2*NH + PTS + PAS) / 4
+        // Formula 1 : 1 : 1 -> NA = (NH + PTS + PAS) / 3
         let NA = null;
         if (NH !== null || PTS !== null || PAS !== null) {
           const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
           const ptsVal = PTS !== null ? PTS : nhVal;
           const pasVal = PAS !== null ? PAS : nhVal;
-          NA = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+          NA = Math.round((nhVal + ptsVal + pasVal) / 3);
         }
 
         let predikat = '-';

@@ -126,7 +126,7 @@ async function getStudentData(studentId) {
       const nhVal = subNH !== null ? subNH : (pts !== null ? pts : (pas !== null ? pas : 0));
       const ptsVal = pts !== null ? pts : nhVal;
       const pasVal = pas !== null ? pas : nhVal;
-      subAvgScore = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+      subAvgScore = Math.round((nhVal + ptsVal + pasVal) / 3);
     }
 
     return {

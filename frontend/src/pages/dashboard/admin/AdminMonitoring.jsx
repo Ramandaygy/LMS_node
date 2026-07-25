@@ -329,9 +329,9 @@ const AdminMonitoring = () => {
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '28px' }}>calculate</span>
             <div>
-              <div style={{ fontWeight: '800', color: '#1e3a8a', fontSize: '14px' }}>Formula Nilai Akhir Mapel (NA) Standar SMP (2 : 1 : 1):</div>
+              <div style={{ fontWeight: '800', color: '#1e3a8a', fontSize: '14px' }}>Formula Nilai Akhir Rapor (NA) Kurikulum (Tugas Harian + PTS + PAS ÷ 3):</div>
               <div style={{ fontSize: '13px', color: '#1e40af', marginTop: '2px' }}>
-                NA = (2 × NH + PTS + PAS) / 4 — di mana NH = Rata-Rata Tugas & Kuis Harian, PTS = Nilai UTS, PAS = Nilai UAS. Rata-Rata Rapor = Rata-rata dari seluruh NA Mata Pelajaran.
+                NA = (NH + PTS + PAS) / 3 — di mana NH = Tugas Harian, PTS = Sumatif Tengah Semester, PAS = Sumatif Akhir Semester.
               </div>
             </div>
           </div>

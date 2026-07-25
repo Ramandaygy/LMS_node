@@ -543,7 +543,7 @@ const GuruStudents = () => {
                   📜 Edit & Pratinjau Rapor Kurikulum Merdeka
                 </h3>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>
-                  Format Resmi e-Rapor Kemendikbudristek (Formula 2:1:1: NA = (2*NH + PTS + PAS)/4)
+                  Format Resmi Rapor Kurikulum Merdeka (Formula: NA = (Tugas Harian + PTS + PAS) / 3)
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>

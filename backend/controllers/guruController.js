@@ -200,7 +200,7 @@ exports.getBinaanStudents = async (req, res) => {
           const nhVal = nhScore !== null ? nhScore : (ptsScore !== null ? ptsScore : (pasScore !== null ? pasScore : 0));
           const ptsVal = ptsScore !== null ? ptsScore : nhVal;
           const pasVal = pasScore !== null ? pasScore : nhVal;
-          const na = Math.round((2 * nhVal + ptsVal + pasVal) / 4);
+          const na = Math.round((nhVal + ptsVal + pasVal) / 3);
 
           subjectNA[subId] = na;
           naSum += na;
