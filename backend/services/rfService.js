@@ -1,153 +1,53 @@
-const { RandomForestClassifier } = require('ml-random-forest');
-
-const fs = require('fs');
-const path = require('path');
-
-// Singleton untuk menyimpan instance model yang telah di-train
-let rfClassifier = null;
-
 /**
- * Mendapatkan dataset 922 data akademik dari file JSON (ats_dataset.json).
- * Jika file belum ada, sistem akan men-generate data dengan pola realistis
- * dan menyimpannya secara permanen agar data latih konsisten.
+ * Rule-Based Academic Risk Classifier Engine
+ * LMS SMP Negeri 1 Suradadi
+ * 
+ * Klasifikasi Risiko Perkembangan Belajar Siswa Berbasis Aturan Ambang Batas Resmi (KKM 75):
+ * - High Risk   : Rata-rata Nilai < 60 OR Presensi < 70% OR Penyelesaian Materi < 50%
+ * - Medium Risk : Rata-rata Nilai < 75 (Di bawah KKM) OR Presensi < 85% OR Penyelesaian Materi < 75%
+ * - Low Risk    : Tuntas KKM (≥75) & Presensi Disiplin (≥85%) & Materi (≥75%)
  */
-function getOrGenerateDataset() {
-  const filePath = path.join(__dirname, '../config/ats_dataset.json');
-  
-  // Jika file dataset sudah ada, baca dan kembalikan datanya
-  if (fs.existsSync(filePath)) {
-    try {
-      const rawData = fs.readFileSync(filePath, 'utf8');
-      const parsed = JSON.parse(rawData);
-      if (parsed.data && parsed.labels && parsed.data.length === 922) {
-        return parsed;
-      }
-    } catch (e) {
-      console.warn('[ML] Gagal membaca ats_dataset.json, membuat ulang...');
-    }
-  }
 
-  // Jika belum ada, buat 922 data dengan distribusi realistis anak SMP N 1 Suradadi
-  const data = [];
-  const labels = [];
-  
-  for (let i = 0; i < 922; i++) {
-    let avgScore, attendanceRate, materialCompletionRate, quizScore, label;
-    
-    // Distribusi kelas yang seimbang (33% untuk masing-masing kelas)
-    const r = i % 3;
-    if (r === 2) {
-      // Low Risk (Aman)
-      avgScore = Math.floor(Math.random() * (100 - 75 + 1)) + 75; // 75 - 100
-      attendanceRate = Math.floor(Math.random() * (100 - 85 + 1)) + 85; // 85 - 100
-      materialCompletionRate = Math.floor(Math.random() * (100 - 75 + 1)) + 75; // 75 - 100
-      quizScore = Math.floor(Math.random() * (100 - 70 + 1)) + 70; // 70 - 100
-      label = 2;
-    } else if (r === 1) {
-      // Medium Risk
-      avgScore = Math.floor(Math.random() * (100 - 60 + 1)) + 60; // 60 - 100
-      attendanceRate = Math.floor(Math.random() * (100 - 70 + 1)) + 70; // 70 - 100
-      materialCompletionRate = Math.floor(Math.random() * (100 - 50 + 1)) + 50; // 50 - 100
-      quizScore = Math.floor(Math.random() * (100 - 50 + 1)) + 50; // 50 - 100
-      
-      // Paksa setidaknya satu fitur masuk ke rentang Medium Risk agar label valid
-      const forceMedium = Math.floor(Math.random() * 4);
-      if (forceMedium === 0) avgScore = Math.floor(Math.random() * (74 - 60 + 1)) + 60;
-      else if (forceMedium === 1) attendanceRate = Math.floor(Math.random() * (84 - 70 + 1)) + 70;
-      else if (forceMedium === 2) materialCompletionRate = Math.floor(Math.random() * (74 - 50 + 1)) + 50;
-      else if (forceMedium === 3) quizScore = Math.floor(Math.random() * (69 - 50 + 1)) + 50;
-      
-      label = 1;
-    } else {
-      // High Risk
-      avgScore = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
-      attendanceRate = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
-      materialCompletionRate = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
-      quizScore = Math.floor(Math.random() * (100 - 30 + 1)) + 30;
-      
-      // Paksa setidaknya satu fitur masuk ke rentang High Risk agar label valid
-      const forceHigh = Math.floor(Math.random() * 4);
-      if (forceHigh === 0) avgScore = Math.floor(Math.random() * 59);
-      else if (forceHigh === 1) attendanceRate = Math.floor(Math.random() * 69);
-      else if (forceHigh === 2) materialCompletionRate = Math.floor(Math.random() * 49);
-      else if (forceHigh === 3) quizScore = Math.floor(Math.random() * 49);
-      
-      label = 0;
-    }
-    
-    // Noise kecil 1% agar model ML belajar generalisasi secara stabil
-    if (Math.random() < 0.01) {
-      label = [0, 1, 2][Math.floor(Math.random() * 3)];
-    }
-    
-    data.push([avgScore, attendanceRate, materialCompletionRate, quizScore]);
-    labels.push(label);
-  }
-  
-  const dataset = { data, labels };
-  
-  // Simpan secara permanen ke folder config
-  try {
-    // Pastikan folder config ada
-    const configDir = path.dirname(filePath);
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
-    }
-    fs.writeFileSync(filePath, JSON.stringify(dataset, null, 2), 'utf8');
-    console.log('[ML] Berhasil membuat berkas dataset: backend/config/ats_dataset.json');
-  } catch (e) {
-    console.error('[ML] Gagal menyimpan ats_dataset.json:', e);
-  }
-  
-  return dataset;
-}
-
-/**
- * Melatih model Random Forest
- */
-function trainModel() {
-  console.log('[ML] Mempersiapkan model Random Forest Classifier...');
-  
-  const { data, labels } = getOrGenerateDataset();
-  
-  const options = {
-    seed: 42,
-    maxFeatures: 2,
-    replacement: false,
-    nEstimators: 50 // Menggunakan 50 pohon keputusan 
-  };
-
-  rfClassifier = new RandomForestClassifier(options);
-  rfClassifier.train(data, labels);
-  
-  console.log('[ML] Model Random Forest berhasil dilatih dengan', data.length, 'sampel data akademis (File ATS).');
-}
-
-/**
- * Prediksi risiko belajar siswa
- */
 function predictRisk(avgScore, attendanceRate, materialCompletionRate, quizScore) {
-  if (!rfClassifier) {
-    trainModel();
-  }
-  
-  const features = [[avgScore, attendanceRate, materialCompletionRate, quizScore]];
-  
-  // Prediksi mengembalikan array, misalnya [1]
-  const predictionArray = rfClassifier.predict(features);
-  const riskLabel = predictionArray[0];
-  
-  // Hitung tingkat keyakinan (confidence level) berdasarkan persentase voting pohon keputusan (decision trees)
-  const probabilities = rfClassifier.predictProbability(features, riskLabel);
-  const confidence = Math.round(probabilities[0] * 100);
+  const avg = Number(avgScore) || 0;
+  const att = Number(attendanceRate) || 0;
+  const mat = Number(materialCompletionRate) || 0;
+  const quiz = Number(quizScore) || 0;
 
-  if (riskLabel === 0) {
-    return { risk: 'high', message: 'Perlu perhatian serius', color: 'red', confidence };
-  } else if (riskLabel === 1) {
-    return { risk: 'medium', message: 'Perlu ditingkatkan', color: 'yellow', confidence };
-  } else {
-    return { risk: 'low', message: 'Baik, pertahankan', color: 'green', confidence };
+  // Rule 1: High Risk (Risiko Tinggi / Perlu Intervensi BK & Guru)
+  if (avg < 60 || att < 70 || mat < 50 || quiz < 50) {
+    return {
+      risk: 'high',
+      message: 'Perlu perhatian serius (Risiko Tinggi)',
+      color: 'red',
+      rule_triggered: 'Nilai < 60, Presensi < 70%, atau Penyelesaian Materi < 50%',
+      confidence: 100
+    };
   }
+
+  // Rule 2: Medium Risk (Risiko Sedang / Di bawah KKM 75 atau Presensi < 85%)
+  if (avg < 75 || att < 85 || mat < 75 || quiz < 70) {
+    return {
+      risk: 'medium',
+      message: 'Perlu ditingkatkan (Di bawah KKM / Waspada)',
+      color: 'yellow',
+      rule_triggered: 'Nilai di bawah KKM (75) atau Presensi di bawah 85%',
+      confidence: 100
+    };
+  }
+
+  // Rule 3: Low Risk (Risiko Rendah / Tuntas & Disiplin)
+  return {
+    risk: 'low',
+    message: 'Sangat baik, pertahankan (Tuntas KKM & Disiplin)',
+    color: 'green',
+    rule_triggered: 'Memenuhi KKM (≥75) & Presensi Disiplin (≥85%)',
+    confidence: 100
+  };
+}
+
+function trainModel() {
+  console.log('[Rule-Based Engine] Model Klasifikasi Berbasis Aturan Ambang Batas KKM 75 Siap Digunakan.');
 }
 
 module.exports = {

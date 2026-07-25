@@ -198,17 +198,17 @@ const GuruProgress = () => {
       <div className="page-header">
         <div className="header-title">
           <h2>Monitoring Progres Siswa</h2>
-          <p>Analisis Perkembangan Siswa berbasis Machine Learning</p>
+          <p>Analisis Kualifikasi Perkembangan Siswa Berbasis Standar KKM 75</p>
         </div>
       </div>
 
       <div className="feature-info-card premium-card">
         <div className="feature-icon">
-           <span className="material-symbols-outlined">psychology</span>
+           <span className="material-symbols-outlined">rule</span>
         </div>
         <div className="feature-text">
-           <h4>Random Forest AI Prediction</h4>
-           <p>Sistem ini menggunakan algoritma <strong>Machine Learning (Random Forest)</strong> untuk memprediksi status risiko perkembangan belajar siswa. Prediksi ini berdasarkan data gabungan dari <strong>Nilai Tugas, Nilai Kuis, Kehadiran, dan Penyelesaian Materi</strong>.</p>
+           <h4>Sistem Kualifikasi Risiko Belajar (Rule-Based Engine)</h4>
+           <p>Sistem ini menggunakan <strong>Rule-Based Classification Engine</strong> berbasis ambang batas resmi (KKM 75 & Presensi 85%) untuk mengklasifikasikan status risiko belajar siswa secara transparan berdasarkan data gabungan dari <strong>Nilai Tugas, Nilai Kuis, Kehadiran, dan Penyelesaian Materi</strong>.</p>
         </div>
       </div>
 
