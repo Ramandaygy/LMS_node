@@ -178,9 +178,21 @@ const GuruMaterials = () => {
                 </select>
               </div>
             </div>
-            <div className="form-group">
-              <label>Link Eksternal</label>
-              <input name="external_link" placeholder="YouTube, Google Drive, dll." value={form.external_link} onChange={handleChange} />
+            <div className="form-group" style={{ background: '#eff6ff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '16px' }}>
+              <label style={{ color: '#1e40af', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#2563eb' }}>folder_shared</span>
+                Tautan Google Drive Guru / Cloud Link (Integrasi GDrive)
+              </label>
+              <input 
+                name="external_link" 
+                placeholder="https://drive.google.com/file/d/... atau Tautan Folder GDrive / YouTube" 
+                value={form.external_link} 
+                onChange={handleChange}
+                style={{ background: '#ffffff', border: '1px solid #93c5fd', borderRadius: '8px', padding: '9px 12px', fontSize: '13px' }} 
+              />
+              <span style={{ fontSize: '11px', color: '#2563eb', marginTop: '6px', display: 'block', lineHeight: '1.4' }}>
+                💡 <strong>Hemat Kuota Storage:</strong> Guru dapat memasukkan tautan file/folder Google Drive pribadi untuk menghemat kapasitas penyimpanan Supabase/Server.
+              </span>
             </div>
             <div className="form-group file-input">
               <label>Lampiran File</label>
@@ -294,9 +306,20 @@ const GuruMaterials = () => {
                       </a>
                     )}
                     {m.external_link && (
-                      <a href={m.external_link} target="_blank" rel="noopener noreferrer">
-                        <span className="material-symbols-outlined">link</span>
-                        Link Materi
+                      <a 
+                        href={m.external_link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={
+                          m.external_link.includes('drive.google.com') || m.external_link.includes('docs.google.com')
+                            ? { background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', padding: '4px 10px', borderRadius: '6px', fontWeight: '700', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }
+                            : {}
+                        }
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                          {m.external_link.includes('drive.google.com') || m.external_link.includes('docs.google.com') ? 'folder_shared' : 'link'}
+                        </span>
+                        {m.external_link.includes('drive.google.com') || m.external_link.includes('docs.google.com') ? 'Google Drive Guru' : 'Link Materi'}
                       </a>
                     )}
                   </div>
