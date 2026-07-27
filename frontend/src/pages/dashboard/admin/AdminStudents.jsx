@@ -31,6 +31,7 @@ const AdminStudents = () => {
   // Dropdown & modal states
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const fileInputRef = React.createRef();
@@ -208,6 +209,7 @@ const AdminStudents = () => {
 
   const handleDownloadTemplate = async () => {
     setDropdownOpen(false);
+    setTemplateLoading(true);
     try {
       const response = await api.get('/admin/export/students-template', { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -220,6 +222,8 @@ const AdminStudents = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       setErrorMsg('Gagal download template');
+    } finally {
+      setTemplateLoading(false);
     }
   };
 

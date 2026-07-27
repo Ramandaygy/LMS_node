@@ -29,6 +29,7 @@ const AdminTeachers = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false); // state untuk loading template
   const fileInputRef = useRef(null);
@@ -401,7 +402,7 @@ const AdminTeachers = () => {
             </button>
             {dropdownOpen && (
               <div className="dropdown-menu">
-                <div className="dropdown-group"><div className="dropdown-group-title">EXPORT</div><button onClick={() => handleExport('teachers', 'guru.xlsx')}><span className="material-symbols-outlined">badge</span> Export Guru</button></div>
+                <div className="dropdown-group"><div className="dropdown-group-title">EXPORT</div><button onClick={() => handleExport('teachers', 'guru.xlsx')} disabled={exportLoading}><span className="material-symbols-outlined">badge</span> {exportLoading ? 'Mengexport...' : 'Export Guru (Excel)'}</button></div>
                 <div className="dropdown-divider"></div>
                 <div className="dropdown-group"><div className="dropdown-group-title">IMPORT</div><button onClick={handleImportClick} disabled={importLoading}><span className="material-symbols-outlined">upload_file</span>{importLoading ? 'Mengimport...' : 'Import Guru (Excel)'}</button></div>
                 <div className="dropdown-divider"></div>
