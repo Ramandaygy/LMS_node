@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const cbtController = require('../controllers/cbtController');
-const { protect } = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.use(protect);
+router.use(authMiddleware);
 
 router.get('/exams', cbtController.getExams);
 router.get('/exams/:id', cbtController.getExamById);
