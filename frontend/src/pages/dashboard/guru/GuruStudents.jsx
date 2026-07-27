@@ -3,8 +3,6 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-students.css';
 
 const GuruStudents = () => {
-  const [activeTab, setActiveTab] = useState('rapor'); // 'rapor' (Leger NA Wali Kelas) | 'tugas' (Rekap Mapel Guru Mapel)
-
   const [students, setStudents] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
@@ -185,27 +183,17 @@ const GuruStudents = () => {
     return mapping[code] || code;
   };
 
-  // Filter students dynamically based on Active Tab
+  // Filter students dynamically for Homeroom Class
   const filteredStudents = students.filter((student) => {
     const fullName = student.full_name || '';
     const matchesSearch =
       fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.nis?.includes(searchTerm);
 
-    if (activeTab === 'rapor') {
-      // Tab 1: Strictly show Homeroom Class students (Wali Kelas)
-      const targetHrClass = homeroomClass || (teacherClasses.length > 0 ? teacherClasses[0].name : '');
-      const matchesHr = !targetHrClass || student.class_name === targetHrClass;
-      return matchesSearch && matchesHr;
-    } else {
-      // Tab 2: Show students of selected Taught Class (Guru Mapel)
-      const matchesClass = !selectedClass || student.class_name === selectedClass;
-      return matchesSearch && matchesClass;
-    }
+    const targetHrClass = homeroomClass || (teacherClasses.length > 0 ? teacherClasses[0].name : '');
+    const matchesHr = !targetHrClass || student.class_name === targetHrClass;
+    return matchesSearch && matchesHr;
   });
-
-  const activeSubjectsForFilter = teacherSubjects.length > 0 ? teacherSubjects : subjects;
-  const selectedSubjectDoc = activeSubjectsForFilter.find((s) => s._id.toString() === selectedSubjectFilter) || activeSubjectsForFilter[0];
 
   if (loading) return <div className="loading">Memuat data siswa...</div>;
 
@@ -254,59 +242,16 @@ const GuruStudents = () => {
         }
       `}</style>
 
-      <div className="page-header-flex no-print">
+      <div className="page-header-flex no-print" style={{ marginBottom: '24px' }}>
         <div>
-          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Siswa Binaan & Rekap Penilaian Kelas</h2>
+          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Matriks Leger Nilai Akhir Rapor (Wali Kelas)</h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-            Rekapitulasi Nilai Akhir Rapor Wali Kelas (Leger NA) & Rekapitulasi Rincian Nilai Guru Mapel (NH, PTS, PAS, Presensi).
+            Rekapitulasi Matriks Nilai Akhir Rapor per Mata Pelajaran (Formula 2:1:1) dan Pencetakan Rapor Siswa Binaan.
           </p>
         </div>
         <div className="grade-legend">
           <span className="legend-item"><span className="dot red"></span> Nilai di bawah KKM (&lt;75)</span>
         </div>
-      </div>
-
-      {/* Tabs View Selector */}
-      <div className="no-print" style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', margin: '20px 0 24px 0', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveTab('rapor')}
-          style={{
-            padding: '12px 20px',
-            fontWeight: '700',
-            fontSize: '14px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'rapor' ? '3px solid #2563eb' : '3px solid transparent',
-            color: activeTab === 'rapor' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>assignment_turned_in</span>
-          Matriks Leger Nilai Akhir Rapor (NA 2:1:1 - Wali Kelas)
-        </button>
-
-        <button
-          onClick={() => setActiveTab('tugas')}
-          style={{
-            padding: '12px 20px',
-            fontWeight: '700',
-            fontSize: '14px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            borderBottom: activeTab === 'tugas' ? '3px solid #2563eb' : '3px solid transparent',
-            color: activeTab === 'tugas' ? '#2563eb' : '#64748b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>menu_book</span>
-          Rekap Rincian Nilai Mapel Saya (NH, PTS, PAS, Presensi)
-        </button>
       </div>
 
       {/* Filter Bar */}
@@ -322,38 +267,10 @@ const GuruStudents = () => {
           />
         </div>
 
-        <div className="selectors-group">
-          {/* Class Filter for Tab 2 (Guru Mapel Classes) */}
-          {activeTab === 'tugas' && (
-            <div className="filter-select-wrapper">
-              <span className="select-icon material-symbols-outlined">class</span>
-              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="modern-select">
-                {teacherClasses.map((cls) => (
-                  <option key={cls.id || cls.name} value={cls.name}>
-                    Kelas {cls.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Subject Filter for Tab 2 (Only Teacher Assigned Subjects) */}
-          {activeTab === 'tugas' && activeSubjectsForFilter.length > 0 && (
-            <div className="filter-select-wrapper">
-              <span className="select-icon material-symbols-outlined">subject</span>
-              <select value={selectedSubjectFilter} onChange={(e) => setSelectedSubjectFilter(e.target.value)} className="modern-select" style={{ minWidth: '240px' }}>
-                {activeSubjectsForFilter.map((s) => (
-                  <option key={s._id} value={s._id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* MAIN TABLE: TAB 1 (MATRIKS NA RAPOR LEGER WALI KELAS) */}
-      {activeTab === 'rapor' && (
-        <div className="student-table-container glass-container no-print">
+      {/* MAIN TABLE: MATRIKS NA RAPOR LEGER WALI KELAS */}
+      <div className="student-table-container glass-container no-print">
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '24px' }}>stars</span>
@@ -447,84 +364,6 @@ const GuruStudents = () => {
             </tbody>
           </table>
         </div>
-      )}
-
-      {/* MAIN TABLE: TAB 2 (REKAP RINCIAN MAPEL GURU MAPEL: NH, PTS, PAS, NA & PRESENSI) */}
-      {activeTab === 'tugas' && (
-        <div className="student-table-container glass-container no-print">
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '24px' }}>menu_book</span>
-              <div style={{ fontSize: '14px', color: '#14532d', fontWeight: '600' }}>
-                Rincian Penilaian Kelas: <strong style={{ color: '#0f172a', fontSize: '15px' }}>Kelas {selectedClass || teacherClasses[0]?.name || '-'}</strong> | Mata Pelajaran: <strong style={{ color: '#0f172a', fontSize: '15px' }}>{selectedSubjectDoc?.name || 'Mata Pelajaran'}</strong>
-              </div>
-            </div>
-            <span style={{ fontSize: '13px', color: '#16a34a', fontWeight: '700' }}>
-              {filteredStudents.length} Siswa
-            </span>
-          </div>
-
-          <table className="student-table spreadsheet-table">
-            <thead>
-              <tr style={{ background: '#0f172a', color: '#fff', textAlign: 'center', fontSize: '13px' }}>
-                <th style={{ width: '50px', padding: '12px' }}>No</th>
-                <th style={{ textAlign: 'left', padding: '12px' }}>Nama Siswa</th>
-                <th style={{ width: '130px', padding: '12px' }}>NIS</th>
-                <th style={{ width: '110px', color: '#38bdf8', padding: '12px' }}>NH (Tugas)</th>
-                <th style={{ width: '110px', color: '#fbbf24', padding: '12px' }}>PTS (UTS)</th>
-                <th style={{ width: '110px', color: '#a78bfa', padding: '12px' }}>PAS (UAS)</th>
-                <th style={{ width: '110px', color: '#4ade80', padding: '12px', fontWeight: '800', background: '#1e293b' }}>NA (2:1:1)</th>
-                <th style={{ width: '70px', padding: '12px' }}>Sakit</th>
-                <th style={{ width: '70px', padding: '12px' }}>Izin</th>
-                <th style={{ width: '70px', padding: '12px' }}>Alfa</th>
-                <th style={{ width: '110px', padding: '12px', fontWeight: '700' }}>Total Presensi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student, idx) => {
-                  const subId = selectedSubjectDoc?._id?.toString();
-                  const nh = student.tasks?.[subId];
-                  const pts = student.grades?.[subId]?.uts;
-                  const pas = student.grades?.[subId]?.uas;
-                  const na = student.na_grades?.[subId];
-
-                  return (
-                    <tr key={student._id} className="spreadsheet-row" style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td className="text-center">{idx + 1}</td>
-                      <td className="font-semibold">{student.full_name}</td>
-                      <td className="text-center" style={{ color: '#64748b' }}>{student.nis}</td>
-                      <td className="text-center font-bold" style={{ color: typeof nh === 'number' && nh < 75 ? '#dc2626' : '#0f172a' }}>
-                        {nh !== undefined && nh !== null ? nh : '-'}
-                      </td>
-                      <td className="text-center font-bold" style={{ color: typeof pts === 'number' && pts < 75 ? '#dc2626' : '#0f172a' }}>
-                        {pts !== undefined && pts !== null ? pts : '-'}
-                      </td>
-                      <td className="text-center font-bold" style={{ color: typeof pas === 'number' && pas < 75 ? '#dc2626' : '#0f172a' }}>
-                        {pas !== undefined && pas !== null ? pas : '-'}
-                      </td>
-                      <td className="text-center font-bold" style={{ color: typeof na === 'number' && na < 75 ? '#dc2626' : '#0284c7', background: '#f8fafc', fontSize: '15px' }}>
-                        {na !== undefined && na !== null ? na : '-'}
-                      </td>
-                      <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
-                      <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
-                      <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
-                      <td className="text-center att-cell font-bold total-att-color">{student.attendance?.total || 0} hari</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan="11" className="text-center empty-table-state">
-                    <span className="material-symbols-outlined empty-icon">group_off</span>
-                    <p>Tidak ada data siswa ditemukan untuk kelas ini</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
 
       {/* ========================================================================= */}
       {/* MODAL RAPOR INTRAKURIKULER KURIKULUM MERDEKA (EDITABLE & PRINTABLE)        */}
