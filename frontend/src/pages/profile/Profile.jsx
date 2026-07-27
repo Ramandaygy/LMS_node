@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { profileService } from '../../services/profile';
 import { pushNotificationService } from '../../services/pushNotificationService';
+import api from '../../services/api';
 import '../../styles/profile/profile.css';
 
 const Profile = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [homeroomClass, setHomeroomClass] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -34,6 +38,18 @@ const Profile = () => {
         address: data.profile?.address || ''
       });
       setAvatarPreview(data.profileImage || null);
+
+      if (data.role === 'guru') {
+        try {
+          const hrRes = await api.get('/guru/homeroom-status');
+          if (hrRes.data.success && hrRes.data.is_homeroom) {
+            setHomeroomClass(hrRes.data.homeroom_class);
+          }
+        } catch (e) {
+          console.error('Failed to load homeroom status:', e);
+        }
+      }
+
       setLoading(false);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -213,6 +229,46 @@ const Profile = () => {
               <span className={`role-badge ${user?.role}`}>{getRoleLabel(user?.role)}</span>
             </span>
           </div>
+
+          {homeroomClass && (
+            <div style={{
+              background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+              border: '1.5px solid #bae6fd',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              margin: '16px 0',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, color: '#0369a1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Status Penugasan</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0c4a6e', marginTop: '2px' }}>Wali Kelas ({homeroomClass.name})</div>
+              </div>
+              <button
+                onClick={() => navigate('/dashboard/guru/walikelas')}
+                style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '30px',
+                  fontWeight: 700,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>shield_person</span>
+                Masuk Dashboard Wali Kelas ({homeroomClass.name})
+              </button>
+            </div>
+          )}
           <div className="info-row">
             <span className="info-label">Email</span>
             <span className="info-value">{user?.email}</span>
