@@ -64,6 +64,12 @@ exports.syncAllTeachers = async () => {
 };
 
 exports.createSchedule = async (data) => {
+  if (!data.academic_year_id || !mongoose.Types.ObjectId.isValid(data.academic_year_id.toString())) {
+    const activeYear = await mongoose.connection.collection('academic_years').findOne({ is_active: true });
+    if (activeYear) {
+      data.academic_year_id = activeYear._id;
+    }
+  }
   const created = await Schedule.create(data);
   if (created.teacher_id) {
     await syncTeacherClassesAndSubjects([created.teacher_id.toString()]);
@@ -73,35 +79,67 @@ exports.createSchedule = async (data) => {
 
 exports.bulkSaveSchedule = async (scheduleList) => {
   const results = [];
+  if (!Array.isArray(scheduleList)) return results;
+
+  let defaultYearId = null;
+  const activeYear = await mongoose.connection.collection('academic_years').findOne({ is_active: true });
+  if (activeYear) {
+    defaultYearId = activeYear._id;
+  } else {
+    const anyYear = await mongoose.connection.collection('academic_years').findOne({});
+    if (anyYear) defaultYearId = anyYear._id;
+  }
+
   for (const item of scheduleList) {
     if (!item.class_id || !item.subject_id || !item.teacher_id || !item.day || !item.time_slot || !item.start_time || !item.end_time) {
-      continue; // Skip invalid entries
+      continue;
     }
 
-    // Cari jadwal existing berdasarkan kombinasi unik
+    const yearId = (item.academic_year_id && mongoose.Types.ObjectId.isValid(item.academic_year_id.toString()))
+      ? new mongoose.Types.ObjectId(item.academic_year_id.toString())
+      : defaultYearId;
+
+    if (!yearId) {
+      continue;
+    }
+
+    const classId = new mongoose.Types.ObjectId(item.class_id.toString());
+    const subjectId = new mongoose.Types.ObjectId(item.subject_id.toString());
+    const teacherId = new mongoose.Types.ObjectId(item.teacher_id.toString());
+
     const existing = await Schedule.findOne({
-      class_id: item.class_id,
-      academic_year_id: item.academic_year_id,
+      class_id: classId,
+      academic_year_id: yearId,
       day: item.day,
-      time_slot: item.time_slot
+      time_slot: Number(item.time_slot)
     });
 
     if (existing) {
-      existing.subject_id = item.subject_id;
-      existing.teacher_id = item.teacher_id;
+      existing.subject_id = subjectId;
+      existing.teacher_id = teacherId;
       existing.start_time = item.start_time;
       existing.end_time = item.end_time;
       existing.room = item.room || '';
       await existing.save();
       results.push(existing);
     } else {
-      const created = await Schedule.create(item);
+      const created = await Schedule.create({
+        class_id: classId,
+        subject_id: subjectId,
+        teacher_id: teacherId,
+        academic_year_id: yearId,
+        day: item.day,
+        time_slot: Number(item.time_slot),
+        start_time: item.start_time,
+        end_time: item.end_time,
+        room: item.room || '',
+        generated_type: item.generated_type || 'manual'
+      });
       results.push(created);
     }
   }
-  
-  // Sinkronisasi seluruh guru yang terdampak jadwalnya
-  const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(id => id))];
+
+  const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(Boolean))];
   await syncTeacherClassesAndSubjects(teacherIds);
 
   return results;

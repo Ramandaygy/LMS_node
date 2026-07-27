@@ -95,10 +95,14 @@ const AdminSchedule = () => {
         subjects: t.subject_ids || []
       }));
       setTeachers(teacherData);
-      const years = yearsRes.data.academic_years || [];
+      const years = yearsRes.data.academic_years || yearsRes.data.data || [];
       setAcademicYears(years);
       const activeYear = years.find(y => y.is_active);
-      if (activeYear) setSelectedYear(activeYear._id);
+      if (activeYear) {
+        setSelectedYear(activeYear._id || activeYear.id);
+      } else if (years.length > 0) {
+        setSelectedYear(years[0]._id || years[0].id);
+      }
     } catch (err) {
       console.error(err);
       setMessage({ type: 'error', text: 'Gagal memuat data master' });
@@ -181,6 +185,12 @@ const AdminSchedule = () => {
   const handleSaveAll = async () => {
     try {
       setSaving(true);
+      let yearToSave = selectedYear;
+      if (!yearToSave && academicYears.length > 0) {
+        const active = academicYears.find(y => y.is_active) || academicYears[0];
+        yearToSave = active._id || active.id;
+      }
+
       const schedules = [];
       Object.entries(scheduleData).forEach(([key, value]) => {
         if (!value.subjectId || !value.teacherId) return;
@@ -192,7 +202,7 @@ const AdminSchedule = () => {
           class_id: classId,
           subject_id: value.subjectId,
           teacher_id: value.teacherId,
-          academic_year_id: selectedYear,
+          academic_year_id: yearToSave,
           day,
           time_slot: Number(slot),
           start_time: start_time.trim(),
@@ -200,6 +210,12 @@ const AdminSchedule = () => {
           room: value.room || ''
         });
       });
+
+      if (schedules.length === 0) {
+        setMessage({ type: 'error', text: 'Belum ada mata pelajaran & guru yang di-assign pada jadwal' });
+        return;
+      }
+
       await api.post('/schedules/bulk', { schedules });
       setMessage({ type: 'success', text: 'Jadwal berhasil disimpan' });
       await fetchExistingSchedule();
