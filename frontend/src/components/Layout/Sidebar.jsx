@@ -53,18 +53,36 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const guruMenuList = [
-    { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/guru' },
+  const [guruMode, setGuruMode] = useState(() => localStorage.getItem('guruMode') || 'guru');
+
+  useEffect(() => {
+    if (location.pathname === '/dashboard/guru/walikelas') {
+      setGuruMode('walikelas');
+      localStorage.setItem('guruMode', 'walikelas');
+    }
+  }, [location.pathname]);
+
+  const guruMapelMenuList = [
+    { key: 'dashboard', label: 'Dashboard Guru', icon: 'dashboard', path: '/dashboard/guru' },
     { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
-    { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
     { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
     { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
     { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
-    { key: 'monitoring', label: 'Leger Nilai Sekolah', icon: 'table_view', path: '/dashboard/guru/leger' },
-    { key: 'progress', label: 'Progress Siswa', icon: 'trending_up', path: '/dashboard/guru/progress' },
     { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
     { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
   ];
+
+  const waliKelasMenuList = [
+    { key: 'walikelas', label: 'Dashboard Wali Kelas', icon: 'shield_person', path: '/dashboard/guru/walikelas' },
+    { key: 'students', label: homeroomStatus ? `Siswa Binaan (${homeroomStatus.name})` : 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
+    { key: 'progress', label: 'Progress & Presensi Kelas', icon: 'trending_up', path: '/dashboard/guru/progress' },
+    { key: 'monitoring', label: 'Leger Nilai Sekolah', icon: 'table_view', path: '/dashboard/guru/leger' },
+    { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
+  ];
+
+  const activeGuruMenuList = (role === 'guru' && guruMode === 'walikelas' && homeroomStatus)
+    ? waliKelasMenuList
+    : guruMapelMenuList;
 
   const menus = {
     admin: [
@@ -76,7 +94,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
-    guru: guruMenuList,
+    guru: activeGuruMenuList,
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
       { key: 'progress', label: 'Progress', icon: 'trending_up', path: '/dashboard/siswa/progress' },
@@ -97,7 +115,14 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   };
 
   const currentMenus = menus[role] || menus.siswa;
-  const roleNames = { admin: 'ADMINISTRATOR', guru: 'GURU', siswa: 'SISWA', ortu: 'ORANG TUA' };
+  const roleNames = { admin: 'ADMINISTRATOR', guru: 'GURU MAPEL', siswa: 'SISWA', ortu: 'ORANG TUA' };
+
+  const getDisplayRole = () => {
+    if (role === 'guru' && guruMode === 'walikelas' && homeroomStatus) {
+      return `WALI KELAS (${homeroomStatus.name})`;
+    }
+    return roleNames[role] || role?.toUpperCase() || 'User';
+  };
 
 
   const getActiveKeyFromPath = () => {
@@ -158,11 +183,6 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     return 'Pengguna';
   };
 
-  // Get display role
-  const getDisplayRole = () => {
-    return roleNames[role] || role?.toUpperCase() || 'User';
-  };
-
   return (
     <>
       <aside className={`sidebar-modern ${isOpen ? 'open' : ''} ${isCollapsed ? 'collapsed' : ''}`}>
@@ -195,13 +215,21 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
                 <button
                   className="sidebar-walikelas-btn"
                   onClick={() => {
-                    navigate('/dashboard/guru/walikelas');
+                    if (guruMode === 'walikelas') {
+                      setGuruMode('guru');
+                      localStorage.setItem('guruMode', 'guru');
+                      navigate('/dashboard/guru');
+                    } else {
+                      setGuruMode('walikelas');
+                      localStorage.setItem('guruMode', 'walikelas');
+                      navigate('/dashboard/guru/walikelas');
+                    }
                     if (onClose) onClose();
                   }}
-                  title={`Switch ke Dashboard Wali Kelas ${homeroomStatus.name}`}
+                  title={guruMode === 'walikelas' ? "Switch ke Mode Guru Mapel" : `Switch ke Mode Wali Kelas ${homeroomStatus.name}`}
                 >
-                  <span className="material-symbols-outlined">shield_person</span>
-                  Wali Kelas ({homeroomStatus.name})
+                  <span className="material-symbols-outlined">swap_horiz</span>
+                  {guruMode === 'walikelas' ? 'Mode Guru Mapel' : `Mode Wali Kelas (${homeroomStatus.name})`}
                 </button>
               )}
             </div>
