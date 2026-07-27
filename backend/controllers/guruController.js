@@ -603,11 +603,15 @@ exports.saveClassGrades = async (req, res) => {
 exports.getHomeroomStatus = async (req, res) => {
   try {
     const teacherId = req.user.id;
-    const ClassModel = require('../models/Class');
+    const classCol = mongoose.connection.collection('classes');
+    const objId = mongoose.Types.ObjectId.isValid(teacherId) ? new mongoose.Types.ObjectId(teacherId) : teacherId;
 
-    const homeroomClass = await ClassModel.findOne({
-      homeroom_teacher: new mongoose.Types.ObjectId(teacherId),
-      is_active: true,
+    const homeroomClass = await classCol.findOne({
+      $or: [
+        { homeroom_teacher: objId },
+        { homeroom_teacher: teacherId.toString() }
+      ],
+      is_active: { $ne: false }
     });
 
     if (homeroomClass) {
@@ -639,10 +643,16 @@ exports.getHomeroomStatus = async (req, res) => {
 exports.getWaliKelasOverview = async (req, res) => {
   try {
     const teacherId = req.user.id;
-    const objTeacherId = new mongoose.Types.ObjectId(teacherId);
+    const objTeacherId = mongoose.Types.ObjectId.isValid(teacherId) ? new mongoose.Types.ObjectId(teacherId) : teacherId;
 
     const classCol = mongoose.connection.collection('classes');
-    const homeroomClass = await classCol.findOne({ homeroom_teacher: objTeacherId, is_active: { $ne: false } });
+    const homeroomClass = await classCol.findOne({
+      $or: [
+        { homeroom_teacher: objTeacherId },
+        { homeroom_teacher: teacherId.toString() }
+      ],
+      is_active: { $ne: false }
+    });
 
     if (!homeroomClass) {
       return res.status(200).json({
