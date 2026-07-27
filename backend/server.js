@@ -13,21 +13,19 @@ const auth = require('./middleware/authMiddleware');
 const app = express();
 
 // =====================================
-// CONNECT DATABASE
-// =====================================
-connectDB().then(async () => {
-  try {
-    const scheduleService = require('./services/scheduleService');
-    await scheduleService.syncAllTeachers();
-  } catch (err) {
-    console.error('Failed to sync teachers on startup:', err);
-  }
-});
-
-// =====================================
 // MIDDLEWARE
 // =====================================
 app.use(cors());
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('Database Middleware Error:', err);
+    res.status(500).json({ success: false, error: 'Database Connection Error', message: err.message });
+  }
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(
