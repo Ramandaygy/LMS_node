@@ -143,6 +143,12 @@ app.use(
   require('./routes/cbtRoutes')
 );
 
+// FORUM DISKUSI
+app.use(
+  '/api/forum',
+  require('./routes/forumRoutes')
+);
+
 // SETTINGS
 app.use(
   '/api/settings',

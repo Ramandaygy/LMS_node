@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
+import ForumDiscussion from '../../../components/Forum/ForumDiscussion';
 import '../../../styles/dashboard/guru/guru-materials.css';
 
 const GuruMaterials = () => {
@@ -329,6 +330,15 @@ const GuruMaterials = () => {
           </div>
         )}
       </div>
+
+      {/* FORUM DISKUSI PER MATA PELAJARAN */}
+      {teacherSubjects.length > 0 && (
+        <div style={{ marginTop: '36px' }}>
+          <ForumDiscussion
+            subjectId={form.subject_id || teacherSubjects[0]._id}
+          />
+        </div>
+      )}
     </div>
   );
 };

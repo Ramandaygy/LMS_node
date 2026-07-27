@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../../services/api';
+import ForumDiscussion from '../../../components/Forum/ForumDiscussion';
 import '../../../styles/dashboard/siswa/siswa-materials.css';
 
 const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -457,6 +458,13 @@ const SiswaMaterials = () => {
 
         <div className="material-detail-panel">
           {renderMaterialViewer()}
+          
+          {selectedMaterial && (
+            <ForumDiscussion
+              subjectId={selectedMaterial.subject_id?._id || selectedMaterial.subject_id || selectedMaterial.subject}
+              materialId={selectedMaterial._id}
+            />
+          )}
         </div>
       </div>
     </div>
