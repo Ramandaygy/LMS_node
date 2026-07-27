@@ -9,7 +9,14 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const [user, setUser] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const [homeroomStatus, setHomeroomStatus] = useState(null);
+  const [homeroomStatus, setHomeroomStatus] = useState(() => {
+    try {
+      const cached = localStorage.getItem('homeroomStatus');
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
+  });
 
   // Fetch user profile for dynamic display
   const fetchUserProfile = async () => {
@@ -35,6 +42,10 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
           const res = await api.get('/guru/homeroom-status');
           if (res.data.success && res.data.is_homeroom) {
             setHomeroomStatus(res.data.homeroom_class);
+            localStorage.setItem('homeroomStatus', JSON.stringify(res.data.homeroom_class));
+          } else {
+            setHomeroomStatus(null);
+            localStorage.removeItem('homeroomStatus');
           }
         } catch (e) {
           console.error('Failed to check homeroom status:', e);
@@ -80,7 +91,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
   ];
 
-  const activeGuruMenuList = (role === 'guru' && guruMode === 'walikelas' && homeroomStatus)
+  const activeGuruMenuList = (role === 'guru' && guruMode === 'walikelas')
     ? waliKelasMenuList
     : guruMapelMenuList;
 
