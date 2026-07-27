@@ -14,6 +14,12 @@ router.get(
 );
 
 router.post(
+  '/',
+  authMiddleware,
+  scheduleController.createSchedule
+);
+
+router.post(
   '/bulk',
   authMiddleware,
   scheduleController.bulkSaveSchedule

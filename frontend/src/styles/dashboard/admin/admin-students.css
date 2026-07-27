@@ -810,3 +810,133 @@ small {
   font-size: 16px;
   color: #6c757d;
 }
+
+/* ================================================= */
+/* UNIVERSAL MODERN FORM MODAL STYLING (DATA MASTER) */
+/* ================================================= */
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.18);
+  padding: 30px 32px;
+  font-family: inherit;
+}
+
+.modal-content h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-top: 0;
+  margin-bottom: 24px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.modal-content .form-group,
+.modal-content .admin-students-form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-content label,
+.modal-content .admin-students-form-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.modal-content input[type="text"],
+.modal-content input[type="email"],
+.modal-content input[type="password"],
+.modal-content input[type="number"],
+.modal-content input[type="tel"],
+.modal-content input[type="time"],
+.modal-content select,
+.modal-content textarea,
+.modal-content .admin-students-form-input,
+.modal-content .admin-students-form-select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #0f172a;
+  background-color: #ffffff;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.modal-content input[type="text"]:focus,
+.modal-content input[type="email"]:focus,
+.modal-content input[type="password"]:focus,
+.modal-content input[type="number"]:focus,
+.modal-content input[type="tel"]:focus,
+.modal-content input[type="time"]:focus,
+.modal-content select:focus,
+.modal-content textarea:focus,
+.modal-content .admin-students-form-input:focus,
+.modal-content .admin-students-form-select:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  background-color: #ffffff;
+}
+
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.modal-content .modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1.5px solid #f1f5f9;
+}
+
+.modal-content .modal-buttons button {
+  padding: 10px 24px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content .modal-buttons button[type="button"],
+.modal-content .modal-buttons .btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.modal-content .modal-buttons button[type="button"]:hover,
+.modal-content .modal-buttons .btn-cancel:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.modal-content .modal-buttons button[type="submit"],
+.modal-content .modal-buttons .btn-save {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.modal-content .modal-buttons button[type="submit"]:hover,
+.modal-content .modal-buttons .btn-save:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}

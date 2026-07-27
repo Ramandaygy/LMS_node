@@ -6,22 +6,42 @@ const mongoose = require('mongoose');
 
 exports.createSchedule = async (req, res) => {
   try {
+    const { start_time, end_time } = req.body;
+    if (start_time && start_time < '07:00') {
+      return res.status(400).json({ success: false, message: `Jam mulai (${start_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+    }
+    if (end_time && end_time > '15:00') {
+      return res.status(400).json({ success: false, message: `Jam selesai (${end_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+    }
     const schedule = await scheduleService.createSchedule(req.body);
     return res.status(201).json({ success: true, data: schedule });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Failed to create schedule' });
+    console.error('CREATE SCHEDULE ERROR:', err);
+    return res.status(400).json({ success: false, message: err.message || 'Gagal membuat jadwal' });
   }
 };
 
 exports.bulkSaveSchedule = async (req, res) => {
   try {
     const { schedules } = req.body;
+    if (!Array.isArray(schedules) || schedules.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data jadwal untuk disimpan' });
+    }
+
+    for (const item of schedules) {
+      if (item.start_time && item.start_time < '07:00') {
+        return res.status(400).json({ success: false, message: `Jam mulai (${item.start_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+      }
+      if (item.end_time && item.end_time > '15:00') {
+        return res.status(400).json({ success: false, message: `Jam selesai (${item.end_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+      }
+    }
+
     const result = await scheduleService.bulkSaveSchedule(schedules);
     return res.json({ success: true, data: result });
   } catch (err) {
     console.error('ERROR BULK SAVE:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message || 'Gagal menyimpan jadwal' });
   }
 };
 

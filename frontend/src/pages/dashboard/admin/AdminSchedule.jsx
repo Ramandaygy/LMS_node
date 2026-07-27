@@ -21,14 +21,15 @@ const AdminSchedule = () => {
   const [scheduleData, setScheduleData] = useState({});
 
   const [timeSlots, setTimeSlots] = useState([
-    { slot: 1, label: '07:20-08:00' },
-    { slot: 2, label: '08:00-08:40' },
-    { slot: 3, label: '08:40-09:20' },
-    { slot: 4, label: '09:40-10:20' },
-    { slot: 5, label: '10:20-11:00' },
-    { slot: 6, label: '11:00-11:40' },
-    { slot: 7, label: '12:10-12:50' },
-    { slot: 8, label: '12:50-13:30' },
+    { slot: 1, label: '07:15-07:55' },
+    { slot: 2, label: '07:55-08:35' },
+    { slot: 3, label: '08:35-09:15' },
+    { slot: 4, label: '09:35-10:15' },
+    { slot: 5, label: '10:15-10:55' },
+    { slot: 6, label: '10:55-11:35' },
+    { slot: 7, label: '12:05-12:45' },
+    { slot: 8, label: '12:45-13:25' },
+    { slot: 9, label: '13:25-14:05' },
   ]);
 
   const [days] = useState(['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU']);
@@ -273,8 +274,19 @@ const AdminSchedule = () => {
 
 
   const handleTimeEdit = (slotIndex) => {
-    const newLabel = prompt('Edit waktu:', timeSlots[slotIndex].label);
+    const newLabel = prompt('Edit waktu KBM (format HH:MM-HH:MM):', timeSlots[slotIndex].label);
     if (newLabel) {
+      const parts = newLabel.split('-');
+      if (parts.length !== 2) {
+        alert('Format waktu tidak valid. Gunakan format HH:MM-HH:MM (contoh: 07:15-07:55)');
+        return;
+      }
+      const startTime = parts[0].trim();
+      const endTime = parts[1].trim();
+      if (startTime < '07:00' || endTime > '15:00') {
+        alert(`Waktu pelajaran (${newLabel}) berada di luar Jam Operasional KBM sekolah (07:00 - 15:00). Silakan masukkan jam di rentang 07:00 - 15:00.`);
+        return;
+      }
       const updated = [...timeSlots];
       updated[slotIndex].label = newLabel;
       setTimeSlots(updated);
