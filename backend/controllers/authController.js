@@ -52,3 +52,30 @@ exports.me = async (req, res) => {
     });
   }
 };
+
+exports.forgotPassword = async (req, res) => {
+  try {
+    const result = await authService.forgotPassword(req.body.email);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const result = await authService.verifyOtp(req.body.email, req.body.otp);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const result = await authService.resetPassword(req.body.email, req.body.otp, req.body.newPassword);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: err.message });
+  }
+};

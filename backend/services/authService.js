@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const emailService = require('./emailService');
 
 // ======================================
 // DYNAMIC COLLECTION GETTER
@@ -317,4 +318,99 @@ exports.login = async (body) => {
         '',
     },
   };
+};
+
+// ======================================
+// FORGOT & RESET PASSWORD (OTP)
+// ======================================
+
+async function findUserAcrossCollections(emailLower) {
+  const collections = [
+    { name: 'users_siswa', role: 'siswa' },
+    { name: 'users_guru', role: 'guru' },
+    { name: 'users_admin', role: 'admin' },
+    { name: 'users_ortu', role: 'ortu' }
+  ];
+
+  for (const item of collections) {
+    const col = getCollection(item.name);
+    const user = await col.findOne({ email: emailLower });
+    if (user) {
+      return { user, collection: col, role: item.role };
+    }
+  }
+  return null;
+}
+
+exports.forgotPassword = async (email) => {
+  if (!email) throw new Error('Email wajib diisi');
+  const emailLower = email.toLowerCase().trim();
+  const match = await findUserAcrossCollections(emailLower);
+
+  if (!match) {
+    throw new Error('Email tidak terdaftar pada sistem LMS');
+  }
+
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await match.collection.updateOne(
+    { _id: match.user._id },
+    {
+      $set: {
+        reset_otp: otpCode,
+        reset_otp_expires: expiresAt
+      }
+    }
+  );
+
+  await emailService.sendOtpEmail(emailLower, otpCode, match.user.full_name || 'Pengguna');
+
+  return {
+    message: 'Kode OTP telah dikirimkan ke email Anda',
+    email: emailLower,
+    dev_otp: process.env.NODE_ENV !== 'production' ? otpCode : undefined
+  };
+};
+
+exports.verifyOtp = async (email, otp) => {
+  if (!email || !otp) throw new Error('Email dan Kode OTP wajib diisi');
+  const emailLower = email.toLowerCase().trim();
+  const match = await findUserAcrossCollections(emailLower);
+
+  if (!match || !match.user.reset_otp) {
+    throw new Error('Kode OTP tidak ditemukan atau belum pernah diminta');
+  }
+
+  if (match.user.reset_otp !== otp.trim()) {
+    throw new Error('Kode OTP tidak sesuai / salah');
+  }
+
+  if (new Date() > new Date(match.user.reset_otp_expires)) {
+    throw new Error('Kode OTP telah kedaluwarsa. Silakan minta kode baru');
+  }
+
+  return { verified: true, message: 'Kode OTP valid' };
+};
+
+exports.resetPassword = async (email, otp, newPassword) => {
+  if (!email || !otp || !newPassword) throw new Error('Semua data wajib diisi');
+  if (newPassword.length < 6) throw new Error('Password minimal 6 karakter');
+
+  await exports.verifyOtp(email, otp);
+
+  const emailLower = email.toLowerCase().trim();
+  const match = await findUserAcrossCollections(emailLower);
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await match.collection.updateOne(
+    { _id: match.user._id },
+    {
+      $set: { password: hashedPassword },
+      $unset: { reset_otp: '', reset_otp_expires: '' }
+    }
+  );
+
+  return { success: true, message: 'Password berhasil diubah. Silakan login kembali' };
 };

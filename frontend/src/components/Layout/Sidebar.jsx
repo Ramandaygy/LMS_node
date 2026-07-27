@@ -55,8 +55,9 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   const guruMenuList = [
     { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/guru' },
+    { key: 'walikelas', label: 'Dashboard Wali Kelas', icon: 'shield_person', path: '/dashboard/guru/walikelas' },
     { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
-    { key: 'students', label: 'Siswa Binaan (Wali Kelas)', icon: 'group', path: '/dashboard/guru/students' },
+    { key: 'students', label: 'Siswa Binaan', icon: 'group', path: '/dashboard/guru/students' },
     { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
     { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
     { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },

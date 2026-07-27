@@ -40,6 +40,7 @@ import RegisterSiswa from './pages/auth/RegisterSiswa';
 import RegisterGuru from './pages/auth/RegisterGuru';
 import RegisterOrtu from './pages/auth/RegisterOrtu';
 import RegisterAdmin from './pages/auth/RegisterAdmin';
+import ForgotPassword from './pages/auth/ForgotPassword';
 
 // ============================================
 // DASHBOARD PAGES
@@ -80,6 +81,7 @@ import GuruStudents from './pages/dashboard/guru/GuruStudents';
 import GuruProgress from './pages/dashboard/guru/GuruProgress';
 import GuruQuiz from './pages/dashboard/guru/GuruQuiz';
 import GuruInputNilai from './pages/dashboard/guru/GuruInputNilai';
+import GuruWaliKelas from './pages/dashboard/guru/GuruWaliKelas';
 
 // ============================================
 // SISWA SUB PAGES
@@ -344,6 +346,11 @@ function App() {
           element={<Navigate to={`/login/${localStorage.getItem('lastRole') || 'siswa'}`} replace />}
         />
 
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
         {/* ============================================ */}
         {/* REGISTER ROUTES */}
         {/* ============================================ */}
@@ -486,6 +493,17 @@ function App() {
             <ProtectedRoute allowedRole="guru">
               <DashboardLayout role="guru">
                 <GuruCourses />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/walikelas"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <GuruWaliKelas />
               </DashboardLayout>
             </ProtectedRoute>
           }

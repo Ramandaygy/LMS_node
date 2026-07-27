@@ -636,3 +636,71 @@ exports.getHomeroomStatus = async (req, res) => {
   }
 };
 
+exports.getWaliKelasOverview = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const objTeacherId = new mongoose.Types.ObjectId(teacherId);
+
+    const classCol = mongoose.connection.collection('classes');
+    const homeroomClass = await classCol.findOne({ homeroom_teacher: objTeacherId, is_active: { $ne: false } });
+
+    if (!homeroomClass) {
+      return res.status(200).json({
+        success: true,
+        is_walikelas: false,
+        message: 'Anda tidak terdaftar sebagai Wali Kelas pada kelas aktif manapun.'
+      });
+    }
+
+    const studentCol = mongoose.connection.collection('users_siswa');
+    const classIdStr = homeroomClass._id.toString();
+    const students = await studentCol.find({
+      is_active: { $ne: false },
+      $or: [
+        { class_id: homeroomClass._id },
+        { class_id: classIdStr },
+        { class_id: homeroomClass.name }
+      ]
+    }).sort({ full_name: 1 }).toArray();
+
+    const progressService = require('../services/progressService');
+    const progressData = await progressService.getStudentsProgressByClass(homeroomClass._id);
+
+    const totalStudents = students.length;
+    const highRiskCount = progressData.filter(p => p.risk === 'high').length;
+    const mediumRiskCount = progressData.filter(p => p.risk === 'medium').length;
+    const lowRiskCount = progressData.filter(p => p.risk === 'low').length;
+
+    const avgAttendance = progressData.length > 0
+      ? (progressData.reduce((sum, p) => sum + (p.attendanceRate || 0), 0) / progressData.length).toFixed(1)
+      : 0;
+
+    const avgGrade = progressData.length > 0
+      ? (progressData.reduce((sum, p) => sum + (p.avgScore || 0), 0) / progressData.length).toFixed(1)
+      : 0;
+
+    return res.status(200).json({
+      success: true,
+      is_walikelas: true,
+      class_info: {
+        id: homeroomClass._id,
+        name: homeroomClass.name,
+        grade_level: homeroomClass.grade_level,
+        major: homeroomClass.major || '-'
+      },
+      stats: {
+        total_students: totalStudents,
+        avg_attendance: Number(avgAttendance),
+        avg_grade: Number(avgGrade),
+        high_risk: highRiskCount,
+        medium_risk: mediumRiskCount,
+        low_risk: lowRiskCount
+      },
+      students_progress: progressData
+    });
+  } catch (err) {
+    console.error('WALI KELAS OVERVIEW ERROR:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memuat data Wali Kelas' });
+  }
+};
+

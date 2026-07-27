@@ -19,5 +19,8 @@ router.post('/grades/class/save', authMiddleware, guruController.saveClassGrades
 // GET HOMEROOM STATUS (HIDE & SEE)
 router.get('/homeroom-status', authMiddleware, guruController.getHomeroomStatus);
 
+// GET WALI KELAS OVERVIEW
+router.get('/walikelas/overview', authMiddleware, guruController.getWaliKelasOverview);
+
 module.exports = router;
 
