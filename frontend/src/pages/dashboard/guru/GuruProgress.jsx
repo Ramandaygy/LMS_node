@@ -119,10 +119,16 @@ const GuruProgress = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [sortBy, setSortBy] = useState('name');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchClasses();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedClass, sortBy]);
 
   const fetchClasses = async () => {
     try {
@@ -177,21 +183,6 @@ const GuruProgress = () => {
     }
     return sorted;
   };
-
-  const getRiskColor = (risk) => {
-    switch (risk) {
-      case 'high':
-        return '#ff6b6b';
-      case 'medium':
-        return '#ffb700';
-      case 'low':
-        return '#6bcf7f';
-      default:
-        return '#999';
-    }
-  };
-
-  const currentClass = classes.find(c => c._id === selectedClass);
 
   return (
     <div className="guru-progress-container">
@@ -268,38 +259,91 @@ const GuruProgress = () => {
           <h3>Tidak ada siswa</h3>
           <p>Belum ada data siswa untuk kelas ini.</p>
         </div>
-      ) : (
-        <div className="students-grid">
-          {sortedStudents().map((student, idx) => {
-            
-            // Generate dynamic insights
-            const insights = [];
-            if (student.attendanceRate < 70) insights.push(`Kehadiran sangat rendah (${student.attendanceRate.toFixed(0)}%) - Faktor utama risiko tinggi.`);
-            else if (student.attendanceRate < 85) insights.push(`Kehadiran kurang optimal (${student.attendanceRate.toFixed(0)}%).`);
+      ) : (() => {
+        const allSorted = sortedStudents();
+        const totalPages = Math.ceil(allSorted.length / itemsPerPage);
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedStudents = allSorted.slice(startIndex, startIndex + itemsPerPage);
 
-            if (student.avgScore < 60) insights.push(`Nilai Tugas sangat kurang (${student.avgScore.toFixed(0)}%) - Menandakan perlunya bimbingan ekstra.`);
-            else if (student.avgScore < 75) insights.push(`Nilai Tugas perlu ditingkatkan (${student.avgScore.toFixed(0)}%).`);
+        return (
+          <>
+            <div className="students-grid">
+              {paginatedStudents.map((student, idx) => {
+                const insights = [];
+                if (student.attendanceRate < 70) insights.push(`Kehadiran sangat rendah (${student.attendanceRate.toFixed(0)}%) - Faktor utama risiko tinggi.`);
+                else if (student.attendanceRate < 85) insights.push(`Kehadiran kurang optimal (${student.attendanceRate.toFixed(0)}%).`);
 
-            if (student.avgQuizScore < 60) insights.push(`Pemahaman materi dari Kuis masih minim (${(student.avgQuizScore || 0).toFixed(0)}%).`);
-            
-            if (student.materialCompletionRate < 50) insights.push(`Banyak materi yang belum dibaca/diselesaikan (${student.materialCompletionRate.toFixed(0)}%).`);
-            
-            if (insights.length === 0) {
-              if (student.risk === 'high') {
-                 insights.push('Prediksi AI mendeteksi anomali pada pola belajar. Disarankan untuk memantau interaksi siswa secara berkala.');
-              } else if (student.risk === 'medium') {
-                 insights.push('Performa cukup, namun masih bisa dioptimalkan pada penyelesaian tugas dan kuis.');
-              } else {
-                 insights.push('Performa sangat baik dan konsisten di semua aspek penilaian.');
-              }
-            } else if (student.risk === 'high' && !insights.some(i => i.includes('Faktor utama'))) {
-               insights.push('Kombinasi dari beberapa faktor yang kurang optimal menyebabkan prediksi risiko menjadi Tinggi.');
-            }
+                if (student.avgScore < 60) insights.push(`Nilai Tugas sangat kurang (${student.avgScore.toFixed(0)}%) - Menandakan perlunya bimbingan ekstra.`);
+                else if (student.avgScore < 75) insights.push(`Nilai Tugas perlu ditingkatkan (${student.avgScore.toFixed(0)}%).`);
 
-            return <StudentCard key={idx} student={student} insights={insights} />;
-          })}
-        </div>
-      )}
+                if (student.avgQuizScore < 60) insights.push(`Pemahaman materi dari Kuis masih minim (${(student.avgQuizScore || 0).toFixed(0)}%).`);
+                
+                if (student.materialCompletionRate < 50) insights.push(`Banyak materi yang belum dibaca/diselesaikan (${student.materialCompletionRate.toFixed(0)}%).`);
+                
+                if (insights.length === 0) {
+                  if (student.risk === 'high') {
+                     insights.push('Prediksi AI mendeteksi anomali pada pola belajar. Disarankan untuk memantau interaksi siswa secara berkala.');
+                  } else if (student.risk === 'medium') {
+                     insights.push('Performa cukup, namun masih bisa dioptimalkan pada penyelesaian tugas dan kuis.');
+                  } else {
+                     insights.push('Performa sangat baik dan konsisten di semua aspek penilaian.');
+                  }
+                } else if (student.risk === 'high' && !insights.some(i => i.includes('Faktor utama'))) {
+                   insights.push('Kombinasi dari beberapa faktor yang kurang optimal menyebabkan prediksi risiko menjadi Tinggi.');
+                }
+
+                return <StudentCard key={idx} student={student} insights={insights} />;
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pagination-bar premium-card" style={{ marginTop: '24px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                <p className="pagination-info" style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
+                  Menampilkan <strong>{startIndex + 1}</strong> - <strong>{Math.min(startIndex + itemsPerPage, allSorted.length)}</strong> dari <strong>{allSorted.length}</strong> Siswa
+                </p>
+                <div className="pagination-controls" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <button 
+                    className="btn-page" 
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                    disabled={currentPage === 1}
+                    style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: currentPage === 1 ? '#f8fafc' : 'white', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_left</span>
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => {
+                    const pageNum = i + 1;
+                    return (
+                      <button 
+                        key={pageNum} 
+                        onClick={() => setCurrentPage(pageNum)}
+                        style={{ 
+                          padding: '6px 12px', 
+                          border: pageNum === currentPage ? 'none' : '1px solid #e2e8f0', 
+                          borderRadius: '8px', 
+                          background: pageNum === currentPage ? '#0284c7' : 'white', 
+                          color: pageNum === currentPage ? 'white' : '#334155',
+                          fontWeight: pageNum === currentPage ? 600 : 400,
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  <button 
+                    className="btn-page" 
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                    disabled={currentPage === totalPages}
+                    style={{ padding: '6px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', background: currentPage === totalPages ? '#f8fafc' : 'white', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {students.length > 0 && (
         <div className="statistics-section">

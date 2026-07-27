@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../../services/api';
+import SearchableMultiSelect from '../../../components/Common/SearchableMultiSelect';
 import '../../../styles/dashboard/admin/admin-parents.css';
 
 const AdminParents = () => {
@@ -88,11 +89,6 @@ const AdminParents = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleChildrenChange = (e) => {
-    const selectedOptions = Array.from(e.target.selectedOptions, (option) => option.value);
-    setFormData((prev) => ({ ...prev, children: selectedOptions }));
   };
 
   const handleSubmit = async (e) => {
@@ -491,16 +487,18 @@ const AdminParents = () => {
                   </select>
                 </div>
               </div>
-              <div className="form-group">
-                <label>Anak (pilih siswa)</label>
-                <select multiple value={formData.children} onChange={handleChildrenChange} className="multi-select" size={5}>
-                  {students.map((s) => (
-                    <option key={s._id} value={s._id}>
-                      {s.full_name} - {s.nis}
-                    </option>
-                  ))}
-                </select>
-                <small>Tekan Ctrl (Windows) atau Cmd (Mac) untuk pilih lebih dari satu</small>
+              <div className="form-group" style={{ marginTop: '12px' }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontWeight: 500, fontSize: '13px' }}>Anak (Pilih satu atau lebih siswa)</label>
+                <SearchableMultiSelect
+                  options={students.map((s) => ({
+                    value: s._id || s.id,
+                    label: s.full_name,
+                    sublabel: `NIS: ${s.nis || '-'} ${s.class_name ? '| Kelas: ' + s.class_name : ''}`
+                  }))}
+                  value={formData.children}
+                  onChange={(selected) => setFormData((prev) => ({ ...prev, children: selected }))}
+                  placeholder="Cari dan pilih siswa..."
+                />
               </div>
               <div className="modal-buttons">
                 <button type="button" onClick={() => setShowModal(false)}>Batal</button>

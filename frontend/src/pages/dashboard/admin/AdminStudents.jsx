@@ -23,6 +23,7 @@ const AdminStudents = () => {
     nis: '',
     class_id: '',
     parent_id: '',
+    alamat: '',
     role: 'siswa',
     is_active: true,
   });
@@ -30,7 +31,6 @@ const AdminStudents = () => {
   // Dropdown & modal states
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
-  const [templateLoading, setTemplateLoading] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const fileInputRef = React.createRef();
@@ -97,23 +97,28 @@ const AdminStudents = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const generatedUsername = formData.email ? formData.email.split('@')[0] : `siswa_${Date.now()}`;
       if (editingStudent) {
         const updateData = {
           full_name: formData.full_name,
           email: formData.email,
-          username: formData.username,
+          username: generatedUsername,
           nis: formData.nis,
           class_id: formData.class_id,
           parent_id: formData.parent_id,
+          alamat: formData.alamat,
           is_active: formData.is_active,
         };
         if (formData.password) {
           updateData.password = formData.password;
         }
-        await api.put(`/users/${editingStudent._id}`, updateData);
+        await api.put(`/users/${editingStudent._id || editingStudent.id}`, updateData);
         setSuccessMsg('Data siswa berhasil diupdate');
       } else {
-        await api.post('/users', formData);
+        await api.post('/users', {
+          ...formData,
+          username: generatedUsername,
+        });
         setSuccessMsg('Siswa berhasil ditambahkan');
       }
       setShowModal(false);
@@ -126,6 +131,7 @@ const AdminStudents = () => {
         nis: '',
         class_id: '',
         parent_id: '',
+        alamat: '',
         role: 'siswa',
         is_active: true,
       });
@@ -141,13 +147,14 @@ const AdminStudents = () => {
     setFormData({
       full_name: student.full_name || '',
       email: student.email || '',
-      username: student.username || '',
+      username: student.username || (student.email ? student.email.split('@')[0] : ''),
       password: '',
       nis: student.nis || '',
-      class_id: student.class_id || '',
-      parent_id: student.parent_id || '',
+      class_id: student.class_id || student.class?._id || student.class?.id || '',
+      parent_id: student.parent_id || student.parent?._id || student.parent?.id || '',
+      alamat: student.alamat || student.address || '',
       role: 'siswa',
-      is_active: student.is_active,
+      is_active: student.is_active !== undefined ? student.is_active : true,
     });
     setShowModal(true);
   };
@@ -397,6 +404,7 @@ const AdminStudents = () => {
                 <th>User Profile</th>
                 <th>NIS</th>
                 <th>Kelas</th>
+                <th>Alamat</th>
                 <th>Orang Tua</th>
                 <th>Status</th>
                 <th className="text-right">Aksi</th>
@@ -404,10 +412,10 @@ const AdminStudents = () => {
             </thead>
             <tbody>
               {currentItems.length === 0 ? (
-                <tr><td colSpan="6" className="admin-table-empty">Tidak ada data siswa</td></tr>
+                <tr><td colSpan="7" className="admin-table-empty">Tidak ada data siswa</td></tr>
               ) : (
                 currentItems.map((student) => (
-                  <tr key={student.id}>
+                  <tr key={student.id || student._id}>
                     <td className="admin-user-info-cell">
                       <div className="admin-user-info" style={{ cursor: 'pointer' }} onClick={() => handleShowDetail(student)}>
                         <div className="admin-user-avatar"><span className="material-symbols-outlined">account_circle</span></div>
@@ -419,6 +427,7 @@ const AdminStudents = () => {
                     </td>
                     <td className="admin-user-id">{student.nis || '-'}</td>
                     <td className="admin-class-cell"><span className="admin-class-badge">{student.class_name || '-'}</span></td>
+                    <td className="admin-address-cell">{student.alamat || student.address || '-'}</td>
                     <td className="admin-parent-cell">{student.parent?.full_name || '-'}</td>
                     <td className="admin-status-cell">
                       <span className={`admin-status-badge ${student.is_active ? 'active' : 'inactive'}`}>
@@ -490,8 +499,8 @@ const AdminStudents = () => {
               </div>
               <div className="admin-students-form-row">
                 <div className="admin-students-form-group">
-                  <label className="admin-students-form-label">Username *</label>
-                  <input type="text" name="username" className="admin-students-form-input" value={formData.username} onChange={handleChange} required />
+                  <label className="admin-students-form-label">NIS *</label>
+                  <input type="text" name="nis" className="admin-students-form-input" value={formData.nis} onChange={handleChange} required />
                 </div>
                 <div className="admin-students-form-group">
                   <label className="admin-students-form-label">Password {!editingStudent && '*'}</label>
@@ -500,29 +509,31 @@ const AdminStudents = () => {
               </div>
               <div className="admin-students-form-row">
                 <div className="admin-students-form-group">
-                  <label className="admin-students-form-label">NIS *</label>
-                  <input type="text" name="nis" className="admin-students-form-input" value={formData.nis} onChange={handleChange} required />
-                </div>
-                <div className="admin-students-form-group">
                   <label className="admin-students-form-label">Kelas</label>
                   <select name="class_id" className="admin-students-form-select" value={formData.class_id} onChange={handleChange}>
                     <option value="">Pilih Kelas</option>
                     {availableClasses.map((c) => (
-                      <option key={c._id} value={c._id}>{c.name}</option>
+                      <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
-              </div>
-              <div className="admin-students-form-row">
                 <div className="admin-students-form-group">
                   <label className="admin-students-form-label">Orang Tua</label>
                   <select name="parent_id" className="admin-students-form-select" value={formData.parent_id} onChange={handleChange}>
                     <option value="">Pilih Orang Tua (Opsional)</option>
                     {parents.map((p) => (
-                      <option key={p._id} value={p._id}>{p.full_name} - {p.phone || p.email}</option>
+                      <option key={p._id || p.id} value={p._id || p.id}>{p.full_name} - {p.phone || p.email}</option>
                     ))}
                   </select>
                 </div>
+              </div>
+              <div className="admin-students-form-row">
+                <div className="admin-students-form-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="admin-students-form-label">Alamat Lengkap</label>
+                  <textarea name="alamat" className="admin-students-form-input" rows="2" value={formData.alamat} onChange={handleChange} placeholder="Masukkan alamat lengkap siswa..."></textarea>
+                </div>
+              </div>
+              <div className="admin-students-form-row">
                 <div className="admin-students-form-group">
                   <label className="admin-students-form-label">Status</label>
                   <select name="is_active" className="admin-students-form-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
@@ -548,12 +559,12 @@ const AdminStudents = () => {
             <div className="detail-field"><strong>Nama Lengkap:</strong> {selectedStudent.full_name}</div>
             <div className="detail-field"><strong>NIS:</strong> {selectedStudent.nis}</div>
             <div className="detail-field"><strong>Email:</strong> {selectedStudent.email}</div>
-            <div className="detail-field"><strong>Username:</strong> {selectedStudent.username}</div>
             <div className="detail-field"><strong>Kelas:</strong> {selectedStudent.class_name || '-'}</div>
+            <div className="detail-field"><strong>Alamat:</strong> {selectedStudent.alamat || selectedStudent.address || '-'}</div>
             <div className="detail-field"><strong>Orang Tua:</strong> {selectedStudent.parent?.full_name || '-'}</div>
             <div className="detail-field"><strong>Nomor Telepon Ortu:</strong> {selectedStudent.parent?.phone || '-'}</div>
             <div className="detail-field"><strong>Status:</strong> {selectedStudent.is_active ? 'Aktif' : 'Nonaktif'}</div>
-            <div className="detail-field"><strong>ID Siswa:</strong> {selectedStudent.id}</div>
+            <div className="detail-field"><strong>ID Siswa:</strong> {selectedStudent.id || selectedStudent._id}</div>
             <div className="modal-buttons" style={{ marginTop: '20px' }}>
               <button type="button" className="btn-cancel" onClick={() => setShowDetailModal(false)}>Tutup</button>
             </div>

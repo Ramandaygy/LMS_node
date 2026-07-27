@@ -28,6 +28,7 @@ const RegisterSiswa = () => {
 
     const submitData = {
       ...formData,
+      username: formData.email ? formData.email.split('@')[0] : `siswa_${Date.now()}`,
       role: 'siswa'
     };
 
@@ -100,7 +101,7 @@ const RegisterSiswa = () => {
               {error && <div className="auth-error">{error}</div>}
 
               <div className="auth-form-row">
-                <div className="auth-input-group">
+                <div className="auth-input-group" style={{ gridColumn: 'span 2' }}>
                   <label>Full Name *</label>
                   <div className="auth-input-wrapper">
                     <span className="material-symbols-outlined">badge</span>
@@ -110,21 +111,6 @@ const RegisterSiswa = () => {
                       value={formData.full_name}
                       onChange={handleChange}
                       placeholder="Enter your full name"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="auth-input-group">
-                  <label>Username *</label>
-                  <div className="auth-input-wrapper">
-                    <span className="material-symbols-outlined">person</span>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="Choose a username"
                       required
                     />
                   </div>

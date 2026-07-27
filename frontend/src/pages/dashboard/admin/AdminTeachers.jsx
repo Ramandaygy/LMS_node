@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../../services/api';
+import SearchableMultiSelect from '../../../components/Common/SearchableMultiSelect';
 import '../../../styles/dashboard/admin/admin-students.css';
 
 const AdminTeachers = () => {
@@ -28,7 +29,6 @@ const AdminTeachers = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [exportLoading, setExportLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false); // state untuk loading template
   const fileInputRef = useRef(null);
@@ -174,11 +174,6 @@ const AdminTeachers = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({ ...formData, [name]: type === 'checkbox' ? checked : value });
-  };
-
-  const handleMultiSelect = (e, field) => {
-    const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-    setFormData({ ...formData, [field]: selected });
   };
 
   const handleSubmit = async (e) => {
@@ -512,20 +507,24 @@ const AdminTeachers = () => {
                   <input type="text" name="nip" value={formData.nip} onChange={handleChange} required />
                 </div>
                 <div className="admin-students-form-group">
-                  <label>Mata Pelajaran</label>
-                  <select multiple size="4" value={formData.subjects} onChange={(e) => handleMultiSelect(e, 'subjects')} className="admin-students-form-select">
-                    {allSubjects.map(subj => <option key={subj._id} value={subj._id}>{subj.name}</option>)}
-                  </select>
-                  <small>Tekan Ctrl untuk memilih lebih dari satu</small>
+                  <label>Mata Pelajaran (Pilih satu/lebih)</label>
+                  <SearchableMultiSelect
+                    options={allSubjects.map(subj => ({ value: subj._id || subj.id, label: subj.name }))}
+                    value={formData.subjects}
+                    onChange={(selected) => setFormData(prev => ({ ...prev, subjects: selected }))}
+                    placeholder="Cari & pilih mata pelajaran..."
+                  />
                 </div>
               </div>
               <div className="admin-students-form-row">
                 <div className="admin-students-form-group">
-                  <label>Kelas</label>
-                  <select multiple size="4" value={formData.classes} onChange={(e) => handleMultiSelect(e, 'classes')} className="admin-students-form-select">
-                    {allClasses.map(cls => <option key={cls._id} value={cls._id}>{cls.name}</option>)}
-                  </select>
-                  <small>Tekan Ctrl untuk memilih lebih dari satu</small>
+                  <label>Kelas (Pilih satu/lebih)</label>
+                  <SearchableMultiSelect
+                    options={allClasses.map(cls => ({ value: cls._id || cls.id, label: cls.name }))}
+                    value={formData.classes}
+                    onChange={(selected) => setFormData(prev => ({ ...prev, classes: selected }))}
+                    placeholder="Cari & pilih kelas..."
+                  />
                 </div>
                 <div className="admin-students-form-group">
                   <label>Nomor Telepon</label>
