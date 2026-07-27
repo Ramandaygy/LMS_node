@@ -195,6 +195,19 @@ const GuruStudents = () => {
     return matchesSearch && matchesHr;
   });
 
+  // Pagination Logic
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage) || 1;
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentStudents = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
+
   if (loading) return <div className="loading">Memuat data siswa...</div>;
 
   return (
@@ -271,99 +284,172 @@ const GuruStudents = () => {
 
       {/* MAIN TABLE: MATRIKS NA RAPOR LEGER WALI KELAS */}
       <div className="student-table-container glass-container no-print">
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '24px' }}>stars</span>
-              <span style={{ fontSize: '14px', color: '#1e3a8a', fontWeight: '700' }}>
-                Kelas Binaan Rapor (Wali Kelas): <strong style={{ fontSize: '16px', color: '#0f172a' }}>{homeroomClass || (teacherClasses[0]?.name ? `Kelas ${teacherClasses[0].name}` : 'Semua Kelas')}</strong>
-              </span>
-            </div>
-            <span style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '600' }}>
-              Menampilkan {filteredStudents.length} Siswa Binaan Rapor
+        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '14px 20px', borderRadius: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="material-symbols-outlined" style={{ color: '#2563eb', fontSize: '24px' }}>stars</span>
+            <span style={{ fontSize: '14px', color: '#1e3a8a', fontWeight: '700' }}>
+              Kelas Binaan Rapor (Wali Kelas): <strong style={{ fontSize: '16px', color: '#0f172a' }}>{homeroomClass || (teacherClasses[0]?.name ? `Kelas ${teacherClasses[0].name}` : 'Semua Kelas')}</strong>
             </span>
           </div>
-
-          <table className="student-table spreadsheet-table">
-            <thead>
-              <tr>
-                <th rowSpan="2" className="text-center">No</th>
-                <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
-                <th colSpan={subjects.length} className="text-center th-section-header" style={{ background: '#0284c7', color: '#fff' }}>
-                  Matriks Nilai Akhir (NA) Rapor per Mapel (Formula 2:1:1)
-                </th>
-                <th rowSpan="2" className="text-center th-bold-header">Jml NA</th>
-                <th rowSpan="2" className="text-center th-bold-header">Rata Rapor</th>
-                <th rowSpan="2" className="text-center th-bold-header">Rank</th>
-                <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
-                <th rowSpan="2" className="text-center th-actions-sticky">Aksi Rapor</th>
-              </tr>
-              <tr>
-                {subjects.map((sub) => (
-                  <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
-                    {getSubjectLabel(sub.code)}
-                  </th>
-                ))}
-                <th className="text-center th-att-header" title="Sakit">S</th>
-                <th className="text-center th-att-header" title="Izin">I</th>
-                <th className="text-center th-att-header" title="Alpha">A</th>
-                <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student, idx) => {
-                  const naSum = student.rapor_sum;
-                  const naAvg = student.rapor_avg;
-                  const rank = student.rank_rapor;
-
-                  return (
-                    <tr key={student._id} className="spreadsheet-row">
-                      <td className="text-center row-number">{idx + 1}</td>
-                      <td className="student-name-cell th-name-sticky">{student.full_name}</td>
-                      {subjects.map((sub) => {
-                        const na = student.na_grades?.[sub._id.toString()];
-                        const displayNA = na !== undefined && na !== null ? na : '-';
-                        const isBelowKKM = typeof na === 'number' && na < 75;
-
-                        return (
-                          <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`} style={{ fontWeight: '800' }}>
-                            {displayNA}
-                          </td>
-                        );
-                      })}
-                      <td className="text-center font-semibold total-score-cell">{naSum !== undefined ? naSum : '-'}</td>
-                      <td className="text-center font-semibold avg-score-cell" style={{ color: '#0284c7', fontSize: '15px' }}>{naAvg !== undefined ? naAvg : '-'}</td>
-                      <td className="text-center rank-cell">
-                        <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
-                      </td>
-                      <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
-                      <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
-                      <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
-                      <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
-                      <td className="text-center th-actions-sticky">
-                        <button
-                          className="btn-action-view"
-                          onClick={() => handleDetailClick(student)}
-                          style={{ background: '#2563eb', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                        >
-                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
-                          Edit & Cetak Rapor
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
-                    <span className="material-symbols-outlined empty-icon">group_off</span>
-                    <p>Tidak ada data siswa binaan ditemukan untuk kelas ini</p>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <span style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '600' }}>
+            Menampilkan {filteredStudents.length} Siswa Binaan Rapor
+          </span>
         </div>
+
+        <table className="student-table spreadsheet-table">
+          <thead>
+            <tr>
+              <th rowSpan="2" className="text-center">No</th>
+              <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
+              <th colSpan={subjects.length} className="text-center th-section-header" style={{ background: '#0284c7', color: '#fff' }}>
+                Matriks Nilai Akhir (NA) Rapor per Mapel (Formula 2:1:1)
+              </th>
+              <th rowSpan="2" className="text-center th-bold-header">Jml NA</th>
+              <th rowSpan="2" className="text-center th-bold-header">Rata Rapor</th>
+              <th rowSpan="2" className="text-center th-bold-header">Rank</th>
+              <th colSpan="4" className="text-center th-attendance-header">Kehadiran</th>
+              <th rowSpan="2" className="text-center th-actions-sticky">Aksi Rapor</th>
+            </tr>
+            <tr>
+              {subjects.map((sub) => (
+                <th key={sub._id} className="text-center th-subject-code-sub" title={sub.name}>
+                  {getSubjectLabel(sub.code)}
+                </th>
+              ))}
+              <th className="text-center th-att-header" title="Sakit">S</th>
+              <th className="text-center th-att-header" title="Izin">I</th>
+              <th className="text-center th-att-header" title="Alpha">A</th>
+              <th className="text-center th-att-header" title="Jumlah Tidak Hadir">jmlh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentStudents.length > 0 ? (
+              currentStudents.map((student, idx) => {
+                const naSum = student.rapor_sum;
+                const naAvg = student.rapor_avg;
+                const rank = student.rank_rapor;
+
+                return (
+                  <tr key={student._id} className="spreadsheet-row">
+                    <td className="text-center row-number">{indexOfFirstItem + idx + 1}</td>
+                    <td className="student-name-cell th-name-sticky">{student.full_name}</td>
+                    {subjects.map((sub) => {
+                      const na = student.na_grades?.[sub._id.toString()];
+                      const displayNA = na !== undefined && na !== null ? na : '-';
+                      const isBelowKKM = typeof na === 'number' && na < 75;
+
+                      return (
+                        <td key={sub._id} className={`text-center score-cell ${isBelowKKM ? 'kkm-fail' : ''}`} style={{ fontWeight: '800' }}>
+                          {displayNA}
+                        </td>
+                      );
+                    })}
+                    <td className="text-center font-semibold total-score-cell">{naSum !== undefined ? naSum : '-'}</td>
+                    <td className="text-center font-semibold avg-score-cell" style={{ color: '#0284c7', fontSize: '15px' }}>{naAvg !== undefined ? naAvg : '-'}</td>
+                    <td className="text-center rank-cell">
+                      <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
+                    </td>
+                    <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
+                    <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
+                    <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
+                    <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
+                    <td className="text-center th-actions-sticky">
+                      <button
+                        className="btn-action-view"
+                        onClick={() => handleDetailClick(student)}
+                        style={{ background: '#2563eb', color: '#fff', padding: '6px 12px', borderRadius: '8px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>description</span>
+                        Edit & Cetak Rapor
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={6 + subjects.length + 4} className="text-center empty-table-state">
+                  <span className="material-symbols-outlined empty-icon">group_off</span>
+                  <p>Tidak ada data siswa binaan ditemukan untuk kelas ini</p>
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+
+        {/* Pagination Bar Controls */}
+        {filteredStudents.length > 0 && (
+          <div className="no-print" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '14px 20px',
+            background: '#f8fafc',
+            borderTop: '1px solid #e2e8f0',
+            flexWrap: 'wrap',
+            gap: '12px',
+            borderRadius: '0 0 16px 16px'
+          }}>
+            <div style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+              Menampilkan <strong>{indexOfFirstItem + 1}</strong> - <strong>{Math.min(indexOfLastItem, filteredStudents.length)}</strong> dari <strong>{filteredStudents.length}</strong> siswa
+            </div>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: currentPage === 1 ? '#f1f5f9' : '#ffffff',
+                  color: currentPage === 1 ? '#94a3b8' : '#1e293b',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Sebelumnya
+              </button>
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    border: page === currentPage ? '1px solid #2563eb' : '1px solid #cbd5e1',
+                    background: page === currentPage ? '#2563eb' : '#ffffff',
+                    color: page === currentPage ? '#ffffff' : '#1e293b',
+                    fontSize: '13px',
+                    fontWeight: '700',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: (currentPage === totalPages || totalPages === 0) ? '#f1f5f9' : '#ffffff',
+                  color: (currentPage === totalPages || totalPages === 0) ? '#94a3b8' : '#1e293b',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  cursor: (currentPage === totalPages || totalPages === 0) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Selanjutnya
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* ========================================================================= */}
       {/* MODAL RAPOR INTRAKURIKULER KURIKULUM MERDEKA (EDITABLE & PRINTABLE)        */}

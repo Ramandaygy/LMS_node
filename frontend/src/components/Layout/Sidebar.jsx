@@ -108,6 +108,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     guru: activeGuruMenuList,
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
+      { key: 'cbt', label: 'Ujian CBT', icon: 'quiz', path: '/dashboard/siswa/cbt' },
       { key: 'progress', label: 'Progress', icon: 'trending_up', path: '/dashboard/siswa/progress' },
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/siswa/assignments' },
       { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/siswa/materials' },

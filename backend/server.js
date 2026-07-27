@@ -130,6 +130,12 @@ app.use(
   require('./routes/scheduleRoutes')
 );
 
+// CBT EXAMS
+app.use(
+  '/api/cbt',
+  require('./routes/cbtRoutes')
+);
+
 // SETTINGS
 app.use(
   '/api/settings',
