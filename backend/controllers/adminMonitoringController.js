@@ -391,7 +391,7 @@ exports.getTeacherActivities = async (req, res) => {
 // 4. LEGER NILAI AKADEMIK KELAS (MODEL BOBOT 2 : 1 : 1)
 // ============================================================
 
-// Helper function to build Leger matrix
+// Helper function to build Leger matrix (OPTIMIZED IN-MEMORY PRE-FETCHING)
 async function computeLegerData(classId) {
   const siswaCol = mongoose.connection.collection('users_siswa');
   const classCol = mongoose.connection.collection('classes');
@@ -404,8 +404,14 @@ async function computeLegerData(classId) {
 
   const objClassId = new mongoose.Types.ObjectId(classId);
 
-  // 1. Get Class info & Homeroom teacher
-  const classDoc = await classCol.findOne({ _id: objClassId });
+  // Parallel pre-fetch classDoc, subjects, students, allAssignments
+  const [classDoc, subjects, students, allAssignments] = await Promise.all([
+    classCol.findOne({ _id: objClassId }),
+    subjectCol.find({ is_active: { $ne: false } }).toArray(),
+    siswaCol.find({ class_id: objClassId }).sort({ full_name: 1 }).toArray(),
+    assignmentsCol.find({}).toArray()
+  ]);
+
   if (!classDoc) throw new Error('Kelas tidak ditemukan');
 
   let homeroomTeacherName = 'Belum Diatur';
@@ -414,133 +420,155 @@ async function computeLegerData(classId) {
     if (hr) homeroomTeacherName = hr.full_name;
   }
 
-  // 2. Get active subjects
-  const subjects = await subjectCol.find({ is_active: { $ne: false } }).toArray();
+  if (students.length === 0) {
+    return {
+      class_info: {
+        _id: classDoc._id,
+        name: classDoc.name,
+        grade_level: classDoc.grade_level,
+        homeroom_teacher: homeroomTeacherName,
+      },
+      subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
+      students: [],
+    };
+  }
 
-  // 3. Get students in this class
-  const students = await siswaCol.find({ class_id: objClassId }).sort({ full_name: 1 }).toArray();
+  // Build ID list for all students in class
+  const studentIdsObj = students.map(s => s._id);
+  const studentIdsStr = students.map(s => s._id.toString());
+  const allStudentIdKeys = [...studentIdsObj, ...studentIdsStr];
 
-  // Pre-fetch all assignments for quick mapping
-  const allAssignments = await assignmentsCol.find({}).toArray();
+  // Pre-fetch ALL attendances, submissions, and grades in PARALLEL in ONE GO!
+  const [allAttendances, allSubmissions, allGrades] = await Promise.all([
+    attendancesCol.find({ student_id: { $in: allStudentIdKeys } }).toArray(),
+    submissionsCol.find({ student_id: { $in: allStudentIdKeys }, score: { $ne: null } }).toArray(),
+    gradesCol.find({ student: { $in: allStudentIdKeys } }).toArray()
+  ]);
+
+  // Index allAssignments by ID
   const assignmentMap = {};
   allAssignments.forEach((a) => {
     assignmentMap[a._id.toString()] = a;
   });
 
-  // Calculate scores for each student
-  const studentLegerList = await Promise.all(
-    students.map(async (st) => {
-      const studentIdObj = st._id;
-      const studentIdStr = st._id.toString();
+  // Group attendances by studentId string
+  const attendanceByStudent = {};
+  allAttendances.forEach(a => {
+    const sId = a.student_id ? a.student_id.toString() : '';
+    if (!attendanceByStudent[sId]) attendanceByStudent[sId] = [];
+    attendanceByStudent[sId].push(a);
+  });
 
-      // Attendance rate
-      const attendances = await attendancesCol.find({ student_id: { $in: [studentIdObj, studentIdStr] } }).toArray();
-      const totalAtt = attendances.length;
-      const presentAtt = attendances.filter((a) => {
-        const st = (a.status || '').toLowerCase();
-        return st === 'hadir' || st === 'present' || st === 'sakit' || st === 'sick' || st === 'ijin' || st === 'izin' || st === 'permission';
-      }).length;
-      const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 100;
+  // Group submissions by studentId string & subjectId string
+  const submissionsByStudentAndSubject = {};
+  allSubmissions.forEach(subm => {
+    const sId = subm.student_id ? subm.student_id.toString() : '';
+    const assign = assignmentMap[subm.assignment_id?.toString()];
+    const subId = assign ? (assign.subject || assign.subject_id || assign.subjectId)?.toString() : null;
 
-      let totalNASum = 0;
-      let subjectCount = 0;
-      const subjectGrades = {};
+    if (sId && subId) {
+      const key = `${sId}_${subId}`;
+      if (!submissionsByStudentAndSubject[key]) submissionsByStudentAndSubject[key] = [];
+      submissionsByStudentAndSubject[key].push({
+        score: subm.score,
+        max_score: assign.max_score || assign.total_score || 100
+      });
+    }
+  });
 
-      for (const sub of subjects) {
-        const subIdStr = sub._id.toString();
+  // Group grades (UTS / UAS) by studentId string, subjectId string, and type
+  const gradesByStudentAndSubject = {};
+  allGrades.forEach(g => {
+    const sId = g.student ? g.student.toString() : '';
+    const subId = g.subject ? g.subject.toString() : '';
+    const type = g.type; // 'uts' | 'uas' | 'quiz'
+    if (sId && subId && type) {
+      const key = `${sId}_${subId}_${type}`;
+      gradesByStudentAndSubject[key] = g.score;
+    }
+  });
 
-        // Find submissions for assignments of this subject
-        const subAssignments = allAssignments.filter((a) => {
-          const sId = (a.subject || a.subject_id || a.subjectId)?.toString();
-          return sId === subIdStr;
-        });
+  // Compute leger matrix entirely in-memory with ZERO database calls in loops!
+  const studentLegerList = students.map((st) => {
+    const stIdStr = st._id.toString();
 
-        const subAssignmentIds = subAssignments.map((a) => a._id);
-        const subAssignmentIdStrings = subAssignments.map((a) => a._id.toString());
+    // 1. Attendance rate
+    const studentAtts = attendanceByStudent[stIdStr] || [];
+    const totalAtt = studentAtts.length;
+    const presentAtt = studentAtts.filter((a) => {
+      const stStatus = (a.status || '').toLowerCase();
+      return stStatus === 'hadir' || stStatus === 'present' || stStatus === 'sakit' || stStatus === 'sick' || stStatus === 'ijin' || stStatus === 'izin' || stStatus === 'permission';
+    }).length;
+    const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 100;
 
-        const submissions = await submissionsCol
-          .find({
-            $or: [
-              { student_id: studentIdObj },
-              { student_id: studentIdStr }
-            ],
-            assignment_id: { $in: [...subAssignmentIds, ...subAssignmentIdStrings] },
-            score: { $ne: null },
-          })
-          .toArray();
+    let totalNASum = 0;
+    let subjectCount = 0;
+    const subjectGrades = {};
 
-        let totalTugasScore = 0;
-        let totalTugasMax = 0;
-        submissions.forEach((s) => {
-          const assign = assignmentMap[s.assignment_id.toString()] || { max_score: 100, total_score: 100 };
-          totalTugasScore += s.score;
-          totalTugasMax += assign.max_score || assign.total_score || 100;
-        });
+    for (const sub of subjects) {
+      const subIdStr = sub._id.toString();
+      const key = `${stIdStr}_${subIdStr}`;
 
-        // Compute NH (Nilai Harian / Rata-rata Tugas)
-        const hasNH = totalTugasMax > 0;
-        const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
+      // Submissions for this student + subject
+      const studentSubmissions = submissionsByStudentAndSubject[key] || [];
+      let totalTugasScore = 0;
+      let totalTugasMax = 0;
+      studentSubmissions.forEach(s => {
+        totalTugasScore += s.score;
+        totalTugasMax += s.max_score;
+      });
 
-        // Get PTS & PAS from Grade collection
-        const ptsGrade = await gradesCol.findOne({
-          student: { $in: [studentIdObj, studentIdStr] },
-          subject: { $in: [sub._id, sub._id.toString()] },
-          type: 'uts',
-        });
-        const pasGrade = await gradesCol.findOne({
-          student: { $in: [studentIdObj, studentIdStr] },
-          subject: { $in: [sub._id, sub._id.toString()] },
-          type: 'uas',
-        });
+      const hasNH = totalTugasMax > 0;
+      const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
 
-        const PTS = ptsGrade ? ptsGrade.score : null;
-        const PAS = pasGrade ? pasGrade.score : null;
+      // PTS & PAS
+      const PTS = gradesByStudentAndSubject[`${key}_uts`] !== undefined ? gradesByStudentAndSubject[`${key}_uts`] : null;
+      const PAS = gradesByStudentAndSubject[`${key}_uas`] !== undefined ? gradesByStudentAndSubject[`${key}_uas`] : null;
 
-        // Formula 1 : 1 : 1 -> NA = (NH + PTS + PAS) / 3
-        let NA = null;
-        if (NH !== null || PTS !== null || PAS !== null) {
-          const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
-          const ptsVal = PTS !== null ? PTS : nhVal;
-          const pasVal = PAS !== null ? PAS : nhVal;
-          NA = Math.round((nhVal + ptsVal + pasVal) / 3);
-        }
-
-        let predikat = '-';
-        if (NA !== null) {
-          if (NA >= 88) predikat = 'A';
-          else if (NA >= 78) predikat = 'B';
-          else if (NA >= 75) predikat = 'C';
-          else predikat = 'D';
-        }
-
-        subjectGrades[subIdStr] = {
-          subject_name: sub.name,
-          NH: NH !== null ? NH : '-',
-          PTS: PTS !== null ? PTS : '-',
-          PAS: PAS !== null ? PAS : '-',
-          NA: NA !== null ? NA : '-',
-          predikat,
-        };
-
-        if (NA !== null) {
-          totalNASum += NA;
-          subjectCount++;
-        }
+      // Formula NA = (NH + PTS + PAS) / 3
+      let NA = null;
+      if (NH !== null || PTS !== null || PAS !== null) {
+        const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
+        const ptsVal = PTS !== null ? PTS : nhVal;
+        const pasVal = PAS !== null ? PAS : nhVal;
+        NA = Math.round((nhVal + ptsVal + pasVal) / 3);
       }
 
-      const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : 0;
+      let predikat = '-';
+      if (NA !== null) {
+        if (NA >= 88) predikat = 'A';
+        else if (NA >= 78) predikat = 'B';
+        else if (NA >= 75) predikat = 'C';
+        else predikat = 'D';
+      }
 
-      return {
-        _id: st._id,
-        full_name: st.full_name,
-        nis: st.nis || '-',
-        subjectGrades,
-        totalNASum,
-        avgRapor,
-        attendanceRate,
+      subjectGrades[subIdStr] = {
+        subject_name: sub.name,
+        NH: NH !== null ? NH : '-',
+        PTS: PTS !== null ? PTS : '-',
+        PAS: PAS !== null ? PAS : '-',
+        NA: NA !== null ? NA : '-',
+        predikat,
       };
-    })
-  );
+
+      if (NA !== null) {
+        totalNASum += NA;
+        subjectCount++;
+      }
+    }
+
+    const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : 0;
+
+    return {
+      _id: st._id,
+      full_name: st.full_name,
+      nis: st.nis || '-',
+      subjectGrades,
+      totalNASum,
+      avgRapor,
+      attendanceRate,
+    };
+  });
 
   // Compute Ranking (sort descending by avgRapor)
   const sortedStudents = [...studentLegerList].sort((a, b) => b.avgRapor - a.avgRapor);

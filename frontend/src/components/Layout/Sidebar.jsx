@@ -74,7 +74,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   }, [location.pathname]);
 
   const guruMapelMenuList = [
-    { key: 'dashboard', label: 'Dashboard Guru', icon: 'dashboard', path: '/dashboard/guru' },
+    { key: 'dashboard', label: 'Modul Guru (KBM)', icon: 'school', path: '/dashboard/guru' },
     { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
     { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
     { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
