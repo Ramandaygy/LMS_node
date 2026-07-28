@@ -13,7 +13,6 @@ const GuruQuiz = () => {
   // Quiz Questions State: array of { text, answer, showAnswer }
   const [questions, setQuestions] = useState([]);
   const [newQuestionText, setNewQuestionText] = useState('');
-  const [newAnswerText, setNewAnswerText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -111,12 +110,11 @@ const GuruQuiz = () => {
       ...prev,
       {
         text: newQuestionText.trim(),
-        answer: newAnswerText.trim(),
+        answer: '',
         showAnswer: false
       }
     ]);
     setNewQuestionText('');
-    setNewAnswerText('');
   };
 
   const handleDeleteQuestion = (index) => {
@@ -141,7 +139,7 @@ const GuruQuiz = () => {
         subject: targetSubjectName
       });
 
-      if (res.data) {
+      if (res.data && res.data.success) {
         const rawList = res.data.questions || [res.data.data?.question];
         const formatted = rawList.filter(Boolean).map(item => {
           if (typeof item === 'object') {
@@ -176,7 +174,7 @@ const GuruQuiz = () => {
       <div className="guru-quiz-header">
         <div>
           <h1 className="page-title">Manajemen Quiz Live & Generator AI</h1>
-          <p className="page-subtitle">Buat pertanyaan kuis cepat manual/AI, sembunyikan kunci jawaban untuk dibahas bersama, dan input nilai siswa sekelas.</p>
+          <p className="page-subtitle">Buat pertanyaan kuis cepat manual atau via AI (lengkap dengan kunci jawaban tersembunyi), lalu input nilai siswa sekelas.</p>
         </div>
       </div>
 
@@ -188,7 +186,7 @@ const GuruQuiz = () => {
               <h3>Bank Pertanyaan Quiz Live</h3>
               {subjects.length > 0 && (
                 <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
-                  Mapel: 
+                  Mata Pelajaran: 
                   <select
                     value={selectedSubject}
                     onChange={(e) => setSelectedSubject(e.target.value)}
@@ -208,25 +206,15 @@ const GuruQuiz = () => {
             </button>
           </div>
 
-          <form onSubmit={handleAddQuestion} className="quiz-form-input-box">
+          <form onSubmit={handleAddQuestion} className="quiz-form-input">
             <input
               type="text"
-              required
               placeholder="Ketik pertanyaan kuis di sini..."
               value={newQuestionText}
               onChange={(e) => setNewQuestionText(e.target.value)}
               className="form-input"
             />
-            <input
-              type="text"
-              placeholder="Kunci Jawaban / Pembahasan (Opsional)..."
-              value={newAnswerText}
-              onChange={(e) => setNewAnswerText(e.target.value)}
-              className="form-input answer-input-opt"
-            />
-            <button type="submit" className="btn-add-q">
-              <span className="material-symbols-outlined">add</span> Tambah Soal
-            </button>
+            <button type="submit" className="btn-add-q">Tambah</button>
           </form>
 
           <div className="questions-list">
@@ -260,7 +248,7 @@ const GuruQuiz = () => {
                       </div>
                     </div>
 
-                    {/* Hidden Answer Key & Discussion Box */}
+                    {/* Hidden Answer Key & Discussion Box (For AI Questions) */}
                     {qAns && (
                       <div className="answer-key-section">
                         <button
@@ -276,7 +264,7 @@ const GuruQuiz = () => {
 
                         {isShowAns && (
                           <div className="revealed-answer-box">
-                            <strong>Kunci Jawaban & Pembahasan:</strong>
+                            <strong>Kunci Jawaban & Pembahasan AI:</strong>
                             <p>{qAns}</p>
                           </div>
                         )}

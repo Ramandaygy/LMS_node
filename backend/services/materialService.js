@@ -93,16 +93,14 @@ Jangan tambahkan teks lain di luar JSON.`;
 
 // GENERATE QUIZ DENGAN AI (Gemini)
 exports.generateQuizQuestionAI = async (data) => {
-  const { subject_name } = data;
+  const subjectName = (typeof data === 'object' ? data.subject_name || data.subject : data) || 'Informatika';
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-exports.generateQuizQuestionAI = async ({ subject_name }) => {
-  try {
-    if (genAI && process.env.GEMINI_API_KEY) {
+  if (apiKey) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const systemPrompt = `Anda adalah asisten guru SMP. Buatlah 3 soal kuis singkat tentang mata pelajaran ${subject_name} beserta Kunci Jawaban.
+      const systemPrompt = `Anda adalah asisten guru SMP. Buatlah 3 soal kuis singkat tentang mata pelajaran ${subjectName} beserta Kunci Jawaban.
 Format output JSON array:
 [
   {
@@ -119,19 +117,19 @@ HANYA kembalikan JSON array valid tanpa markdown fence.`;
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
+    } catch (err) {
+      console.error('Error generating AI quiz questions:', err);
     }
-  } catch (err) {
-    console.error('Error generating AI quiz questions:', err);
   }
 
   // Fallback if Gemini key unavailable or error occurs
   return [
     {
-      question: `Jelaskan fungsi dan contoh penerapan utama dari materi ${subject_name || 'Umum'}!`,
-      answer: `Fungsi utama dari ${subject_name || 'materi ini'} adalah untuk memahami konsep dasar dan memecahkan soal latihan.`
+      question: `Jelaskan fungsi utama dan contoh penerapan dari materi ${subjectName}!`,
+      answer: `Fungsi utama dari ${subjectName} adalah untuk memahami konsep dasar dan memecahkan soal latihan.`
     },
     {
-      question: `Sebutkan 3 karakteristik penting yang terdapat dalam bahasan ${subject_name || 'Pelajaran'}!`,
+      question: `Sebutkan 3 karakteristik penting yang terdapat dalam bahasan ${subjectName}!`,
       answer: `Tiga karakteristik utama meliputi struktur dasar, prinsip kerja, dan contoh kasus dalam kehidupan sehari-hari.`
     }
   ];
