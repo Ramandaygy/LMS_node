@@ -169,20 +169,17 @@ exports.generateMaterial = async (req, res) => {
 // GENERATE QUIZ DENGAN AI (Gemini)
 exports.generateQuiz = async (req, res) => {
   try {
-    const { subject_name } = req.body;
+    const subjectName = req.body.subject_name || req.body.subject || 'Umum';
 
-    if (!subject_name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Mata pelajaran wajib diisi untuk generate kuis'
-      });
-    }
-
-    const question = await materialService.generateQuizQuestionAI({ subject_name });
-    return res.json({ success: true, data: { question } });
+    const questions = await materialService.generateQuizQuestionAI({ subject_name: subjectName });
+    return res.json({
+      success: true,
+      questions: Array.isArray(questions) ? questions : [questions],
+      data: { question: typeof questions === 'string' ? questions : (questions[0]?.question || '') }
+    });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: err.message });
+    console.error('Error generating quiz AI:', err);
+    return res.status(500).json({ success: false, message: 'Gagal membuat kuis otomatis via AI: ' + err.message });
   }
 };
 

@@ -10,9 +10,10 @@ const GuruQuiz = () => {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
 
-  // Quiz Questions State
+  // Quiz Questions State: array of { text, answer, showAnswer }
   const [questions, setQuestions] = useState([]);
-  const [newQuestion, setNewQuestion] = useState('');
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [newAnswerText, setNewAnswerText] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -70,10 +71,14 @@ const GuruQuiz = () => {
     }
 
     const subjectObj = subjects.find(s => s.name === selectedSubject);
-    if (!subjectObj) {
+    const targetSubjectId = subjectObj ? subjectObj._id : (subjects[0] ? subjects[0]._id : null);
+    if (!targetSubjectId) {
       alert('Pilih mata pelajaran terlebih dahulu.');
       return;
     }
+
+    const qItem = questions[questionIndex];
+    const qText = typeof qItem === 'object' ? qItem.text : qItem;
 
     let successCount = 0;
     try {
@@ -81,10 +86,10 @@ const GuruQuiz = () => {
         scoresToSubmit.map(async ([studentId, score]) => {
           await api.post('/grades', {
             student: studentId,
-            subject: subjectObj._id,
+            subject: targetSubjectId,
             score: Number(score),
             type: 'quiz',
-            note: `Quiz Live: ${questions[questionIndex]}`
+            note: `Quiz Live: ${qText}`
           });
           successCount++;
         })
@@ -100,33 +105,60 @@ const GuruQuiz = () => {
   // Questions Handlers
   const handleAddQuestion = (e) => {
     e.preventDefault();
-    if (newQuestion.trim() === '') return;
-    setQuestions([...questions, newQuestion]);
-    setNewQuestion('');
+    if (!newQuestionText.trim()) return;
+
+    setQuestions(prev => [
+      ...prev,
+      {
+        text: newQuestionText.trim(),
+        answer: newAnswerText.trim(),
+        showAnswer: false
+      }
+    ]);
+    setNewQuestionText('');
+    setNewAnswerText('');
   };
 
   const handleDeleteQuestion = (index) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+    setQuestions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleToggleShowAnswer = (index) => {
+    setQuestions(prev => prev.map((q, i) => {
+      if (i === index) {
+        return typeof q === 'object' ? { ...q, showAnswer: !q.showAnswer } : { text: q, answer: '', showAnswer: true };
+      }
+      return q;
+    }));
   };
 
   const handleGenerateAI = async () => {
-    if (!selectedSubject) {
-      alert('Pilih mata pelajaran terlebih dahulu');
-      return;
-    }
-
     setIsGenerating(true);
     try {
+      const targetSubjectName = selectedSubject || (subjects[0] ? subjects[0].name : 'Umum');
       const res = await api.post('/materials/generate-quiz-ai', {
-        subject: selectedSubject,
-        topic: 'Umum Bab 1-3'
+        subject_name: targetSubjectName,
+        subject: targetSubjectName
       });
-      if (res.data && res.data.questions) {
-        setQuestions(prev => [...prev, ...res.data.questions]);
+
+      if (res.data) {
+        const rawList = res.data.questions || [res.data.data?.question];
+        const formatted = rawList.filter(Boolean).map(item => {
+          if (typeof item === 'object') {
+            return {
+              text: item.question || item.text || JSON.stringify(item),
+              answer: item.answer || item.kunci || '',
+              showAnswer: false
+            };
+          }
+          return { text: String(item), answer: '', showAnswer: false };
+        });
+
+        setQuestions(prev => [...prev, ...formatted]);
       }
     } catch (err) {
       console.error('Failed to generate AI quiz', err);
-      alert('Gagal membuat kuis otomatis via AI');
+      alert('Gagal membuat kuis otomatis via AI: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsGenerating(false);
     }
@@ -144,7 +176,7 @@ const GuruQuiz = () => {
       <div className="guru-quiz-header">
         <div>
           <h1 className="page-title">Manajemen Quiz Live & Generator AI</h1>
-          <p className="page-subtitle">Buat pertanyaan kuis cepat secara manual atau otomatis dengan AI, lalu input nilai siswa sekelas.</p>
+          <p className="page-subtitle">Buat pertanyaan kuis cepat manual/AI, sembunyikan kunci jawaban untuk dibahas bersama, dan input nilai siswa sekelas.</p>
         </div>
       </div>
 
@@ -152,48 +184,107 @@ const GuruQuiz = () => {
         {/* Left Side: Question Builder */}
         <div className="quiz-card">
           <div className="quiz-card-header">
-            <h3>Bank Pertanyaan Quiz Live</h3>
+            <div>
+              <h3>Bank Pertanyaan Quiz Live</h3>
+              {subjects.length > 0 && (
+                <div style={{ marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                  Mapel: 
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    {subjects.map((sub) => (
+                      <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             <button className="btn-ai-gen" onClick={handleGenerateAI} disabled={isGenerating}>
               <span className="material-symbols-outlined">auto_awesome</span>
               {isGenerating ? 'Generasi AI...' : 'Buat Kuis via AI'}
             </button>
           </div>
 
-          <form onSubmit={handleAddQuestion} className="quiz-form-input">
+          <form onSubmit={handleAddQuestion} className="quiz-form-input-box">
             <input
               type="text"
+              required
               placeholder="Ketik pertanyaan kuis di sini..."
-              value={newQuestion}
-              onChange={(e) => setNewQuestion(e.target.value)}
+              value={newQuestionText}
+              onChange={(e) => setNewQuestionText(e.target.value)}
               className="form-input"
             />
-            <button type="submit" className="btn-add-q">Tambah</button>
+            <input
+              type="text"
+              placeholder="Kunci Jawaban / Pembahasan (Opsional)..."
+              value={newAnswerText}
+              onChange={(e) => setNewAnswerText(e.target.value)}
+              className="form-input answer-input-opt"
+            />
+            <button type="submit" className="btn-add-q">
+              <span className="material-symbols-outlined">add</span> Tambah Soal
+            </button>
           </form>
 
           <div className="questions-list">
             {questions.length === 0 ? (
-              <p className="empty-msg">Belum ada pertanyaan kuis. Silakan ketik atau buat otomatis via AI.</p>
+              <p className="empty-msg">Belum ada pertanyaan kuis. Silakan ketik atau klik "Buat Kuis via AI" di atas.</p>
             ) : (
-              questions.map((q, idx) => (
-                <div key={idx} className="question-list-item">
-                  <div className="q-info">
-                    <span className="q-badge">Soal #{idx + 1}</span>
-                    <p className="q-text">{q}</p>
+              questions.map((qItem, idx) => {
+                const qText = typeof qItem === 'object' ? qItem.text : qItem;
+                const qAns = typeof qItem === 'object' ? qItem.answer : '';
+                const isShowAns = typeof qItem === 'object' ? qItem.showAnswer : false;
+
+                return (
+                  <div key={idx} className="question-list-item-card">
+                    <div className="q-card-top">
+                      <div className="q-info">
+                        <span className="q-badge">Soal #{idx + 1}</span>
+                        <p className="q-text">{qText}</p>
+                      </div>
+
+                      <div className="q-actions">
+                        <button
+                          className="btn-input-score"
+                          onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === idx ? null : idx)}
+                        >
+                          <span className="material-symbols-outlined">edit_note</span>
+                          {expandedQuestionIndex === idx ? 'Tutup Nilai' : 'Input Nilai'}
+                        </button>
+                        <button className="btn-del-q" onClick={() => handleDeleteQuestion(idx)}>
+                          <span className="material-symbols-outlined">delete</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Hidden Answer Key & Discussion Box */}
+                    {qAns && (
+                      <div className="answer-key-section">
+                        <button
+                          type="button"
+                          className="btn-toggle-answer"
+                          onClick={() => handleToggleShowAnswer(idx)}
+                        >
+                          <span className="material-symbols-outlined">
+                            {isShowAns ? 'visibility_off' : 'visibility'}
+                          </span>
+                          {isShowAns ? 'Sembunyikan Kunci Jawaban' : 'Tampilkan Kunci Jawaban (Bahas Bersama)'}
+                        </button>
+
+                        {isShowAns && (
+                          <div className="revealed-answer-box">
+                            <strong>Kunci Jawaban & Pembahasan:</strong>
+                            <p>{qAns}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="q-actions">
-                    <button
-                      className="btn-input-score"
-                      onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === idx ? null : idx)}
-                    >
-                      <span className="material-symbols-outlined">edit_note</span>
-                      {expandedQuestionIndex === idx ? 'Tutup Nilai' : 'Input Nilai'}
-                    </button>
-                    <button className="btn-del-q" onClick={() => handleDeleteQuestion(idx)}>
-                      <span className="material-symbols-outlined">delete</span>
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -223,7 +314,7 @@ const GuruQuiz = () => {
 
           {expandedQuestionIndex !== null && (
             <div className="input-score-banner">
-              <strong>Penginputan Nilai untuk Soal #{expandedQuestionIndex + 1}:</strong> "{questions[expandedQuestionIndex]}"
+              <strong>Penginputan Nilai untuk Soal #{expandedQuestionIndex + 1}:</strong> "{typeof questions[expandedQuestionIndex] === 'object' ? questions[expandedQuestionIndex].text : questions[expandedQuestionIndex]}"
             </div>
           )}
 
