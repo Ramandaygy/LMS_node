@@ -303,15 +303,13 @@ const GuruAttendance = () => {
           <table className="attendance-table">
             <thead>
               <tr>
-                <th>Student Name</th>
-                <th className="text-center">Status</th>
-                <th>Note</th>
-                <th className="text-right">Actions</th>
+                <th>Nama Siswa</th>
+                <th className="text-center">Status Kehadiran</th>
               </tr>
             </thead>
             <tbody>
               {displayedStudents.length === 0 ? (
-                <tr><td colSpan="4" className="empty-state">Tidak ada data siswa</td></tr>
+                <tr><td colSpan="2" className="empty-state">Tidak ada data siswa</td></tr>
               ) : (
                 displayedStudents.map((student) => {
                   const studentId = student._id || student.id;
@@ -333,8 +331,8 @@ const GuruAttendance = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="status-cell">
-                        <div className="status-buttons">
+                      <td className="status-cell text-center">
+                        <div className="status-buttons" style={{ justifyContent: 'center' }}>
                           {statuses.map(status => (
                             <button
                               key={status.key}
@@ -347,15 +345,6 @@ const GuruAttendance = () => {
                             </button>
                           ))}
                         </div>
-                      </td>
-                      <td>
-                        <div className="note-input-wrapper">
-                          <span className="material-symbols-outlined">chat_bubble</span>
-                          <input type="text" value={attendance.note} onChange={(e) => updateNote(studentId, e.target.value)} placeholder="Add note..." className="note-input" />
-                        </div>
-                      </td>
-                      <td className="actions-cell">
-                        <button className="action-menu"><span className="material-symbols-outlined">more_vert</span></button>
                       </td>
                     </tr>
                   );
