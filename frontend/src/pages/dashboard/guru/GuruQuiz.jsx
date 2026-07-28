@@ -28,15 +28,38 @@ const GuruQuiz = () => {
 
   const fetchTeacherProfile = async () => {
     try {
-      const res = await api.get('/profile');
-      if (res.data && res.data.subjects) {
-        setSubjects(res.data.subjects);
-        if (res.data.subjects.length > 0) {
-          setSelectedSubject(res.data.subjects[0].name);
-        }
+      const [profRes, subRes] = await Promise.all([
+        api.get('/profile'),
+        api.get('/subjects')
+      ]);
+
+      const rawTeacherSubjects = profRes.data?.subjects || [];
+      const allMasterSubjects = subRes.data?.data || [];
+
+      let names = [];
+      if (Array.isArray(rawTeacherSubjects) && rawTeacherSubjects.length > 0) {
+        names = rawTeacherSubjects.map(s => {
+          if (typeof s === 'object' && s.name) return s.name;
+          const found = allMasterSubjects.find(sub => String(sub._id) === String(s));
+          return found ? found.name : null;
+        }).filter(Boolean);
       }
+
+      if (names.length === 0 && allMasterSubjects.length > 0) {
+        names = allMasterSubjects.map(s => s.name).filter(Boolean);
+      }
+
+      if (names.length === 0) {
+        names = ['Informatika', 'Bahasa Indonesia', 'Matematika', 'IPA'];
+      }
+
+      const uniqueNames = [...new Set(names)];
+      setSubjects(uniqueNames);
+      setSelectedSubject(uniqueNames[0]);
     } catch (err) {
-      console.error('Failed to fetch profile', err);
+      console.error('Failed to fetch teacher profile/subjects', err);
+      setSubjects(['Informatika', 'Bahasa Indonesia', 'Matematika', 'IPA']);
+      setSelectedSubject('Informatika');
     }
   };
 
@@ -192,8 +215,10 @@ const GuruQuiz = () => {
                     onChange={(e) => setSelectedSubject(e.target.value)}
                     style={{ marginLeft: '6px', padding: '2px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                   >
-                    {subjects.map((sub) => (
-                      <option key={sub._id || sub.name} value={sub.name}>{sub.name}</option>
+                    {subjects.map((sub, idx) => (
+                      <option key={idx} value={typeof sub === 'object' ? sub.name : sub}>
+                        {typeof sub === 'object' ? sub.name : sub}
+                      </option>
                     ))}
                   </select>
                 </div>

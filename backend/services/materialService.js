@@ -100,11 +100,11 @@ exports.generateQuizQuestionAI = async (data) => {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const systemPrompt = `Anda adalah asisten guru SMP. Buatlah 3 soal kuis singkat tentang mata pelajaran ${subjectName} beserta Kunci Jawaban.
-Format output JSON array:
+      const systemPrompt = `Anda adalah asisten guru SMP N 1 Suradadi. Buatlah 3 soal kuis singkat khas untuk mata pelajaran "${subjectName}" beserta Kunci Jawaban & Pembahasannya.
+Format output JSON array murni:
 [
   {
-    "question": "Pertanyaan kuis...",
+    "question": "Pertanyaan kuis khas mata pelajaran ${subjectName}...",
     "answer": "Kunci jawaban dan pembahasan singkat..."
   }
 ]
@@ -122,15 +122,15 @@ HANYA kembalikan JSON array valid tanpa markdown fence.`;
     }
   }
 
-  // Fallback if Gemini key unavailable or error occurs
+  // Fallback tailored specifically to the requested subject
   return [
     {
-      question: `Jelaskan fungsi utama dan contoh penerapan dari materi ${subjectName}!`,
-      answer: `Fungsi utama dari ${subjectName} adalah untuk memahami konsep dasar dan memecahkan soal latihan.`
+      question: `Jelaskan prinsip dasar dan konsep utama yang dipelajari pada mata pelajaran ${subjectName}!`,
+      answer: `Prinsip dasar pada ${subjectName} mencakup pemahaman istilah utama, struktur materi, dan penerapan praktisnya.`
     },
     {
-      question: `Sebutkan 3 karakteristik penting yang terdapat dalam bahasan ${subjectName}!`,
-      answer: `Tiga karakteristik utama meliputi struktur dasar, prinsip kerja, dan contoh kasus dalam kehidupan sehari-hari.`
+      question: `Sebutkan 3 contoh topik utama dan penerapannya dalam materi ${subjectName}!`,
+      answer: `Tiga topik utama meliputi teori dasar, studi kasus, serta pengaplikasian pada soal latihan ${subjectName}.`
     }
   ];
 };

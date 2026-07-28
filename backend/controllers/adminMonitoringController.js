@@ -438,7 +438,7 @@ async function computeLegerData(classId) {
       const totalAtt = attendances.length;
       const presentAtt = attendances.filter((a) => {
         const st = (a.status || '').toLowerCase();
-        return st === 'hadir' || st === 'present';
+        return st === 'hadir' || st === 'present' || st === 'sakit' || st === 'sick' || st === 'ijin' || st === 'izin' || st === 'permission';
       }).length;
       const attendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 100;
 

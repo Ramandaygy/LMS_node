@@ -58,7 +58,7 @@ async function getStudentData(studentId) {
   const totalDays = attendances.length;
   const presentDays = attendances.filter(a => {
     const st = (a.status || '').toLowerCase();
-    return st === 'hadir' || st === 'present';
+    return st === 'hadir' || st === 'present' || st === 'sakit' || st === 'sick' || st === 'ijin' || st === 'izin' || st === 'permission';
   }).length;
   const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
 
