@@ -134,4 +134,9 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.index({ role: 1, class_name: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ nis: 1 });
+userSchema.index({ nip: 1 });
+
 module.exports = mongoose.model('User', userSchema);

@@ -52,6 +52,9 @@ const gradeSchema = new mongoose.Schema(
   }
 );
 
+gradeSchema.index({ student: 1, subject: 1, type: 1 });
+gradeSchema.index({ teacher: 1 });
+
 module.exports = mongoose.model(
   'Grade',
   gradeSchema

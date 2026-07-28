@@ -12,36 +12,29 @@ exports.getDashboardStats =
 
       const mongoose = require('mongoose');
 
-      const total_students =
-        await mongoose.connection.collection('users_siswa').countDocuments({
-          role: 'siswa',
-        });
+      const mongoose = require('mongoose');
 
-      const total_teachers =
-        await mongoose.connection.collection('users_guru').countDocuments({
-          role: 'guru',
-        });
-
-      const total_parents =
-        await mongoose.connection.collection('users_ortu').countDocuments({
-          role: 'ortu',
-        });
-
-      const total_classes =
-        await Class.countDocuments();
-
-      const total_subjects =
-        await Subject.countDocuments();
+      const [
+        total_students,
+        total_teachers,
+        total_parents,
+        total_classes,
+        total_subjects
+      ] = await Promise.all([
+        mongoose.connection.collection('users_siswa').countDocuments({ role: 'siswa' }),
+        mongoose.connection.collection('users_guru').countDocuments({ role: 'guru' }),
+        mongoose.connection.collection('users_ortu').countDocuments({ role: 'ortu' }),
+        Class.countDocuments(),
+        Subject.countDocuments()
+      ]);
 
       return res.status(200).json({
         success: true,
-
         total_students,
         total_teachers,
         total_parents,
         total_classes,
         total_subjects,
-     
       });
 
     } catch (err) {

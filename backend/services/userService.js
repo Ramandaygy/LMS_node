@@ -11,10 +11,12 @@ const getCollection = (name) => mongoose.connection.collection(name);
 // ======================================
 
 exports.getAllUsers = async () => {
-  const siswa = await getCollection('users_siswa').find({}).toArray();
-  const guru = await getCollection('users_guru').find({}).toArray();
-  const admin = await getCollection('users_admin').find({}).toArray();
-  const ortu = await getCollection('users_ortu').find({}).toArray();
+  const [siswa, guru, admin, ortu] = await Promise.all([
+    getCollection('users_siswa').find({}).toArray(),
+    getCollection('users_guru').find({}).toArray(),
+    getCollection('users_admin').find({}).toArray(),
+    getCollection('users_ortu').find({}).toArray()
+  ]);
 
   return [
     ...siswa,
