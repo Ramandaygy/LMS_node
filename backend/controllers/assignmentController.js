@@ -7,18 +7,25 @@ exports.createAssignment = async (req, res) => {
     const attachments = [];
     
     if (req.files && req.files.length > 0) {
-      if (process.env.VERCEL === '1') {
-        const { uploadToSupabase } = require('../services/supabaseService');
-        for (const file of req.files) {
+      const { uploadToSupabase } = require('../services/supabaseService');
+      for (const file of req.files) {
+        let fileUrl = '';
+        try {
           if (file.buffer) {
-            const fileUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype, 'assignments');
-            attachments.push({ type: 'file', value: fileUrl });
+            fileUrl = await uploadToSupabase(file.buffer, file.originalname, file.mimetype, 'assignments');
+          } else if (file.filename) {
+            fileUrl = `/uploads/materials/${file.filename}`;
+          }
+        } catch (uploadErr) {
+          console.error('[Assignment Upload Warning]:', uploadErr.message);
+          if (file.buffer) {
+            const base64Str = file.buffer.toString('base64');
+            fileUrl = `data:${file.mimetype};base64,${base64Str}`;
+          } else {
+            fileUrl = `/uploads/materials/${file.filename || file.originalname}`;
           }
         }
-      } else {
-        req.files.forEach(file => {
-          attachments.push({ type: 'file', value: `/uploads/materials/${file.filename}` || file.originalname });
-        });
+        if (fileUrl) attachments.push({ type: 'file', value: fileUrl });
       }
     }
     
