@@ -44,17 +44,17 @@ const GuruDashboard = () => {
     try {
       setLoading(true);
 
-      const [profileRes, studentsRes, schedulesRes, assignmentsRes] = await Promise.all([
+      const [profileRes, studentsRes, schedulesRes, assignmentsRes] = await Promise.allSettled([
         api.get('/profile'),
         api.get('/users/students/all'),
         api.get('/attendance/guru/schedules'),
         api.get('/assignments/guru/me')
       ]);
 
-      const profileData = profileRes.data || {};
+      const profileData = profileRes.status === 'fulfilled' ? (profileRes.value.data || {}) : {};
       setProfile(profileData);
 
-      const allStudents = studentsRes.data?.data || [];
+      const allStudents = studentsRes.status === 'fulfilled' ? (studentsRes.value.data?.data || []) : [];
       setTotalStudentsCount(allStudents.length);
 
       const mappedClasses = (profileData.classes || []).map(c => {
@@ -68,16 +68,15 @@ const GuruDashboard = () => {
       });
       setActiveClasses(mappedClasses);
 
-      const fetchedSchedules = schedulesRes.data?.schedules || [];
+      const fetchedSchedules = schedulesRes.status === 'fulfilled' ? (schedulesRes.value.data?.schedules || []) : [];
       setSchedules(fetchedSchedules);
 
-      const allAssignments = assignmentsRes.data?.data || [];
+      const allAssignments = assignmentsRes.status === 'fulfilled' ? (assignmentsRes.value.data?.data || []) : [];
       setRecentAssignments(allAssignments);
 
       setLoading(false);
     } catch (err) {
       console.error('Error loading teacher dashboard data', err);
-      setError('Gagal memuat data Modul Guru.');
       setLoading(false);
     }
   };
@@ -274,6 +273,9 @@ const GuruDashboard = () => {
                         <div className="dropdown-options-menu">
                           <button onClick={() => navigate('/dashboard/guru/input-nilai')}>
                             <span className="material-symbols-outlined">edit_note</span> Input Nilai Ujian
+                          </button>
+                          <button onClick={() => navigate('/dashboard/guru/leger')}>
+                            <span className="material-symbols-outlined">table_view</span> Leger Nilai Kelas
                           </button>
                           <button onClick={() => navigate('/dashboard/guru/quiz')}>
                             <span className="material-symbols-outlined">emoji_objects</span> Quiz Live

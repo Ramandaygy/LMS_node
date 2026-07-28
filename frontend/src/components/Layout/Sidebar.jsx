@@ -78,9 +78,10 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
     { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
     { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
-    { key: 'input-nilai', label: 'Input Nilai Ujian', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
+    { key: 'input-nilai', label: 'Input Nilai', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
     { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
     { key: 'cbt', label: 'Ujian CBT', icon: 'quiz', path: '/dashboard/guru/cbt' },
+    { key: 'leger', label: 'Leger Nilai', icon: 'table_view', path: '/dashboard/guru/leger' },
     { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
   ];
 
