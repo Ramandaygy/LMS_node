@@ -1,100 +1,134 @@
+/* STYLES FOR GURU ASSIGNMENTS (FULL 1 KELAS & SHADOW ABU-ABU UNTUK BELUM MENGUMPULKAN) */
+
 .guru-assignments-container {
-  padding: 24px 32px;
-  background-color: #f7f9fb;
-  min-height: 100vh;
+  padding: 28px;
+  max-width: 1360px;
+  margin: 0 auto;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 32px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .page-header h1 {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
-  color: #0040a1;
-  margin: 0;
+  color: #0f172a;
+  margin: 0 0 4px 0;
 }
 
 .page-header p {
-  color: #424654;
-  margin-top: 4px;
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
 }
 
 .btn-create {
-  background-color: #0040a1;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 999px;
-  font-weight: bold;
+  background: #0284c7;
+  color: #ffffff;
   border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13px;
   cursor: pointer;
-  transition: background 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
 }
 
 .btn-create:hover {
-  background-color: #002e75;
+  background: #0369a1;
 }
 
 .filter-tabs {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 24px;
 }
 
 .tab {
-  background: white;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 40px;
-  font-weight: 600;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
   cursor: pointer;
-  color: #424654;
-  transition: all 0.2s;
 }
 
 .tab.active {
-  background: #0040a1;
-  color: white;
-  box-shadow: 0 2px 8px rgba(0,64,161,0.2);
+  background: #0284c7;
+  color: #ffffff;
+  border-color: #0284c7;
 }
 
 .main-layout {
-  display: flex;
-  gap: 32px;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
 }
 
+@media (max-width: 1024px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* LEFT COLUMN: ASSIGNMENTS LIST */
 .assignments-list {
-  flex: 1.2;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.empty-card {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .assignment-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px;
   display: flex;
-  gap: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  border: 1px solid #e0e3e5;
+  gap: 12px;
   cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
 }
 
 .assignment-card.selected {
-  border-left: 5px solid #0040a1;
-  background: #ffffff;
-  box-shadow: 0 6px 14px rgba(0,64,161,0.08);
+  border-color: #0284c7;
+  border-left: 5px solid #0284c7;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
 }
 
-.card-icon .material-symbols-outlined {
-  font-size: 32px;
-  color: #0040a1;
+.card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e0f2fe;
+  color: #0284c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .card-content {
@@ -102,270 +136,496 @@
 }
 
 .card-content h3 {
-  margin: 0 0 6px;
-  font-size: 18px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+}
+
+.card-content .meta {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.badge-sub, .badge-cls {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 700;
 }
 
-.meta {
-  font-size: 13px;
-  color: #424654;
-  margin-bottom: 8px;
-}
-
 .deadline {
-  font-size: 12px;
-  color: #737785;
-  margin-bottom: 8px;
-}
-
-.progress {
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.status {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
   font-size: 11px;
-  font-weight: bold;
-  text-transform: uppercase;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
 }
 
 .status.active {
-  background: #feb700;
-  color: #271900;
-}
-
-.status.grading {
-  background: #0040a1;
-  color: white;
+  color: #16a34a;
+  font-weight: 800;
+  font-size: 11px;
 }
 
 .status.completed {
-  background: #e0e3e5;
-  color: #191c1e;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 11px;
 }
 
 .card-actions {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.btn-edit {
-  background: none;
-  border: none;
-  color: #737785;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 6px 10px;
-  border-radius: 8px;
-}
-
-.btn-edit:hover {
-  background: #f0f2f5;
-}
-
-.assignment-detail {
-  flex: 2;
-  background: white;
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-}
-
-.create-form h2,
-.grading-section h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  font-size: 22px;
+.btn-edit, .btn-delete {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
 }
 
-.form-group {
-  margin-bottom: 20px;
-}
+.btn-edit { background: #ffffff; color: #0284c7; }
+.btn-delete { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
 
-.form-group label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #424654;
-  margin-bottom: 6px;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #c3c6d6;
-  border-radius: 12px;
-  font-size: 14px;
-  background: #f7f9fb;
-}
-
-.form-row {
+/* RIGHT COLUMN: DETAIL ISI TUGAS & TABEL SUBMISI */
+.assignment-detail {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 20px;
 }
 
-.form-row .form-group {
-  flex: 1;
+.empty-detail-card {
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 48px;
+  text-align: center;
+  color: #64748b;
 }
 
-.attachments .attachment-row {
-  display: flex;
-  gap: 12px;
+.empty-detail-card .icon {
+  font-size: 48px;
+  color: #94a3b8;
   margin-bottom: 12px;
-  align-items: center;
 }
 
-.attachment-row select,
-.attachment-row input {
-  margin: 0;
+/* TASK DETAIL CARD (DETAIL ISI TUGAS) */
+.task-detail-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
 }
 
-.remove-btn {
-  background: #f8d7da;
-  border: none;
+.task-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.task-subject-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.task-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 4px 0 0 0;
+}
+
+.btn-edit-top {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #475569;
   padding: 6px 12px;
   border-radius: 8px;
-  cursor: pointer;
   font-size: 12px;
-}
-
-.add-attachment {
-  background: none;
-  border: 1px dashed #0040a1;
-  padding: 8px 16px;
-  border-radius: 20px;
-  color: #0040a1;
+  font-weight: 700;
   cursor: pointer;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
+.task-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  margin-top: 24px;
+  background: #f8fafc;
+  padding: 14px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #f1f5f9;
 }
 
-.form-actions button {
-  padding: 10px 24px;
-  border-radius: 40px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.form-actions button[type="button"] {
-  background: #e0e3e5;
-  color: #191c1e;
-}
-
-.form-actions button[type="submit"] {
-  background: #0040a1;
-  color: white;
-}
-
-.detail-header {
-  margin-bottom: 24px;
-}
-
-.detail-meta {
+.meta-pill {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
-  font-size: 13px;
-  color: #424654;
-  background: #f0f2f5;
-  padding: 12px 16px;
-  border-radius: 16px;
+  align-items: center;
+  gap: 10px;
 }
 
-.attachments-list {
-  margin-bottom: 24px;
+.meta-pill .icon {
+  font-size: 22px;
+  color: #0284c7;
 }
 
-.attachments-list label {
-  font-weight: 600;
+.meta-pill .lbl {
   display: block;
-  margin-bottom: 8px;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
 }
 
-.attachments-list ul {
-  list-style: none;
-  padding: 0;
+.meta-pill .val {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.task-description-box, .task-attachments-box {
+  margin-bottom: 16px;
+}
+
+.desc-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.desc-text {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
   margin: 0;
+  background: #fafafa;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #f1f5f9;
 }
 
-.attachments-list li {
-  margin-bottom: 6px;
+.attachment-links-list {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
+.attachment-chip a {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* SUBMISSION STATS STRIP */
+.submission-stats-strip {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stat-pill.green .dot { background: #16a34a; }
+.stat-pill.amber .dot { background: #d97706; }
+.stat-pill.grey .dot { background: #94a3b8; }
+.stat-pill.total { background: #f1f5f9; border-color: #cbd5e1; margin-left: auto; }
+
+/* SUBMISSIONS TABLE (FULL 1 KELAS & SHADOW ABU-ABU) */
 .submissions-table-wrapper {
-  overflow-x: auto;
-  margin: 20px 0;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+}
+
+.table-header-title {
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.table-header-title h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
 }
 
 .submissions-table {
   width: 100%;
   border-collapse: collapse;
-}
-
-.submissions-table th,
-.submissions-table td {
-  padding: 12px 8px;
-  text-align: left;
-  border-bottom: 1px solid #e0e3e5;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .submissions-table th {
-  font-weight: 600;
-  color: #424654;
+  background: #f1f5f9;
+  padding: 12px 16px;
   font-size: 12px;
+  font-weight: 800;
+  color: #475569;
   text-transform: uppercase;
+  border-bottom: 1px solid #cbd5e1;
 }
 
-.submissions-table td input {
-  width: 100px;
-  padding: 6px;
-  border: 1px solid #c3c6d6;
+.submissions-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.submission-row {
+  background: #ffffff;
+  transition: background 0.15s ease;
+}
+
+/* SHADOW ABU-ABU PADA SISWA YANG BELUM MENGUMPULKAN */
+.submission-row.not-submitted-row-shadow {
+  background: #f8fafc;
+  box-shadow: inset 4px 0 0 #94a3b8;
+  opacity: 0.85;
+}
+
+.submission-row.not-submitted-row-shadow:hover {
+  background: #f1f5f9;
+}
+
+.student-name-group strong {
+  display: block;
+  color: #0f172a;
+
+  font-size: 13px;
+}
+
+.student-name-group .nis-text {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.date-cell {
+  font-size: 12px;
+  color: #475569;
+}
+
+.text-dash {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 12px;
+}
+
+.ans-link {
+  color: #0284c7;
+  font-weight: 700;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ans-text {
+  margin: 0;
+  font-size: 12px;
+  color: #334155;
+}
+
+/* BADGE CHIPS STATUS SUBMISI */
+.status-badge-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.status-badge-chip.green { background: #dcfce7; color: #15803d; }
+.status-badge-chip.amber { background: #fef3c7; color: #b45309; }
+.status-badge-chip.grey { background: #e2e8f0; color: #475569; }
+
+.feedback-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
+  font-size: 12px;
+  box-sizing: border-box;
 }
 
-.answer-preview {
-  max-width: 200px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.score-input {
+  width: 70px;
+  padding: 7px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  box-sizing: border-box;
 }
 
-.grading-actions {
+.table-footer-bar {
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-top: 1px solid #cbd5e1;
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
 }
 
-.btn-save {
-  background: #0040a1;
-  color: white;
+.btn-save-all-grades {
+  background: #16a34a;
+  color: #ffffff;
   border: none;
-  padding: 10px 24px;
-  border-radius: 40px;
-  font-weight: bold;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+}
+
+.btn-save-all-grades:hover {
+  background: #15803d;
+}
+
+/* FORM CREATE / EDIT */
+.create-form-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.create-form-card h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 20px 0;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.attachment-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.remove-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.empty, .empty-detail {
-  text-align: center;
-  color: #737785;
-  padding: 40px;
+.add-attachment {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #0284c7;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn-submit {
+  background: #0284c7;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
 }

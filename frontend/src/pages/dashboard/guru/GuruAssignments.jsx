@@ -9,6 +9,7 @@ const GuruAssignments = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     subject_id: '',
@@ -19,6 +20,7 @@ const GuruAssignments = () => {
     attachments: [],
     max_score: 100,
   });
+
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -45,7 +47,13 @@ const GuruAssignments = () => {
   const fetchAssignments = async () => {
     try {
       const res = await api.get('/assignments/guru/me');
-      setAssignments(res.data.data || []);
+      const fetchedAssignments = res.data.data || [];
+      setAssignments(fetchedAssignments);
+
+      // Default select first assignment if available
+      if (fetchedAssignments.length > 0 && !selectedAssignment) {
+        handleSelectAssignment(fetchedAssignments[0]);
+      }
     } catch (err) {
       console.error('Gagal ambil tugas', err);
     } finally {
@@ -53,26 +61,83 @@ const GuruAssignments = () => {
     }
   };
 
-  const fetchSubmissions = async (assignmentId) => {
+  const fetchSubmissionsAndStudents = async (assignment) => {
     try {
-      const res = await api.get(`/assignments/${assignmentId}/submissions`);
-      setSubmissions(res.data.data || []);
+      const assignmentId = assignment._id;
+      const classId = assignment.class || assignment.class_id;
+
+      const [subRes, studentsRes] = await Promise.all([
+        api.get(`/assignments/${assignmentId}/submissions`).catch(() => ({ data: { data: [] } })),
+        api.get(`/attendance/students/${classId}`).catch(() => ({ data: { students: [] } }))
+      ]);
+
+      const fetchedSubmissions = subRes.data?.data || [];
+      const classStudents = studentsRes.data?.students || [];
+
+      // Map submissions by student_id string
+      const submissionMap = {};
+      fetchedSubmissions.forEach(sub => {
+        const sId = sub.student_id ? sub.student_id.toString() : '';
+        if (sId) submissionMap[sId] = sub;
+      });
+
+      // Merge ALL students in the class with their submission status
+      let mergedSubmissions = [];
+
+      if (classStudents.length > 0) {
+        mergedSubmissions = classStudents.map(st => {
+          const stId = (st._id || st.id).toString();
+          const existingSub = submissionMap[stId];
+
+          if (existingSub) {
+            return {
+              ...existingSub,
+              student_id: stId,
+              student_name: st.full_name || existingSub.student_name,
+              nis: st.nis || '-',
+              isSubmitted: true
+            };
+          } else {
+            return {
+              student_id: stId,
+              student_name: st.full_name,
+              nis: st.nis || '-',
+              submitted_at: null,
+              file: null,
+              link: null,
+              content: null,
+              score: null,
+              feedback: '',
+              isSubmitted: false
+            };
+          }
+        });
+      } else {
+        mergedSubmissions = fetchedSubmissions.map(sub => ({
+          ...sub,
+          isSubmitted: true
+        }));
+      }
+
+      setSubmissions(mergedSubmissions);
+
       const initialGrades = {};
       const initialFeedbacks = {};
-      res.data.data.forEach(sub => {
-        initialGrades[sub.student_id] = sub.score !== null ? sub.score : '';
+      mergedSubmissions.forEach(sub => {
+        initialGrades[sub.student_id] = sub.score !== null && sub.score !== undefined ? sub.score : '';
         initialFeedbacks[sub.student_id] = sub.feedback || '';
       });
+
       setGrades(initialGrades);
       setFeedbacks(initialFeedbacks);
     } catch (err) {
-      console.error('Gagal ambil submisi', err);
+      console.error('Gagal ambil data submisi & siswa:', err);
     }
   };
 
   const handleSelectAssignment = (assignment) => {
     setSelectedAssignment(assignment);
-    fetchSubmissions(assignment._id);
+    fetchSubmissionsAndStudents(assignment);
     setShowCreateForm(false);
     setEditMode(false);
   };
@@ -97,12 +162,12 @@ const GuruAssignments = () => {
 
   const handleDeleteAssignment = async (e, id) => {
     e.stopPropagation();
-    if(window.confirm('Yakin ingin menghapus tugas ini? Semua data submisi dan nilai akan hilang!')) {
+    if (window.confirm('Yakin ingin menghapus tugas ini? Semua data submisi dan nilai akan hilang!')) {
       try {
         await api.delete(`/assignments/${id}`);
         alert('Tugas berhasil dihapus');
         fetchAssignments();
-        if(selectedAssignment && selectedAssignment._id === id) {
+        if (selectedAssignment && selectedAssignment._id === id) {
           setSelectedAssignment(null);
         }
       } catch (err) {
@@ -155,114 +220,120 @@ const GuruAssignments = () => {
     e.preventDefault();
     const data = new FormData();
     data.append('title', formData.title);
-    data.append('subject', formData.subject_id);
-    data.append('class', formData.class_id);
+    data.append('subject_id', formData.subject_id);
+    data.append('class_id', formData.class_id);
     data.append('description', formData.description);
-    data.append('deadline', new Date(formData.deadline).toISOString());
-    data.append('kkm', Number(formData.kkm) || 70);
-    data.append('max_score', Number(formData.max_score) || 100);
-    // attachments
-    formData.attachments.forEach((att, idx) => {
-      if (att.type === 'file' && att.value) {
-        data.append(`attachments`, att.value);
+    data.append('deadline', formData.deadline);
+    data.append('kkm', formData.kkm);
+    data.append('max_score', formData.max_score);
+
+    formData.attachments.forEach((att) => {
+      if (att.type === 'file' && att.value instanceof File) {
+        data.append('files', att.value);
       } else if (att.type === 'link' && att.value) {
-        data.append(`links`, att.value);
+        data.append('links', att.value);
       }
     });
+
     try {
-      if (editMode && editingAssignment) {
+      if (editMode) {
         await api.put(`/assignments/${editingAssignment._id}`, data);
-        alert('Tugas berhasil diupdate');
+        alert('Tugas berhasil diperbarui');
       } else {
         await api.post('/assignments', data);
         alert('Tugas berhasil dibuat');
       }
       setShowCreateForm(false);
-      setEditMode(false);
-      setFormData({
-        title: '', subject_id: '', class_id: '', description: '', deadline: '', kkm: 70,
-        attachments: [], max_score: 100
-      });
       fetchAssignments();
     } catch (err) {
-      console.error("Error creating assignment:", err.response?.data || err);
-      alert(err.response?.data?.message || err.response?.data?.error || 'Gagal menyimpan tugas');
+      alert(err.response?.data?.message || 'Gagal menyimpan tugas');
     }
   };
 
-  const handleGradeChange = (studentId, value) => {
-    setGrades({ ...grades, [studentId]: value });
+  const handleGradeChange = (studentId, score) => {
+    setGrades({ ...grades, [studentId]: score });
   };
 
-  const handleFeedbackChange = (studentId, value) => {
-    setFeedbacks({ ...feedbacks, [studentId]: value });
+  const handleFeedbackChange = (studentId, feedback) => {
+    setFeedbacks({ ...feedbacks, [studentId]: feedback });
   };
 
   const handleSaveGrades = async () => {
     if (!selectedAssignment) return;
     setSaving(true);
     try {
-      for (const sub of submissions) {
-        const newScore = grades[sub.student_id];
-        const newFeedback = feedbacks[sub.student_id];
-        if (newScore !== sub.score || newFeedback !== sub.feedback) {
-          await api.post(`/assignments/${selectedAssignment._id}/grade`, {
-            student_id: sub.student_id,
-            score: newScore,
-            feedback: newFeedback
-          });
-        }
+      const gradesList = Object.keys(grades)
+        .filter(studentId => grades[studentId] !== '')
+        .map(studentId => ({
+          student_id: studentId,
+          score: Number(grades[studentId]),
+          feedback: feedbacks[studentId] || ''
+        }));
+
+      if (gradesList.length === 0) {
+        alert('Belum ada nilai yang diisi');
+        setSaving(false);
+        return;
       }
-      alert('Nilai berhasil disimpan');
+
+      await api.post(`/assignments/${selectedAssignment._id}/grades`, { grades: gradesList });
+      alert('Nilai tugas berhasil disimpan!');
+      fetchSubmissionsAndStudents(selectedAssignment);
       fetchAssignments();
-      fetchSubmissions(selectedAssignment._id);
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal simpan nilai');
+      alert('Gagal menyimpan nilai');
     } finally {
       setSaving(false);
     }
   };
 
   const getAssignmentStatus = (assignment) => {
-    const now = new Date();
     const deadline = new Date(assignment.deadline);
-    if (deadline < now) return 'completed';
-    if (assignment.submitted_count === assignment.total_students) return 'grading';
+    const now = new Date();
+    if (now > deadline) return 'completed';
     return 'active';
   };
 
   const filteredAssignments = assignments.filter(a => {
-    const status = getAssignmentStatus(a);
-    if (filter === 'all') return true;
-    return status === filter;
+    if (filter === 'active') return getAssignmentStatus(a) === 'active';
+    if (filter === 'completed') return getAssignmentStatus(a) === 'completed';
+    return true;
   });
 
-  if (loading) return <div className="loading">Memuat data...</div>;
+  // Calculate submission counts for selected assignment
+  const submittedCount = submissions.filter(s => s.isSubmitted).length;
+  const gradedCount = submissions.filter(s => s.isSubmitted && s.score !== null && s.score !== '' && s.score !== undefined).length;
+  const ungradedCount = submissions.filter(s => s.isSubmitted && (s.score === null || s.score === '' || s.score === undefined)).length;
+  const notSubmittedCount = submissions.filter(s => !s.isSubmitted).length;
+
+  if (loading) return <div className="guru-assignments-container"><div className="loading">Memuat data tugas...</div></div>;
 
   return (
     <div className="guru-assignments-container">
+      
+      {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Manajemen Tugas</h1>
-          <p>Buat, kelola, dan nilai tugas siswa</p>
+          <h1>Penugasan & Latihan Kelas</h1>
+          <p>Kelola lembar tugas, instruksi pengerjaan, dan evaluasi hasil belajar siswa sekelas.</p>
         </div>
-        <button className="btn-create" onClick={() => { setShowCreateForm(true); setSelectedAssignment(null); setEditMode(false); setFormData({ title: '', subject_id: '', class_id: '', description: '', deadline: '', kkm: 70, attachments: [], max_score: 100 }); }}>
-          + Buat Tugas Baru
+        <button className="btn-create" onClick={() => { setShowCreateForm(true); setEditMode(false); setSelectedAssignment(null); }}>
+          <span className="material-symbols-outlined">add</span> Buat Tugas Baru
         </button>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter Tabs (Simplified without standalone Penilaian tab) */}
       <div className="filter-tabs">
-        <button className={`tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Semua Tugas</button>
+        <button className={`tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Semua Tugas ({assignments.length})</button>
         <button className={`tab ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Aktif</button>
-        <button className={`tab ${filter === 'grading' ? 'active' : ''}`} onClick={() => setFilter('grading')}>Penilaian</button>
         <button className={`tab ${filter === 'completed' ? 'active' : ''}`} onClick={() => setFilter('completed')}>Selesai</button>
       </div>
 
       <div className="main-layout">
-        {/* Daftar tugas (kiri) */}
+        
+        {/* LEFT COLUMN: Daftar Tugas */}
         <div className="assignments-list">
-          {filteredAssignments.length === 0 && <div className="empty">Belum ada tugas</div>}
+          {filteredAssignments.length === 0 && <div className="empty-card">Belum ada tugas dalam daftar ini.</div>}
           {filteredAssignments.map(assignment => {
             const status = getAssignmentStatus(assignment);
             const isSelected = selectedAssignment?._id === assignment._id;
@@ -278,34 +349,36 @@ const GuruAssignments = () => {
                 <div className="card-content">
                   <h3>{assignment.title}</h3>
                   <div className="meta">
-                    <span>{assignment.subject_name}</span> • <span>{assignment.class_name}</span>
+                    <span className="badge-sub">{assignment.subject_name || 'Mapel'}</span>
+                    <span className="badge-cls">{assignment.class_name || 'Kelas'}</span>
                   </div>
-                  <div className="deadline">Deadline: {new Date(assignment.deadline).toLocaleString()}</div>
-                  <div className="progress">
-                    Dikumpulkan: {assignment.submitted_count || 0}/{assignment.total_students || 0}
+                  <div className="deadline">
+                    <span className="material-symbols-outlined icon">event_busy</span>
+                    Deadline: {new Date(assignment.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
                   <div className={`status ${status}`}>
-                    {status === 'active' ? 'Aktif' : status === 'grading' ? 'Penilaian' : 'Selesai'}
+                    {status === 'active' ? 'Aktif' : 'Selesai'}
                   </div>
                 </div>
+
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
                   <button className="btn-edit" onClick={(e) => handleEdit(assignment, e)}>Edit</button>
-                  <button className="btn-delete" onClick={(e) => handleDeleteAssignment(e, assignment._id)} style={{ padding: '6px 12px', background: '#fee2e2', color: '#ef4444', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}>Hapus</button>
+                  <button className="btn-delete" onClick={(e) => handleDeleteAssignment(e, assignment._id)}>Hapus</button>
                 </div>
               </div>
             );
           })}
         </div>
 
-        {/* Detail & penilaian (kanan) */}
+        {/* RIGHT COLUMN: Detail Isi Tugas & Tabel Submisi Full 1 Kelas */}
         <div className="assignment-detail">
           {showCreateForm ? (
-            <div className="create-form">
-              <h2>{editMode ? 'Edit Tugas' : 'Buat Tugas Baru'}</h2>
+            <div className="create-form-card">
+              <h2>{editMode ? 'Edit Tugas Kelas' : 'Buat Tugas Baru'}</h2>
               <form onSubmit={handleSubmitAssignment}>
                 <div className="form-group">
                   <label>Judul Tugas</label>
-                  <input name="title" value={formData.title} onChange={handleFormChange} required />
+                  <input name="title" placeholder="Contoh: Tugas 1 — Algoritma & Pemrograman" value={formData.title} onChange={handleFormChange} required />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
@@ -316,7 +389,7 @@ const GuruAssignments = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Kelas</label>
+                    <label>Kelas Target</label>
                     <select name="class_id" value={formData.class_id} onChange={handleFormChange} required>
                       <option value="">Pilih Kelas</option>
                       {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
@@ -324,16 +397,16 @@ const GuruAssignments = () => {
                   </div>
                 </div>
                 <div className="form-group">
-                  <label>Deskripsi</label>
-                  <textarea name="description" rows="4" value={formData.description} onChange={handleFormChange} />
+                  <label>Deskripsi / Instruksi Pengerjaan Tugas</label>
+                  <textarea name="description" rows="5" placeholder="Tuliskan petunjuk pengerjaan tugas secara rinci..." value={formData.description} onChange={handleFormChange} />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Deadline (tanggal & jam)</label>
+                    <label>Deadline (Tanggal & Jam)</label>
                     <input type="datetime-local" name="deadline" value={formData.deadline} onChange={handleFormChange} required />
                   </div>
                   <div className="form-group">
-                    <label>KKM</label>
+                    <label>Nilai KKM</label>
                     <input type="number" name="kkm" value={formData.kkm} onChange={handleFormChange} />
                   </div>
                   <div className="form-group">
@@ -341,13 +414,13 @@ const GuruAssignments = () => {
                     <input type="number" name="max_score" value={formData.max_score} onChange={handleFormChange} />
                   </div>
                 </div>
-                <div className="form-group attachments">
-                  <label>Lampiran (file atau link)</label>
+                <div className="form-group attachments-group">
+                  <label>Lampiran Tugas (File PDF/Gambar atau Tautan URL)</label>
                   {formData.attachments.map((att, idx) => (
                     <div key={idx} className="attachment-row">
                       <select value={att.type} onChange={(e) => handleAttachmentTypeChange(idx, e.target.value)}>
-                        <option value="file">File (max 5MB)</option>
-                        <option value="link">Link URL</option>
+                        <option value="file">File (Max 5MB)</option>
+                        <option value="link">Tautan Link URL</option>
                       </select>
                       {att.type === 'file' ? (
                         <input type="file" onChange={(e) => handleAttachmentFileChange(idx, e.target.files[0])} />
@@ -357,91 +430,228 @@ const GuruAssignments = () => {
                       <button type="button" className="remove-btn" onClick={() => removeAttachment(idx)}>Hapus</button>
                     </div>
                   ))}
-                  <button type="button" className="add-attachment" onClick={handleAddAttachment}>+ Tambah Lampiran</button>
+                  <button type="button" className="add-attachment" onClick={handleAddAttachment}>+ Tambah Lampiran File/Link</button>
                 </div>
                 <div className="form-actions">
-                  <button type="button" onClick={() => setShowCreateForm(false)}>Batal</button>
-                  <button type="submit">Simpan</button>
+                  <button type="button" className="btn-cancel" onClick={() => setShowCreateForm(false)}>Batal</button>
+                  <button type="submit" className="btn-submit">Simpan Tugas</button>
                 </div>
               </form>
             </div>
           ) : selectedAssignment ? (
-            <div className="grading-section">
-              <div className="detail-header">
-                <h2>{selectedAssignment.title}</h2>
-                <div className="detail-meta">
-                  <span>{selectedAssignment.subject_name}</span>
-                  <span>{selectedAssignment.class_name}</span>
-                  <span>Deadline: {new Date(selectedAssignment.deadline).toLocaleString()}</span>
-                  <span>KKM: {selectedAssignment.kkm}</span>
+            <div className="detail-container">
+              
+              {/* DETAIL ISI TUGAS CARD */}
+              <div className="task-detail-card">
+                <div className="task-detail-header">
+                  <div>
+                    <span className="task-subject-tag">{selectedAssignment.subject_name || 'Mata Pelajaran'} • {selectedAssignment.class_name || 'Kelas'}</span>
+                    <h2 className="task-title">{selectedAssignment.title}</h2>
+                  </div>
+                  <div className="task-actions-top">
+                    <button className="btn-edit-top" onClick={(e) => handleEdit(selectedAssignment, e)}>
+                      <span className="material-symbols-outlined">edit</span> Edit Tugas
+                    </button>
+                  </div>
+                </div>
+
+                <div className="task-meta-grid">
+                  <div className="meta-pill">
+                    <span className="material-symbols-outlined icon">event</span>
+                    <div>
+                      <span className="lbl">Deadline</span>
+                      <span className="val">{new Date(selectedAssignment.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                    </div>
+                  </div>
+                  <div className="meta-pill">
+                    <span className="material-symbols-outlined icon">grade</span>
+                    <div>
+                      <span className="lbl">KKM / Maks</span>
+                      <span className="val">{selectedAssignment.kkm || 70} / {selectedAssignment.max_score || 100}</span>
+                    </div>
+                  </div>
+                  <div className="meta-pill">
+                    <span className="material-symbols-outlined icon">groups</span>
+                    <div>
+                      <span className="lbl">Total Siswa Sekelas</span>
+                      <span className="val">{submissions.length} Siswa</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deskripsi & Instruksi Pengerjaan Tugas */}
+                <div className="task-description-box">
+                  <h4 className="desc-title">
+                    <span className="material-symbols-outlined">description</span>
+                    Instruksi & Detail Isi Tugas:
+                  </h4>
+                  <p className="desc-text">
+                    {selectedAssignment.description || 'Tidak ada deskripsi tambahan untuk tugas ini.'}
+                  </p>
+                </div>
+
+                {/* Lampiran File/Link Guru */}
+                {selectedAssignment.attachments?.length > 0 && (
+                  <div className="task-attachments-box">
+                    <h4 className="desc-title">
+                      <span className="material-symbols-outlined">attachment</span>
+                      Lampiran File / Tautan Guru:
+                    </h4>
+                    <div className="attachment-links-list">
+                      {selectedAssignment.attachments.map((att, i) => (
+                        <div key={i} className="attachment-chip">
+                          {att.type === 'file' ? (
+                            <a href={`/uploads/${att.value}`} target="_blank" rel="noreferrer">
+                              <span className="material-symbols-outlined">picture_as_pdf</span> Unduh File Lampiran
+                            </a>
+                          ) : (
+                            <a href={att.value} target="_blank" rel="noreferrer">
+                              <span className="material-symbols-outlined">link</span> {att.value}
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* STATS SUBMISI (SUDAH DINILAI / BELUM DINILAI / BELUM MENGUMPULKAN) */}
+              <div className="submission-stats-strip">
+                <div className="stat-pill green">
+                  <span className="dot"></span>
+                  <span>Sudah Dinilai: <strong>{gradedCount}</strong></span>
+                </div>
+                <div className="stat-pill amber">
+                  <span className="dot"></span>
+                  <span>Belum Dinilai: <strong>{ungradedCount}</strong></span>
+                </div>
+                <div className="stat-pill grey">
+                  <span className="dot"></span>
+                  <span>Belum Mengumpulkan: <strong>{notSubmittedCount}</strong></span>
+                </div>
+                <div className="stat-pill total">
+                  <span>Total Sekelas: <strong>{submissions.length} Siswa</strong></span>
                 </div>
               </div>
-              {/* Lampiran tugas */}
-              {selectedAssignment.attachments?.length > 0 && (
-                <div className="attachments-list">
-                  <label>Lampiran:</label>
-                  <ul>
-                    {selectedAssignment.attachments.map((att, i) => (
-                      <li key={i}>
-                        {att.type === 'file' ? (
-                          <a href={`/uploads/${att.value}`} target="_blank">📄 Unduh File</a>
-                        ) : (
-                          <a href={att.value} target="_blank">🔗 {att.value}</a>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {/* Tabel submisi siswa */}
+
+              {/* TABEL SISWA SEKELAS (FULL 1 KELAS DENGAN SHADOW ABU-ABU PADA YANG BELUM MENGUMPULKAN) */}
               <div className="submissions-table-wrapper">
+                <div className="table-header-title">
+                  <h3>Daftar Pengumpulan & Penilaian Siswa Sekelas</h3>
+                </div>
+
                 <table className="submissions-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '40px' }}>No</th>
                       <th>Nama Siswa</th>
-                      <th>Tgl Submisi</th>
-                      <th>Jawaban</th>
-                      <th>Feedback</th>
-                      <th>Nilai</th>
+                      <th>Waktu Mengumpulkan</th>
+                      <th>File / Jawaban</th>
+                      <th style={{ width: '130px', textAlign: 'center' }}>Status</th>
+                      <th>Feedback Guru</th>
+                      <th style={{ width: '100px', textAlign: 'center' }}>Nilai</th>
                     </tr>
                   </thead>
                   <tbody>
                     {submissions.length === 0 ? (
-                      <tr><td colSpan="5" className="empty">Belum ada submisi</td></tr>
+                      <tr><td colSpan="7" className="empty-state">Tidak ada data siswa pada kelas ini</td></tr>
                     ) : (
-                      submissions.map(sub => (
-                        <tr key={sub.student_id}>
-                          <td>{sub.student_name}</td>
-                          <td>{sub.submitted_at ? new Date(sub.submitted_at).toLocaleString() : '-'}</td>
-                          <td>
-                            {sub.file && <a href={`/uploads/${sub.file}`} target="_blank">📄 File</a>}
-                            {sub.link && <a href={sub.link} target="_blank">🔗 Link</a>}
-                            {sub.content && <div className="answer-preview">{sub.content}</div>}
-                          </td>
-                          <td>
-                            <input type="text" value={feedbacks[sub.student_id] || ''} onChange={(e) => handleFeedbackChange(sub.student_id, e.target.value)} placeholder="Tulis feedback..." />
-                          </td>
-                          <td>
-                            <input type="number" value={grades[sub.student_id] || ''} onChange={(e) => handleGradeChange(sub.student_id, e.target.value)} />
-                          </td>
-                        </tr>
-                      ))
+                      submissions.map((sub, idx) => {
+                        const isSubmitted = sub.isSubmitted;
+                        const isGraded = isSubmitted && sub.score !== null && sub.score !== '' && sub.score !== undefined;
+
+                        return (
+                          <tr 
+                            key={sub.student_id} 
+                            className={`submission-row ${!isSubmitted ? 'not-submitted-row-shadow' : ''}`}
+                          >
+                            <td className="text-center font-bold">{idx + 1}</td>
+                            <td>
+                              <div className="student-name-group">
+                                <strong>{sub.student_name}</strong>
+                                <span className="nis-text">NIS: {sub.nis || '-'}</span>
+                              </div>
+                            </td>
+                            <td className="date-cell">
+                              {isSubmitted && sub.submitted_at 
+                                ? new Date(sub.submitted_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
+                                : <span className="text-dash">-</span>
+                              }
+                            </td>
+                            <td>
+                              {isSubmitted ? (
+                                <div className="submission-answer-cell">
+                                  {sub.file && (
+                                    <a href={`/uploads/${sub.file}`} target="_blank" rel="noreferrer" className="ans-link">
+                                      <span className="material-symbols-outlined">description</span> File Jawaban
+                                    </a>
+                                  )}
+                                  {sub.link && (
+                                    <a href={sub.link} target="_blank" rel="noreferrer" className="ans-link">
+                                      <span className="material-symbols-outlined">link</span> Link Tugas
+                                    </a>
+                                  )}
+                                  {sub.content && <p className="ans-text">{sub.content}</p>}
+                                  {!sub.file && !sub.link && !sub.content && <span className="text-dash">Sudah Mengumpulkan</span>}
+                                </div>
+                              ) : (
+                                <span className="text-dash">Belum Mengumpulkan</span>
+                              )}
+                            </td>
+                            <td className="text-center">
+                              {!isSubmitted ? (
+                                <span className="status-badge-chip grey">Belum Mengumpulkan</span>
+                              ) : isGraded ? (
+                                <span className="status-badge-chip green">Sudah Dinilai</span>
+                              ) : (
+                                <span className="status-badge-chip amber">Belum Dinilai</span>
+                              )}
+                            </td>
+                            <td>
+                              <input 
+                                type="text" 
+                                className="feedback-input"
+                                value={feedbacks[sub.student_id] || ''} 
+                                onChange={(e) => handleFeedbackChange(sub.student_id, e.target.value)} 
+                                placeholder="Tulis feedback..." 
+                              />
+                            </td>
+                            <td className="text-center">
+                              <input 
+                                type="number" 
+                                className="score-input"
+                                value={grades[sub.student_id] !== undefined ? grades[sub.student_id] : ''} 
+                                onChange={(e) => handleGradeChange(sub.student_id, e.target.value)} 
+                                placeholder="0-100"
+                                min="0"
+                                max="100"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
+
+                <div className="table-footer-bar">
+                  <button className="btn-save-all-grades" onClick={handleSaveGrades} disabled={saving}>
+                    <span className="material-symbols-outlined">save</span>
+                    {saving ? 'Menyimpan...' : 'Simpan Semua Nilai'}
+                  </button>
+                </div>
               </div>
-              <div className="grading-actions">
-                <button className="btn-save" onClick={handleSaveGrades} disabled={saving}>
-                  {saving ? 'Menyimpan...' : 'Simpan Nilai'}
-                </button>
-              </div>
+
             </div>
           ) : (
-            <div className="empty-detail">
-              <p>Pilih tugas dari daftar sebelah kiri</p>
+            <div className="empty-detail-card">
+              <span className="material-symbols-outlined icon">assignment_turned_in</span>
+              <p>Pilih tugas dari daftar sebelah kiri untuk melihat detail isi tugas & penilaian siswa.</p>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

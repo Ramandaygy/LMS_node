@@ -17,8 +17,7 @@ const GuruMaterials = () => {
     file: null
   });
   const [editingId, setEditingId] = useState(null);
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [aiTitle, setAiTitle] = useState('');
+  const [generatingAI, setGeneratingAI] = useState(false);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
 
@@ -108,24 +107,42 @@ const GuruMaterials = () => {
     }
   };
 
-  const handleGenerateAI = async () => {
-    if (!aiPrompt || !form.class_id || !form.subject_id) {
-      alert('Lengkapi prompt, kelas, dan mapel terlebih dahulu');
+  const handleGenerateAIContent = async () => {
+    if (!form.title) {
+      alert('Silakan isi Judul Materi terlebih dahulu.');
       return;
     }
+    if (!form.subject_id) {
+      alert('Silakan pilih Mata Pelajaran terlebih dahulu.');
+      return;
+    }
+    setGeneratingAI(true);
     try {
-      await api.post('/materials/generate-ai', {
-        prompt: aiPrompt,
-        titleSuggestion: aiTitle,
-        class_id: form.class_id,
-        subject_id: form.subject_id
+      const selectedSubject = teacherSubjects.find(s => s._id === form.subject_id);
+      const selectedClass = teacherClasses.find(c => c._id === form.class_id);
+
+      const res = await api.post('/materials/generate-ai', {
+        title: form.title,
+        description: form.description,
+        subject_name: selectedSubject ? selectedSubject.name : 'Informatika',
+        class_name: selectedClass ? selectedClass.name : 'Kelas',
+        subject_id: form.subject_id,
+        class_id: form.class_id
       });
-      alert('Materi berhasil dibuat dengan AI');
-      fetchMaterials();
-      setAiPrompt('');
-      setAiTitle('');
+
+      if (res.data.success && res.data.data) {
+        setForm(prev => ({
+          ...prev,
+          description: res.data.data.description || prev.description,
+          content: res.data.data.content || prev.content
+        }));
+        alert('Konten dan Deskripsi materi berhasil digenerate oleh AI!');
+      }
     } catch (err) {
-      alert(err.response?.data?.message || 'Gagal generate AI');
+      console.error('Error generate AI material content:', err);
+      alert('Gagal generate materi dengan AI');
+    } finally {
+      setGeneratingAI(false);
     }
   };
 
@@ -141,11 +158,11 @@ const GuruMaterials = () => {
     <div className="guru-materials-container">
       <div className="page-header">
         <h1>Materi Pembelajaran</h1>
-        <p>Kelola materi pembelajaran untuk kelas Anda — upload manual atau buat dengan AI</p>
+        <p>Kelola materi pembelajaran untuk kelas Anda — upload manual atau generate otomatis dengan AI</p>
       </div>
 
       <div className="cards-grid">
-        <div className="form-card">
+        <div className="form-card" style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
           <h3>
             <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
             {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
@@ -157,11 +174,11 @@ const GuruMaterials = () => {
             </div>
             <div className="form-group">
               <label>Deskripsi</label>
-              <textarea name="description" placeholder="Ringkasan singkat materi" rows="2" value={form.description} onChange={handleChange} />
+              <textarea name="description" placeholder="Ringkasan singkat materi (atau klik Generate AI di bawah)" rows="2" value={form.description} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>Konten</label>
-              <textarea name="content" placeholder="Isi materi (teks atau HTML)" rows="5" value={form.content} onChange={handleChange} />
+              <label>Konten Materi</label>
+              <textarea name="content" placeholder="Isi materi (teks atau HTML, atau klik Generate AI di bawah)" rows="6" value={form.content} onChange={handleChange} />
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -182,7 +199,7 @@ const GuruMaterials = () => {
             <div className="form-group" style={{ background: '#eff6ff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '16px' }}>
               <label style={{ color: '#1e40af', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#2563eb' }}>folder_shared</span>
-                Tautan Google Drive Guru / Cloud Link (Integrasi GDrive)
+                TAUTAN GOOGLE DRIVE GURU / CLOUD LINK (INTEGRASI GDRIVE)
               </label>
               <input 
                 name="external_link" 
@@ -200,36 +217,48 @@ const GuruMaterials = () => {
               <input type="file" onChange={handleFileChange} />
               {form.file && <span className="file-name">{form.file.name}</span>}
             </div>
+
+            <div style={{ marginBottom: '16px', marginTop: '8px' }}>
+              <button
+                type="button"
+                className="btn-ai-generate-content"
+                onClick={handleGenerateAIContent}
+                disabled={generatingAI}
+                style={{
+                  width: '100%',
+                  padding: '12px 20px',
+                  background: 'linear-gradient(135deg, #0284c7, #2563eb)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: '700',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 14px rgba(2, 132, 199, 0.25)',
+                  transition: 'opacity 0.2s'
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>auto_awesome</span>
+                {generatingAI ? 'Memproses Generasi AI...' : 'Generate Konten & Deskripsi dengan AI'}
+              </button>
+            </div>
+
             <div className="form-actions-row" style={{ display: 'flex', gap: '10px' }}>
-              <button type="submit" className="btn-primary">{editingId ? 'Update Materi' : 'Simpan Materi'}</button>
+              <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px 20px', borderRadius: '12px', fontWeight: '800' }}>
+                {editingId ? 'Update Materi' : 'Simpan Materi'}
+              </button>
               {editingId && (
                 <button type="button" className="btn-secondary" onClick={() => {
                   setEditingId(null);
                   setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
-                }} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer' }}>Batal</button>
+                }} style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontWeight: '700' }}>Batal</button>
               )}
             </div>
           </form>
-        </div>
-
-        <div className="form-card ai-card">
-          <h3>
-            <span className="material-symbols-outlined card-icon">auto_awesome</span>
-            Buat Materi dengan AI
-          </h3>
-          <p className="ai-hint">Gunakan kelas & mapel yang sama dari form di sebelah kiri.</p>
-          <div className="form-group">
-            <label>Prompt AI</label>
-            <textarea rows="4" placeholder="Contoh: Buat materi tentang persamaan linear dua variabel untuk kelas X..." value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} />
-          </div>
-          <div className="form-group">
-            <label>Saran Judul (opsional)</label>
-            <input placeholder="Judul yang diinginkan" value={aiTitle} onChange={(e) => setAiTitle(e.target.value)} />
-          </div>
-          <button type="button" className="btn-ai" onClick={handleGenerateAI}>
-            <span className="material-symbols-outlined">bolt</span>
-            Generate dengan AI
-          </button>
         </div>
       </div>
 

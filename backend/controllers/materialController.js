@@ -93,78 +93,37 @@ exports.createMaterial = async (req, res) => {
   }
 };
 
-// GENERATE MATERIAL DENGAN AI (tidak perlu file, hanya teks)
+// GENERATE KONTEN MATERI DENGAN AI (Backend Auto-Prompting)
 exports.generateMaterial = async (req, res) => {
   try {
-    const teacherId = req.user.id;
-    const { prompt, titleSuggestion, class_id, subject_id } = req.body;
+    const { title, prompt, subject_name, class_name, description } = req.body;
 
-    if (!prompt || !class_id || !subject_id) {
+    if (!title && !prompt) {
       return res.status(400).json({
         success: false,
-        message: 'Prompt, kelas, dan mata pelajaran wajib diisi'
+        message: 'Judul materi atau topik wajib diisi terlebih dahulu'
       });
     }
 
-    const material = await materialService.generateMaterialAI({
+    const aiData = await materialService.generateMaterialAI({
+      title,
       prompt,
-      titleSuggestion,
-      class_id,
-      subject_id,
-      uploaded_by: teacherId
+      subject_name,
+      class_name,
+      description
     });
 
-    // Kirim push notification ke siswa dan ortu
-    try {
-      const notificationController = require('./notificationController');
-      const siswaCol = mongoose.connection.collection('users_siswa');
-      const classIdStr = class_id.toString();
-      let classIdObj;
-      try {
-        classIdObj = new mongoose.Types.ObjectId(classIdStr);
-      } catch (e) {
-        classIdObj = null;
-      }
-      
-      const query = {
-        $or: [
-          { class_id: classIdStr },
-          ...(classIdObj ? [{ class_id: classIdObj }] : [])
-        ]
-      };
-      
-      const materialTitle = material.title || titleSuggestion || 'Materi Baru';
-      const students = await siswaCol.find(query).toArray();
-      
-      for (const student of students) {
-        if (student._id) {
-          notificationController.sendPushNotification(
-            student._id.toString(),
-            'Materi Baru!',
-            `Materi baru telah digenerate oleh AI: ${materialTitle}.`,
-            '/dashboard/siswa/materials'
-          ).catch(e => console.error(e));
-        }
-        
-        if (student.parent_id) {
-          notificationController.sendPushNotification(
-            student.parent_id.toString(),
-            'Materi Baru untuk Anak Anda',
-            `Ada materi baru dari AI untuk ${student.full_name}: ${materialTitle}.`,
-            '/dashboard/ortu'
-          ).catch(e => console.error(e));
-        }
-      }
-    } catch (notifErr) {
-      console.error('Failed to send push notifications for generated material:', notifErr);
-    }
-
-    return res.json({ success: true, data: material });
+    return res.status(200).json({
+      success: true,
+      data: aiData
+    });
   } catch (err) {
-    console.error(err);
+    console.error('[GenerateMaterial Err]:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// UPDATE MATERI
 
 // GENERATE QUIZ DENGAN AI (Gemini)
 exports.generateQuiz = async (req, res) => {

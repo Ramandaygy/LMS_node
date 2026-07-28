@@ -53,42 +53,60 @@ exports.getMaterialsForStudent = async (classId, subjectId = null) => {
   return await enrichMaterials(materials);
 };
 
-// GENERATE DENGAN AI (Gemini)
+// GENERATE KONTEN MATERI DENGAN AI (Gemini Auto-Prompting)
 exports.generateMaterialAI = async (data) => {
-  const { prompt, titleSuggestion, class_id, subject_id, uploaded_by } = data;
-  if (!prompt) throw new Error('Prompt tidak boleh kosong');
+  const { title, prompt, subject_name, class_name, description } = data;
 
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const targetTitle = title || 'Materi Pembelajaran';
+  const targetSubject = subject_name || 'Informatika';
+  const targetClass = class_name || 'SMP';
 
-  const systemPrompt = `Anda adalah asisten guru pembuat materi pembelajaran. 
-Buat materi berdasarkan permintaan berikut. Output harus dalam format JSON dengan struktur:
+  const actualPrompt = prompt || `Buat materi pembelajaran lengkap mengenai topik "${targetTitle}" untuk mata pelajaran "${targetSubject}" tingkat kelas "${targetClass}". ${description ? `Konteks tambahan: ${description}` : ''}`;
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // Fallback if no Gemini key configured
+    return {
+      title: targetTitle,
+      description: description || `Ringkasan materi pembelajaran mengenai ${targetTitle} pada mata pelajaran ${targetSubject}.`,
+      content: `<h3>Ringkasan Pembelajaran: ${targetTitle}</h3><p>Materi ini menyajikan pemahaman dasar, pembahasan teori utama, serta contoh penerapan praktis untuk mata pelajaran <strong>${targetSubject}</strong>.</p><ul><li>Konsep & Pengertian Utama</li><li>Penjelasan Langkah demi Langkah</li><li>Contoh Latihan Mandiri</li></ul>`
+    };
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const systemPrompt = `Anda adalah asisten AI pendidik profesional. 
+Buatlah materi pembelajaran sekolah yang terstruktur, jelas, dan menarik.
+Format output JSON murni dengan struktur:
 {
-  "title": "Judul materi",
-  "description": "Deskripsi singkat 1-2 kalimat",
-  "content": "Isi materi lengkap dalam HTML (paragraf, poin, subjudul)"
+  "title": "${targetTitle}",
+  "description": "Deskripsi/ringkasan singkat 1-2 kalimat mengenai materi ini",
+  "content": "Isi materi lengkap dalam HTML terstruktur (menggunakan <p>, <h3>, <ul>, <li>, <strong>, dan contoh soal/latihan)"
 }
-Jangan tambahkan teks lain di luar JSON.`;
+Jangan tambahkan teks markdown fence di luar JSON murni.`;
 
-  const fullPrompt = `${systemPrompt}\n\nPermintaan: ${prompt}\n${titleSuggestion ? `Judul yang diinginkan: ${titleSuggestion}` : ''}`;
+    const fullPrompt = `${systemPrompt}\n\nInstruksi Pembelajaran: ${actualPrompt}`;
 
-  const result = await model.generateContent(fullPrompt);
-  let jsonString = result.response.text();
-  jsonString = jsonString.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-  const aiContent = JSON.parse(jsonString);
+    const result = await model.generateContent(fullPrompt);
+    let jsonString = result.response.text().trim();
+    jsonString = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const aiContent = JSON.parse(jsonString);
 
-  const material = await Material.create({
-    title: aiContent.title,
-    description: aiContent.description,
-    content: aiContent.content,
-    class_id,
-    subject_id,
-    uploaded_by,
-    source_type: 'ai',
-    ai_prompt: prompt,
-    is_published: true
-  });
-  return material;
+    return {
+      title: aiContent.title || targetTitle,
+      description: aiContent.description || description || `Materi mengenai ${targetTitle}.`,
+      content: aiContent.content || `<p>Isi materi mengenai ${targetTitle}.</p>`
+    };
+  } catch (err) {
+    console.error('[Gemini AI Material Error]:', err);
+    return {
+      title: targetTitle,
+      description: description || `Ringkasan materi pembelajaran mengenai ${targetTitle}.`,
+      content: `<h3>Materi: ${targetTitle}</h3><p>Materi pembelajaran mengenai <strong>${targetTitle}</strong> untuk kelas ${targetClass}.</p><ul><li>Pembahasan Konsep Utama</li><li>Studi Kasus & Contoh Penerapan</li></ul>`
+    };
+  }
 };
 
 // GENERATE QUIZ DENGAN AI (Gemini)

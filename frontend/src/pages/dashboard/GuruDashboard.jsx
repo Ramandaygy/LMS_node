@@ -210,29 +210,6 @@ const GuruDashboard = () => {
                     </div>
                   </div>
 
-                  {/* Connected Session Components Strip (1 Sesi KBM Terhubung) */}
-                  <div className="connected-session-strip">
-                    <span className="strip-title">Komponen Terhubung 1 Sesi KBM (Pertemuan ke-{meetingNum}):</span>
-                    <div className="strip-items-grid">
-                      <div className="strip-item" onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`)}>
-                        <span className="material-symbols-outlined icon amber">fact_check</span>
-                        <span>1. Presensi</span>
-                      </div>
-                      <div className="strip-item" onClick={() => navigate('/dashboard/guru/materials')}>
-                        <span className="material-symbols-outlined icon blue">menu_book</span>
-                        <span>2. Materi & Modul</span>
-                      </div>
-                      <div className="strip-item" onClick={() => navigate('/dashboard/guru/assignments')}>
-                        <span className="material-symbols-outlined icon green">assignment</span>
-                        <span>3. Tugas Kelas</span>
-                      </div>
-                      <div className="strip-item" onClick={() => navigate('/dashboard/guru/materials')}>
-                        <span className="material-symbols-outlined icon purple">forum</span>
-                        <span>4. Forum Diskusi</span>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Card Action Buttons Bar matching screenshot reference */}
                   <div className="card-action-bar">
                     <button
@@ -293,7 +270,7 @@ const GuruDashboard = () => {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Tanggungan Guru / Action Required Panel */}
+        {/* RIGHT COLUMN: Teacher Profile Summary Panel */}
         <div className="modul-side-column">
           
           {/* Teacher Profile Overview Banner Card */}
@@ -327,62 +304,6 @@ const GuruDashboard = () => {
                 <span className="material-symbols-outlined arrow">chevron_right</span>
               </div>
             )}
-          </div>
-
-          {/* Tanggungan Dosen / Guru Section */}
-          <div className="tanggungan-section-card">
-            <h3 className="tanggungan-title">
-              <span className="material-symbols-outlined">assignment_late</span>
-              Tanggungan Guru & Verifikasi
-            </h3>
-
-            {/* Item 1: Realisasi Perkuliahan / Materi */}
-            <div className="tanggungan-item red">
-              <div className="tanggungan-item-header">
-                <div className="item-title-group">
-                  <span className="material-symbols-outlined icon">analytics</span>
-                  <strong>Realisasi Pembelajaran & Modul</strong>
-                </div>
-                <button className="btn-detail-small" onClick={() => navigate('/dashboard/guru/materials')}>
-                  Lihat Detail
-                </button>
-              </div>
-              <p className="tanggungan-desc">
-                Terdapat kelas mengajar yang belum Anda isi jurnal modul/materi perkuliahan minggu ini.
-              </p>
-            </div>
-
-            {/* Item 2: Presensi Siswa */}
-            <div className="tanggungan-item amber">
-              <div className="tanggungan-item-header">
-                <div className="item-title-group">
-                  <span className="material-symbols-outlined icon">fact_check</span>
-                  <strong>Presensi Siswa Sekelas</strong>
-                </div>
-                <button className="btn-detail-small" onClick={() => navigate('/dashboard/guru/attendance')}>
-                  Lihat Detail
-                </button>
-              </div>
-              <p className="tanggungan-desc">
-                Terdapat pertemuan kelas hari ini yang belum diverifikasi presensinya.
-              </p>
-            </div>
-
-            {/* Item 3: Penilaian Mahasiswa / Siswa */}
-            <div className="tanggungan-item blue">
-              <div className="tanggungan-item-header">
-                <div className="item-title-group">
-                  <span className="material-symbols-outlined icon">edit_note</span>
-                  <strong>Penilaian & Input Nilai</strong>
-                </div>
-                <button className="btn-detail-small" onClick={() => navigate('/dashboard/guru/input-nilai')}>
-                  Lihat Detail
-                </button>
-              </div>
-              <p className="tanggungan-desc">
-                Masih ada penilaian tugas ({recentAssignments.length} tugas) yang belum dikunci nilainya.
-              </p>
-            </div>
           </div>
         </div>
 
