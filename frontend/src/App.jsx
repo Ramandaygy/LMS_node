@@ -80,6 +80,7 @@ import GuruMonitoring from './pages/dashboard/guru/GuruMonitoring';
 import GuruStudents from './pages/dashboard/guru/GuruStudents';
 import GuruProgress from './pages/dashboard/guru/GuruProgress';
 import GuruQuiz from './pages/dashboard/guru/GuruQuiz';
+import GuruCbt from './pages/dashboard/guru/GuruCbt';
 import GuruInputNilai from './pages/dashboard/guru/GuruInputNilai';
 import GuruWaliKelas from './pages/dashboard/guru/GuruWaliKelas';
 
@@ -604,6 +605,17 @@ function App() {
             <ProtectedRoute allowedRole="guru">
               <DashboardLayout role="guru">
                 <GuruQuiz />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/guru/cbt"
+          element={
+            <ProtectedRoute allowedRole="guru">
+              <DashboardLayout role="guru">
+                <GuruCbt />
               </DashboardLayout>
             </ProtectedRoute>
           }

@@ -295,3 +295,232 @@ exports.getExamResultsForGuru = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal memuat rekap hasil Ujian CBT.' });
   }
 };
+
+const ExcelJS = require('exceljs');
+
+// Download Excel Template for CBT Questions
+exports.downloadTemplateExcel = async (req, res) => {
+  try {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Template Soal CBT');
+
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 6 },
+      { header: 'Pertanyaan', key: 'question_text', width: 45 },
+      { header: 'Pilihan A', key: 'opt_a', width: 25 },
+      { header: 'Pilihan B', key: 'opt_b', width: 25 },
+      { header: 'Pilihan C', key: 'opt_c', width: 25 },
+      { header: 'Pilihan D', key: 'opt_d', width: 25 },
+      { header: 'Kunci Jawaban (A/B/C/D)', key: 'correct_option', width: 22 },
+      { header: 'Pembahasan', key: 'explanation', width: 35 }
+    ];
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFF' } };
+    headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0284C7' } };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+
+    worksheet.addRow({
+      no: 1,
+      question_text: 'Perangkat keras komputer yang berfungsi sebagai otak utama dalam mengolah data adalah...',
+      opt_a: 'RAM',
+      opt_b: 'CPU (Processor)',
+      opt_c: 'Harddisk',
+      opt_d: 'Power Supply',
+      correct_option: 'B',
+      explanation: 'CPU (Central Processing Unit) merupakan komponen utama pemroses data.'
+    });
+
+    worksheet.addRow({
+      no: 2,
+      question_text: 'Manakah protokol yang digunakan untuk komunikasi web yang aman dan terenkripsi?',
+      opt_a: 'HTTP',
+      opt_b: 'FTP',
+      opt_c: 'HTTPS',
+      opt_d: 'SMTP',
+      correct_option: 'C',
+      explanation: 'HTTPS (Hypertext Transfer Protocol Secure) menggunakan enkripsi TLS/SSL.'
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Template_Import_Soal_CBT.xlsx"');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Error generating CBT Excel template:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mengunduh template Excel.' });
+  }
+};
+
+// Import Questions from Uploaded Excel
+exports.importQuestionsExcel = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'File Excel wajib diunggah.' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const worksheet = workbook.worksheets[0];
+
+    if (!worksheet) {
+      return res.status(400).json({ success: false, message: 'Sheet Excel tidak ditemukan.' });
+    }
+
+    const questions = [];
+    const errors = [];
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+
+      const getVal = (idx) => {
+        const val = row.getCell(idx).value;
+        if (val === null || val === undefined) return '';
+        if (typeof val === 'object') return val.text || val.result || '';
+        return String(val).trim();
+      };
+
+      const qText = getVal(2);
+      const optA = getVal(3);
+      const optB = getVal(4);
+      const optC = getVal(5);
+      const optD = getVal(6);
+      const correctStr = getVal(7).toUpperCase();
+      const explanation = getVal(8);
+
+      if (!qText && !optA && !optB) return;
+
+      if (!qText) {
+        errors.push(`Baris ${rowNumber}: Pertanyaan tidak boleh kosong.`);
+        return;
+      }
+      if (!optA || !optB || !optC || !optD) {
+        errors.push(`Baris ${rowNumber}: Pilihan A, B, C, D harus diisi lengkap.`);
+        return;
+      }
+
+      let correctOption = 0;
+      if (correctStr === 'B' || correctStr === '2') correctOption = 1;
+      else if (correctStr === 'C' || correctStr === '3') correctOption = 2;
+      else if (correctStr === 'D' || correctStr === '4') correctOption = 3;
+
+      questions.push({
+        question_text: qText,
+        options: [optA, optB, optC, optD],
+        correct_option: correctOption,
+        explanation: explanation || ''
+      });
+    });
+
+    if (questions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada soal valid yang ditemukan dalam file Excel.',
+        errors
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Berhasil mengekstrak ${questions.length} soal dari Excel.`,
+      questions,
+      errors
+    });
+  } catch (err) {
+    console.error('Error importing questions Excel:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memproses file Excel.' });
+  }
+};
+
+// Export Exam & Results to Excel
+exports.exportExamExcel = async (req, res) => {
+  try {
+    const examId = req.params.id;
+    const exam = await CbtExam.findById(examId)
+      .populate('subject', 'name')
+      .populate('class_id', 'name');
+
+    if (!exam) {
+      return res.status(404).json({ success: false, message: 'Ujian CBT tidak ditemukan.' });
+    }
+
+    const results = await CbtResult.find({ exam: examId })
+      .populate('student', 'full_name nis class_name')
+      .sort({ score: -1 });
+
+    const workbook = new ExcelJS.Workbook();
+
+    // Sheet 1: Results Rekap
+    const sheet1 = workbook.addWorksheet('Rekapitulasi Hasil Siswa');
+    sheet1.columns = [
+      { header: 'No', key: 'no', width: 6 },
+      { header: 'Nama Siswa', key: 'student_name', width: 25 },
+      { header: 'NIS', key: 'nis', width: 15 },
+      { header: 'Kelas', key: 'class_name', width: 12 },
+      { header: 'Benar', key: 'correct', width: 10 },
+      { header: 'Salah', key: 'wrong', width: 10 },
+      { header: 'Skor CBT', key: 'score', width: 12 },
+      { header: 'Status KKM', key: 'status', width: 15 },
+      { header: 'Tanggal Dikumpulkan', key: 'date', width: 22 }
+    ];
+
+    const h1 = sheet1.getRow(1);
+    h1.font = { bold: true, color: { argb: 'FFFFFF' } };
+    h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
+
+    results.forEach((r, idx) => {
+      sheet1.addRow({
+        no: idx + 1,
+        student_name: r.student?.full_name || '-',
+        nis: r.student?.nis || '-',
+        class_name: r.student?.class_name || '-',
+        correct: r.correct_count,
+        wrong: r.wrong_count,
+        score: r.score,
+        status: r.is_passed ? 'LULUS' : 'REMIDIAL',
+        date: new Date(r.submitted_at).toLocaleString('id-ID')
+      });
+    });
+
+    // Sheet 2: Question Bank
+    const sheet2 = workbook.addWorksheet('Bank Soal Ujian');
+    sheet2.columns = [
+      { header: 'No', key: 'no', width: 6 },
+      { header: 'Pertanyaan', key: 'q', width: 45 },
+      { header: 'Pilihan A', key: 'a', width: 20 },
+      { header: 'Pilihan B', key: 'b', width: 20 },
+      { header: 'Pilihan C', key: 'c', width: 20 },
+      { header: 'Pilihan D', key: 'd', width: 20 },
+      { header: 'Kunci', key: 'key', width: 10 },
+      { header: 'Pembahasan', key: 'exp', width: 30 }
+    ];
+
+    const h2 = sheet2.getRow(1);
+    h2.font = { bold: true, color: { argb: 'FFFFFF' } };
+    h2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0284C7' } };
+
+    exam.questions.forEach((q, idx) => {
+      sheet2.addRow({
+        no: idx + 1,
+        q: q.question_text,
+        a: q.options[0] || '',
+        b: q.options[1] || '',
+        c: q.options[2] || '',
+        d: q.options[3] || '',
+        key: String.fromCharCode(65 + q.correct_option),
+        exp: q.explanation || ''
+      });
+    });
+
+    const safeTitle = exam.title.replace(/[^a-zA-Z0-9]/g, '_');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="Hasil_CBT_${safeTitle}.xlsx"`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error('Error exporting CBT Excel:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mengeksport data Excel.' });
+  }
+};

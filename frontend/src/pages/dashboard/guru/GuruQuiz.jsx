@@ -3,514 +3,280 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-quiz.css';
 
 const GuruQuiz = () => {
-  const [exams, setExams] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Create Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [title, setTitle] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('');
+  const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(30);
-  const [passScore, setPassScore] = useState(75);
 
-  // Question Form State
-  const [questions, setQuestions] = useState([
-    { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
-  ]);
+  // Quiz Questions State
+  const [questions, setQuestions] = useState([]);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [selectedSubject, setSelectedSubject] = useState('');
 
-  // Results Modal State
-  const [showResultsModal, setShowResultsModal] = useState(false);
-  const [selectedExamForResults, setSelectedExamForResults] = useState(null);
-  const [examResults, setExamResults] = useState([]);
-  const [loadingResults, setLoadingResults] = useState(false);
+  // Scoring Detail State
+  const [expandedQuestionIndex, setExpandedQuestionIndex] = useState(null);
+  const [studentScores, setStudentScores] = useState({});
 
   useEffect(() => {
-    fetchExams();
-    fetchSubjectsAndClasses();
+    fetchStudents();
+    fetchTeacherProfile();
   }, []);
 
-  const fetchExams = async () => {
+  const fetchTeacherProfile = async () => {
     try {
-      setLoading(true);
-      const res = await api.get('/cbt/exams');
-      if (res.data.success) {
-        setExams(res.data.exams || []);
+      const res = await api.get('/profile');
+      if (res.data && res.data.subjects) {
+        setSubjects(res.data.subjects);
+        if (res.data.subjects.length > 0) {
+          setSelectedSubject(res.data.subjects[0].name);
+        }
       }
     } catch (err) {
-      console.error('Error fetching exams:', err);
-      setError('Gagal memuat daftar Ujian CBT.');
+      console.error('Failed to fetch profile', err);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const response = await api.get('/users/students/all');
+      const data = response.data.data || [];
+      setStudents(data);
+
+      const classList = [...new Set(data.map(s => s.class_name).filter(Boolean))];
+      setClasses(classList);
+      if (classList.length > 0) {
+        setSelectedClass(classList[0]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch students', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchSubjectsAndClasses = async () => {
-    try {
-      const [subRes, clsRes] = await Promise.all([
-        api.get('/subjects'),
-        api.get('/classes')
-      ]);
-      const subList = subRes.data.data || [];
-      const clsList = clsRes.data.data || [];
-
-      setSubjects(subList);
-      setClasses(clsList);
-
-      if (subList.length > 0) setSelectedSubject(subList[0]._id);
-      if (clsList.length > 0) setSelectedClass(clsList[0]._id);
-    } catch (err) {
-      console.error('Error fetching master subjects/classes:', err);
-    }
+  const handleScoreChange = (studentId, value) => {
+    setStudentScores(prev => ({ ...prev, [studentId]: value }));
   };
 
-  // Question Manipulations
-  const handleAddQuestion = () => {
-    setQuestions((prev) => [
-      ...prev,
-      { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
-    ]);
-  };
-
-  const handleRemoveQuestion = (idx) => {
-    if (questions.length === 1) return;
-    setQuestions((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleQuestionTextChange = (idx, value) => {
-    const updated = [...questions];
-    updated[idx].question_text = value;
-    setQuestions(updated);
-  };
-
-  const handleOptionTextChange = (qIdx, oIdx, value) => {
-    const updated = [...questions];
-    updated[qIdx].options[oIdx] = value;
-    setQuestions(updated);
-  };
-
-  const handleCorrectOptionChange = (qIdx, oIdx) => {
-    const updated = [...questions];
-    updated[qIdx].correct_option = oIdx;
-    setQuestions(updated);
-  };
-
-  const handleExplanationChange = (qIdx, value) => {
-    const updated = [...questions];
-    updated[qIdx].explanation = value;
-    setQuestions(updated);
-  };
-
-  const handleSaveExam = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    if (!title.trim() || !selectedSubject) {
-      setError('Judul ujian dan mata pelajaran wajib diisi.');
+  const handleSaveAllScores = async (questionIndex) => {
+    const scoresToSubmit = Object.entries(studentScores).filter(([_, score]) => score !== '');
+    if (scoresToSubmit.length === 0) {
+      alert('Tidak ada nilai baru yang dimasukkan.');
       return;
     }
 
-    // Validate questions
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      if (!q.question_text.trim()) {
-        setError(`Teks soal nomor ${i + 1} belum diisi.`);
-        return;
-      }
-      for (let j = 0; j < 4; j++) {
-        if (!q.options[j] || !q.options[j].trim()) {
-          setError(`Pilihan jawaban ${String.fromCharCode(65 + j)} pada soal nomor ${i + 1} belum diisi.`);
-          return;
-        }
-      }
+    const subjectObj = subjects.find(s => s.name === selectedSubject);
+    if (!subjectObj) {
+      alert('Pilih mata pelajaran terlebih dahulu.');
+      return;
     }
 
+    let successCount = 0;
     try {
-      const payload = {
-        title,
+      await Promise.all(
+        scoresToSubmit.map(async ([studentId, score]) => {
+          await api.post('/grades', {
+            student: studentId,
+            subject: subjectObj._id,
+            score: Number(score),
+            type: 'quiz',
+            note: `Quiz Live: ${questions[questionIndex]}`
+          });
+          successCount++;
+        })
+      );
+      alert(`Berhasil menyimpan ${successCount} nilai kuis.`);
+      setStudentScores({});
+    } catch (err) {
+      console.error('Failed to submit some scores', err);
+      alert('Terjadi kesalahan saat menyimpan beberapa nilai. Silakan coba lagi.');
+    }
+  };
+
+  // Questions Handlers
+  const handleAddQuestion = (e) => {
+    e.preventDefault();
+    if (newQuestion.trim() === '') return;
+    setQuestions([...questions, newQuestion]);
+    setNewQuestion('');
+  };
+
+  const handleDeleteQuestion = (index) => {
+    setQuestions(questions.filter((_, i) => i !== index));
+  };
+
+  const handleGenerateAI = async () => {
+    if (!selectedSubject) {
+      alert('Pilih mata pelajaran terlebih dahulu');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await api.post('/materials/generate-quiz-ai', {
         subject: selectedSubject,
-        class_id: selectedClass || null,
-        duration_minutes: Number(durationMinutes),
-        pass_score: Number(passScore),
-        is_active: true,
-        questions
-      };
-
-      const res = await api.post('/cbt/exams', payload);
-      if (res.data.success) {
-        setSuccess('Paket Ujian CBT berhasil dibuat dan dipublikasikan.');
-        setShowCreateModal(false);
-        // Reset form
-        setTitle('');
-        setQuestions([{ question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }]);
-        fetchExams();
+        topic: 'Umum Bab 1-3'
+      });
+      if (res.data && res.data.questions) {
+        setQuestions(prev => [...prev, ...res.data.questions]);
       }
     } catch (err) {
-      console.error('Error saving exam:', err);
-      setError(err.response?.data?.message || 'Gagal menyimpan Paket Ujian CBT.');
-    }
-  };
-
-  const handleDeleteExam = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus paket Ujian CBT ini beserta seluruh hasilnya?')) return;
-    try {
-      const res = await api.delete(`/cbt/exams/${id}`);
-      if (res.data.success) {
-        setSuccess('Paket Ujian CBT berhasil dihapus.');
-        fetchExams();
-      }
-    } catch (err) {
-      console.error('Error deleting exam:', err);
-      setError('Gagal menghapus paket Ujian CBT.');
-    }
-  };
-
-  const handleToggleActive = async (exam) => {
-    try {
-      const res = await api.put(`/cbt/exams/${exam._id}`, { is_active: !exam.is_active });
-      if (res.data.success) {
-        fetchExams();
-      }
-    } catch (err) {
-      console.error('Error toggling exam status:', err);
-    }
-  };
-
-  const handleViewResults = async (exam) => {
-    setSelectedExamForResults(exam);
-    setShowResultsModal(true);
-    setLoadingResults(true);
-    try {
-      const res = await api.get(`/cbt/exams/${exam._id}/results`);
-      if (res.data.success) {
-        setExamResults(res.data.results || []);
-      }
-    } catch (err) {
-      console.error('Error fetching exam results:', err);
+      console.error('Failed to generate AI quiz', err);
+      alert('Gagal membuat kuis otomatis via AI');
     } finally {
-      setLoadingResults(false);
+      setIsGenerating(false);
     }
   };
 
-  if (loading) return <div className="cbt-guru-loading">Memuat Manajemen Ujian CBT...</div>;
+  const filteredStudents = students.filter(s => {
+    const matchClass = selectedClass ? s.class_name === selectedClass : true;
+    const matchQuery = s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       s.nis?.includes(searchQuery);
+    return matchClass && matchQuery;
+  });
 
   return (
-    <div className="guru-cbt-container">
-      <div className="guru-cbt-header">
+    <div className="guru-quiz-container">
+      <div className="guru-quiz-header">
         <div>
-          <h1 className="page-title">Manajemen Ujian & Quiz CBT (Computer Based Test)</h1>
-          <p className="page-subtitle">Kelola paket soal pilihan ganda, atur timer ujian, dan lihat rekapitulasi nilai siswa secara otomatis.</p>
+          <h1 className="page-title">Manajemen Quiz Live & Generator AI</h1>
+          <p className="page-subtitle">Buat pertanyaan kuis cepat secara manual atau otomatis dengan AI, lalu input nilai siswa sekelas.</p>
         </div>
-
-        <button className="btn-create-exam" onClick={() => setShowCreateModal(true)}>
-          <span className="material-symbols-outlined">add_circle</span>
-          Buat Ujian CBT Baru
-        </button>
       </div>
 
-      {error && <div className="alert-box error">{error}</div>}
-      {success && <div className="alert-box success">{success}</div>}
+      <div className="quiz-layout-grid">
+        {/* Left Side: Question Builder */}
+        <div className="quiz-card">
+          <div className="quiz-card-header">
+            <h3>Bank Pertanyaan Quiz Live</h3>
+            <button className="btn-ai-gen" onClick={handleGenerateAI} disabled={isGenerating}>
+              <span className="material-symbols-outlined">auto_awesome</span>
+              {isGenerating ? 'Generasi AI...' : 'Buat Kuis via AI'}
+            </button>
+          </div>
 
-      {/* List of Exams */}
-      <div className="exams-table-container">
-        <table className="guru-cbt-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Judul Paket Ujian</th>
-              <th>Mata Pelajaran</th>
-              <th>Jumlah Soal</th>
-              <th>Durasi</th>
-              <th>KKM</th>
-              <th>Status Aktif</th>
-              <th>Aksi & Hasil</th>
-            </tr>
-          </thead>
-          <tbody>
-            {exams.length > 0 ? (
-              exams.map((exam, idx) => (
-                <tr key={exam._id}>
-                  <td className="text-center">{idx + 1}</td>
-                  <td className="font-bold">{exam.title}</td>
-                  <td>{exam.subject?.name || '-'}</td>
-                  <td className="text-center">{exam.total_questions || 0} Soal</td>
-                  <td className="text-center">{exam.duration_minutes} Menit</td>
-                  <td className="text-center font-bold text-sky">{exam.pass_score}</td>
-                  <td className="text-center">
-                    <button
-                      className={`status-toggle-btn ${exam.is_active ? 'active' : 'inactive'}`}
-                      onClick={() => handleToggleActive(exam)}
-                    >
-                      {exam.is_active ? 'Aktif (Bisa Dikerjakan)' : 'Non-Aktif'}
-                    </button>
-                  </td>
-                  <td>
-                    <div className="action-buttons-group">
-                      <button className="btn-action view" onClick={() => handleViewResults(exam)}>
-                        <span className="material-symbols-outlined">analytics</span>
-                        Hasil Siswa
-                      </button>
-                      <button className="btn-action delete" onClick={() => handleDeleteExam(exam._id)}>
-                        <span className="material-symbols-outlined">delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+          <form onSubmit={handleAddQuestion} className="quiz-form-input">
+            <input
+              type="text"
+              placeholder="Ketik pertanyaan kuis di sini..."
+              value={newQuestion}
+              onChange={(e) => setNewQuestion(e.target.value)}
+              className="form-input"
+            />
+            <button type="submit" className="btn-add-q">Tambah</button>
+          </form>
+
+          <div className="questions-list">
+            {questions.length === 0 ? (
+              <p className="empty-msg">Belum ada pertanyaan kuis. Silakan ketik atau buat otomatis via AI.</p>
             ) : (
-              <tr>
-                <td colSpan="8" className="text-center empty-table">
-                  Belum ada paket Ujian CBT yang dibuat. Klik tombol "Buat Ujian CBT Baru" di atas.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* CREATE CBT EXAM MODAL */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Buat Paket Ujian CBT Baru</h2>
-              <button className="btn-close" onClick={() => setShowCreateModal(false)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveExam} className="cbt-form">
-              <div className="form-row-grid">
-                <div className="form-group">
-                  <label>Judul Ujian CBT *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Latihan Ujian CBT Informatika Bab 3"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Mata Pelajaran *</label>
-                  <select
-                    value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="form-select"
-                  >
-                    {subjects.map((sub) => (
-                      <option key={sub._id} value={sub._id}>{sub.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row-grid tri">
-                <div className="form-group">
-                  <label>Target Kelas (Opsional)</label>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="">Semua Kelas</option>
-                    {classes.map((cls) => (
-                      <option key={cls._id} value={cls._id}>Kelas {cls.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Durasi (Menit) *</label>
-                  <input
-                    type="number"
-                    min="5"
-                    max="180"
-                    required
-                    value={durationMinutes}
-                    onChange={(e) => setDurationMinutes(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>KKM (Nilai Kelulusan) *</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    required
-                    value={passScore}
-                    onChange={(e) => setPassScore(e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-              </div>
-
-              {/* QUESTIONS BUILDER SECTION */}
-              <div className="questions-section-header">
-                <h3>Daftar Soal Pilihan Ganda ({questions.length} Soal)</h3>
-                <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
-                  <span className="material-symbols-outlined">add</span>
-                  Tambah Soal
-                </button>
-              </div>
-
-              <div className="questions-list-form">
-                {questions.map((q, qIdx) => (
-                  <div key={qIdx} className="question-item-card">
-                    <div className="q-card-header">
-                      <span className="q-number">Soal Nomor #{qIdx + 1}</span>
-                      {questions.length > 1 && (
-                        <button
-                          type="button"
-                          className="btn-delete-q"
-                          onClick={() => handleRemoveQuestion(qIdx)}
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="form-group">
-                      <label>Pertanyaan / Pertanyaan Teks *</label>
-                      <textarea
-                        rows="2"
-                        required
-                        placeholder="Tuliskan pertanyaan di sini..."
-                        value={q.question_text}
-                        onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
-                        className="form-textarea"
-                      />
-                    </div>
-
-                    <div className="options-input-grid">
-                      {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
-                        <div key={oIdx} className="option-input-item">
-                          <label className="radio-label">
-                            <input
-                              type="radio"
-                              name={`correct_${qIdx}`}
-                              checked={q.correct_option === oIdx}
-                              onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
-                            />
-                            <strong>{letter}</strong> (Kunci)
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder={`Pilihan ${letter}...`}
-                            value={q.options[oIdx]}
-                            onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
-                            className="form-input opt-input"
-                          />
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="form-group" style={{ marginTop: '12px' }}>
-                      <label>Pembahasan / Penjelasan Kunci (Opsional)</label>
-                      <input
-                        type="text"
-                        placeholder="Penjelasan mengapa kunci jawaban tersebut benar..."
-                        value={q.explanation}
-                        onChange={(e) => handleExplanationChange(qIdx, e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
+              questions.map((q, idx) => (
+                <div key={idx} className="question-list-item">
+                  <div className="q-info">
+                    <span className="q-badge">Soal #{idx + 1}</span>
+                    <p className="q-text">{q}</p>
                   </div>
-                ))}
-              </div>
-
-              <div className="form-modal-footer">
-                <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>
-                  Batal
-                </button>
-                <button type="submit" className="btn-submit-exam">
-                  Simpan & Publikasikan Ujian
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* RESULTS REKAP MODAL FOR GURU */}
-      {showResultsModal && selectedExamForResults && (
-        <div className="modal-overlay" onClick={() => setShowResultsModal(false)}>
-          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h2>Rekapitulasi Hasil Ujian CBT Siswa</h2>
-                <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>{selectedExamForResults.title}</p>
-              </div>
-              <button className="btn-close" onClick={() => setShowResultsModal(false)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {loadingResults ? (
-              <div className="cbt-guru-loading">Memuat hasil siswa...</div>
-            ) : (
-              <div className="exam-results-table-wrapper">
-                <table className="guru-cbt-table">
-                  <thead>
-                    <tr>
-                      <th>No</th>
-                      <th>Nama Siswa</th>
-                      <th>NIS</th>
-                      <th>Kelas</th>
-                      <th>Benar</th>
-                      <th>Salah</th>
-                      <th>Skor CBT</th>
-                      <th>Status KKM</th>
-                      <th>Waktu Mengumpulkan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {examResults.length > 0 ? (
-                      examResults.map((resItem, idx) => (
-                        <tr key={resItem._id}>
-                          <td className="text-center">{idx + 1}</td>
-                          <td className="font-bold">{resItem.student?.full_name || '-'}</td>
-                          <td className="text-center">{resItem.student?.nis || '-'}</td>
-                          <td className="text-center">{resItem.student?.class_name || '-'}</td>
-                          <td className="text-center text-green font-bold">{resItem.correct_count}</td>
-                          <td className="text-center text-red font-bold">{resItem.wrong_count}</td>
-                          <td className="text-center font-bold" style={{ fontSize: '16px', color: resItem.is_passed ? '#16a34a' : '#dc2626' }}>
-                            {resItem.score}
-                          </td>
-                          <td className="text-center">
-                            <span className={`status-badge ${resItem.is_passed ? 'passed' : 'failed'}`}>
-                              {resItem.is_passed ? 'LULUS' : 'REMIDIAL'}
-                            </span>
-                          </td>
-                          <td className="text-center" style={{ fontSize: '12px', color: '#64748b' }}>
-                            {new Date(resItem.submitted_at).toLocaleString('id-ID')}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="9" className="text-center empty-table">
-                          Belum ada siswa yang mengumpulkan ujian ini.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  <div className="q-actions">
+                    <button
+                      className="btn-input-score"
+                      onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === idx ? null : idx)}
+                    >
+                      <span className="material-symbols-outlined">edit_note</span>
+                      {expandedQuestionIndex === idx ? 'Tutup Nilai' : 'Input Nilai'}
+                    </button>
+                    <button className="btn-del-q" onClick={() => handleDeleteQuestion(idx)}>
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
-      )}
+
+        {/* Right Side: Class Student Scoring Table */}
+        <div className="quiz-card">
+          <div className="quiz-card-header">
+            <h3>Pilih Kelas & Siswa</h3>
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="select-class-dropdown"
+            >
+              {classes.map((c, i) => (
+                <option key={i} value={c}>Kelas {c}</option>
+              ))}
+            </select>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Cari siswa berdasarkan nama/NIS..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input-field"
+          />
+
+          {expandedQuestionIndex !== null && (
+            <div className="input-score-banner">
+              <strong>Penginputan Nilai untuk Soal #{expandedQuestionIndex + 1}:</strong> "{questions[expandedQuestionIndex]}"
+            </div>
+          )}
+
+          {loading ? (
+            <div className="loading-state">Memuat siswa...</div>
+          ) : (
+            <div className="student-scoring-table-wrapper">
+              <table className="scoring-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>Nama Siswa</th>
+                    <th>NIS</th>
+                    <th>Input Nilai Kuis (0-100)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((st, i) => (
+                    <tr key={st._id}>
+                      <td>{i + 1}</td>
+                      <td><strong>{st.full_name}</strong></td>
+                      <td>{st.nis || '-'}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="Nilai..."
+                          value={studentScores[st._id] || ''}
+                          onChange={(e) => handleScoreChange(st._id, e.target.value)}
+                          className="score-input-cell"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {expandedQuestionIndex !== null && (
+                <div className="save-score-footer">
+                  <button
+                    className="btn-save-all-scores"
+                    onClick={() => handleSaveAllScores(expandedQuestionIndex)}
+                  >
+                    <span className="material-symbols-outlined">save</span>
+                    Simpan Seluruh Nilai Kuis
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
