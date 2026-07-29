@@ -26,7 +26,6 @@ const GuruMaterials = () => {
   const [generatingAI, setGeneratingAI] = useState(false);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
-  const [materialFilter, setMaterialFilter] = useState('all');
 
   useEffect(() => {
     fetchProfile();
@@ -71,7 +70,6 @@ const GuruMaterials = () => {
     data.append('class_id', form.class_id || '');
     data.append('subject_id', form.subject_id);
     data.append('external_link', form.external_link);
-    // If saving without class, mark as draft in bank
     data.append('is_published', form.class_id ? 'true' : 'false');
     if (form.file) data.append('file', form.file);
 
@@ -81,7 +79,7 @@ const GuruMaterials = () => {
         alert('Materi berhasil diupdate');
       } else {
         await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
-        alert('Materi berhasil disimpan ke Bank Materi! Silakan centang & distribusikan ke kelas saat siap.');
+        alert('Materi berhasil disimpan');
       }
       setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
       setEditingId(null);
@@ -117,6 +115,7 @@ const GuruMaterials = () => {
     }
   };
 
+  // Generate AI Content Flow with solid payload extraction
   const handleGenerateAIContent = async () => {
     if (!form.title) {
       alert('Silakan isi Judul Materi terlebih dahulu.');
@@ -140,11 +139,13 @@ const GuruMaterials = () => {
         class_id: form.class_id
       });
 
-      if (res.data.success && res.data.data) {
+      const aiData = res.data?.data || res.data;
+
+      if (aiData) {
         setForm(prev => ({
           ...prev,
-          description: res.data.data.description || prev.description,
-          content: res.data.data.content || prev.content
+          description: aiData.description || prev.description || 'Ringkasan materi pembelajaran.',
+          content: aiData.content || prev.content || '<p>Isi materi hasil generasi AI.</p>'
         }));
         alert('Konten dan Deskripsi materi berhasil digenerate oleh AI!');
       }
@@ -156,7 +157,7 @@ const GuruMaterials = () => {
     }
   };
 
-  // Safe file downloader for Base64 Data URIs & normal URLs
+  // Safe file downloader
   const downloadFile = (fileUrl, fileName) => {
     if (!fileUrl) return;
     if (fileUrl.startsWith('data:')) {
@@ -172,7 +173,7 @@ const GuruMaterials = () => {
     }
   };
 
-  // Checkbox Selection Logic
+  // Checkbox selection
   const handleToggleSelect = (id) => {
     setSelectedMaterialIds(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -181,7 +182,7 @@ const GuruMaterials = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedMaterialIds(filteredMaterials.map(m => m._id));
+      setSelectedMaterialIds(materials.map(m => m._id));
     } else {
       setSelectedMaterialIds([]);
     }
@@ -225,12 +226,6 @@ const GuruMaterials = () => {
     return tmp.textContent || tmp.innerText || '';
   };
 
-  const filteredMaterials = materials.filter(m => {
-    if (materialFilter === 'bank') return !m.class_id || m.class_name === 'Bank Materi';
-    if (materialFilter === 'published') return m.class_id && m.class_name !== 'Bank Materi';
-    return true;
-  });
-
   const selectedMaterialsList = materials.filter(m => selectedMaterialIds.includes(m._id));
 
   if (loading) return <div className="loading">Memuat materi...</div>;
@@ -238,8 +233,8 @@ const GuruMaterials = () => {
   return (
     <div className="guru-materials-container">
       <div className="page-header">
-        <h1>Bank & Modul Materi Pembelajaran</h1>
-        <p>Buat dan kumpulkan materi di Bank Materi. Pilih & distribusikan beberapa materi ke kelas target saat siap.</p>
+        <h1>Materi Pembelajaran</h1>
+        <p>Kelola koleksi materi pembelajaran, gunakan AI untuk membuat konten, dan distribusikan ke kelas target.</p>
       </div>
 
       {/* FORM PEMBUATAN MATERI */}
@@ -260,7 +255,7 @@ const GuruMaterials = () => {
             </div>
             <div className="form-group">
               <label>Konten Materi</label>
-              <textarea name="content" placeholder="Isi materi lengkap (teks/HTML, atau klik Generate AI di bawah)" rows="6" value={form.content} onChange={handleChange} />
+              <textarea name="content" placeholder="Isi materi lengkap (teks atau HTML, atau klik Generate AI di bawah)" rows="6" value={form.content} onChange={handleChange} />
             </div>
             <div className="form-row">
               <div className="form-group">
@@ -290,6 +285,10 @@ const GuruMaterials = () => {
                 onChange={handleChange}
                 style={{ background: '#ffffff', border: '1px solid #93c5fd', borderRadius: '8px', padding: '9px 12px', fontSize: '13px' }} 
               />
+              <span style={{ fontSize: '11px', color: '#2563eb', marginTop: '6px', display: 'block', lineHeight: '1.4' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle', marginRight: '4px' }}>lightbulb</span>
+                Guru dapat memasukkan tautan file/folder Google Drive pribadi untuk menghemat kapasitas penyimpanan.
+              </span>
             </div>
             <div className="form-group file-input">
               <label>Lampiran File (PDF / Dokumen)</label>
@@ -340,36 +339,14 @@ const GuruMaterials = () => {
         </div>
       </div>
 
-      {/* TABS KOLEKSI & FILTER */}
-      <div className="filter-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
-        <button 
-          onClick={() => setMaterialFilter('all')}
-          style={{ padding: '8px 18px', borderRadius: '20px', border: '1px solid #cbd5e1', background: materialFilter === 'all' ? '#0284c7' : '#fff', color: materialFilter === 'all' ? '#fff' : '#475569', fontWeight: '700', cursor: 'pointer' }}
-        >
-          Semua Koleksi ({materials.length})
-        </button>
-        <button 
-          onClick={() => setMaterialFilter('bank')}
-          style={{ padding: '8px 18px', borderRadius: '20px', border: '1px solid #cbd5e1', background: materialFilter === 'bank' ? '#0284c7' : '#fff', color: materialFilter === 'bank' ? '#fff' : '#475569', fontWeight: '700', cursor: 'pointer' }}
-        >
-          📁 Bank Materi Guru
-        </button>
-        <button 
-          onClick={() => setMaterialFilter('published')}
-          style={{ padding: '8px 18px', borderRadius: '20px', border: '1px solid #cbd5e1', background: materialFilter === 'published' ? '#0284c7' : '#fff', color: materialFilter === 'published' ? '#fff' : '#475569', fontWeight: '700', cursor: 'pointer' }}
-        >
-          🏫 Materi Didistribusikan
-        </button>
-      </div>
-
-      {/* BATCH ACTION STRIP (DENGAN CEKLIS SAMA SEPERTI YANG DIMAKSUD USER) */}
+      {/* BATCH ACTION STRIP DENGAN CEKLIS TANPA EMOJI */}
       <div className="batch-action-bar" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '14px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', color: '#0f172a' }}>
             <input 
               type="checkbox" 
               onChange={handleSelectAll} 
-              checked={filteredMaterials.length > 0 && selectedMaterialIds.length === filteredMaterials.length}
+              checked={materials.length > 0 && selectedMaterialIds.length === materials.length}
               style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
             Pilih Semua Materi
@@ -408,24 +385,24 @@ const GuruMaterials = () => {
         </button>
       </div>
 
-      {/* DAFTAR MATERI */}
+      {/* DAFTAR KOLEKSI MATERI LENGKAP */}
       <div className="materials-section">
         <h3>
           <span className="material-symbols-outlined section-icon">library_books</span>
-          Daftar Koleksi & Bank Materi
-          <span className="count-badge">{filteredMaterials.length}</span>
+          Koleksi & Bank Materi Pembelajaran
+          <span className="count-badge">{materials.length}</span>
         </h3>
 
-        {filteredMaterials.length === 0 ? (
+        {materials.length === 0 ? (
           <div className="empty">
             <span className="material-symbols-outlined empty-icon">folder_open</span>
-            <p>Belum ada materi dalam koleksi ini.</p>
+            <p>Belum ada materi. Tambahkan materi baru menggunakan form di atas.</p>
           </div>
         ) : (
           <div className="materials-list">
-            {filteredMaterials.map(m => {
+            {materials.map(m => {
               const isChecked = selectedMaterialIds.includes(m._id);
-              const isDistributed = m.class_id && m.class_name !== 'Bank Materi';
+              const isDistributed = m.class_id && m.class_name && m.class_name !== 'Bank Materi';
 
               return (
                 <div 
@@ -441,7 +418,7 @@ const GuruMaterials = () => {
                 >
                   <div className="card-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                     
-                    {/* CHECKBOX DENGAN STOP PROPAGATION */}
+                    {/* CHECKBOX SELECTION */}
                     <div onClick={(e) => e.stopPropagation()} style={{ paddingTop: '2px' }}>
                       <input 
                         type="checkbox" 
@@ -452,13 +429,17 @@ const GuruMaterials = () => {
                     </div>
 
                     <div style={{ flex: 1 }}>
-                      <h4 style={{ margin: '0 0 4px 0' }}>{m.title}</h4>
+                      <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: '800' }}>{m.title}</h4>
                       <div className="header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: '800' }}>{m.subject_name}</span>
                         {isDistributed ? (
-                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: '800' }}>🏫 {m.class_name}</span>
+                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>school</span> {m.class_name}
+                          </span>
                         ) : (
-                          <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', fontWeight: '700' }}>📁 Bank Materi (Draft)</span>
+                          <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>folder</span> Bank Materi
+                          </span>
                         )}
                       </div>
                     </div>
@@ -481,12 +462,14 @@ const GuruMaterials = () => {
                     </div>
                   </div>
 
-                  {m.description && <p className="desc" style={{ marginTop: '8px' }}>{m.description}</p>}
+                  {m.description && <p className="desc" style={{ marginTop: '10px', fontSize: '13px', color: '#475569', lineHeight: '1.5' }}>{m.description}</p>}
                   {m.content && (
-                    <div className="content-preview">{stripHtml(m.content)}</div>
+                    <div className="content-preview" style={{ marginTop: '8px', background: '#fafafa', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f1f5f9', fontSize: '12px', color: '#334155' }}>
+                      {stripHtml(m.content)}
+                    </div>
                   )}
                   
-                  <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                  <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
                     <div className="meta" style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b' }}>
                       <span>
                         <span className="material-symbols-outlined meta-icon" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>calendar_today</span>
@@ -494,10 +477,11 @@ const GuruMaterials = () => {
                       </span>
                     </div>
 
-                    <div className="actions-right" style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                    {/* ONLY DETAIL BUTTON IS KEPT HERE (NO INDIVIDUAL BAGIKAN BUTTON PER USER DIRECTIVE) */}
+                    <div className="actions-right" onClick={(e) => e.stopPropagation()}>
                       <button 
                         onClick={() => setSelectedMaterialModal(m)}
-                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Detail Isi Materi
                       </button>
@@ -510,13 +494,13 @@ const GuruMaterials = () => {
         )}
       </div>
 
-      {/* MODAL POPUP BATCH DISTRIBUSI MATERI DENGAN CEKLIS SAMA */}
+      {/* MODAL POPUP BATCH DISTRIBUSI MATERI */}
       {showDistributeModal && (
         <div className="modal-backdrop" onClick={() => setShowDistributeModal(false)}>
           <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
             <div className="modal-header">
               <h3>
-                <span className="material-symbols-outlined">rocket_launch</span>
+                <span className="material-symbols-outlined">send</span>
                 Distribusi {selectedMaterialIds.length} Materi ke Kelas Target
               </h3>
               <button className="btn-close-modal" onClick={() => setShowDistributeModal(false)}>
@@ -569,7 +553,7 @@ const GuruMaterials = () => {
             <div className="modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase' }}>
-                  {selectedMaterialModal.subject_name} • {selectedMaterialModal.class_name || 'Bank Materi Guru'}
+                  {selectedMaterialModal.subject_name} • {selectedMaterialModal.class_name || 'Bank Materi'}
                 </span>
                 <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '4px 0 0 0' }}>
                   {selectedMaterialModal.title}
@@ -582,7 +566,7 @@ const GuruMaterials = () => {
 
             <div className="modal-body">
               <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px', display: 'flex', gap: '16px' }}>
-                <span>📅 <strong>Diupload:</strong> {selectedMaterialModal.createdAt ? new Date(selectedMaterialModal.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'Terbaru'}</span>
+                <span><span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle' }}>calendar_today</span> Diupload: {selectedMaterialModal.createdAt ? new Date(selectedMaterialModal.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'Terbaru'}</span>
               </div>
 
               {selectedMaterialModal.description && (
