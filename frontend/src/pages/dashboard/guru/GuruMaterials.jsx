@@ -62,6 +62,17 @@ const GuruMaterials = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const insertFormatting = (startTag, endTag = '') => {
+    const textarea = document.getElementById('contentEditorTextarea');
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = form.content.substring(start, end) || 'Teks Materi';
+    const replacement = `${startTag}${selectedText}${endTag}`;
+    const newContent = form.content.substring(0, start) + replacement + form.content.substring(end);
+    setForm(prev => ({ ...prev, content: newContent }));
+  };
+
   const handleFileChange = (e) => {
     setForm({ ...form, file: e.target.files[0] });
   };
@@ -452,29 +463,64 @@ const GuruMaterials = () => {
       {/* FORM PEMBUATAN MATERI */}
       <div className="cards-grid">
         <div className="form-card">
-          <h3>
-            <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
-            {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
-          </h3>
           <form onSubmit={handleSubmit}>
+            <h3>
+              <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
+              {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
+            </h3>
             <div className="form-group">
               <label>Judul Materi</label>
               <input name="title" placeholder="Contoh: Bab 1 — Pengenalan Bahasa Pemrograman" value={form.title} onChange={handleChange} required />
             </div>
+
             <div className="form-group">
               <label>Deskripsi</label>
               <textarea name="description" placeholder="Ringkasan singkat materi (atau klik Generate AI di bawah)" rows="2" value={form.description} onChange={handleChange} />
             </div>
+
+            {/* RICH TEXT EDITOR TOOLBAR & CONTENT BOX (WORD / BLOGGER STYLE) */}
             <div className="form-group">
-              <label>Konten Materi</label>
-              <textarea name="content" placeholder="Isi materi lengkap (teks atau HTML, atau klik Generate AI di bawah)" rows="6" value={form.content} onChange={handleChange} />
+              <label style={{ fontWeight: '800', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <span>Isi / Konten Materi Pembelajaran</span>
+                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '700' }}>Editor Mode Word / Blogger</span>
+              </label>
+
+              <div className="rich-editor-toolbar" style={{ display: 'flex', gap: '4px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderBottom: 'none', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', padding: '6px 10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <button type="button" onClick={() => insertFormatting('<b>', '</b>')} style={{ fontWeight: '900', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Tebal (Bold)">B</button>
+                <button type="button" onClick={() => insertFormatting('<i>', '</i>')} style={{ fontStyle: 'italic', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Miring (Italic)">I</button>
+                <button type="button" onClick={() => insertFormatting('<u>', '</u>')} style={{ textDecoration: 'underline', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Garis Bawah (Underline)">U</button>
+                <button type="button" onClick={() => insertFormatting('<s>', '</s>')} style={{ textDecoration: 'line-through', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Coret Teks">S</button>
+                <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
+                <button type="button" onClick={() => insertFormatting('<h1>', '</h1>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H1</button>
+                <button type="button" onClick={() => insertFormatting('<h2>', '</h2>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H2</button>
+                <button type="button" onClick={() => insertFormatting('<h3>', '</h3>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H3</button>
+                <button type="button" onClick={() => insertFormatting('<p>', '</p>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Paragraf</button>
+                <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
+                <button type="button" onClick={() => insertFormatting('<ul>\n  <li>', '</li>\n</ul>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>• Poin Bullet</button>
+                <button type="button" onClick={() => insertFormatting('<ol>\n  <li>', '</li>\n</ol>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>1. Penomoran</button>
+                <button type="button" onClick={() => insertFormatting('<blockquote>', '</blockquote>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>“ Kutipan</button>
+                <button type="button" onClick={() => insertFormatting('<pre><code>', '</code></pre>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>&lt;/&gt; Kode</button>
+              </div>
+
+              <textarea 
+                id="contentEditorTextarea"
+                name="content" 
+                placeholder="Tuliskan isi materi pembelajaran lengkap di sini... (Gunakan toolbar Word/Blogger di atas untuk format teks)" 
+                rows="7" 
+                value={form.content} 
+                onChange={handleChange}
+                style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: '1.6' }}
+              />
             </div>
-            <div className="form-row">
+
+            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div className="form-group">
-                <label>Kelas Target</label>
-                <select name="class_id" value={form.class_id} onChange={handleChange}>
-                  <option value="">Bank Materi (Draft)</option>
-                  {teacherClasses.map(c => <option key={c._id} value={c._id}>Kelas {c.name}</option>)}
+                <label>Tingkat Kelas (Peruntukan)</label>
+                <select name="grade_level" value={form.grade_level || ''} onChange={handleChange}>
+                  <option value="">Semua Tingkat Kelas (Umum)</option>
+                  <option value="7">Kelas 7 (Tingkat VII)</option>
+                  <option value="8">Kelas 8 (Tingkat VIII)</option>
+                  <option value="9">Kelas 9 (Tingkat IX)</option>
                 </select>
               </div>
               <div className="form-group">
@@ -484,15 +530,8 @@ const GuruMaterials = () => {
                   {teacherSubjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
                 </select>
               </div>
-              <div className="form-group">
-                <label>Target Sesi KBM (Sesi 1-16)</label>
-                <select name="session_number" value={form.session_number || 1} onChange={handleChange} required>
-                  {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
-                    <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
-                  ))}
-                </select>
-              </div>
             </div>
+
             <div className="form-group" style={{ background: '#eff6ff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '16px' }}>
               <label style={{ color: '#1e40af', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px', fontSize: '13px' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#2563eb' }}>folder_shared</span>
@@ -510,10 +549,22 @@ const GuruMaterials = () => {
                 Guru dapat memasukkan tautan file/folder Google Drive pribadi untuk menghemat kapasitas penyimpanan.
               </span>
             </div>
-            <div className="form-group file-input">
-              <label>Lampiran File (PDF / Dokumen)</label>
-              <input type="file" onChange={handleFileChange} />
-              {form.file && <span className="file-name">{form.file.name}</span>}
+
+            <div className="form-group file-input" style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '16px' }}>
+              <label style={{ fontWeight: '800', color: '#0f172a', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>upload_file</span>
+                Lampiran File Dokumen / Media Pembelajaran
+              </label>
+              <input 
+                type="file" 
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx,.ppt,.pptx"
+                style={{ padding: '8px', borderRadius: '8px', border: '1px dashed #0284c7', background: '#ffffff', width: '100%', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', display: 'block', lineHeight: '1.4' }}>
+                <strong>Format File yang Didukung:</strong> PDF (.pdf), Word (.doc / .docx), PowerPoint (.ppt / .pptx). Maksimal ukuran file: <strong>50 MB</strong>.
+              </span>
+              {form.file && <span className="file-name" style={{ fontWeight: '800', color: '#0284c7', marginTop: '6px', display: 'block', fontSize: '12px' }}>📄 File Terpilih: {form.file.name}</span>}
             </div>
 
             <div style={{ marginBottom: '16px', marginTop: '8px' }}>
