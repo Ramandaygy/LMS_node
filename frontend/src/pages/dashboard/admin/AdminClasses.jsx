@@ -536,7 +536,7 @@ const AdminClasses = () => {
       <div className="page-header">
 
         <h2 className="page-title">
-          📚 Kelola Kelas
+          Kelola Kelas
         </h2>
 
         <div className="button-group">

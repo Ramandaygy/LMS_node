@@ -34,7 +34,21 @@ exports.deleteMaterial = async (id) => {
 
 // UNTUK GURU (materi yang diupload)
 exports.getMaterialsByTeacher = async (teacherId) => {
-  const materials = await Material.find({ uploaded_by: teacherId }).sort({ order: 1 });
+  if (!teacherId) return [];
+  let teacherObjId;
+  try {
+    teacherObjId = new mongoose.Types.ObjectId(teacherId.toString());
+  } catch (e) {
+    teacherObjId = teacherId;
+  }
+
+  const materials = await Material.find({
+    $or: [
+      { uploaded_by: teacherId.toString() },
+      ...(teacherObjId ? [{ uploaded_by: teacherObjId }] : [])
+    ]
+  }).sort({ createdAt: -1 });
+
   return await enrichMaterials(materials);
 };
 
@@ -175,8 +189,8 @@ async function enrichMaterials(materials) {
 
   return materials.map(m => ({
     ...m.toObject(),
-    class_name: classMap[m.class_id?.toString()] || 'Tidak diketahui',
-    subject_name: subjectMap[m.subject_id?.toString()] || 'Tidak diketahui',
-    teacher_name: teacherMap[m.uploaded_by?.toString()] || 'Tidak diketahui'
+    class_name: classMap[m.class_id?.toString()] || 'Bank Materi',
+    subject_name: subjectMap[m.subject_id?.toString()] || 'Mata Pelajaran',
+    teacher_name: teacherMap[m.uploaded_by?.toString()] || 'Guru'
   }));
 }

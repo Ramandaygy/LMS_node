@@ -63,19 +63,28 @@ const SiswaAttendance = () => {
 
       <div className="summary-cards">
         <div className="summary-card present">
-          <div className="card-icon">✅</div>
-          <div className="card-info"><h3>Hadir</h3><p>{summary.present} hari</p></div>
+          <div className="card-icon"><span className="material-symbols-outlined">check_circle</span></div>
+          <div className="card-info">
+            <span className="card-num">{summary.present}</span>
+            <span className="card-label">Hadir</span>
+          </div>
         </div>
         <div className="summary-card absent">
-          <div className="card-icon">❌</div>
-          <div className="card-info"><h3>Absen</h3><p>{summary.absent} hari</p></div>
+          <div className="card-icon"><span className="material-symbols-outlined">cancel</span></div>
+          <div className="card-info">
+            <span className="card-num">{summary.absent}</span>
+            <span className="card-label">Alpa</span>
+          </div>
         </div>
         <div className="summary-card late">
-          <div className="card-icon">✉️</div>
-          <div className="card-info"><h3>Izin</h3><p>{summary.permit} hari</p></div>
+          <div className="card-icon"><span className="material-symbols-outlined">description</span></div>
+          <div className="card-info">
+            <span className="card-num">{summary.permit}</span>
+            <span className="card-label">Izin</span>
+          </div>
         </div>
         <div className="summary-card sick">
-          <div className="card-icon">🤒</div>
+          <div className="card-icon"><span className="material-symbols-outlined">medical_services</span></div>
           <div className="card-info"><h3>Sakit</h3><p>{summary.sick} hari</p></div>
         </div>
       </div>

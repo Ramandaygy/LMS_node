@@ -171,7 +171,7 @@ const GuruInputNilai = () => {
     <div className="guru-dashboard-content" style={{ padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>
       <div style={{ marginBottom: '24px' }}>
         <h2 style={{ margin: 0, fontSize: '26px', fontWeight: '800', color: '#0f172a' }}>
-          📝 Modul Penilaian Ujian (UTS / UAS) Guru Mapel
+          Modul Penilaian Ujian (UTS / UAS) Guru Mapel
         </h2>
         <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
           Pilih kelas dan mata pelajaran yang Anda ampu untuk menginput atau melihat rekap nilai ujian siswa.

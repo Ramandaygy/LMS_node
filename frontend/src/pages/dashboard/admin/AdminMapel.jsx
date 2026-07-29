@@ -496,7 +496,7 @@ const AdminMapel = () => {
           </span>
 
           <h2 className="admin-page-title">
-            📖 Kelola Mata Pelajaran
+            Kelola Mata Pelajaran
           </h2>
         </div>
 

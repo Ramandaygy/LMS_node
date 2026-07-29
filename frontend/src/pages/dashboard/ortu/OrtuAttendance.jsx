@@ -50,7 +50,7 @@ const OrtuAttendance = () => {
     const todayRecord = data.find(a => a.date.split('T')[0] === today);
     if (todayRecord && todayRecord.status !== 'present') {
       const statusText = { absent: 'tidak hadir', permit: 'izin', late: 'izin', sick: 'sakit' };
-      setNotification(`⚠️ Perhatian! Anak Anda tercatat ${statusText[todayRecord.status] || todayRecord.status} hari ini.`);
+      setNotification(`Perhatian! Anak Anda tercatat ${statusText[todayRecord.status] || todayRecord.status} hari ini.`);
       setTimeout(() => setNotification(null), 8000);
     } else {
       setNotification(null);

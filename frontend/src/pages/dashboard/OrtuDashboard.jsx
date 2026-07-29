@@ -182,9 +182,9 @@ const OrtuDashboard = () => {
         <div className="suggestion-card">
           <h3>Tips untuk Orang Tua</h3>
           <ul>
-            <li>✔️ Pantau jadwal belajar anak secara rutin</li>
-            <li>✔️ Diskusikan tugas yang sulit dengan guru</li>
-            <li>✔️ Beri motivasi dan apresiasi atas usaha anak</li>
+            <li><span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#16a34a', verticalAlign: 'middle', marginRight: '6px' }}>check_circle</span> Pantau jadwal belajar anak secara rutin</li>
+            <li><span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#16a34a', verticalAlign: 'middle', marginRight: '6px' }}>check_circle</span> Diskusikan tugas yang sulit dengan guru</li>
+            <li><span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#16a34a', verticalAlign: 'middle', marginRight: '6px' }}>check_circle</span> Beri motivasi dan apresiasi atas usaha anak</li>
           </ul>
         </div>
       </main>

@@ -33,7 +33,7 @@ const Navbar = ({ user, onLogout }) => {
                 }
               }}
             />
-            <span className="brand-icon-modern" style={{ display: 'none' }}>🏫</span>
+            <span className="brand-icon-modern" style={{ display: 'none' }}></span>
             <span className="brand-text-modern">SMP N 1 Suradadi</span>
           </Link>
         </div>

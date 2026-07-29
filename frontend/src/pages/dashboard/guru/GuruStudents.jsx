@@ -257,7 +257,7 @@ const GuruStudents = () => {
 
       <div className="page-header-flex no-print" style={{ marginBottom: '24px' }}>
         <div>
-          <h2 className="page-title" style={{ margin: 0 }}>👨‍🎓 Matriks Leger Nilai Akhir Rapor (Wali Kelas)</h2>
+          <h2 className="page-title" style={{ margin: 0 }}>Matriks Leger Nilai Akhir Rapor (Wali Kelas)</h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
             Rekapitulasi Matriks Nilai Akhir Rapor per Mata Pelajaran (Formula 2:1:1) dan Pencetakan Rapor Siswa Binaan.
           </p>
@@ -465,7 +465,7 @@ const GuruStudents = () => {
             <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>
-                  📜 Edit & Pratinjau Rapor Kurikulum Merdeka
+                  Edit & Pratinjau Rapor Kurikulum Merdeka
                 </h3>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>
                   Format Resmi Rapor Kurikulum Merdeka (Formula: NA = (Tugas Harian + PTS + PAS) / 3)
@@ -489,7 +489,7 @@ const GuruStudents = () => {
                   }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_note</span>
-                  {showKopEditForm ? 'Tutup Edit Kop' : '✏️ Edit Kop & Identitas'}
+                  {showKopEditForm ? 'Tutup Edit Kop' : 'Edit Kop & Identitas'}
                 </button>
                 <button
                   onClick={handlePrintRapor}

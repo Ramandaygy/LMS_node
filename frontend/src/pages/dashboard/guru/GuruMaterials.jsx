@@ -115,7 +115,6 @@ const GuruMaterials = () => {
     }
   };
 
-  // Generate AI Content Flow with solid payload extraction
   const handleGenerateAIContent = async () => {
     if (!form.title) {
       alert('Silakan isi Judul Materi terlebih dahulu.');
@@ -157,7 +156,7 @@ const GuruMaterials = () => {
     }
   };
 
-  // Safe file downloader
+  // Safe file downloader (only used when explicitly clicking download button)
   const downloadFile = (fileUrl, fileName) => {
     if (!fileUrl) return;
     if (fileUrl.startsWith('data:')) {
@@ -171,6 +170,87 @@ const GuruMaterials = () => {
       const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${fileUrl}`;
       window.open(fullUrl, '_blank');
     }
+  };
+
+  // Inline Document / File Previewer Helper
+  const renderFilePreview = (m) => {
+    if (!m) return null;
+    const fileUrl = m.file_url;
+    const extLink = m.external_link;
+
+    if (fileUrl) {
+      const isImage = fileUrl.startsWith('data:image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(fileUrl);
+      const isPdf = fileUrl.startsWith('data:application/pdf') || /\.pdf$/i.test(fileUrl);
+      const fullUrl = fileUrl.startsWith('http') || fileUrl.startsWith('data:') ? fileUrl : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${fileUrl}`;
+
+      return (
+        <div style={{ marginTop: '16px', background: '#f8fafc', padding: '16px', borderRadius: '14px', border: '1px solid #cbd5e1' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <strong style={{ fontSize: '13px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>preview</span>
+              Pratinjau File Lampiran: {m.file_name || 'Dokumen Lampiran'}
+            </strong>
+            <button 
+              onClick={() => downloadFile(fileUrl, m.file_name || m.title)}
+              style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span> Simpan Ke Perangkat
+            </button>
+          </div>
+
+          {isImage ? (
+            <div style={{ textAlign: 'center' }}>
+              <img src={fullUrl} alt="Pratinjau Dokumen Materi" style={{ maxWidth: '100%', maxHeight: '450px', borderRadius: '10px', border: '1px solid #e2e8f0', objectFit: 'contain' }} />
+            </div>
+          ) : isPdf ? (
+            <iframe 
+              src={fullUrl} 
+              title="Pratinjau PDF Dokumen" 
+              style={{ width: '100%', height: '420px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#ffffff' }}
+            />
+          ) : (
+            <iframe 
+              src={fullUrl} 
+              title="Pratinjau Dokumen Materi" 
+              style={{ width: '100%', height: '400px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#ffffff' }}
+            />
+          )}
+        </div>
+      );
+    }
+
+    if (extLink) {
+      let embedSrc = extLink;
+      if (extLink.includes('drive.google.com') || extLink.includes('docs.google.com')) {
+        embedSrc = extLink.replace(/\/view(\?.*)?$/, '/preview');
+      }
+
+      return (
+        <div style={{ marginTop: '16px', background: '#f0fdf4', padding: '16px', borderRadius: '14px', border: '1px solid #bbf7d0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <strong style={{ fontSize: '13px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="material-symbols-outlined" style={{ color: '#16a34a' }}>folder_shared</span>
+              Pratinjau Google Drive / Tautan Cloud
+            </strong>
+            <a 
+              href={extLink} 
+              target="_blank" 
+              rel="noreferrer"
+              style={{ background: '#16a34a', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span> Buka Tab Baru
+            </a>
+          </div>
+          <iframe 
+            src={embedSrc} 
+            title="Pratinjau Google Drive External" 
+            style={{ width: '100%', height: '420px', border: '1px solid #a7f3d0', borderRadius: '10px', background: '#ffffff' }}
+          />
+        </div>
+      );
+    }
+
+    return null;
   };
 
   // Checkbox selection
@@ -477,7 +557,6 @@ const GuruMaterials = () => {
                       </span>
                     </div>
 
-                    {/* ONLY DETAIL BUTTON IS KEPT HERE (NO INDIVIDUAL BAGIKAN BUTTON PER USER DIRECTIVE) */}
                     <div className="actions-right" onClick={(e) => e.stopPropagation()}>
                       <button 
                         onClick={() => setSelectedMaterialModal(m)}
@@ -546,10 +625,10 @@ const GuruMaterials = () => {
         </div>
       )}
 
-      {/* MODAL POPUP DETAIL MATERI PEMBELAJARAN */}
+      {/* MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI (PREVIEWER INLINE) */}
       {selectedMaterialModal && (
         <div className="modal-backdrop" onClick={() => setSelectedMaterialModal(null)}>
-          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '750px', borderRadius: '20px' }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px', borderRadius: '20px' }}>
             <div className="modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase' }}>
@@ -577,38 +656,15 @@ const GuruMaterials = () => {
               )}
 
               <div style={{ marginBottom: '20px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>Isi / Konten Materi Pembelajaran:</strong>
+                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>Isi / Konten Teks Materi Pembelajaran:</strong>
                 <div 
-                  style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6', maxHeight: '350px', overflowY: 'auto' }}
+                  style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6', maxHeight: '250px', overflowY: 'auto' }}
                   dangerouslySetInnerHTML={{ __html: selectedMaterialModal.content || '<p>Tidak ada teks konten tambahan.</p>' }}
                 />
               </div>
 
-              {(selectedMaterialModal.file_url || selectedMaterialModal.external_link) && (
-                <div style={{ background: '#eff6ff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
-                  <strong style={{ fontSize: '12px', color: '#1e40af', display: 'block', marginBottom: '8px' }}>Lampiran & Tautan Materi:</strong>
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {selectedMaterialModal.file_url && (
-                      <button 
-                        onClick={() => downloadFile(selectedMaterialModal.file_url, selectedMaterialModal.file_name || selectedMaterialModal.title)}
-                        style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span> Unduh Lampiran File
-                      </button>
-                    )}
-                    {selectedMaterialModal.external_link && (
-                      <a 
-                        href={selectedMaterialModal.external_link} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        style={{ background: '#10b981', color: '#fff', padding: '8px 14px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>link</span> Buka Tautan Link / Google Drive
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
+              {/* INLINE PREVIEWER UNTUK FILE DOKUMEN / PDF / GOOGLE DRIVE / GAMBAR */}
+              {renderFilePreview(selectedMaterialModal)}
             </div>
 
             <div className="modal-footer" style={{ marginTop: '24px', textAlign: 'right' }}>

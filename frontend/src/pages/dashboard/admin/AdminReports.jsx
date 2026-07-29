@@ -337,7 +337,7 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>🎓 1. Rekap Data Akademik Master (Agregat Sekolah)</h3>
+            <h3>1. Rekap Data Akademik Master (Agregat Sekolah)</h3>
             <p>Rekapitulasi Leger Nilai master seluruh kelas (7A-7J, 8A-8J, 9A-9I), statistik rata-rata per mata pelajaran, dan ketuntasan KKM.</p>
           </div>
           <div className="pillar-card-footer">
@@ -367,7 +367,7 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>📋 2. Rekap Kehadiran (Presensi) & Siswa Red Flag</h3>
+            <h3>2. Rekap Kehadiran (Presensi) & Siswa Red Flag</h3>
             <p>Persentase presensi harian/bulanan per kelas dan deteksi otomatis daftar siswa bermasalah (Alpa ≥ 3 hari) untuk BK & Wali Kelas.</p>
           </div>
           <div className="pillar-card-footer">
@@ -397,7 +397,7 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>👥 3. Rekap Pengguna & Manajemen Akun (Rombel)</h3>
+            <h3>3. Rekap Pengguna & Manajemen Akun (Rombel)</h3>
             <p>Pengelompokan jumlah siswa aktif per kelas (rombel), data induk guru pengampu, serta analisis keaktifan login pengguna LMS.</p>
           </div>
           <div className="pillar-card-footer">
@@ -427,7 +427,7 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>📝 4. Rekap Evaluasi & Pelaksanaan Ujian (CBT / Asesmen)</h3>
+            <h3>4. Rekap Evaluasi & Pelaksanaan Ujian (CBT / Asesmen)</h3>
             <p>Rekapitulasi partisipasi pengerjaan tugas & ujian siswa, persentase koreksi nilai oleh guru, serta ekspor nilai murni CBT.</p>
           </div>
           <div className="pillar-card-footer">
@@ -457,7 +457,7 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>🛡️ 5. Rekap Sistem & Audit Trail (Pengawasan)</h3>
+            <h3>5. Rekap Sistem & Audit Trail (Pengawasan)</h3>
             <p>Catatan audit trail riwayat aksi pengguna, perubahan data sensitif, waktu login, dan log keamanan platform LMS.</p>
           </div>
           <div className="pillar-card-footer">
@@ -481,7 +481,7 @@ const AdminReports = () => {
       <div className="recent-activity-section">
         <div className="activity-section-header">
           <div>
-            <h3>🛡️ Riwayat Aktivitas Audit Trail Terkini</h3>
+            <h3>Riwayat Aktivitas Audit Trail Terkini</h3>
             <p>Daftar 8 aksi terakhir yang dilakukan di dalam sistem</p>
           </div>
           <button className="btn-view-all" onClick={() => handleOpenPreview('audit-trail', 'Seluruh Log Audit Trail')}>

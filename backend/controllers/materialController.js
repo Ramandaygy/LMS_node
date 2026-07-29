@@ -34,13 +34,24 @@ exports.createMaterial = async (req, res) => {
       }
     }
 
+    let classIdVal = null;
+    if (req.body.class_id) {
+      try { classIdVal = new mongoose.Types.ObjectId(req.body.class_id.toString()); } catch (e) { classIdVal = req.body.class_id; }
+    }
+    let subjectIdVal = null;
+    if (req.body.subject_id) {
+      try { subjectIdVal = new mongoose.Types.ObjectId(req.body.subject_id.toString()); } catch (e) { subjectIdVal = req.body.subject_id; }
+    }
+    let teacherIdVal = teacherId;
+    try { teacherIdVal = new mongoose.Types.ObjectId(teacherId.toString()); } catch (e) { teacherIdVal = teacherId; }
+
     const materialData = {
       title: req.body.title,
       description: req.body.description || '',
       content: req.body.content || '',
-      class_id: req.body.class_id,
-      subject_id: req.body.subject_id,
-      uploaded_by: teacherId,
+      class_id: classIdVal,
+      subject_id: subjectIdVal,
+      uploaded_by: teacherIdVal,
       file_url: fileUrl,
       file_name: fileName,
       file_size: fileSize,

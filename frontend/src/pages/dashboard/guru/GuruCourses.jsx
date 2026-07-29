@@ -50,21 +50,21 @@ const GuruCourses = () => {
   return (
     <div className="guru-dashboard-content">
       <div className="page-header">
-        <h2 className="page-title">📚 Kursus Saya</h2>
-        <button className="btn-add" onClick={() => setShowModal(true)}>+ Buat Kursus Baru</button>
+        <h2 className="page-title">Kursus Saya</h2>
+        <p className="page-subtitle">Kelola bahan ajar dan mata pelajaran yang Anda ampu</p>
       </div>
 
-      <div className="course-grid">
+      <div className="courses-grid">
         {courses.map(course => (
           <div key={course._id} className="course-card">
             <div className="course-header">
-              <div className="course-icon">📖</div>
-              <h3>{course.title}</h3>
+              <div className="course-icon"><span className="material-symbols-outlined">menu_book</span></div>
+              <span className={`status-badge ${course.status || 'active'}`}>{course.status || 'Aktif'}</span>
             </div>
-            <p className="course-description">{course.description?.substring(0, 100)}...</p>
-            <div className="course-stats">
-              <span>👥 {course.total_students || 0} siswa</span>
-              <span>📊 {course.level}</span>
+            <h3>{course.name}</h3>
+            <div className="course-meta">
+              <span><span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>groups</span> {course.total_students || 0} siswa</span>
+              <span><span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>bar_chart</span> {course.level}</span>
             </div>
             <div className="course-actions">
               <button className="btn-view">Lihat Detail</button>
