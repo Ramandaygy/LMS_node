@@ -52,6 +52,25 @@ const GuruCourses = () => {
   const [editingPlanModal, setEditingPlanModal] = useState(null);
   const [planForm, setPlanForm] = useState({ rencana: '', realisasi: '' });
 
+  // Forum Diskusi per Session (Key: `${scheduleId}_session_${sessionNum}`)
+  const [sessionForums, setSessionForums] = useState({});
+  const [newCommentText, setNewCommentText] = useState('');
+
+  const handlePostSessionComment = (schId, sessionNum) => {
+    if (!newCommentText.trim()) return;
+    const forumKey = `${schId}_session_${sessionNum}`;
+    const newComment = {
+      author: teacherProfile?.full_name || 'Susi Herlina, S.Kom. (Guru)',
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
+      text: newCommentText.trim()
+    };
+    setSessionForums(prev => ({
+      ...prev,
+      [forumKey]: [newComment, ...(prev[forumKey] || [])]
+    }));
+    setNewCommentText('');
+  };
+
   useEffect(() => {
     loadPageData();
   }, []);
@@ -576,6 +595,59 @@ const GuruCourses = () => {
                 )}
               </div>
 
+              {/* BOX FORUM DISKUSI SESI REAL DATA */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>forum</span>
+                    Forum Diskusi & Tanya Jawab Sesi ke-{currentSessionNum}
+                  </strong>
+                </div>
+
+                <div style={{ marginBottom: '16px', display: 'flex', gap: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder={`Tulis pertanyaan atau pesan diskusi untuk Sesi ke-${currentSessionNum}...`}
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handlePostSessionComment(sch.id, currentSessionNum); }}
+                    style={{ flex: 1, padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                  <button
+                    onClick={() => handlePostSessionComment(sch.id, currentSessionNum)}
+                    style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>send</span> Kirim
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {(sessionForums[`${sch.id}_session_${currentSessionNum}`] || []).length > 0 ? (
+                    (sessionForums[`${sch.id}_session_${currentSessionNum}`] || []).map((comm, idx) => (
+                      <div key={idx} style={{ padding: '12px 14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>account_circle</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>{comm.author}</strong>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>{comm.time}</span>
+                          </div>
+                          <p style={{ fontSize: '13px', color: '#334155', margin: '4px 0 0 0' }}>{comm.text}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#cbd5e1' }}>chat_bubble_outline</span>
+                      <p style={{ fontSize: '12px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                        Belum ada tanggapan di Forum Diskusi Sesi ke-{currentSessionNum}. Jadilah yang pertama memulai diskusi!
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
           </div>
         )}
@@ -896,6 +968,7 @@ const GuruCourses = () => {
             {displaySchedules.map((sch, index) => {
               const schId = sch.id || index;
               const meetingNum = sch.pertemuan_ke || (7 + index);
+              const targetSessionIdx = Math.max(0, Math.min(15, meetingNum - 1));
               const presensiNum = sch.presensi_count || (10 + index);
               const totalMeeting = sch.total_pertemuan || 16;
               const planKey = `${sch.id}_session_${meetingNum}`;
@@ -906,7 +979,7 @@ const GuruCourses = () => {
                   
                   <div 
                     className="card-top-header"
-                    onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: 0, activeTab: 'sesi' })}
+                    onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' })}
                     style={{ cursor: 'pointer' }}
                     title="Klik untuk membuka Halaman Detail Modul Kelas SIAKAD EdLink"
                   >
@@ -929,7 +1002,7 @@ const GuruCourses = () => {
 
                   <div 
                     className="card-info-grid"
-                    onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: 0, activeTab: 'sesi' })}
+                    onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' })}
                     style={{ cursor: 'pointer' }}
                   >
                     <div className="info-cell">
@@ -974,7 +1047,7 @@ const GuruCourses = () => {
                       className="btn-action-primary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`);
+                        navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${meetingNum}&mode=input`);
                       }}
                       style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
@@ -1021,7 +1094,7 @@ const GuruCourses = () => {
 
                       {openDropdownId === schId && (
                         <div className="dropdown-options-menu" style={{ position: 'absolute', right: 0, top: '100%', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '12px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, minWidth: '180px', padding: '6px' }}>
-                          <button onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: 0, activeTab: 'sesi' })} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'transparent', fontSize: '12px', fontWeight: '700', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' })} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'transparent', fontSize: '12px', fontWeight: '700', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <span className="material-symbols-outlined">school</span> Detail Modul SIAKAD
                           </button>
                           <button onClick={() => navigate('/dashboard/guru/input-nilai')} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'transparent', fontSize: '12px', fontWeight: '700', color: '#1e293b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>

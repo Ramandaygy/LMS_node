@@ -205,7 +205,7 @@ const GuruAttendance = () => {
   const displayedStudents = getSearchFilteredStudents();
   const presentCount = Object.values(attendanceData).filter(a => a.status === 'present').length;
   const sickCount = Object.values(attendanceData).filter(a => a.status === 'sick').length;
-  const permCount = Object.values(attendanceData).filter(a => a.status === 'permission').length;
+  const permCount = Object.values(attendanceData).filter(a => a.status === 'permit').length;
   const absentCount = Object.values(attendanceData).filter(a => a.status === 'absent').length;
 
   const totalStudents = students.length || 32;
@@ -334,8 +334,6 @@ const GuruAttendance = () => {
               Kembali ke Dashboard Guru
             </button>
           )}
-          <button className="btn-siakad-pill active">Guru Mapel</button>
-          <button className="btn-siakad-pill">Siswa</button>
         </div>
       </div>
 
