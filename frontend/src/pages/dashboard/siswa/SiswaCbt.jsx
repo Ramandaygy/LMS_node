@@ -145,7 +145,7 @@ const SiswaCbt = () => {
       }
     } catch (err) {
       console.error('Error submitting exam:', err);
-      alert('Gagal mengumpulkan ujian. Silakan coba lagi.');
+      alert(err.response?.data?.message || 'Gagal mengumpulkan ujian. Silakan coba lagi.');
     } finally {
       setIsSubmitting(false);
     }

@@ -250,33 +250,56 @@ exports.deleteExam = async (req, res) => {
 exports.submitExam = async (req, res) => {
   try {
     const { examId, userAnswers, timeSpentSeconds } = req.body;
-    // userAnswers: [{ question_index: 0, selected_option: 1, is_flagged: false }, ...]
 
-    const exam = await CbtExam.findById(examId);
+    if (!examId) {
+      return res.status(400).json({ success: false, message: 'ID Ujian CBT tidak valid.' });
+    }
+
+    const studentId = req.user._id || req.user.id || req.user;
+    let studentObjId;
+    try {
+      studentObjId = new mongoose.Types.ObjectId(studentId.toString());
+    } catch (e) {
+      studentObjId = studentId;
+    }
+
+    let examObjId;
+    try {
+      examObjId = new mongoose.Types.ObjectId(examId.toString());
+    } catch (e) {
+      examObjId = examId;
+    }
+
+    const exam = await CbtExam.findById(examObjId);
     if (!exam) {
       return res.status(404).json({ success: false, message: 'Ujian CBT tidak ditemukan.' });
     }
 
     // Check if already submitted
-    const existing = await CbtResult.findOne({ student: req.user._id, exam: exam._id });
+    const existing = await CbtResult.findOne({
+      $or: [
+        { student: studentObjId, exam: exam._id },
+        { student: studentId.toString(), exam: exam._id }
+      ]
+    });
     if (existing) {
       return res.status(400).json({ success: false, message: 'Anda sudah mengumpulkan ujian CBT ini sebelumnya.', result: existing });
     }
 
-    const totalQuestions = exam.questions.length;
+    const totalQuestions = exam.questions ? exam.questions.length : 0;
     let correctCount = 0;
     let wrongCount = 0;
     let unansweredCount = 0;
 
-    const evaluatedAnswers = exam.questions.map((q, idx) => {
-      const studentAns = (userAnswers || []).find(a => a.question_index === idx);
-      const selected = studentAns ? studentAns.selected_option : -1;
+    const evaluatedAnswers = (exam.questions || []).map((q, idx) => {
+      const studentAns = (userAnswers || []).find(a => Number(a.question_index) === idx);
+      const selected = studentAns && studentAns.selected_option !== undefined && studentAns.selected_option !== null ? Number(studentAns.selected_option) : -1;
       const isFlagged = studentAns ? !!studentAns.is_flagged : false;
 
       let isCorrect = false;
-      if (selected === -1 || selected === undefined || selected === null) {
+      if (selected === -1 || isNaN(selected)) {
         unansweredCount++;
-      } else if (Number(selected) === Number(q.correct_option)) {
+      } else if (selected === Number(q.correct_option)) {
         isCorrect = true;
         correctCount++;
       } else {
@@ -295,7 +318,7 @@ exports.submitExam = async (req, res) => {
     const isPassed = finalScore >= (exam.pass_score || 75);
 
     const cbtResult = new CbtResult({
-      student: req.user._id,
+      student: studentObjId,
       exam: exam._id,
       answers: evaluatedAnswers,
       score: finalScore,
@@ -303,7 +326,7 @@ exports.submitExam = async (req, res) => {
       wrong_count: wrongCount,
       unanswered_count: unansweredCount,
       is_passed: isPassed,
-      time_spent_seconds: timeSpentSeconds || 0,
+      time_spent_seconds: Number(timeSpentSeconds) || 0,
       submitted_at: new Date()
     });
 
@@ -311,17 +334,19 @@ exports.submitExam = async (req, res) => {
 
     // Auto sync to Grade model for subject gradebook
     try {
-      await Grade.findOneAndUpdate(
-        { student: req.user._id, subject: exam.subject, type: 'quiz' },
-        {
-          student: req.user._id,
-          subject: exam.subject,
-          score: finalScore,
-          type: 'quiz',
-          note: `CBT: ${exam.title}`
-        },
-        { upsert: true, new: true }
-      );
+      if (exam.subject) {
+        await Grade.findOneAndUpdate(
+          { student: studentObjId, subject: exam.subject, type: 'quiz' },
+          {
+            student: studentObjId,
+            subject: exam.subject,
+            score: finalScore,
+            type: 'quiz',
+            note: `CBT: ${exam.title}`
+          },
+          { upsert: true, new: true }
+        );
+      }
     } catch (gErr) {
       console.error('Failed to sync Grade model:', gErr);
     }
@@ -333,7 +358,7 @@ exports.submitExam = async (req, res) => {
     });
   } catch (err) {
     console.error('Error submitting CBT exam:', err);
-    return res.status(500).json({ success: false, message: 'Gagal mengumpulkan Ujian CBT.' });
+    return res.status(500).json({ success: false, message: err.message || 'Gagal mengumpulkan Ujian CBT.' });
   }
 };
 
