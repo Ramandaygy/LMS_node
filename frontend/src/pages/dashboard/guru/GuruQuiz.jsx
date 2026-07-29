@@ -326,15 +326,29 @@ const GuruQuiz = () => {
           />
 
           {expandedQuestionIndex !== null && (
-            <div className="input-score-banner">
-              <strong>Penilaian Bintang Kuis untuk Soal #{expandedQuestionIndex + 1}:</strong> "{typeof questions[expandedQuestionIndex] === 'object' ? questions[expandedQuestionIndex].text : questions[expandedQuestionIndex]}"
+            <div className="input-score-banner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '12px 16px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', marginBottom: '14px' }}>
+              <div style={{ flex: 1 }}>
+                <strong style={{ color: '#1e40af', fontSize: '13px' }}>
+                  Penilaian Bintang Kuis untuk Soal #{expandedQuestionIndex + 1}:
+                </strong> 
+                <span style={{ fontSize: '13px', color: '#1e3a8a', marginLeft: '4px' }}>
+                  "{typeof questions[expandedQuestionIndex] === 'object' ? questions[expandedQuestionIndex].text : questions[expandedQuestionIndex]}"
+                </span>
+              </div>
+              <button 
+                onClick={() => handleSaveAllScores(expandedQuestionIndex)}
+                style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', boxShadow: '0 2px 8px rgba(22, 163, 74, 0.3)' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>star</span>
+                Simpan Bintang Kuis
+              </button>
             </div>
           )}
 
           {loading ? (
             <div className="loading-state">Memuat siswa...</div>
           ) : (
-            <div className="student-scoring-table-wrapper">
+            <div className="student-scoring-table-wrapper" style={{ position: 'relative' }}>
               <table className="scoring-table">
                 <thead>
                   <tr>
@@ -392,13 +406,47 @@ const GuruQuiz = () => {
               </table>
 
               {expandedQuestionIndex !== null && (
-                <div className="save-score-footer">
+                <div 
+                  className="save-score-footer"
+                  style={{ 
+                    position: 'sticky', 
+                    bottom: 0, 
+                    background: '#ffffff', 
+                    padding: '14px 20px', 
+                    borderTop: '2px solid #cbd5e1', 
+                    zIndex: 20, 
+                    display: 'flex', 
+                    justify: 'space-between', 
+                    alignItems: 'center',
+                    boxShadow: '0 -4px 12px rgba(0,0,0,0.08)',
+                    borderRadius: '0 0 12px 12px'
+                  }}
+                >
+                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>
+                    {Object.keys(studentScores).length > 0 
+                      ? `${Object.keys(studentScores).length} Siswa Berhasil Diberi Bintang` 
+                      : 'Klik bintang di atas untuk menilai siswa'}
+                  </span>
                   <button
                     className="btn-save-all-scores"
                     onClick={() => handleSaveAllScores(expandedQuestionIndex)}
+                    style={{
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px 24px',
+                      borderRadius: '12px',
+                      fontWeight: '800',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 14px rgba(22, 163, 74, 0.35)'
+                    }}
                   >
-                    <span className="material-symbols-outlined">star</span>
-                    Simpan Seluruh Bintang Kuis
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>star</span>
+                    Simpan Seluruh Bintang Kuis ke Progress Siswa
                   </button>
                 </div>
               )}
