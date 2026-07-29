@@ -34,6 +34,16 @@ const GuruCourses = () => {
   const [selectedTaskId, setSelectedTaskId] = useState('');
   const [loadingTasks, setLoadingTasks] = useState(false);
 
+  // Real Data State for Sesi Detail (Materials & Assignments per Session)
+  const [sessionMaterials, setSessionMaterials] = useState([]);
+  const [sessionAssignments, setSessionAssignments] = useState([]);
+  const [loadingSessionData, setLoadingSessionData] = useState(false);
+
+  // Custom Editable Rencana & Realisasi Materi per Session (Key: `${scheduleId}_session_${sessionNum}`)
+  const [sessionPlans, setSessionPlans] = useState({});
+  const [editingPlanModal, setEditingPlanModal] = useState(null);
+  const [planForm, setPlanForm] = useState({ rencana: '', realisasi: '' });
+
   useEffect(() => {
     loadPageData();
   }, []);
@@ -57,6 +67,52 @@ const GuruCourses = () => {
       console.error('Error loading Modul Guru data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch real materials & assignments when session index or active schedule changes
+  useEffect(() => {
+    if (activeCourseDetail) {
+      const sch = activeCourseDetail.schedule;
+      const sessionNum = (activeCourseDetail.activeSessionIdx || 0) + 1;
+      fetchRealSessionData(sch, sessionNum);
+    }
+  }, [activeCourseDetail?.schedule?.id, activeCourseDetail?.activeSessionIdx]);
+
+  const fetchRealSessionData = async (sch, sessionNum) => {
+    setLoadingSessionData(true);
+    try {
+      const classId = sch.class_id?._id || sch.class_id || sch.id;
+      const [matRes, taskRes] = await Promise.allSettled([
+        api.get('/materials'),
+        api.get('/assignments/guru/me')
+      ]);
+
+      if (matRes.status === 'fulfilled') {
+        const allMats = matRes.value.data.data || matRes.value.data.materials || [];
+        const filteredMats = allMats.filter(m => {
+          const mClassId = m.class_id?._id || m.class_id;
+          return mClassId === classId && (parseInt(m.session_number) === sessionNum || !m.session_number);
+        });
+        setSessionMaterials(filteredMats);
+      } else {
+        setSessionMaterials([]);
+      }
+
+      if (taskRes.status === 'fulfilled') {
+        const allTasks = taskRes.value.data.data || [];
+        const filteredTasks = allTasks.filter(t => {
+          const tClassId = t.class_id?._id || t.class_id;
+          return tClassId === classId && (parseInt(t.session_number || 1) === sessionNum);
+        });
+        setSessionAssignments(filteredTasks);
+      } else {
+        setSessionAssignments([]);
+      }
+    } catch (err) {
+      console.error('Error fetching real session data:', err);
+    } finally {
+      setLoadingSessionData(false);
     }
   };
 
@@ -90,7 +146,9 @@ const GuruCourses = () => {
 
       alert(`Berhasil mengunggah materi dari Bank Materi langsung ke Sesi ke-${sessionNum} Kelas!`);
       setBankMaterialModal(null);
-      loadPageData();
+      if (activeCourseDetail) {
+        fetchRealSessionData(activeCourseDetail.schedule, sessionNum);
+      }
     } catch (err) {
       console.error('Error publishing material:', err);
       alert(err.response?.data?.message || 'Gagal mengunggah materi ke sesi kelas.');
@@ -112,6 +170,21 @@ const GuruCourses = () => {
     } finally {
       setLoadingTasks(false);
     }
+  };
+
+  const handleSavePlanForm = (e) => {
+    e.preventDefault();
+    if (!editingPlanModal) return;
+    const key = `${editingPlanModal.schId}_session_${editingPlanModal.sessionNum}`;
+    setSessionPlans(prev => ({
+      ...prev,
+      [key]: {
+        rencana: planForm.rencana,
+        realisasi: planForm.realisasi
+      }
+    }));
+    alert(`Berhasil menyimpan Rencana & Realisasi Materi Sesi ke-${editingPlanModal.sessionNum}!`);
+    setEditingPlanModal(null);
   };
 
   const toggleDropdown = (id) => {
@@ -160,30 +233,14 @@ const GuruCourses = () => {
       }))
     : baseSchedules;
 
-  const topics = [
-    "Pengenalan Konsep Dasar KBM & Silabus Kurikulum",
-    "Pemahaman Tipe Data, Karakteristik Himpunan & Algoritma",
-    "Struktur Pembelajaran: Data Preprocessing & Cleaning",
-    "Analisis Sistem: Data Preprocessing & Transformation",
-    "Metode Klasifikasi: K-Nearest Neighbors (KNN)",
-    "Metode Klasifikasi: Naive Bayes Classifier",
-    "Evaluasi & Overview Persiapan Ujian Tengah Semester (UTS)",
-    "Ujian Tengah Semester (UTS) Teori & Praktikum",
-    "Review Hasil UTS & Pendalaman Materi Lanjutan Bab 4",
-    "Penerapan Konsep AI & Machine Learning Dasar",
-    "Analisis Data Visual & Manajemen Database LMS",
-    "Algoritma Pengelompokan (Clustering) & K-Means",
-    "Etika Digital, Keamanan Data & Hak Cipta Perangkat Lunak",
-    "Penyusunan Proyek Mandiri & Penugasan Kelompok",
-    "Presentasi & Demonstrasi Proyek Akhir Pembelajaran",
-    "Ujian Akhir Semester (UAS) & Evaluasi Rekapitulasi Rapor"
-  ];
-
   // RENDER EDLINK SIAKAD COURSE DETAIL VIEW (SCREENSHOT 41)
   if (activeCourseDetail) {
     const sch = activeCourseDetail.schedule;
     const currentSesiIdx = activeCourseDetail.activeSessionIdx || 0;
+    const currentSessionNum = currentSesiIdx + 1;
     const activeTab = activeCourseDetail.activeTab || 'sesi';
+    const planKey = `${sch.id}_session_${currentSessionNum}`;
+    const planData = sessionPlans[planKey] || { rencana: '', realisasi: '' };
 
     return (
       <div className="modul-guru-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -198,15 +255,15 @@ const GuruCourses = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
             <div>
               <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '0 0 4px 0' }}>
-                {sch.subject || sch.title || 'INFORMATIKA'} ({sch.class_name || '8F'})
+                {sch.subject || sch.title || 'INFORMATIKA'} ({sch.class_name || 'Kelas'})
               </h1>
               <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                Kelas: {sch.class_name || '8F'} | Sistem KBM Reguler
+                Kelas: {sch.class_name || 'Kelas'} | Sistem KBM Reguler
               </p>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
-                onClick={() => handleOpenBankMaterialModal(sch, currentSesiIdx + 1)}
+                onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
                 style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <span className="material-symbols-outlined">library_add</span> + Berkas Media Library / Bank Materi
@@ -239,29 +296,45 @@ const GuruCourses = () => {
             </div>
           </div>
 
+          {/* TAB BAR WITH DIRECT NAVIGATION ACCORDING TO FUNCTION */}
           <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', overflowX: 'auto' }}>
-            {['Sesi', 'Asesmen / Tugas', 'Timeline', 'Peserta Siswa', 'Laporan Nilai', 'Info Kelas'].map(tab => (
+            {[
+              { id: 'sesi', label: 'Sesi' },
+              { id: 'asesmen', label: 'Asesmen / Tugas', action: () => navigate('/dashboard/guru/assignments') },
+              { id: 'timeline', label: 'Timeline' },
+              { id: 'peserta', label: 'Peserta Siswa', action: () => navigate('/dashboard/guru/students') },
+              { id: 'nilai', label: 'Laporan Nilai', action: () => navigate('/dashboard/guru/input-nilai') },
+              { id: 'info', label: 'Info Kelas' }
+            ].map(tab => (
               <button
-                key={tab}
-                onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeTab: tab.toLowerCase() })}
+                key={tab.id}
+                onClick={() => {
+                  if (tab.action) {
+                    tab.action();
+                  } else {
+                    setActiveCourseDetail({ ...activeCourseDetail, activeTab: tab.id });
+                  }
+                }}
                 style={{
                   padding: '8px 16px',
                   border: 'none',
-                  borderBottom: activeTab === tab.toLowerCase() ? '3px solid #0284c7' : '3px solid transparent',
+                  borderBottom: activeTab === tab.id ? '3px solid #0284c7' : '3px solid transparent',
                   background: 'transparent',
-                  color: activeTab === tab.toLowerCase() ? '#0284c7' : '#64748b',
-                  fontWeight: activeTab === tab.toLowerCase() ? '800' : '600',
+                  color: activeTab === tab.id ? '#0284c7' : '#64748b',
+                  fontWeight: activeTab === tab.id ? '800' : '600',
                   fontSize: '13px',
                   cursor: 'pointer'
                 }}
               >
-                {tab}
+                {tab.label}
               </button>
             ))}
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+          
+          {/* LEFT COLUMN: 16 SESSIONS LIST */}
           <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px', maxHeight: '720px', overflowY: 'auto' }}>
             <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#334155', margin: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
               Terdapat 16 Sesi KBM
@@ -270,8 +343,9 @@ const GuruCourses = () => {
               {Array.from({ length: 16 }, (_, i) => {
                 const sessNum = i + 1;
                 const isActive = currentSesiIdx === i;
-                const topicTitle = topics[i] || `Pembahasan Materi Sesi ke-${sessNum}`;
-                const isPast = sessNum <= 11;
+                const pKey = `${sch.id}_session_${sessNum}`;
+                const sessPlan = sessionPlans[pKey];
+                const displayTitle = sessPlan?.rencana || `Sesi Pertemuan ke-${sessNum}`;
 
                 return (
                   <div
@@ -281,16 +355,15 @@ const GuruCourses = () => {
                       padding: '12px 14px',
                       borderRadius: '12px',
                       border: isActive ? '2px solid #0284c7' : '1px solid #e2e8f0',
-                      background: isActive ? '#f0f9ff' : (isPast ? '#f8fafc' : '#ffffff'),
+                      background: isActive ? '#f0f9ff' : '#ffffff',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                       <strong style={{ fontSize: '12px', color: isActive ? '#0284c7' : '#1e293b' }}>
-                        #{sessNum}. {topicTitle}
+                        #{sessNum}. {displayTitle}
                       </strong>
-                      {isPast && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#16a34a' }}>check_circle</span>}
                     </div>
                     <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
                       Sesi KBM Pertemuan ke-{sessNum}
@@ -301,77 +374,182 @@ const GuruCourses = () => {
             </div>
           </div>
 
+          {/* RIGHT COLUMN: SESSION CONTENT */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {/* BOX RENCANA & REALISASI MATERI */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
-                  Sesi #{currentSesiIdx + 1} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>Sesi Anda</span>
+                  Sesi #{currentSessionNum} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>Sesi Anda</span>
                 </h3>
-                <button 
-                  onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`)}
-                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>fact_check</span> Isi Presensi
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setEditingPlanModal({ schId: sch.id, sessionNum: currentSessionNum });
+                      setPlanForm({ rencana: planData.rencana || '', realisasi: planData.realisasi || '' });
+                    }}
+                    style={{ background: '#ffffff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Edit Rencana & Realisasi
+                  </button>
+                  <button 
+                    onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`)}
+                    style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>fact_check</span> Isi Presensi
+                  </button>
+                </div>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Rencana Materi:</label>
-                <p style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', margin: 0 }}>{topics[currentSesiIdx]}</p>
+                <p style={{ fontSize: '14px', fontWeight: planData.rencana ? '700' : '400', color: planData.rencana ? '#0f172a' : '#94a3b8', margin: 0 }}>
+                  {planData.rencana || '-'}
+                </p>
               </div>
 
               <div>
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Realisasi Materi:</label>
-                <p style={{ fontSize: '13px', color: '#334155', margin: 0 }}>Penjelasan modul dan evaluasi KBM pertemuan ke-{currentSesiIdx + 1}.</p>
-              </div>
-            </div>
-
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
-                  Materi Sesi ke-{currentSesiIdx + 1}
-                </strong>
-                <button
-                  onClick={() => handleOpenBankMaterialModal(sch, currentSesiIdx + 1)}
-                  style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> Berkas Media Library / Bank Materi
-                </button>
-              </div>
-
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#94a3b8' }}>cloud_upload</span>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-                  Gunakan tombol <strong>+ Berkas Media Library / Bank Materi</strong> di atas untuk mengunggah atau memilih materi dari Bank Materi secara langsung.
+                <p style={{ fontSize: '13px', color: planData.realisasi ? '#334155' : '#94a3b8', margin: 0 }}>
+                  {planData.realisasi || '-'}
                 </p>
               </div>
             </div>
 
+            {/* BOX MATERI SESI REAL DATA */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
+                  Materi Sesi ke-{currentSessionNum}
+                </strong>
+                <button
+                  onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
+                  style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Berkas Media Library / Bank Materi
+                </button>
+              </div>
+
+              {loadingSessionData ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat materi sesi...</div>
+              ) : sessionMaterials.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {sessionMaterials.map((mat) => (
+                    <div key={mat._id} style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>{mat.title}</strong>
+                        <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>{mat.description || 'Materi pembelajaran'}</p>
+                      </div>
+                      <button 
+                        onClick={() => navigate('/dashboard/guru/materials')}
+                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', color: '#0284c7', cursor: 'pointer' }}
+                      >
+                        Buka di Bank Materi
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1' }}>folder_off</span>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', margin: '6px 0 0 0' }}>
+                    Belum ada materi yang diunggah untuk Sesi ke-{currentSessionNum}.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* BOX TUGAS SESI REAL DATA */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>assignment</span>
-                  Aktivitas & Tugas Sesi ke-{currentSesiIdx + 1}
+                  Aktivitas & Tugas Sesi ke-{currentSessionNum}
                 </strong>
                 <button
-                  onClick={() => handleOpenTaskModal(sch, currentSesiIdx + 1)}
+                  onClick={() => handleOpenTaskModal(sch, currentSessionNum)}
                   style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Aktivitas / Tugas Sesi
                 </button>
               </div>
 
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
-                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#94a3b8' }}>task</span>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
-                  Belum ada aktivitas atau tugas khusus yang disematkan pada sesi ini.
-                </p>
-              </div>
+              {loadingSessionData ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat tugas sesi...</div>
+              ) : sessionAssignments.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {sessionAssignments.map((task) => (
+                    <div key={task._id} style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>{task.title}</strong>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(task.due_date).toLocaleDateString('id-ID')}</span>
+                      </div>
+                      <button 
+                        onClick={() => navigate('/dashboard/guru/assignments')}
+                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', color: '#0284c7', cursor: 'pointer' }}
+                      >
+                        Lihat Pengumpulan
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1' }}>assignment_late</span>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', margin: '6px 0 0 0' }}>
+                    Belum ada aktivitas atau tugas yang disematkan pada Sesi ke-{currentSessionNum}.
+                  </p>
+                </div>
+              )}
             </div>
 
           </div>
         </div>
+
+        {/* MODAL EDIT RENCANA & REALISASI */}
+        {editingPlanModal && (
+          <div className="modal-backdrop" onClick={() => setEditingPlanModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '540px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
+                  Edit Rencana & Realisasi Materi (Sesi ke-{editingPlanModal.sessionNum})
+                </h3>
+                <button onClick={() => setEditingPlanModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+              <form onSubmit={handleSavePlanForm}>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Rencana Materi Sesi:</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Pengenalan Konsep Dasar KBM & Silabus Kurikulum"
+                    value={planForm.rencana}
+                    onChange={(e) => setPlanForm({ ...planForm, rencana: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Realisasi Materi Sesi:</label>
+                  <textarea
+                    placeholder="Contoh: Penjelasan modul dan evaluasi KBM pertemuan ke-1"
+                    rows="3"
+                    value={planForm.realisasi}
+                    onChange={(e) => setPlanForm({ ...planForm, realisasi: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button type="button" onClick={() => setEditingPlanModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+                  <button type="submit" style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}>Simpan Perubahan</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
@@ -438,6 +616,8 @@ const GuruCourses = () => {
               const meetingNum = sch.pertemuan_ke || (7 + index);
               const presensiNum = sch.presensi_count || (10 + index);
               const totalMeeting = sch.total_pertemuan || 16;
+              const planKey = `${sch.id}_session_${meetingNum}`;
+              const planData = sessionPlans[planKey];
 
               return (
                 <div key={schId} className="teaching-card">
@@ -490,8 +670,8 @@ const GuruCourses = () => {
                       <span className="material-symbols-outlined info-icon">auto_stories</span>
                       <div>
                         <span className="cell-label">Pertemuan ke - {meetingNum}</span>
-                        <p className="cell-value" style={{ fontWeight: '700', color: '#0f172a' }}>
-                          {topics[meetingNum - 1] || `Overview & Materi Bab ${meetingNum}`}
+                        <p className="cell-value" style={{ fontWeight: planData?.rencana ? '700' : '400', color: planData?.rencana ? '#0f172a' : '#94a3b8' }}>
+                          {planData?.rencana || '-'}
                         </p>
                       </div>
                     </div>

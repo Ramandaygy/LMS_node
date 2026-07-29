@@ -215,7 +215,7 @@ const GuruMaterials = () => {
     if (slides.length <= 1) {
       return (
         <div 
-          style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6' }}
+          style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6', maxWidth: '100%', overflowX: 'auto', overflowWrap: 'break-word', wordBreak: 'break-word' }}
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -224,7 +224,7 @@ const GuruMaterials = () => {
     const currentSlideHtml = slides[activeSlideIdx] || slides[0];
 
     return (
-      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', maxWidth: '100%', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
           <span style={{ fontSize: '12px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>slideshow</span>
@@ -254,7 +254,7 @@ const GuruMaterials = () => {
         </div>
 
         <div 
-          style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '220px', fontSize: '14px', lineHeight: '1.6' }}
+          style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '220px', fontSize: '14px', lineHeight: '1.6', maxWidth: '100%', overflowX: 'auto', overflowWrap: 'break-word', wordBreak: 'break-word' }}
           dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
         />
 

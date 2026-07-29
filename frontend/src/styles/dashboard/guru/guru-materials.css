@@ -366,3 +366,34 @@
     font-size: 24px;
   }
 }
+
+/* Prevent Text & Code Block Overflow (Fix Offside Text) */
+.material-slide,
+.material-slide *,
+.material-card *,
+.modal-content-box *,
+pre,
+code {
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+}
+
+pre, code {
+  white-space: pre-wrap !important;
+  overflow-x: auto !important;
+}
+
+pre {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  padding: 16px !important;
+  border-radius: 12px !important;
+  font-family: 'Fira Code', 'Consolas', 'Courier New', monospace !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  border: 1px solid #334155 !important;
+  margin: 12px 0 !important;
+}
