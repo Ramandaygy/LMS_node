@@ -18,24 +18,26 @@ exports.getStudentsByClass = async (classId) => {
   }));
 };
 
-// Ambil absensi untuk jadwal, tanggal, dan guru tertentu
-exports.getAttendanceByScheduleAndDate = async (scheduleId, date, teacherId) => {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+// Ambil absensi untuk jadwal, sesi/tanggal, dan guru tertentu
+exports.getAttendanceByScheduleAndSession = async (scheduleId, sessionNumber, date, teacherId) => {
+  let query = { schedule_id: scheduleId };
+  if (sessionNumber) {
+    query.session_number = parseInt(sessionNumber);
+  } else if (date) {
+    const start = new Date(date);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(date);
+    end.setHours(23, 59, 59, 999);
+    query.date = { $gte: start, $lte: end };
+  }
 
-  const records = await Attendance.find({
-    schedule_id: scheduleId,
-    teacher_id: teacherId,
-    date: { $gte: start, $lte: end },
-  });
+  const records = await Attendance.find(query);
 
   const result = {};
   records.forEach(rec => {
     result[rec.student_id.toString()] = {
       status: rec.status,
-      note: rec.note,
+      note: rec.note || '',
     };
   });
   return result;

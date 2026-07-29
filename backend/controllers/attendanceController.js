@@ -102,12 +102,17 @@ exports.getClassStudents = async (req, res) => {
 
 exports.getAttendance = async (req, res) => {
   try {
-    const { schedule_id, date } = req.query;
+    const { schedule_id, date, session_number } = req.query;
     const teacherId = req.user.id;
-    if (!schedule_id || !date) {
-      return res.status(400).json({ error: 'schedule_id dan date diperlukan' });
+    if (!schedule_id) {
+      return res.status(400).json({ error: 'schedule_id diperlukan' });
     }
-    const attendance = await attendanceService.getAttendanceByScheduleAndDate(schedule_id, date, teacherId);
+    const attendance = await attendanceService.getAttendanceByScheduleAndSession(
+      schedule_id, 
+      session_number ? parseInt(session_number) : null,
+      date, 
+      teacherId
+    );
     return res.json({ attendance });
   } catch (err) {
     console.error(err);

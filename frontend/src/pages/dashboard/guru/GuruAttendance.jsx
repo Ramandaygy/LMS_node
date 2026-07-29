@@ -40,7 +40,7 @@ const GuruAttendance = () => {
     if (selectedSchedule && selectedClass) {
       loadData();
     }
-  }, [selectedSchedule, selectedClass, selectedDate]);
+  }, [selectedSchedule, selectedClass, selectedDate, activeSessionNumber]);
 
   // Ambil daftar jadwal yang diampu guru
   const fetchSchedules = async () => {
@@ -83,7 +83,7 @@ const GuruAttendance = () => {
       
       const [studentsResponse, attendanceResponse] = await Promise.all([
         api.get(`/attendance/students/${selectedClass}`),
-        api.get(`/attendance?schedule_id=${selectedSchedule}&date=${selectedDate}`)
+        api.get(`/attendance?schedule_id=${selectedSchedule}&session_number=${activeSessionNumber}&date=${selectedDate}`)
       ]);
 
       const studentsData = studentsResponse.data.students || [];
@@ -96,7 +96,7 @@ const GuruAttendance = () => {
         const studentId = student._id || student.id;
         const saved = savedData[studentId];
         combinedData[studentId] = {
-          status: saved ? saved.status : 'present',
+          status: saved ? saved.status : null,
           note: saved ? (saved.note || '') : ''
         };
       });
@@ -597,7 +597,7 @@ const GuruAttendance = () => {
                 <span className="material-symbols-outlined">done_all</span>
                 Set Semua Hadir
               </button>
-              <button className="btn-save" onClick={handleSave} disabled={saving}>
+              <button className="btn-save" onClick={handleSave} disabled={saving} style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <span className="material-symbols-outlined">save</span>
                 {saving ? 'Menyimpan...' : 'Simpan Presensi'}
               </button>
