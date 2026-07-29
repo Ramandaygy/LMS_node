@@ -67,7 +67,7 @@ exports.getMaterialsForStudent = async (classId, subjectId = null) => {
   return await enrichMaterials(materials);
 };
 
-// GENERATE KONTEN MATERI DENGAN AI (Gemini Auto-Prompting Backend)
+// GENERATE KONTEN MATERI DENGAN AI (Multi-Slide Interactive Presentation Generator)
 exports.generateMaterialAI = async (data) => {
   const { title, prompt, subject_name, class_name, description } = data;
 
@@ -76,95 +76,107 @@ exports.generateMaterialAI = async (data) => {
   const targetClass = class_name || 'SMP';
 
   const isProgramming = /pemrograman|coding|algoritma|variabel|python|javascript|html|css|pascal|c\+\+|java|database|basis data|jaringan/i.test(`${targetTitle} ${targetSubject}`);
-  const isMath = /matematika|aljabar|geometri|kalkulus|persamaan|fungsi|trigonometri|statistik/i.test(`${targetTitle} ${targetSubject}`);
 
-  let fallbackContent = '';
+  let slide1 = '';
+  let slide2 = '';
+  let slide3 = '';
+  let slide4 = '';
+  let slide5 = '';
 
   if (isProgramming) {
-    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
-<p>Dalam bidang <strong>${targetSubject}</strong>, topik <strong>${targetTitle}</strong> merupakan landasan penting untuk memahami instruksi komputer, struktur logika program, dan pemecahan masalah (computational thinking).</p>
+    slide1 = `<div class="material-slide">
+<h3>Slide 1: Pengenalan Pembelajaran — ${targetTitle}</h3>
+<p>Materi ini merupakan bagian penting dalam mata pelajaran <strong>${targetSubject}</strong> tingkat kelas <strong>${targetClass}</strong>.</p>
+<p>Tujuan utama dari mempelajari <strong>${targetTitle}</strong> adalah agar siswa dapat memahami instruksi logis komputer, merancang alur algoritma, dan mengasah pola berpikir komputasional (computational thinking).</p>
+</div>`;
 
-<h4>1. Konsep Utama & Prinsip Dasar</h4>
-<p><strong>${targetTitle}</strong> mencakup aturan penulisan kode (sintaksis), penggunaan struktur data, dan eksekusi logika oleh komputer. Komponen utama yang perlu dipahami meliputi:</p>
+    slide2 = `<div class="material-slide">
+<h3>Slide 2: Konsep Utama & Struktur Sintaksis</h3>
+<p>Dalam <strong>${targetTitle}</strong>, terdapat beberapa elemen penting yang membangun sebuah program:</p>
 <ul>
-  <li><strong>Variabel & Tipe Data:</strong> Tempat menyimpan nilai seperti angka (integer/float), teks (string), dan nilai kebenaran (boolean).</li>
-  <li><strong>Struktur Kontrol Flow:</strong> Percabangan (Logika <code>IF...ELSE</code>) dan Perulangan (Looping <code>FOR/WHILE</code>) untuk mengatur alur program.</li>
-  <li><strong>Fungsi / Prosedur:</strong> Blok kode yang dapat dipanggil berulang kali untuk menjalankan tugas tertentu.</li>
+  <li><strong>Variabel & Tipe Data:</strong> Wadah untuk menyimpan informasi (angka, teks, boolean).</li>
+  <li><strong>Struktur Logika (Control Flow):</strong> Pengambilan keputusan menggunakan perintah <code>IF...ELSE</code> dan perulangan (Looping).</li>
+  <li><strong>Fungsi & Prosedur:</strong> Blok kode yang dapat digunakan kembali secara modular.</li>
 </ul>
+</div>`;
 
-<h4>2. Contoh Sintaksis & Kode Program Sederhana</h4>
-<p>Berikut adalah ilustrasi logika dasar penulisan kode pada <strong>${targetTitle}</strong>:</p>
-<pre style="background:#1e293b; color:#f8fafc; padding:14px; border-radius:10px; font-family:monospace; font-size:13px; line-height:1.5;">
-// Contoh Implementasi Dasar Logika ${targetTitle}
+    slide3 = `<div class="material-slide">
+<h3>Slide 3: Contoh Sintaksis & Kode Program Riil</h3>
+<p>Berikut adalah ilustrasi kode program sederhana untuk menerapkan konsep <strong>${targetTitle}</strong>:</p>
+<pre style="background:#1e293b; color:#f8fafc; padding:16px; border-radius:12px; font-family:monospace; font-size:13px; line-height:1.6; border:1px solid #334155;">
+// Implementasi Kode Program ${targetTitle}
 let namaMateri = "${targetTitle}";
-let nilaiKKM = 75;
-let nilaiSiswa = 85;
+let statusTuntas = true;
 
-if (nilaiSiswa >= nilaiKKM) {
-    console.log("Selamat, Anda tuntas mempelajari " + namaMateri);
+if (statusTuntas) {
+    console.log("Siswa berhasil memahami konsep: " + namaMateri);
 } else {
-    console.log("Silakan pelajari ulang konsep " + namaMateri);
+    console.log("Silakan pelajari kembali modul: " + namaMateri);
 }
 </pre>
+</div>`;
 
-<h4>3. Penerapan Praktis & Pemecahan Masalah</h4>
-<p>Penerapan ${targetTitle} digunakan dalam pembuatan aplikasi web, perangkat lunak mobile, hingga sistem otomatisasi cerdas. Siswa dilatih untuk berpikir logis dan sistematis.</p>
-
-<h4>4. Soal Latihan & Evaluasi Mandiri</h4>
-<ol>
-  <li>Jelaskan fungsi utama dari <strong>${targetTitle}</strong> dalam pengembangan program komputer!</li>
-  <li>Buatlah urutan langkah (pseudocode) sederhana yang menerapkan konsep ${targetTitle}!</li>
-</ol>`;
-  } else if (isMath) {
-    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
-<p>Topik <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> bertujuan untuk melatih pola pikir kritis, analisis matematis, dan pemecahan masalah bernalar.</p>
-
-<h4>1. Definisi & Rumus Dasar</h4>
-<p>Dalam memahami <strong>${targetTitle}</strong>, terdapat beberapa teorema dasar dan rumus penting yang harus dikuasai:</p>
+    slide4 = `<div class="material-slide">
+<h3>Slide 4: Penerapan Praktis & Case Study</h3>
+<p>Konsep <strong>${targetTitle}</strong> digunakan luas dalam pengembangan teknologi industri saat ini:</p>
 <ul>
-  <li><strong>Konsep Dasar:</strong> Penjelasan variabel dan simbol yang digunakan dalam perhitungan.</li>
-  <li><strong>Persamaan Utama:</strong> Aturan matematika dasar yang berlaku secara konsisten.</li>
+  <li>Pembuatan aplikasi berbasis Web dan Mobile.</li>
+  <li>Pengembangan sistem kecerdasan buatan (AI) dan otomatisasi.</li>
+  <li>Pengolahan data dan keamanan informasi.</li>
 </ul>
+</div>`;
 
-<h4>2. Pembahasan Langkah demi Langkah & Contoh Soal</h4>
-<p>Berikut adalah contoh penerapan konsep perhitungan pada <strong>${targetTitle}</strong>:</p>
-<div style="background:#f8fafc; border-left:4px solid #0284c7; padding:12px 16px; margin:12px 0;">
-  <strong>Contoh Kasus:</strong> Diketahui masalah mengenai ${targetTitle}.<br/>
-  <strong>Langkah 1:</strong> Identifikasi data yang diketahui dan ditanyakan.<br/>
-  <strong>Langkah 2:</strong> Gunakan rumus utama untuk menghitung nilai akhir secara teliti.<br/>
-  <strong>Hasil:</strong> Diperoleh nilai solusi yang akurat.
-</div>
-
-<h4>3. Rangkuman & Latihan Soal Mandiri</h4>
+    slide5 = `<div class="material-slide">
+<h3>Slide 5: Rangkuman & Latihan Mandiri Siswa</h3>
+<p>Cobalah untuk mendiskusikan dan menjawab 2 pertanyaan berikut:</p>
 <ol>
-  <li>Sebutkan 2 prinsip utama yang ada pada topik <strong>${targetTitle}</strong>!</li>
-  <li>Kerjakan latihan soal mengenai ${targetTitle} dengan mengikuti langkah-langkah di atas!</li>
-</ol>`;
+  <li>Jelaskan apa fungsi utama dari <strong>${targetTitle}</strong> dalam pemrograman!</li>
+  <li>Tuliskan langkah-langkah logika (pseudocode) sederhana yang memanfaatkan konsep ${targetTitle}!</li>
+</ol>
+</div>`;
   } else {
-    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
-<p>Materi <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> dirancang untuk memberikan pemahaman komprehensif, wawasan teori, dan penerapan praktis untuk kelas <strong>${targetClass}</strong>.</p>
+    slide1 = `<div class="material-slide">
+<h3>Slide 1: Pengenalan Pembelajaran — ${targetTitle}</h3>
+<p>Selamat datang pada pembahasan materi <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong> kelas <strong>${targetClass}</strong>.</p>
+<p>Bab ini membahas mengenai dasar-dasar, konsep penting, dan relevansi topik ini dalam pembelajaran sekolah.</p>
+</div>`;
 
-<h4>1. Tujuan Pembelajaran & Konsep Utama</h4>
-<p>Setelah mempelajari bab ini, siswa diharapkan mampu menguasai konsep <strong>${targetTitle}</strong> secara mendalam.</p>
+    slide2 = `<div class="material-slide">
+<h3>Slide 2: Konsep Utama & Teori dasar</h3>
+<p>Berikut adalah poin-poin utama yang harus dikuasai pada materi <strong>${targetTitle}</strong>:</p>
 <ul>
-  <li><strong>Pengertian Utama:</strong> Definisi komprehensif dari ${targetTitle} beserta latar belakang topik.</li>
-  <li><strong>Karakteristik & Ciri Khusus:</strong> Unsur-unsur penting yang membentuk ${targetTitle}.</li>
-  <li><strong>Penerapan Nyata:</strong> Contoh pengaplikasian topik ini dalam kehidupan sehari-hari.</li>
+  <li><strong>Pengertian Utama:</strong> Pemahaman menyeluruh mengenai definisi dan latar belakang ${targetTitle}.</li>
+  <li><strong>Karakteristik Pembentuk:</strong> Ciri-ciri utama yang membedakan topik ini.</li>
 </ul>
+</div>`;
 
-<h4>2. Pembahasan Uraian Materi</h4>
-<p>Pembahasan pada bab <strong>${targetTitle}</strong> mencakup analisis struktur, analisis fungsi, serta kaitan topik ini dengan mata pelajaran ${targetSubject} secara keseluruhan.</p>
+    slide3 = `<div class="material-slide">
+<h3>Slide 3: Pembahasan Uraian & Contoh Kasus</h3>
+<p>Uraian lengkap mengenai <strong>${targetTitle}</strong> beserta contoh penerapannya dalam kehidupan nyata.</p>
+<div style="background:#f8fafc; border-left:4px solid #0284c7; padding:14px; margin-top:10px; border-radius:8px;">
+  <strong>Contoh Kasus:</strong> Penjelasan skenario praktis dari materi ${targetTitle}.
+</div>
+</div>`;
 
-<h4>3. Rangkuman & Soal Evaluasi Siswa</h4>
+    slide4 = `<div class="material-slide">
+<h3>Slide 4: Manfaat & Dampak Pembelajaran</h3>
+<p>Dengan menguasai <strong>${targetTitle}</strong>, siswa dapat mengasah keterampilan analitis, daya nalar kritis, serta pemecahan masalah.</p>
+</div>`;
+
+    slide5 = `<div class="material-slide">
+<h3>Slide 5: Rangkuman & Evaluasi Mandiri</h3>
 <ol>
-  <li>Jelaskan pengertian dan pentingnya mempelajari <strong>${targetTitle}</strong>!</li>
-  <li>Berikan 2 contoh konkret penerapan ${targetTitle} yang kamu temukan di sekitarmu!</li>
-</ol>`;
+  <li>Sebutkan 2 poin paling penting dari pembahasan <strong>${targetTitle}</strong>!</li>
+  <li>Jelaskan bagaimana kamu menerapkan materi ini dalam kegiatan belajar sehari-hari!</li>
+</ol>
+</div>`;
   }
+
+  const fallbackContent = [slide1, slide2, slide3, slide4, slide5].join('\n<!-- slide-break -->\n');
 
   const defaultRichFallback = {
     title: targetTitle,
-    description: description || `Materi pembelajaran lengkap mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} tingkat ${targetClass}.`,
+    description: description || `Materi pembelajaran slide interaktif mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} kelas ${targetClass}.`,
     content: fallbackContent
   };
 
@@ -177,23 +189,22 @@ if (nilaiSiswa >= nilaiKKM) {
   const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
 
   const systemPrompt = `Anda adalah seorang penyusun kurikulum dan guru ahli profesional Indonesia.
-Buatlah materi pembelajaran sekolah yang SANGAT DETAIL, LENGKAP, dan BERKUALITAS TINGGI untuk topik "${targetTitle}" mata pelajaran "${targetSubject}" kelas "${targetClass}".
-Beri penjelasan mendalam (bukan ringkasan prompt/template).
-Wajib me-return output JSON murni tanpa markdown codeblock fence:
+Buatlah materi pembelajaran sekolah berbentuk 5 SLIDE PRESENTASI INTERAKTIF yang SANGAT DETAIL dan BERKUALITAS TINGGI untuk topik "${targetTitle}" mata pelajaran "${targetSubject}" kelas "${targetClass}".
+PENTING: Pisahkan antar slide menggunakan pemisah persis: <!-- slide-break -->
+Format output JSON murni tanpa markdown codeblock fence:
 {
   "title": "${targetTitle}",
-  "description": "Deskripsi/ringkasan materi 1-2 kalimat yang menarik",
-  "content": "Isi materi lengkap dalam HTML terstruktur (<p>, <h3>, <h4>, <ul>, <li>, <ol>, <strong>, <pre>, <code>) dengan penjelasan materi riil, konsep, contoh, dan soal latihan"
+  "description": "Deskripsi/ringkasan singkat 1-2 kalimat mengenai materi slide ini",
+  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 3: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 4: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 5: ...</h3><p>...</p></div>"
 }`;
 
-  const actualPrompt = prompt || `Buat materi pembelajaran sekolah terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
+  const actualPrompt = prompt || `Buat materi pembelajaran sekolah 5 slide terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
   const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     let rawText = '';
 
-    // Attempt candidates
     for (const modelName of modelCandidates) {
       try {
         const model = genAI.getGenerativeModel({ model: modelName });
@@ -209,7 +220,6 @@ Wajib me-return output JSON murni tanpa markdown codeblock fence:
       return defaultRichFallback;
     }
 
-    // Extract JSON object safely using regex
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       rawText = jsonMatch[0];

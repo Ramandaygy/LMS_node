@@ -6,6 +6,7 @@ const GuruMaterials = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMaterialModal, setSelectedMaterialModal] = useState(null);
+  const [activeSlideIdx, setActiveSlideIdx] = useState(0);
   
   // Batch selection states
   const [selectedMaterialIds, setSelectedMaterialIds] = useState([]);
@@ -183,6 +184,115 @@ const GuruMaterials = () => {
       const fullUrl = fileUrl.startsWith('http') ? fileUrl : `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${fileUrl}`;
       window.open(fullUrl, '_blank');
     }
+  };
+
+  const renderMultiSlideContent = (content) => {
+    if (!content) return <p>Tidak ada teks konten tambahan.</p>;
+
+    let slides = content.split(/<!--\s*slide-break\s*-->/i).map(s => s.trim()).filter(Boolean);
+
+    if (slides.length <= 1) {
+      const matchSlideDivs = content.match(/<div class="material-slide">[\s\S]*?<\/div>/gi);
+      if (matchSlideDivs && matchSlideDivs.length > 1) {
+        slides = matchSlideDivs;
+      }
+    }
+
+    if (slides.length <= 1) {
+      return (
+        <div 
+          style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6' }}
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      );
+    }
+
+    const currentSlideHtml = slides[activeSlideIdx] || slides[0];
+
+    return (
+      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
+          <span style={{ fontSize: '12px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>slideshow</span>
+            Presentasi Slide ({activeSlideIdx + 1} dari {slides.length})
+          </span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveSlideIdx(idx)}
+                style={{
+                  width: '26px',
+                  height: '26px',
+                  borderRadius: '50%',
+                  border: 'none',
+                  background: activeSlideIdx === idx ? '#0284c7' : '#cbd5e1',
+                  color: activeSlideIdx === idx ? '#ffffff' : '#475569',
+                  fontWeight: '800',
+                  fontSize: '11px',
+                  cursor: 'pointer'
+                }}
+              >
+                {idx + 1}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div 
+          style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '220px', fontSize: '14px', lineHeight: '1.6' }}
+          dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
+        />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+          <button
+            onClick={() => setActiveSlideIdx(prev => Math.max(0, prev - 1))}
+            disabled={activeSlideIdx === 0}
+            style={{
+              background: activeSlideIdx === 0 ? '#f1f5f9' : '#ffffff',
+              color: activeSlideIdx === 0 ? '#94a3b8' : '#0284c7',
+              border: '1px solid #cbd5e1',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '12px',
+              cursor: activeSlideIdx === 0 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
+            Slide Sebelumnya
+          </button>
+
+          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
+            Slide {activeSlideIdx + 1} / {slides.length}
+          </span>
+
+          <button
+            onClick={() => setActiveSlideIdx(prev => Math.min(slides.length - 1, prev + 1))}
+            disabled={activeSlideIdx === slides.length - 1}
+            style={{
+              background: activeSlideIdx === slides.length - 1 ? '#f1f5f9' : '#0284c7',
+              color: activeSlideIdx === slides.length - 1 ? '#94a3b8' : '#ffffff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              fontWeight: '700',
+              fontSize: '12px',
+              cursor: activeSlideIdx === slides.length - 1 ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+          >
+            Slide Selanjutnya
+            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
+          </button>
+        </div>
+      </div>
+    );
   };
 
   // Safe Inline Previewer that NEVER causes Chrome to auto-download!
@@ -676,11 +786,10 @@ const GuruMaterials = () => {
               )}
 
               <div style={{ marginBottom: '20px' }}>
-                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>Isi / Konten Teks Materi Pembelajaran:</strong>
-                <div 
-                  style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6', maxHeight: '250px', overflowY: 'auto' }}
-                  dangerouslySetInnerHTML={{ __html: selectedMaterialModal.content || '<p>Tidak ada teks konten tambahan.</p>' }}
-                />
+                <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>
+                  Isi / Konten Materi Pembelajaran Interaktif (Slide Presentation):
+                </strong>
+                {renderMultiSlideContent(selectedMaterialModal.content)}
               </div>
 
               {/* SAFE INLINE PREVIEWER THAT NEVER AUTO-DOWNLOADS */}

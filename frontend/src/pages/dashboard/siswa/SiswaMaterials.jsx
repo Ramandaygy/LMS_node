@@ -16,6 +16,10 @@ const isVideoFile = (url) => /\.(mp4|webm|ogg)(\?|$)/i.test(url || '');
 
 const parseSlides = (content) => {
   if (!content?.trim()) return [];
+  const bySlideBreak = content.split(/<!--\s*slide-break\s*-->/i).map(s => s.trim()).filter(Boolean);
+  if (bySlideBreak.length > 1) return bySlideBreak;
+  const bySlideDivs = content.match(/<div class="material-slide">[\s\S]*?<\/div>/gi);
+  if (bySlideDivs && bySlideDivs.length > 1) return bySlideDivs;
   const byHr = content.split(/<hr\s*\/?>/i).map(s => s.trim()).filter(Boolean);
   if (byHr.length > 1) return byHr;
   const byDelimiter = content.split(/<!--\s*slide\s*-->/i).map(s => s.trim()).filter(Boolean);
