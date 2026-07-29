@@ -67,7 +67,7 @@ exports.getMaterialsForStudent = async (classId, subjectId = null) => {
   return await enrichMaterials(materials);
 };
 
-// GENERATE KONTEN MATERI DENGAN AI (Multi-Slide Interactive Presentation Generator)
+// GENERATE KONTEN MATERI DENGAN AI (Multi-Slide Rich Paragraph Generator)
 exports.generateMaterialAI = async (data) => {
   const { title, prompt, subject_name, class_name, description } = data;
 
@@ -85,89 +85,90 @@ exports.generateMaterialAI = async (data) => {
 
   if (isProgramming) {
     slide1 = `<div class="material-slide">
-<h3>Slide 1: Pengenalan Pembelajaran — ${targetTitle}</h3>
-<p>Materi ini merupakan bagian penting dalam mata pelajaran <strong>${targetSubject}</strong> tingkat kelas <strong>${targetClass}</strong>.</p>
-<p>Tujuan utama dari mempelajari <strong>${targetTitle}</strong> adalah agar siswa dapat memahami instruksi logis komputer, merancang alur algoritma, dan mengasah pola berpikir komputasional (computational thinking).</p>
+<h3>Slide 1: Pengenalan Pembelajaran & Latar Belakang — ${targetTitle}</h3>
+<p>Dalam era transformasi digital yang berkembang pesat, pemahaman mengenai <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> menjadi pengetahuan fondasi yang sangat vital bagi siswa kelas <strong>${targetClass}</strong>. Bahasa pemrograman merupakan sarana utama bagi manusia untuk memberikan instruksi yang presisi dan sistematis kepada perangkat komputer agar dapat menyelesaikan berbagai persoalan kompleks secara otomatis.</p>
+<p>Melalui pembelajaran bab ini, siswa tidak hanya diajarkan menuliskan kode, melainkan dilatih untuk membangun pola berpikir komputasional (computational thinking). Pola pikir ini mencakup kemampuan dekomposisi masalah, pengenalan pola, abstraksi, dan perancangan algoritma efisien yang dapat diterapkan dalam kehidupan sehari-hari maupun pengembangan perangkat lunak modern.</p>
 </div>`;
 
     slide2 = `<div class="material-slide">
-<h3>Slide 2: Konsep Utama & Struktur Sintaksis</h3>
-<p>Dalam <strong>${targetTitle}</strong>, terdapat beberapa elemen penting yang membangun sebuah program:</p>
-<ul>
-  <li><strong>Variabel & Tipe Data:</strong> Wadah untuk menyimpan informasi (angka, teks, boolean).</li>
-  <li><strong>Struktur Logika (Control Flow):</strong> Pengambilan keputusan menggunakan perintah <code>IF...ELSE</code> dan perulangan (Looping).</li>
-  <li><strong>Fungsi & Prosedur:</strong> Blok kode yang dapat digunakan kembali secara modular.</li>
-</ul>
+<h3>Slide 2: Konsep Utama & Teori Dasar Sintaksis</h3>
+<p>Untuk memahami <strong>${targetTitle}</strong> secara mendalam, terdapat beberapa komponen utama dalam arsitektur pemrograman yang harus dikuasai. Pertama adalah <strong>Variabel dan Tipe Data</strong>, yang berfungsi sebagai tempat penyimpanan data di dalam memori komputer, seperti data angka (integer), bilangan desimal (float), karakter teks (string), hingga nilai kebenaran logika (boolean).</p>
+<p>Komponen kedua yang sangat krusial adalah <strong>Struktur Kontrol Alur (Control Flow)</strong>. Komputer mengeksekusi perintah berdasarkan aturan logika tertentu seperti percabangan (pernyataan <code>IF...ELSE</code>) untuk mengambil keputusan, serta perulangan (looping <code>FOR</code> atau <code>WHILE</code>) untuk menjalankan tugas yang sama berulang kali secara efisien tanpa perlu menuliskan kode berulang-ulang.</p>
+<p>Selain itu, konsep <strong>Fungsi dan Modularitas</strong> memungkinkan pengembang membagi program besar menjadi blok-blok kecil yang independen. Hal ini mempermudah proses perawatan kode (maintenance), pemecahan bug (debugging), dan kolaborasi pengembangan tim.</p>
 </div>`;
 
     slide3 = `<div class="material-slide">
-<h3>Slide 3: Contoh Sintaksis & Kode Program Riil</h3>
-<p>Berikut adalah ilustrasi kode program sederhana untuk menerapkan konsep <strong>${targetTitle}</strong>:</p>
+<h3>Slide 3: Contoh Sintaksis & Pembahasan Kode Riil</h3>
+<p>Berikut adalah ilustrasi struktur penulisan kode program sederhana yang menerapkan konsep logika dan variabel pada <strong>${targetTitle}</strong>:</p>
 <pre style="background:#1e293b; color:#f8fafc; padding:16px; border-radius:12px; font-family:monospace; font-size:13px; line-height:1.6; border:1px solid #334155;">
-// Implementasi Kode Program ${targetTitle}
-let namaMateri = "${targetTitle}";
-let statusTuntas = true;
+// Contoh Implementasi Dasar Logika Pemrograman: ${targetTitle}
+let namaTopik = "${targetTitle}";
+let nilaiKeterampilan = 85;
+let batasTuntas = 75;
 
-if (statusTuntas) {
-    console.log("Siswa berhasil memahami konsep: " + namaMateri);
+console.log("Memulai simulasi logika pembelajaran " + namaTopik + "...");
+
+if (nilaiKeterampilan >= batasTuntas) {
+    console.log("Status: Selamat, siswa berhasil menguasai konsep dasar " + namaTopik + " dengan nilai " + nilaiKeterampilan);
 } else {
-    console.log("Silakan pelajari kembali modul: " + namaMateri);
+    console.log("Status: Siswa disarankan membaca kembali uraian materi pada " + namaTopik);
 }
 </pre>
+<p>Pada blok kode di atas, variabel <code>namaTopik</code> menyimpan string judul materi, sedangkan <code>nilaiKeterampilan</code> menyimpan nilai numerik. Pernyataan percabangan <code>IF</code> akan mengevaluasi apakah nilai tersebut memenuhi batas tuntas, lalu mengeksekusi pesan yang sesuai ke layar konsol.</p>
 </div>`;
 
     slide4 = `<div class="material-slide">
-<h3>Slide 4: Penerapan Praktis & Case Study</h3>
-<p>Konsep <strong>${targetTitle}</strong> digunakan luas dalam pengembangan teknologi industri saat ini:</p>
-<ul>
-  <li>Pembuatan aplikasi berbasis Web dan Mobile.</li>
-  <li>Pengembangan sistem kecerdasan buatan (AI) dan otomatisasi.</li>
-  <li>Pengolahan data dan keamanan informasi.</li>
-</ul>
+<h3>Slide 4: Penerapan Praktis & Case Study Industri</h3>
+<p>Penerapan konsep <strong>${targetTitle}</strong> tidak hanya terbatas pada lingkungan kelas, melainkan menjadi pilar utama dalam industri teknologi informasi skala global. Logika pemrograman ini diterapkan pada pembuatan sistem aplikasi berbasis web, pengembangan aplikasi seluler (Android & iOS), hingga pengelolaan basis data skala besar pada perusahaan teknologi mutakhir.</p>
+<p>Sebagai contoh kasus, platform media sosial dan layanan e-commerce memanfaatkan alur logika percabangan serta perulangan untuk memproses jutaan transaksi pengguna secara bersamaan, memverifikasi kata sandi akun, serta merekomendasikan konten secara personal menggunakan algoritma cerdas (Artificial Intelligence).</p>
 </div>`;
 
     slide5 = `<div class="material-slide">
-<h3>Slide 5: Rangkuman & Latihan Mandiri Siswa</h3>
-<p>Cobalah untuk mendiskusikan dan menjawab 2 pertanyaan berikut:</p>
+<h3>Slide 5: Rangkuman & Evaluasi Mandiri Siswa</h3>
+<p>Secara keseluruhan, mempelajari <strong>${targetTitle}</strong> memberikan kemampuan analisis logis dan ketelitian tinggi. Penguasaan atas tipe data, alur keputusan logika, dan struktur modular merupakan kunci utama untuk menjadi pencipta teknologi di masa depan.</p>
+<p>Untuk menguji sejauh mana pemahaman Anda pada materi bab ini, jawablah pertanyaan evaluasi mandiri berikut:</p>
 <ol>
-  <li>Jelaskan apa fungsi utama dari <strong>${targetTitle}</strong> dalam pemrograman!</li>
-  <li>Tuliskan langkah-langkah logika (pseudocode) sederhana yang memanfaatkan konsep ${targetTitle}!</li>
+  <li>Jelaskan dengan bahasa Anda sendiri mengapa penggunaan variabel dan tipe data sangat penting dalam <strong>${targetTitle}</strong>!</li>
+  <li>Berikan satu contoh skenario nyata di sekitar Anda (misalnya sistem kasir toko atau lampu lalu lintas) yang menggunakan logika percabangan <code>IF...ELSE</code>!</li>
 </ol>
 </div>`;
   } else {
     slide1 = `<div class="material-slide">
-<h3>Slide 1: Pengenalan Pembelajaran — ${targetTitle}</h3>
-<p>Selamat datang pada pembahasan materi <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong> kelas <strong>${targetClass}</strong>.</p>
-<p>Bab ini membahas mengenai dasar-dasar, konsep penting, dan relevansi topik ini dalam pembelajaran sekolah.</p>
+<h3>Slide 1: Pengenalan Pembelajaran & Latar Belakang — ${targetTitle}</h3>
+<p>Selamat datang pada pembahasan materi <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong> tingkat kelas <strong>${targetClass}</strong>. Pembahasan pada bab ini disusun secara komprehensif untuk membimbing siswa memahami prinsip-prinsip mendalam, dasar teori, dan relevansinya dalam kehidupan sehari-hari.</p>
+<p>Melalui materi ini, siswa diharapkan tidak hanya menghafal konsep murni, tetapi juga mampu menganalisis hubungan antar komponen, mengidentifikasi permasalahan di lingkungan sekitar, serta mengaplikasikan pengetahuan ini secara kreatif dan kritis.</p>
 </div>`;
 
     slide2 = `<div class="material-slide">
-<h3>Slide 2: Konsep Utama & Teori dasar</h3>
-<p>Berikut adalah poin-poin utama yang harus dikuasai pada materi <strong>${targetTitle}</strong>:</p>
-<ul>
-  <li><strong>Pengertian Utama:</strong> Pemahaman menyeluruh mengenai definisi dan latar belakang ${targetTitle}.</li>
-  <li><strong>Karakteristik Pembentuk:</strong> Ciri-ciri utama yang membedakan topik ini.</li>
-</ul>
+<h3>Slide 2: Konsep Utama & Uraian Teori Mendalam</h3>
+<p>Dalam mempelajari <strong>${targetTitle}</strong>, terdapat beberapa fondasi teori utama yang menjadi pilar pemahaman. Fondasi pertama adalah mengenai batasan definisi dan karakteristik dasar yang membedakan topik ini dari materi pembahasan lainnya.</p>
+<p>Fondasi kedua mencakup analisis struktur dan mekanisme kerja internal dari <strong>${targetTitle}</strong>. Setiap elemen di dalamnya saling berinteraksi secara sistematis membentuk satu kesatuan fungsi yang utuh. Pemahaman atas interaksi ini penting untuk menyelesaikan berbagai bentuk soal dan aplikasi praktis.</p>
 </div>`;
 
     slide3 = `<div class="material-slide">
-<h3>Slide 3: Pembahasan Uraian & Contoh Kasus</h3>
-<p>Uraian lengkap mengenai <strong>${targetTitle}</strong> beserta contoh penerapannya dalam kehidupan nyata.</p>
-<div style="background:#f8fafc; border-left:4px solid #0284c7; padding:14px; margin-top:10px; border-radius:8px;">
-  <strong>Contoh Kasus:</strong> Penjelasan skenario praktis dari materi ${targetTitle}.
+<h3>Slide 3: Pembahasan Kasus & Contoh Pengaplikasian</h3>
+<p>Berikut adalah uraian skenario analisis mengenai penerapan <strong>${targetTitle}</strong> dalam kehidupan nyata:</p>
+<div style="background:#f8fafc; border-left:4px solid #0284c7; padding:16px; margin:12px 0; border-radius:8px;">
+  <strong>Studi Kasus Pembelajaran:</strong> Pengamatan terhadap fenomena atau peristiwa yang berkaitan dengan ${targetTitle}.<br/>
+  <strong>Analisis Masalah:</strong> Mengapa fenomena tersebut terjadi dan faktor apa saja yang mempengaruhinya.<br/>
+  <strong>Kesimpulan Solusi:</strong> Menggunakan pendekatan teori ${targetTitle} untuk memberikan penjelasan matematis/ilmiah yang akurat.
 </div>
+<p>Melalui contoh kasus di atas, siswa diajak untuk menghubungkan antara teori yang dipelajari di dalam buku dengan fakta lapangan yang dijumpai sehari-hari.</p>
 </div>`;
 
     slide4 = `<div class="material-slide">
-<h3>Slide 4: Manfaat & Dampak Pembelajaran</h3>
-<p>Dengan menguasai <strong>${targetTitle}</strong>, siswa dapat mengasah keterampilan analitis, daya nalar kritis, serta pemecahan masalah.</p>
+<h3>Slide 4: Manfaat, Dampak, & Relevansi Masa Depan</h3>
+<p>Penguasaan materi <strong>${targetTitle}</strong> memberikan dampak positif jangka panjang bagi pengembangan kemampuan bernalar siswa. Keterampilan menganalisis data, menarik kesimpulan secara rasional, dan mengevaluasi kebenaran informasi merupakan kecakapan hidup (life skills) yang sangat berharga.</p>
+<p>Di masa depan, pengetahuan pada topik ini menjadi bekal penting saat siswa melanjutkan studi ke jenjang yang lebih tinggi maupun saat beradaptasi dengan tantangan dunia kerja modern yang serba dinamis.</p>
 </div>`;
 
     slide5 = `<div class="material-slide">
-<h3>Slide 5: Rangkuman & Evaluasi Mandiri</h3>
+<h3>Slide 5: Rangkuman & Evaluasi Mandiri Siswa</h3>
+<p>Sebagai rangkuman, bab <strong>${targetTitle}</strong> telah membekali Anda dengan konsep dasar, analisis teori, dan contoh pengaplikasian nyata. Keberhasilan dalam menguasai materi ini diukur dari sejauh mana Anda mampu menjelaskan kembali konsep ini dengan bahasa sendiri.</p>
+<p>Jawablah soal refleksi mandiri berikut untuk memantapkan pemahaman Anda:</p>
 <ol>
-  <li>Sebutkan 2 poin paling penting dari pembahasan <strong>${targetTitle}</strong>!</li>
-  <li>Jelaskan bagaimana kamu menerapkan materi ini dalam kegiatan belajar sehari-hari!</li>
+  <li>Tuliskan 2 poin paling berharga yang Anda dapatkan dari pembahasan <strong>${targetTitle}</strong>!</li>
+  <li>Jelaskan bagaimana konsep ${targetTitle} dapat membantu memecahkan masalah dalam kegiatan belajar Anda!</li>
 </ol>
 </div>`;
   }
@@ -176,7 +177,7 @@ if (statusTuntas) {
 
   const defaultRichFallback = {
     title: targetTitle,
-    description: description || `Materi pembelajaran slide interaktif mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} kelas ${targetClass}.`,
+    description: description || `Materi pembelajaran slide interaktif paragraf panjang mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} kelas ${targetClass}.`,
     content: fallbackContent
   };
 
@@ -185,20 +186,24 @@ if (statusTuntas) {
     return defaultRichFallback;
   }
 
-  // List of Gemini AI model variants to attempt sequentially
   const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
 
-  const systemPrompt = `Anda adalah seorang penyusun kurikulum dan guru ahli profesional Indonesia.
-Buatlah materi pembelajaran sekolah berbentuk 5 SLIDE PRESENTASI INTERAKTIF yang SANGAT DETAIL dan BERKUALITAS TINGGI untuk topik "${targetTitle}" mata pelajaran "${targetSubject}" kelas "${targetClass}".
-PENTING: Pisahkan antar slide menggunakan pemisah persis: <!-- slide-break -->
+  const systemPrompt = `Anda adalah seorang penyusun kurikulum dan penulis buku teks sekolah profesional Indonesia yang sangat berpengalaman.
+Buatlah materi pembelajaran sekolah berbentuk 5 SLIDE PRESENTASI INTERAKTIF dengan PENJELASAN PARAGRAF PANJANG LENGKAP, MENDALAM, DAN SANGAT DETAIL (WAJIB berupa paragraf naratif panjang yang mendalam, BUKAN sekadar poin-poin/bullet point singkat).
+
+PETUNJUK KHUSUS PENULISAN:
+- Setiap slide WAJIB berisi minimal 2 hingga 3 PARAGRAF PANJANG yang kaya akan uraian materi, penjelasan latar belakang, teori dasar, dan analisis mendalam.
+- Jangan hanya memberikan poin singkat 1 kalimat. Tuliskan penjelasan buku teks yang utuh, bernalar, dan informatif.
+- Wajib memisahkan antar slide menggunakan pemisah persis: <!-- slide-break -->
+
 Format output JSON murni tanpa markdown codeblock fence:
 {
   "title": "${targetTitle}",
-  "description": "Deskripsi/ringkasan singkat 1-2 kalimat mengenai materi slide ini",
-  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 3: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 4: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 5: ...</h3><p>...</p></div>"
+  "description": "Deskripsi ringkas 1-2 kalimat mengenai materi slide ini",
+  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 3: ...</h3><p>Paragraf panjang 1...</p><pre><code>...</code></pre><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 4: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 5: ...</h3><p>Paragraf panjang 1...</p><ol><li>...</li></ol></div>"
 }`;
 
-  const actualPrompt = prompt || `Buat materi pembelajaran sekolah 5 slide terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
+  const actualPrompt = prompt || `Buat materi pembelajaran sekolah 5 slide berisi paragraf panjang terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
   const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
 
   try {
