@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import '../../styles/dashboard/guru/guru-modul.css';
 
+const DAYS = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
+
+const getCurrentDayName = () => {
+  const dayIdx = new Date().getDay();
+  const dayMap = { 1: 'SENIN', 2: 'SELASA', 3: 'RABU', 4: 'KAMIS', 5: 'JUMAT', 6: 'SABTU' };
+  return dayMap[dayIdx] || 'SENIN';
+};
+
 const GuruDashboard = () => {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
@@ -11,6 +19,8 @@ const GuruDashboard = () => {
 
   const [activeClasses, setActiveClasses] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [allDbSchedules, setAllDbSchedules] = useState([]);
+  const [selectedDay, setSelectedDay] = useState(getCurrentDayName());
   const [recentAssignments, setRecentAssignments] = useState([]);
   const [totalStudentsCount, setTotalStudentsCount] = useState(0);
   const [homeroomStatus, setHomeroomStatus] = useState(null);
@@ -44,11 +54,12 @@ const GuruDashboard = () => {
     try {
       setLoading(true);
 
-      const [profileRes, studentsRes, schedulesRes, assignmentsRes] = await Promise.allSettled([
+      const [profileRes, studentsRes, schedulesRes, assignmentsRes, dbSchedRes] = await Promise.allSettled([
         api.get('/profile'),
         api.get('/users/students/all'),
         api.get('/attendance/guru/schedules'),
-        api.get('/assignments/guru/me')
+        api.get('/assignments/guru/me'),
+        api.get('/schedules')
       ]);
 
       const profileData = profileRes.status === 'fulfilled' ? (profileRes.value.data || {}) : {};
@@ -70,6 +81,9 @@ const GuruDashboard = () => {
 
       const fetchedSchedules = schedulesRes.status === 'fulfilled' ? (schedulesRes.value.data?.schedules || []) : [];
       setSchedules(fetchedSchedules);
+
+      const fetchedDbSched = dbSchedRes.status === 'fulfilled' ? (dbSchedRes.value.data?.data || []) : [];
+      setAllDbSchedules(fetchedDbSched);
 
       const allAssignments = assignmentsRes.status === 'fulfilled' ? (assignmentsRes.value.data?.data || []) : [];
       setRecentAssignments(allAssignments);
@@ -110,12 +124,12 @@ const GuruDashboard = () => {
     );
   }
 
-  // Generate interactive class schedules display matching SIAKAD / EdLink reference
-  const teachingSchedules = schedules.length > 0 ? schedules : activeClasses.map((c, idx) => ({
+  // Base schedules
+  const baseSchedules = schedules.length > 0 ? schedules : activeClasses.map((c, idx) => ({
     id: c.id || idx,
     class_name: c.name,
     subject: profile?.subjects && profile.subjects[0] ? profile.subjects[0].name : 'Informatika',
-    day: 'Hari Ini',
+    day: idx % 2 === 0 ? 'RABU' : 'KAMIS',
     start_time: idx === 0 ? '07:30' : '10:00',
     end_time: idx === 0 ? '09:30' : '12:00',
     room: 'Ruang Kelas ' + c.name,
@@ -124,20 +138,73 @@ const GuruDashboard = () => {
     total_pertemuan: 16
   }));
 
+  // Filter schedules by selected day
+  const filteredDbSchedules = allDbSchedules.filter(s => 
+    (s.teacher_id === profile?._id || s.teacher_id?._id === profile?._id) &&
+    (s.day || '').toUpperCase() === selectedDay.toUpperCase()
+  );
+
+  const displaySchedules = filteredDbSchedules.length > 0 
+    ? filteredDbSchedules.map((s, idx) => ({
+        id: s._id,
+        class_name: s.class_id?.name || 'Kelas',
+        subject: s.subject_id?.name || 'Informatika',
+        day: s.day,
+        start_time: s.start_time || '07:30',
+        end_time: s.end_time || '09:30',
+        room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
+        pertemuan_ke: 9 + idx,
+        presensi_count: 11 + idx,
+        total_pertemuan: 16
+      }))
+    : baseSchedules;
+
   return (
     <div className="modul-guru-container">
       
       {/* HEADER SECTION: Title & Date Selector */}
-      <div className="modul-guru-top-bar">
+      <div className="modul-guru-top-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 className="modul-title">Jadwal Mengajar Hari Ini</h1>
-          <p className="modul-subtitle">Anda memiliki {teachingSchedules.length} aktivitas mengajar pada sesi KBM hari ini.</p>
+          <h1 className="modul-title">Jadwal Mengajar Guru (KBM)</h1>
+          <p className="modul-subtitle">
+            Sesi KBM & aktivitas mengajar untuk hari <strong>{selectedDay}</strong> ({displaySchedules.length} Sesi Kelas).
+          </p>
         </div>
 
         <div className="modul-date-picker-box">
           <span className="material-symbols-outlined">calendar_month</span>
           <span className="date-text">{formattedDateString}</span>
         </div>
+      </div>
+
+      {/* DAY FILTER TABS */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '4px' }}>
+        {DAYS.map(day => (
+          <button
+            key={day}
+            onClick={() => setSelectedDay(day)}
+            style={{
+              padding: '8px 18px',
+              borderRadius: '12px',
+              border: 'none',
+              background: selectedDay === day ? '#0284c7' : '#ffffff',
+              color: selectedDay === day ? '#ffffff' : '#475569',
+              fontSize: '12px',
+              fontWeight: '800',
+              cursor: 'pointer',
+              boxShadow: selectedDay === day ? '0 4px 12px rgba(2, 132, 199, 0.3)' : '0 2px 6px rgba(0,0,0,0.04)',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            {day === getCurrentDayName() && (
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: selectedDay === day ? '#ffffff' : '#16a34a' }}></span>
+            )}
+            {day}
+          </button>
+        ))}
       </div>
 
       {/* MAIN TWO-COLUMN LAYOUT (EdLink / SIAKAD Portal Style) */}
@@ -154,7 +221,7 @@ const GuruDashboard = () => {
 
           {/* LIST OF CLASS TEACHING CARDS */}
           <div className="schedules-card-list">
-            {teachingSchedules.map((sch, index) => {
+            {displaySchedules.map((sch, index) => {
               const schId = sch.id || index;
               const meetingNum = sch.pertemuan_ke || (7 + index);
               const presensiNum = sch.presensi_count || (10 + index);
