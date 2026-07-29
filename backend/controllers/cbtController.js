@@ -3,16 +3,29 @@ const CbtResult = require('../models/CbtResult');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 
+const mongoose = require('mongoose');
+
 // Get List of Exams (For Siswa & Guru)
 exports.getExams = async (req, res) => {
   try {
     const userRole = req.user.role;
+    const userId = req.user._id || req.user.id || req.user;
+    let userObjId;
+    try {
+      userObjId = new mongoose.Types.ObjectId(userId.toString());
+    } catch (e) {
+      userObjId = userId;
+    }
+
     let query = {};
 
     if (userRole === 'siswa') {
       query.is_active = true;
     } else if (userRole === 'guru') {
-      query.teacher = req.user._id;
+      query.$or = [
+        { teacher: userObjId },
+        { teacher: userId.toString() }
+      ];
     }
 
     const exams = await CbtExam.find(query)
@@ -25,7 +38,7 @@ exports.getExams = async (req, res) => {
     if (userRole === 'siswa') {
       const examIds = exams.map(e => e._id);
       const results = await CbtResult.find({
-        student: req.user._id,
+        student: userObjId,
         exam: { $in: examIds }
       });
 
@@ -74,11 +87,18 @@ exports.getExamById = async (req, res) => {
     }
 
     const userRole = req.user.role;
+    const userId = req.user._id || req.user.id || req.user;
+    let userObjId;
+    try {
+      userObjId = new mongoose.Types.ObjectId(userId.toString());
+    } catch (e) {
+      userObjId = userId;
+    }
 
     // Check if student already submitted
     if (userRole === 'siswa') {
       const existingResult = await CbtResult.findOne({
-        student: req.user._id,
+        student: userObjId,
         exam: exam._id
       });
 
@@ -111,7 +131,7 @@ exports.getExamById = async (req, res) => {
 
     return res.json({ success: true, exam });
   } catch (err) {
-    console.error('Error fetching exam detail:', err);
+    console.error('Error fetching CBT exam detail:', err);
     return res.status(500).json({ success: false, message: 'Gagal memuat detail ujian CBT.' });
   }
 };
@@ -121,27 +141,63 @@ exports.createExam = async (req, res) => {
   try {
     const { title, subject, class_id, class_name, duration_minutes, pass_score, is_active, questions } = req.body;
 
-    if (!title || !subject || !questions || questions.length === 0) {
+    if (!title || !subject || !questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ success: false, message: 'Judul, mata pelajaran, dan minimal 1 soal wajib diisi.' });
     }
 
+    const teacherId = req.user._id || req.user.id || req.user;
+    let teacherObjId;
+    try {
+      teacherObjId = new mongoose.Types.ObjectId(teacherId.toString());
+    } catch (e) {
+      teacherObjId = teacherId;
+    }
+
+    let subjectObjId;
+    try {
+      subjectObjId = new mongoose.Types.ObjectId(subject.toString());
+    } catch (e) {
+      subjectObjId = subject;
+    }
+
+    let classObjId = null;
+    if (class_id && class_id.toString().trim() !== '' && mongoose.Types.ObjectId.isValid(class_id.toString())) {
+      try {
+        classObjId = new mongoose.Types.ObjectId(class_id.toString());
+      } catch (e) {
+        classObjId = null;
+      }
+    }
+
+    // Clean up questions array to ensure options are array of 4 strings
+    const cleanedQuestions = questions.map((q, idx) => {
+      let opts = Array.isArray(q.options) ? q.options.map(o => String(o || '').trim()) : ['', '', '', ''];
+      while (opts.length < 4) opts.push('');
+      return {
+        question_text: String(q.question_text || '').trim(),
+        options: opts,
+        correct_option: Number(q.correct_option) || 0,
+        explanation: String(q.explanation || '').trim()
+      };
+    });
+
     const newExam = new CbtExam({
-      title,
-      subject,
-      class_id: class_id || null,
+      title: title.trim(),
+      subject: subjectObjId,
+      class_id: classObjId,
       class_name: class_name || '',
-      teacher: req.user._id,
-      duration_minutes: duration_minutes || 30,
-      pass_score: pass_score || 75,
+      teacher: teacherObjId,
+      duration_minutes: Number(duration_minutes) || 30,
+      pass_score: Number(pass_score) || 75,
       is_active: is_active !== undefined ? is_active : true,
-      questions
+      questions: cleanedQuestions
     });
 
     await newExam.save();
     return res.status(201).json({ success: true, message: 'Paket Ujian CBT berhasil dibuat.', exam: newExam });
   } catch (err) {
     console.error('Error creating CBT exam:', err);
-    return res.status(500).json({ success: false, message: 'Gagal membuat Ujian CBT.' });
+    return res.status(500).json({ success: false, message: err.message || 'Gagal membuat Ujian CBT.' });
   }
 };
 

@@ -75,14 +75,14 @@ const GuruCbt = () => {
         api.get('/subjects'),
         api.get('/classes')
       ]);
-      const subList = subRes.data.data || [];
-      const clsList = clsRes.data.data || [];
+      const subList = subRes.data.data || subRes.data.subjects || [];
+      const clsList = clsRes.data.data || clsRes.data.classes || [];
 
       setSubjects(subList);
       setClasses(clsList);
 
-      if (subList.length > 0) setSelectedSubject(subList[0]._id);
-      if (clsList.length > 0) setSelectedClass(clsList[0]._id);
+      if (subList.length > 0 && !selectedSubject) setSelectedSubject(subList[0]._id || subList[0].id);
+      if (clsList.length > 0 && !selectedClass) setSelectedClass(clsList[0]._id || clsList[0].id);
     } catch (err) {
       console.error('Error fetching master subjects/classes:', err);
     }
