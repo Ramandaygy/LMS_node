@@ -11,6 +11,10 @@ const GuruAssignments = () => {
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [selectedSubmissionModal, setSelectedSubmissionModal] = useState(null);
 
+  // Pagination for Student Table
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [formData, setFormData] = useState({
     title: '',
     subject_id: '',
@@ -118,6 +122,7 @@ const GuruAssignments = () => {
       }
 
       setSubmissions(mergedSubmissions);
+      setCurrentPage(1); // Reset to first page when changing assignment
 
       const initialGrades = {};
       const initialFeedbacks = {};
@@ -266,7 +271,6 @@ const GuruAssignments = () => {
       const gradesList = Object.keys(grades)
         .filter(studentId => {
           const sub = submissions.find(s => s.student_id === studentId);
-          // Allow grading if student submitted OR if deadline has not passed yet
           if (!sub || (!sub.isSubmitted && isExpired)) return false;
           return grades[studentId] !== '';
         })
@@ -313,6 +317,12 @@ const GuruAssignments = () => {
   const ungradedCount = submissions.filter(s => s.isSubmitted && (s.score === null || s.score === '' || s.score === undefined)).length;
   const notSubmittedCount = submissions.filter(s => !s.isSubmitted).length;
 
+  // Pagination calculation
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentSubmissions = submissions.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(submissions.length / itemsPerPage);
+
   if (loading) return <div className="guru-assignments-container"><div className="loading">Memuat data tugas...</div></div>;
 
   return (
@@ -346,7 +356,6 @@ const GuruAssignments = () => {
             const isSelected = selectedAssignment?._id === assignment._id;
             const submCount = assignment.submitted_count || 0;
             const grdCount = assignment.graded_count || 0;
-            const totStudents = assignment.total_students || 32;
 
             return (
               <div 
@@ -368,13 +377,14 @@ const GuruAssignments = () => {
                     Deadline: {new Date(assignment.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
 
-                  {/* PROGRES DIKUMPULKAN & DINILAI SESUAI SUARA USER */}
-                  <div className="card-progress-strip" style={{ fontSize: '11px', color: '#475569', fontWeight: '700', marginTop: '4px' }}>
-                    <span>Mengumpulkan: <strong>{submCount}</strong></span> • <span>Dinilai: <strong>{grdCount}</strong></span>
-                  </div>
-
-                  <div className={`status ${status}`} style={{ marginTop: '4px' }}>
-                    {status === 'active' ? 'Aktif' : 'Selesai'}
+                  {/* TEKS PROGRES DISAMPING STATUS (BUKAN DIATASNYA) SESUAI REQUEST USER */}
+                  <div className="card-footer-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                    <div className={`status ${status}`}>
+                      {status === 'active' ? 'Aktif' : 'Selesai'}
+                    </div>
+                    <div className="card-progress-text" style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>
+                      Mengumpulkan: {submCount} • Dinilai: {grdCount}
+                    </div>
                   </div>
                 </div>
 
@@ -552,10 +562,13 @@ const GuruAssignments = () => {
                 </div>
               </div>
 
-              {/* TABEL SISWA SEKELAS */}
+              {/* TABEL SISWA SEKELAS WITH PAGINATION */}
               <div className="submissions-table-wrapper">
-                <div className="table-header-title">
-                  <h3>Daftar Pengumpulkan & Penilaian Siswa Sekelas</h3>
+                <div className="table-header-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>Daftar Pengumpulan & Penilaian Siswa Sekelas</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700' }}>
+                    Menampilkan {(indexOfFirstItem + 1)} - {Math.min(indexOfLastItem, submissions.length)} dari {submissions.length} Siswa
+                  </span>
                 </div>
 
                 <table className="submissions-table">
@@ -571,13 +584,13 @@ const GuruAssignments = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.length === 0 ? (
+                    {currentSubmissions.length === 0 ? (
                       <tr><td colSpan="7" className="empty-state">Tidak ada data siswa pada kelas ini</td></tr>
                     ) : (
-                      submissions.map((sub, idx) => {
+                      currentSubmissions.map((sub, idx) => {
+                        const globalIndex = indexOfFirstItem + idx + 1;
                         const isSubmitted = sub.isSubmitted;
                         const isGraded = isSubmitted && sub.score !== null && sub.score !== '' && sub.score !== undefined;
-                        // DIKECUALIKAN DARI INPUT NILAI JIKA BELUM MENGUMPULKAN DAN WAKTU DEADLINE TELAH LEWAT
                         const isExpiredNotSubmitted = !isSubmitted && isSelectedAssignmentExpired;
 
                         return (
@@ -585,7 +598,7 @@ const GuruAssignments = () => {
                             key={sub.student_id} 
                             className={`submission-row ${!isSubmitted ? 'not-submitted-row-shadow' : ''}`}
                           >
-                            <td className="text-center font-bold">{idx + 1}</td>
+                            <td className="text-center font-bold">{globalIndex}</td>
                             <td>
                               <div className="student-name-group">
                                 <strong>{sub.student_name}</strong>
@@ -599,7 +612,6 @@ const GuruAssignments = () => {
                               }
                             </td>
                             <td>
-                              {/* POP-UP PREVIEW RINGKAS AGAR TIDAK MAKAN TEMPAT DI TABEL */}
                               {isSubmitted ? (
                                 <div className="submission-actions-cell" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                   {sub.file && (
@@ -674,6 +686,31 @@ const GuruAssignments = () => {
                   </tbody>
                 </table>
 
+                {/* PAGINATION CONTROLS */}
+                {totalPages > 1 && (
+                  <div className="pagination-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                    <button 
+                      className="btn-page" 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={currentPage === 1}
+                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', fontWeight: '700', fontSize: '12px', opacity: currentPage === 1 ? 0.5 : 1, cursor: currentPage === 1 ? 'not-allowed' : 'pointer' }}
+                    >
+                      ‹ Sebelumnya
+                    </button>
+                    <span className="page-info" style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>
+                      Halaman {currentPage} dari {totalPages}
+                    </span>
+                    <button 
+                      className="btn-page" 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                      disabled={currentPage === totalPages}
+                      style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', fontWeight: '700', fontSize: '12px', opacity: currentPage === totalPages ? 0.5 : 1, cursor: currentPage === totalPages ? 'not-allowed' : 'pointer' }}
+                    >
+                      Selanjutnya ›
+                    </button>
+                  </div>
+                )}
+
                 <div className="table-footer-bar">
                   <button className="btn-save-all-grades" onClick={handleSaveGrades} disabled={saving}>
                     <span className="material-symbols-outlined">save</span>
@@ -693,7 +730,7 @@ const GuruAssignments = () => {
 
       </div>
 
-      {/* MODAL POPUP LIHAT JAWABAN SISWA (AGAR TIDAK MAKAN TEMPAT) */}
+      {/* MODAL POPUP LIHAT JAWABAN SISWA */}
       {selectedSubmissionModal && (
         <div className="modal-backdrop" onClick={() => setSelectedSubmissionModal(null)}>
           <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
