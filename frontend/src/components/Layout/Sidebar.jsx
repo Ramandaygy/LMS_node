@@ -223,46 +223,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
           </div>
           <div className="sidebar-user-details">
             <p className="sidebar-user-name">{getDisplayName()}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
-              <p className="sidebar-user-role">{getDisplayRole()}</p>
-              {role === 'guru' && homeroomStatus && (
-                <div style={{ marginTop: '6px', width: '100%' }}>
-                  <label style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '2px' }}>
-                    Mode Dashboard:
-                  </label>
-                  <select
-                    value={guruMode}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setGuruMode(val);
-                      localStorage.setItem('guruMode', val);
-                      if (val === 'walikelas') {
-                        navigate('/dashboard/guru/walikelas');
-                      } else {
-                        navigate('/dashboard/guru');
-                      }
-                      if (onClose) onClose();
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '5px 8px',
-                      borderRadius: '8px',
-                      border: '1px solid #0284c7',
-                      background: '#eff6ff',
-                      color: '#0369a1',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    <option value="guru">📘 Mode Guru Mapel (KBM)</option>
-                    <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
-                  </select>
-                </div>
-              )}
-            </div>
+            <p className="sidebar-user-role">{getDisplayRole()}</p>
           </div>
         </div>
 
@@ -285,6 +246,44 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
               <span className="material-symbols-outlined">account_circle</span>
               Profil Saya
             </div>
+
+            {role === 'guru' && homeroomStatus && (
+              <div style={{ padding: '6px 12px 6px 12px', width: '100%', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', margin: '4px 0' }}>
+                <label style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '3px' }}>
+                  Switch Mode Dashboard:
+                </label>
+                <select
+                  value={guruMode}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setGuruMode(val);
+                    localStorage.setItem('guruMode', val);
+                    if (val === 'walikelas') {
+                      navigate('/dashboard/guru/walikelas');
+                    } else {
+                      navigate('/dashboard/guru');
+                    }
+                    if (onClose) onClose();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    border: '1px solid #0284c7',
+                    background: '#eff6ff',
+                    color: '#0369a1',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="guru">📘 Mode Guru Mapel (KBM)</option>
+                  <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
+                </select>
+              </div>
+            )}
+
             <div className="sidebar-footer-link" onClick={handleLogout}>
               <span className="material-symbols-outlined">logout</span>
               Logout
