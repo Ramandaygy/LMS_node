@@ -75,51 +75,70 @@ exports.generateMaterialAI = async (data) => {
   const targetSubject = subject_name || 'Informatika';
   const targetClass = class_name || 'SMP';
 
-  const actualPrompt = prompt || `Buat materi pembelajaran lengkap mengenai topik "${targetTitle}" untuk mata pelajaran "${targetSubject}" tingkat kelas "${targetClass}". ${description ? `Konteks tambahan: ${description}` : ''}`;
+  const actualPrompt = prompt || `Buat materi pembelajaran sekolah yang sangat lengkap, jelas, dan terstruktur mengenai topik "${targetTitle}" untuk mata pelajaran "${targetSubject}" tingkat kelas "${targetClass}". ${description ? `Konteks tambahan dari guru: ${description}` : ''}`;
+
+  const defaultRichFallback = {
+    title: targetTitle,
+    description: description || `Materi pembelajaran lengkap mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} tingkat ${targetClass}.`,
+    content: `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
+<p>Materi pembelajaran ini membahas mengenai <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> untuk siswa kelas <strong>${targetClass}</strong>.</p>
+<h4>1. Tujuan Pembelajaran & Konsep Utama</h4>
+<p>Setelah mempelajari materi ini, siswa diharapkan dapat memahami konsep dasar, prinsip utama, dan pengaplikasian dari ${targetTitle}.</p>
+<ul>
+  <li><strong>Pengertian Utama:</strong> Definisi dasar dan pentingnya mempelajari ${targetTitle}.</li>
+  <li><strong>Fungsi & Manfaat:</strong> Penerapan praktis dalam kehidupan sehari-hari dan bidang ${targetSubject}.</li>
+  <li><strong>Prinsip Kerja / Teori:</strong> Penjelasan rinci langkah demi langkah.</li>
+</ul>
+<h4>2. Uraian & Pembahasan Materi</h4>
+<p>Topik <strong>${targetTitle}</strong> merupakan salah satu kompetensi dasar utama. Pemahaman yang mendalam pada bab ini menjadi fondasi penting untuk bab-bab selanjutnya.</p>
+<h4>3. Rangkuman & Latihan Mandiri</h4>
+<p>Cobalah untuk menjawab pertanyaan singkat berikut untuk menguji pemahaman Anda:</p>
+<ol>
+  <li>Jelaskan apa yang dimaksud dengan ${targetTitle}?</li>
+  <li>Sebutkan 2 contoh penerapan ${targetTitle} yang kamu ketahui!</li>
+</ol>`
+  };
 
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    // Fallback if no Gemini key configured
-    return {
-      title: targetTitle,
-      description: description || `Ringkasan materi pembelajaran mengenai ${targetTitle} pada mata pelajaran ${targetSubject}.`,
-      content: `<h3>Ringkasan Pembelajaran: ${targetTitle}</h3><p>Materi ini menyajikan pemahaman dasar, pembahasan teori utama, serta contoh penerapan praktis untuk mata pelajaran <strong>${targetSubject}</strong>.</p><ul><li>Konsep & Pengertian Utama</li><li>Penjelasan Langkah demi Langkah</li><li>Contoh Latihan Mandiri</li></ul>`
-    };
+    return defaultRichFallback;
   }
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const systemPrompt = `Anda adalah asisten AI pendidik profesional. 
-Buatlah materi pembelajaran sekolah yang terstruktur, jelas, dan menarik.
-Format output JSON murni dengan struktur:
+    const systemPrompt = `Anda adalah asisten AI pendidik profesional Indonesia. 
+Buatlah materi pembelajaran sekolah yang terstruktur, lengkap, dan menarik.
+Wajib me-return output JSON murni dengan format persis:
 {
   "title": "${targetTitle}",
-  "description": "Deskripsi/ringkasan singkat 1-2 kalimat mengenai materi ini",
-  "content": "Isi materi lengkap dalam HTML terstruktur (menggunakan <p>, <h3>, <ul>, <li>, <strong>, dan contoh soal/latihan)"
+  "description": "Ringkasan singkat 1-2 kalimat mengenai materi ini",
+  "content": "Isi materi lengkap dalam HTML terstruktur (menggunakan <p>, <h3>, <h4>, <ul>, <li>, <ol>, <strong>, dan contoh latihan)"
 }
-Jangan tambahkan teks markdown fence di luar JSON murni.`;
+Jangan menambahkan teks markdown fence di luar JSON.`;
 
-    const fullPrompt = `${systemPrompt}\n\nInstruksi Pembelajaran: ${actualPrompt}`;
+    const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
 
     const result = await model.generateContent(fullPrompt);
-    let jsonString = result.response.text().trim();
-    jsonString = jsonString.replace(/```json/gi, '').replace(/```/g, '').trim();
-    const aiContent = JSON.parse(jsonString);
+    let rawText = result.response.text().trim();
+
+    // Extract JSON object safely using regex
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      rawText = jsonMatch[0];
+    }
+
+    const aiContent = JSON.parse(rawText);
 
     return {
       title: aiContent.title || targetTitle,
-      description: aiContent.description || description || `Materi mengenai ${targetTitle}.`,
-      content: aiContent.content || `<p>Isi materi mengenai ${targetTitle}.</p>`
+      description: aiContent.description || defaultRichFallback.description,
+      content: aiContent.content || defaultRichFallback.content
     };
   } catch (err) {
-    console.error('[Gemini AI Material Error]:', err);
-    return {
-      title: targetTitle,
-      description: description || `Ringkasan materi pembelajaran mengenai ${targetTitle}.`,
-      content: `<h3>Materi: ${targetTitle}</h3><p>Materi pembelajaran mengenai <strong>${targetTitle}</strong> untuk kelas ${targetClass}.</p><ul><li>Pembahasan Konsep Utama</li><li>Studi Kasus & Contoh Penerapan</li></ul>`
-    };
+    console.error('[Gemini AI Material Error]:', err.message);
+    return defaultRichFallback;
   }
 };
 

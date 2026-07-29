@@ -37,6 +37,9 @@ const GuruMaterials = () => {
       const res = await api.get('/profile');
       setTeacherSubjects(res.data.subjects || []);
       setTeacherClasses(res.data.classes || []);
+      if (res.data.subjects && res.data.subjects.length > 0 && !form.subject_id) {
+        setForm(prev => ({ ...prev, subject_id: res.data.subjects[0]._id }));
+      }
     } catch (err) {
       console.error('Gagal ambil profil guru', err);
     }
@@ -63,13 +66,16 @@ const GuruMaterials = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const finalDesc = form.description || `Materi pembelajaran mengenai ${form.title}.`;
+    const finalContent = form.content || `<h3>Pembahasan Utama: ${form.title}</h3><p>Materi pembelajaran sekolah mengenai <strong>${form.title}</strong>.</p><h4>1. Pengertian & Konsep Dasar</h4><p>Penjelasan mengenai definisi dasar dan pentingnya mempelajari ${form.title}.</p><h4>2. Uraian Teori & Contoh Praktis</h4><p>Pembahasan terstruktur mengenai bab ini.</p>`;
+
     const data = new FormData();
     data.append('title', form.title);
-    data.append('description', form.description);
-    data.append('content', form.content);
+    data.append('description', finalDesc);
+    data.append('content', finalContent);
     data.append('class_id', form.class_id || '');
-    data.append('subject_id', form.subject_id);
-    data.append('external_link', form.external_link);
+    data.append('subject_id', form.subject_id || (teacherSubjects[0]?._id || ''));
+    data.append('external_link', form.external_link || '');
     data.append('is_published', form.class_id ? 'true' : 'false');
     if (form.file) data.append('file', form.file);
 
@@ -81,7 +87,7 @@ const GuruMaterials = () => {
         await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
         alert('Materi berhasil disimpan');
       }
-      setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
+      setForm({ title: '', description: '', content: '', class_id: '', subject_id: teacherSubjects[0]?._id || '', external_link: '', file: null });
       setEditingId(null);
       fetchMaterials();
     } catch (err) {
@@ -115,18 +121,15 @@ const GuruMaterials = () => {
     }
   };
 
+  // Generate AI Content Flow
   const handleGenerateAIContent = async () => {
     if (!form.title) {
       alert('Silakan isi Judul Materi terlebih dahulu.');
       return;
     }
-    if (!form.subject_id) {
-      alert('Silakan pilih Mata Pelajaran terlebih dahulu.');
-      return;
-    }
     setGeneratingAI(true);
     try {
-      const selectedSubject = teacherSubjects.find(s => s._id === form.subject_id);
+      const selectedSubject = teacherSubjects.find(s => s._id === form.subject_id) || teacherSubjects[0];
       const selectedClass = teacherClasses.find(c => c._id === form.class_id);
 
       const res = await api.post('/materials/generate-ai', {
@@ -134,29 +137,38 @@ const GuruMaterials = () => {
         description: form.description,
         subject_name: selectedSubject ? selectedSubject.name : 'Informatika',
         class_name: selectedClass ? selectedClass.name : 'Kelas',
-        subject_id: form.subject_id,
+        subject_id: form.subject_id || (selectedSubject?._id || ''),
         class_id: form.class_id
       });
 
       const aiData = res.data?.data || res.data;
 
       if (aiData) {
+        const generatedDesc = aiData.description || `Ringkasan materi pembelajaran ${form.title}.`;
+        const generatedContent = aiData.content || `<h3>${form.title}</h3><p>Materi pembelajaran mengenai ${form.title}.</p>`;
+
         setForm(prev => ({
           ...prev,
-          description: aiData.description || prev.description || 'Ringkasan materi pembelajaran.',
-          content: aiData.content || prev.content || '<p>Isi materi hasil generasi AI.</p>'
+          description: generatedDesc,
+          content: generatedContent,
+          subject_id: prev.subject_id || (selectedSubject?._id || '')
         }));
-        alert('Konten dan Deskripsi materi berhasil digenerate oleh AI!');
+        alert('Konten dan Deskripsi materi berhasil dihasilkan oleh AI! Silakan periksa dan simpan.');
       }
     } catch (err) {
       console.error('Error generate AI material content:', err);
-      alert('Gagal generate materi dengan AI');
+      alert('Gagal generate materi dengan AI. Menggunakan template AI default...');
+      setForm(prev => ({
+        ...prev,
+        description: prev.description || `Ringkasan materi pembelajaran ${form.title}.`,
+        content: prev.content || `<h3>Pembahasan ${form.title}</h3><p>Materi pembelajaran terstruktur untuk topik ${form.title}.</p>`
+      }));
     } finally {
       setGeneratingAI(false);
     }
   };
 
-  // Safe file downloader (only used when explicitly clicking download button)
+  // Safe file downloader (only triggered on explicit user click)
   const downloadFile = (fileUrl, fileName) => {
     if (!fileUrl) return;
     if (fileUrl.startsWith('data:')) {
@@ -172,7 +184,7 @@ const GuruMaterials = () => {
     }
   };
 
-  // Inline Document / File Previewer Helper
+  // Safe Inline Previewer that NEVER causes Chrome to auto-download!
   const renderFilePreview = (m) => {
     if (!m) return null;
     const fileUrl = m.file_url;
@@ -187,14 +199,14 @@ const GuruMaterials = () => {
         <div style={{ marginTop: '16px', background: '#f8fafc', padding: '16px', borderRadius: '14px', border: '1px solid #cbd5e1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <strong style={{ fontSize: '13px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>preview</span>
-              Pratinjau File Lampiran: {m.file_name || 'Dokumen Lampiran'}
+              <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>attach_file</span>
+              Lampiran File: {m.file_name || 'Dokumen Materi'}
             </strong>
             <button 
               onClick={() => downloadFile(fileUrl, m.file_name || m.title)}
-              style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span> Simpan Ke Perangkat
+              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span> Unduh File
             </button>
           </div>
 
@@ -209,11 +221,18 @@ const GuruMaterials = () => {
               style={{ width: '100%', height: '420px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#ffffff' }}
             />
           ) : (
-            <iframe 
-              src={fullUrl} 
-              title="Pratinjau Dokumen Materi" 
-              style={{ width: '100%', height: '400px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#ffffff' }}
-            />
+            /* NON-PDF / ODT / DOC FILES: Render info box without iframe to prevent Chrome auto-download */
+            <div style={{ padding: '20px', background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '42px', color: '#0284c7' }}>description</span>
+              <p style={{ margin: '8px 0 4px 0', fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>{m.file_name || 'Dokumen Materi'}</p>
+              <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: '#64748b' }}>Klik tombol di bawah jika Anda ingin mengunduh dan membaca file ini di perangkat Anda.</p>
+              <button 
+                onClick={() => downloadFile(fileUrl, m.file_name || m.title)}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span> Unduh Dokumen
+              </button>
+            </div>
           )}
         </div>
       );
@@ -230,7 +249,7 @@ const GuruMaterials = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <strong style={{ fontSize: '13px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span className="material-symbols-outlined" style={{ color: '#16a34a' }}>folder_shared</span>
-              Pratinjau Google Drive / Tautan Cloud
+              Tautan Google Drive / Cloud
             </strong>
             <a 
               href={extLink} 
@@ -411,7 +430,7 @@ const GuruMaterials = () => {
               {editingId && (
                 <button type="button" className="btn-secondary" onClick={() => {
                   setEditingId(null);
-                  setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
+                  setForm({ title: '', description: '', content: '', class_id: '', subject_id: teacherSubjects[0]?._id || '', external_link: '', file: null });
                 }} style={{ padding: '12px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontWeight: '700' }}>Batal</button>
               )}
             </div>
@@ -625,7 +644,7 @@ const GuruMaterials = () => {
         </div>
       )}
 
-      {/* MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI (PREVIEWER INLINE) */}
+      {/* MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI */}
       {selectedMaterialModal && (
         <div className="modal-backdrop" onClick={() => setSelectedMaterialModal(null)}>
           <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px', borderRadius: '20px' }}>
@@ -663,7 +682,7 @@ const GuruMaterials = () => {
                 />
               </div>
 
-              {/* INLINE PREVIEWER UNTUK FILE DOKUMEN / PDF / GOOGLE DRIVE / GAMBAR */}
+              {/* SAFE INLINE PREVIEWER THAT NEVER AUTO-DOWNLOADS */}
               {renderFilePreview(selectedMaterialModal)}
             </div>
 
