@@ -490,7 +490,9 @@ const GuruCourses = () => {
                       <span className="material-symbols-outlined info-icon">auto_stories</span>
                       <div>
                         <span className="cell-label">Pertemuan ke - {meetingNum}</span>
-                        <p className="cell-value">Overview & Materi Bab {meetingNum - 6}</p>
+                        <p className="cell-value" style={{ fontWeight: '700', color: '#0f172a' }}>
+                          {topics[meetingNum - 1] || `Overview & Materi Bab ${meetingNum}`}
+                        </p>
                       </div>
                     </div>
 
@@ -498,7 +500,9 @@ const GuruCourses = () => {
                       <span className="material-symbols-outlined info-icon check">check_circle</span>
                       <div>
                         <span className="cell-label">Presensi Guru</span>
-                        <p className="cell-value">{presensiNum} dari {totalMeeting} Pertemuan</p>
+                        <p className="cell-value" style={{ fontWeight: '800', color: '#15803d' }}>
+                          {presensiNum} dari {totalMeeting} Pertemuan (1 Semester)
+                        </p>
                       </div>
                     </div>
                   </div>

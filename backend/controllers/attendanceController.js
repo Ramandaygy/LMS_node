@@ -7,7 +7,7 @@ const Schedule = require('../models/Schedule');
 // ==================== GURU ====================
 exports.getTeacherSchedules = async (req, res) => {
   try {
-    const teacherId = req.user.id;
+    const teacherId = req.user.id || req.user._id;
     const schedules = await Schedule.find({ teacher_id: teacherId, is_active: true })
       .populate('class_id', 'name')
       .populate('subject_id', 'name');
@@ -16,17 +16,40 @@ exports.getTeacherSchedules = async (req, res) => {
       return res.json({ schedules: [] });
     }
 
-    const formatted = schedules.map(s => ({
-      id: s._id,
-      class_id: s.class_id ? s.class_id._id : null,
-      class_name: s.class_id ? s.class_id.name : 'Unknown Class',
-      subject_id: s.subject_id ? s.subject_id._id : null,
-      subject: s.subject_id ? s.subject_id.name : 'Unknown Subject',
-      day: s.day,
-      start_time: s.start_time,
-      end_time: s.end_time,
-      room: s.room
-    }));
+    const scheduleIds = schedules.map(s => s._id);
+
+    // Calculate unique attendance dates recorded for each schedule
+    const attendanceStats = await Attendance.aggregate([
+      { $match: { schedule_id: { $in: scheduleIds } } },
+      { $group: { _id: { schedule_id: '$schedule_id', date: '$date' } } },
+      { $group: { _id: '$_id.schedule_id', filled_count: { $sum: 1 } } }
+    ]);
+
+    const attendanceMap = {};
+    attendanceStats.forEach(stat => {
+      attendanceMap[stat._id.toString()] = stat.filled_count;
+    });
+
+    const formatted = schedules.map(s => {
+      const presensiCount = attendanceMap[s._id.toString()] || 0;
+      // Default initial meeting is presensiCount + 1, capped at 16
+      const meetingNum = presensiCount > 0 ? Math.min(presensiCount, 16) : 1;
+
+      return {
+        id: s._id,
+        class_id: s.class_id ? s.class_id._id : null,
+        class_name: s.class_id ? s.class_id.name : 'Unknown Class',
+        subject_id: s.subject_id ? s.subject_id._id : null,
+        subject: s.subject_id ? s.subject_id.name : 'Unknown Subject',
+        day: s.day,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        room: s.room || (`Ruang Kelas ${s.class_id ? s.class_id.name : ''}`),
+        pertemuan_ke: meetingNum,
+        presensi_count: presensiCount,
+        total_pertemuan: 16
+      };
+    });
 
     return res.json({ schedules: formatted });
   } catch (err) {
