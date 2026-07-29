@@ -222,12 +222,12 @@ const SiswaCbt = () => {
 
         {/* Score Summary Box */}
         <div className="cbt-result-summary-card">
-          <div className={`score-badge-circle ${examResult.is_passed ? 'passed' : 'failed'}`} style={{ width: 'auto', minWidth: '200px', height: 'auto', borderRadius: '24px', padding: '20px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', marginBottom: '6px' }}>
-              {renderStarRating(examResult.score, 100)}
-            </div>
-            <span className="score-label" style={{ fontSize: '13px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              Perolehan Bintang ({examResult.score} Poin)
+          <div className={`score-badge-circle ${examResult.is_passed ? 'passed' : 'failed'}`} style={{ width: 'auto', minWidth: '180px', height: 'auto', borderRadius: '24px', padding: '16px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '38px', fontWeight: '900', lineHeight: 1.1, color: examResult.is_passed ? '#15803d' : '#b91c1c' }}>
+              {examResult.score}
+            </span>
+            <span className="score-label" style={{ fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
+              NILAI AKHIR (0 - 100)
             </span>
           </div>
 
@@ -482,7 +482,7 @@ const SiswaCbt = () => {
                 <span className="subject-badge">{exam.subject?.name || 'Mata Pelajaran'}</span>
                 {exam.has_submitted ? (
                   <span className={`status-badge ${exam.my_result?.is_passed ? 'passed' : 'failed'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    Selesai {renderStarRating(exam.my_score || 0)}
+                    Selesai (Nilai: {exam.my_score || 0})
                   </span>
                 ) : (
                   <span className="status-badge active">Siap Dikerjakan</span>

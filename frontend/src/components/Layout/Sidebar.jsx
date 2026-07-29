@@ -74,14 +74,14 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   }, [location.pathname]);
 
   const guruMapelMenuList = [
-    { key: 'dashboard', label: 'Modul Guru (KBM)', icon: 'school', path: '/dashboard/guru' },
-    { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
-    { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/guru/assignments' },
-    { key: 'attendance', label: 'Absensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
+    { key: 'dashboard', label: 'Dashboard Guru', icon: 'space_dashboard', path: '/dashboard/guru' },
+    { key: 'courses', label: 'Modul Guru (KBM)', icon: 'school', path: '/dashboard/guru/courses' },
+    { key: 'materials', label: 'Bank Materi', icon: 'card_membership', path: '/dashboard/guru/materials' },
+    { key: 'assignments', label: 'Tugas Kelas', icon: 'assignment', path: '/dashboard/guru/assignments' },
+    { key: 'attendance', label: 'Absensi & Presensi', icon: 'event_available', path: '/dashboard/guru/attendance' },
     { key: 'input-nilai', label: 'Input Nilai', icon: 'edit_note', path: '/dashboard/guru/input-nilai' },
     { key: 'quiz', label: 'Quiz Live', icon: 'emoji_objects', path: '/dashboard/guru/quiz' },
     { key: 'cbt', label: 'Ujian CBT', icon: 'quiz', path: '/dashboard/guru/cbt' },
-    { key: 'leger', label: 'Leger Nilai', icon: 'table_view', path: '/dashboard/guru/leger' },
     { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
   ];
 
@@ -223,28 +223,44 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
           </div>
           <div className="sidebar-user-details">
             <p className="sidebar-user-name">{getDisplayName()}</p>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', width: '100%' }}>
               <p className="sidebar-user-role">{getDisplayRole()}</p>
               {role === 'guru' && homeroomStatus && (
-                <button
-                  className="sidebar-walikelas-btn"
-                  onClick={() => {
-                    if (guruMode === 'walikelas') {
-                      setGuruMode('guru');
-                      localStorage.setItem('guruMode', 'guru');
-                      navigate('/dashboard/guru');
-                    } else {
-                      setGuruMode('walikelas');
-                      localStorage.setItem('guruMode', 'walikelas');
-                      navigate('/dashboard/guru/walikelas');
-                    }
-                    if (onClose) onClose();
-                  }}
-                  title={guruMode === 'walikelas' ? "Switch ke Mode Guru Mapel" : `Switch ke Mode Wali Kelas ${homeroomStatus.name}`}
-                >
-                  <span className="material-symbols-outlined">swap_horiz</span>
-                  {guruMode === 'walikelas' ? 'Mode Guru Mapel' : `Mode Wali Kelas (${homeroomStatus.name})`}
-                </button>
+                <div style={{ marginTop: '6px', width: '100%' }}>
+                  <label style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '2px' }}>
+                    Mode Dashboard:
+                  </label>
+                  <select
+                    value={guruMode}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setGuruMode(val);
+                      localStorage.setItem('guruMode', val);
+                      if (val === 'walikelas') {
+                        navigate('/dashboard/guru/walikelas');
+                      } else {
+                        navigate('/dashboard/guru');
+                      }
+                      if (onClose) onClose();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '5px 8px',
+                      borderRadius: '8px',
+                      border: '1px solid #0284c7',
+                      background: '#eff6ff',
+                      color: '#0369a1',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <option value="guru">📘 Mode Guru Mapel (KBM)</option>
+                    <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
+                  </select>
+                </div>
               )}
             </div>
           </div>

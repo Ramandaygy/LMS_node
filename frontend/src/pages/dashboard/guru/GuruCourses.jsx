@@ -78,10 +78,276 @@ const GuruCourses = () => {
     }
   };
 
+  const [activeCourseDetail, setActiveCourseDetail] = useState(null);
+  const [bankMaterialModal, setBankMaterialModal] = useState(null);
+  const [bankMaterials, setBankMaterials] = useState([]);
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
+  const [loadingBankMaterials, setLoadingBankMaterials] = useState(false);
+  const [publishingMaterial, setPublishingMaterial] = useState(false);
+
+  const [taskModal, setTaskModal] = useState(null);
+  const [teacherTasks, setTeacherTasks] = useState([]);
+  const [selectedTaskId, setSelectedTaskId] = useState('');
+  const [loadingTasks, setLoadingTasks] = useState(false);
+
+  const handleOpenBankMaterialModal = async (sch, sessionNum = 1) => {
+    setBankMaterialModal({ targetSchedule: sch, targetSessionNum: sessionNum });
+    setLoadingBankMaterials(true);
+    try {
+      const res = await api.get('/materials/guru/me');
+      const items = res.data.data || res.data.materials || [];
+      setBankMaterials(items);
+      if (items.length > 0) setSelectedMaterialId(items[0]._id);
+    } catch (err) {
+      console.error('Error fetching bank materials:', err);
+    } finally {
+      setLoadingBankMaterials(false);
+    }
+  };
+
+  const handlePublishMaterialToClassSession = async () => {
+    if (!selectedMaterialId || !bankMaterialModal) return;
+    setPublishingMaterial(true);
+    try {
+      const targetClassId = bankMaterialModal.targetSchedule.class_id?._id || bankMaterialModal.targetSchedule.class_id || bankMaterialModal.targetSchedule.id;
+      const sessionNum = bankMaterialModal.targetSessionNum || 1;
+
+      await api.post('/materials/distribute-batch', {
+        material_ids: [selectedMaterialId],
+        class_id: targetClassId,
+        session_number: sessionNum
+      });
+
+      alert(`Berhasil mengunggah materi dari Bank Materi langsung ke Sesi ke-${sessionNum} Kelas!`);
+      setBankMaterialModal(null);
+      loadPageData();
+    } catch (err) {
+      console.error('Error publishing material:', err);
+      alert(err.response?.data?.message || 'Gagal mengunggah materi ke sesi kelas.');
+    } finally {
+      setPublishingMaterial(false);
+    }
+  };
+
+  const handleOpenTaskModal = async (sch, sessionNum = 1) => {
+    setTaskModal({ targetSchedule: sch, targetSessionNum: sessionNum });
+    setLoadingTasks(true);
+    try {
+      const res = await api.get('/assignments/guru/me');
+      const items = res.data.data || [];
+      setTeacherTasks(items);
+      if (items.length > 0) setSelectedTaskId(items[0]._id);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  };
+
   if (loading) return <div className="loading" style={{ padding: '30px', textAlign: 'center' }}>Memuat Modul Guru & Jadwal...</div>;
 
   const currentDayName = getCurrentDayName();
   const filteredSchedules = schedules.filter(s => (s.day || '').toUpperCase() === selectedDay.toUpperCase());
+
+  const topics = [
+    "Pengenalan Konsep Dasar KBM & Silabus Kurikulum",
+    "Pemahaman Tipe Data, Karakteristik Himpunan & Algoritma",
+    "Struktur Pembelajaran: Data Preprocessing & Cleaning",
+    "Analisis Sistem: Data Preprocessing & Transformation",
+    "Metode Klasifikasi: K-Nearest Neighbors (KNN)",
+    "Metode Klasifikasi: Naive Bayes Classifier",
+    "Evaluasi & Overview Persiapan Ujian Tengah Semester (UTS)",
+    "Ujian Tengah Semester (UTS) Teori & Praktikum",
+    "Review Hasil UTS & Pendalaman Materi Lanjutan Bab 4",
+    "Penerapan Konsep AI & Machine Learning Dasar",
+    "Analisis Data Visual & Manajemen Database LMS",
+    "Algoritma Pengelompokan (Clustering) & K-Means",
+    "Etika Digital, Keamanan Data & Hak Cipta Perangkat Lunak",
+    "Penyusunan Proyek Mandiri & Penugasan Kelompok",
+    "Presentasi & Demonstrasi Proyek Akhir Pembelajaran",
+    "Ujian Akhir Semester (UAS) & Evaluasi Rekapitulasi Rapor"
+  ];
+
+  // RENDER EDLINK SIAKAD COURSE DETAIL VIEW (SCREENSHOT 41)
+  if (activeCourseDetail) {
+    const sch = activeCourseDetail.schedule;
+    const currentSesiIdx = activeCourseDetail.activeSessionIdx || 0;
+    const activeTab = activeCourseDetail.activeTab || 'sesi';
+
+    return (
+      <div className="guru-dashboard-content" style={{ padding: '24px', maxWidth: '1400px' }}>
+        <button 
+          onClick={() => setActiveCourseDetail(null)}
+          style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '8px 16px', fontWeight: '800', color: '#0284c7', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', marginBottom: '16px' }}
+        >
+          <span className="material-symbols-outlined">arrow_back</span> Kembali ke Daftar Modul Guru
+        </button>
+
+        <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '24px', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+            <div>
+              <h1 style={{ fontSize: '24px', fontWeight: '900', color: '#0f172a', margin: '0 0 4px 0' }}>
+                {sch.title || sch.subject_name || sch.name || 'MOBILE DEVELOPMENT'} ({sch.class_name || 'RPL4'})
+              </h1>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+                Kelas: {sch.class_name || 'RPL4'} | Sistem KBM Reguler
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                onClick={() => handleOpenBankMaterialModal(sch, currentSesiIdx + 1)}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span className="material-symbols-outlined">library_add</span> + Berkas Media Library / Bank Materi
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#f8fafc', padding: '14px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Sekolah:</span>
+              <strong style={{ fontSize: '13px', color: '#1e293b' }}>SMP Negeri 1 Suradadi</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Periode Akademik:</span>
+              <strong style={{ fontSize: '13px', color: '#1e293b' }}>2025/2026 Genap</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Peserta Kelas:</span>
+              <strong style={{ fontSize: '13px', color: '#1e293b' }}>{sch.total_students || 32} Peserta Siswa</strong>
+            </div>
+            <div>
+              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Pengajar Utama:</span>
+              <strong style={{ fontSize: '13px', color: '#1e293b' }}>{teacherProfile?.full_name || 'Susi Herlina, S.Kom.'}</strong>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', overflowX: 'auto' }}>
+            {['Sesi', 'Asesmen / Tugas', 'Timeline', 'Peserta Siswa', 'Laporan Nilai', 'Info Kelas'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeTab: tab.toLowerCase() })}
+                style={{
+                  padding: '8px 16px',
+                  border: 'none',
+                  borderBottom: activeTab === tab.toLowerCase() ? '3px solid #0284c7' : '3px solid transparent',
+                  background: 'transparent',
+                  color: activeTab === tab.toLowerCase() ? '#0284c7' : '#64748b',
+                  fontWeight: activeTab === tab.toLowerCase() ? '800' : '600',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+          <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px', maxHeight: '720px', overflowY: 'auto' }}>
+            <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#334155', margin: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+              Terdapat 16 Sesi KBM
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {Array.from({ length: 16 }, (_, i) => {
+                const sessNum = i + 1;
+                const isActive = currentSesiIdx === i;
+                const topicTitle = topics[i] || `Pembahasan Materi Sesi ke-${sessNum}`;
+                const isPast = sessNum <= 11;
+
+                return (
+                  <div
+                    key={sessNum}
+                    onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeSessionIdx: i })}
+                    style={{
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      border: isActive ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                      background: isActive ? '#f0f9ff' : (isPast ? '#f8fafc' : '#ffffff'),
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <strong style={{ fontSize: '12px', color: isActive ? '#0284c7' : '#1e293b' }}>
+                        #{sessNum}. {topicTitle}
+                      </strong>
+                      {isPast && <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#16a34a' }}>check_circle</span>}
+                    </div>
+                    <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
+                      Sesi KBM Pertemuan ke-{sessNum}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', margin: '0 0 14px 0' }}>
+                Sesi #{currentSesiIdx + 1} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>Sesi Anda</span>
+              </h3>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Rencana Materi:</label>
+                <p style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', margin: 0 }}>{topics[currentSesiIdx]}</p>
+              </div>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Realisasi Materi:</label>
+                <p style={{ fontSize: '13px', color: '#334155', margin: 0 }}>Penjelasan modul dan evaluasi KBM pertemuan ke-{currentSesiIdx + 1}.</p>
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
+                  Materi Sesi ke-{currentSesiIdx + 1}
+                </strong>
+                <button
+                  onClick={() => handleOpenBankMaterialModal(sch, currentSesiIdx + 1)}
+                  style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> Berkas Media Library / Bank Materi
+                </button>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#94a3b8' }}>cloud_upload</span>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  Gunakan tombol <strong>+ Berkas Media Library / Bank Materi</strong> di atas untuk mengunggah atau memilih materi dari Bank Materi secara langsung.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>assignment</span>
+                  Aktivitas & Tugas Sesi ke-{currentSesiIdx + 1}
+                </strong>
+                <button
+                  onClick={() => handleOpenTaskModal(sch, currentSesiIdx + 1)}
+                  style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Aktivitas / Tugas Sesi
+                </button>
+              </div>
+
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '20px', textAlign: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#94a3b8' }}>task</span>
+                <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  Belum ada aktivitas atau tugas khusus yang disematkan pada sesi ini.
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="guru-dashboard-content" style={{ padding: '24px' }}>
@@ -120,7 +386,12 @@ const GuruCourses = () => {
               </div>
             ) : (
               courses.map(course => (
-                <div key={course._id} className="course-card" style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                <div 
+                  key={course._id} 
+                  className="course-card" 
+                  onClick={() => setActiveCourseDetail({ schedule: course, activeSessionIdx: 0, activeTab: 'sesi' })}
+                  style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.03)', cursor: 'pointer' }}
+                >
                   <div className="course-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <div className="course-icon" style={{ background: '#e0f2fe', color: '#0284c7', padding: '8px', borderRadius: '10px', display: 'inline-flex' }}>
                       <span className="material-symbols-outlined">menu_book</span>
@@ -138,7 +409,7 @@ const GuruCourses = () => {
                     <span><span className="material-symbols-outlined" style={{ fontSize: '14px', verticalAlign: 'middle' }}>bar_chart</span> {course.level || 'Umum'}</span>
                   </div>
                   <div className="course-actions" style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-view" style={{ flex: 1, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>Lihat Detail</button>
+                    <button className="btn-view" style={{ flex: 1, background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' }}>Lihat Detail Modul SIAKAD</button>
                   </div>
                 </div>
               ))
@@ -205,6 +476,7 @@ const GuruCourses = () => {
                   return (
                     <div 
                       key={item._id || idx}
+                      onClick={() => setActiveCourseDetail({ schedule: item, activeSessionIdx: 0, activeTab: 'sesi' })}
                       style={{ 
                         background: '#f8fafc', 
                         padding: '12px 14px', 
@@ -212,7 +484,8 @@ const GuruCourses = () => {
                         borderLeft: '4px solid #0284c7', 
                         borderTop: '1px solid #e2e8f0',
                         borderRight: '1px solid #e2e8f0',
-                        borderBottom: '1px solid #e2e8f0'
+                        borderBottom: '1px solid #e2e8f0',
+                        cursor: 'pointer'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
@@ -240,10 +513,80 @@ const GuruCourses = () => {
         </div>
       </div>
 
+      {/* POPUP 1: MODAL PILIH MATERI DARI BANK MATERI */}
+      {bankMaterialModal && (
+        <div className="modal-overlay" onClick={() => setBankMaterialModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
+                Pilih Materi dari Bank Materi
+              </h3>
+              <button onClick={() => setBankMaterialModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>
+                Pilih materi dari Bank Materi Anda untuk diunggah langsung ke sesi kelas ini.
+              </p>
+
+              {loadingBankMaterials ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat koleksi Bank Materi...</div>
+              ) : bankMaterials.length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '320px', overflowY: 'auto' }}>
+                  {bankMaterials.map((mat) => (
+                    <label
+                      key={mat._id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        border: selectedMaterialId === mat._id ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                        background: selectedMaterialId === mat._id ? '#f0f9ff' : '#ffffff',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="selectedBankMaterial"
+                        value={mat._id}
+                        checked={selectedMaterialId === mat._id}
+                        onChange={() => setSelectedMaterialId(mat._id)}
+                        style={{ marginTop: '4px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{mat.title}</strong>
+                        <p style={{ fontSize: '12px', color: '#64748b', margin: '2px 0 0 0' }}>{mat.description || 'Tanpa deskripsi'}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
+                  Belum ada materi di Bank Materi.
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button className="btn-cancel" onClick={() => setBankMaterialModal(null)} style={{ padding: '8px 16px', borderRadius: '8px' }}>Batal</button>
+              <button
+                onClick={handlePublishMaterialToClassSession}
+                disabled={publishingMaterial || !selectedMaterialId}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}
+              >
+                {publishingMaterial ? 'Mengunggah...' : 'Upload Direct ke Sesi Modul Kelas'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Buat Kursus / Modul Baru</h3>
+            <h3>Buat Modul Guru Baru</h3>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label>Judul Modul Kursus</label>
@@ -260,16 +603,6 @@ const GuruCourses = () => {
                   <option value="Informatika">Informatika</option>
                   <option value="Matematika">Matematika</option>
                   <option value="IPA">IPA</option>
-                  <option value="Bahasa Indonesia">Bahasa Indonesia</option>
-                  <option value="Bahasa Inggris">Bahasa Inggris</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Level</label>
-                <select name="level" value={formData.level} onChange={handleChange}>
-                  <option value="beginner">Pemula</option>
-                  <option value="intermediate">Menengah</option>
-                  <option value="advanced">Lanjutan</option>
                 </select>
               </div>
               <div className="modal-buttons">
