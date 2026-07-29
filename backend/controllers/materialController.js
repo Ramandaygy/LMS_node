@@ -134,6 +134,69 @@ exports.generateMaterial = async (req, res) => {
   }
 };
 
+// BATCH DISTRIBUSI MATERI DARI BANK KE KELAS TARGET
+exports.distributeMaterialsBatch = async (req, res) => {
+  try {
+    const { material_ids, class_id } = req.body;
+
+    if (!material_ids || !Array.isArray(material_ids) || material_ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Pilih minimal 1 materi untuk didistribusikan' });
+    }
+    if (!class_id) {
+      return res.status(400).json({ success: false, message: 'Pilih kelas target distribusi' });
+    }
+
+    const MaterialModel = require('../models/Material');
+    let classIdObj;
+    try {
+      classIdObj = new mongoose.Types.ObjectId(class_id.toString());
+    } catch (e) {
+      classIdObj = class_id;
+    }
+
+    await MaterialModel.updateMany(
+      { _id: { $in: material_ids.map(id => new mongoose.Types.ObjectId(id.toString())) } },
+      {
+        $set: {
+          class_id: classIdObj,
+          is_published: true
+        }
+      }
+    );
+
+    // Send push notification to students of that class
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const classIdStr = class_id.toString();
+      const students = await siswaCol.find({
+        $or: [
+          { class_id: classIdStr },
+          ...(classIdObj ? [{ class_id: classIdObj }] : [])
+        ]
+      }).toArray();
+
+      for (const student of students) {
+        if (student._id) {
+          notificationController.sendPushNotification(
+            student._id.toString(),
+            'Materi Pembelajaran Baru!',
+            `${material_ids.length} materi baru telah didistribusikan untuk kelas Anda.`,
+            '/dashboard/siswa/materials'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send push notification for batch material distribution:', notifErr);
+    }
+
+    return res.json({ success: true, message: 'Materi berhasil didistribusikan ke kelas target' });
+  } catch (err) {
+    console.error('[DistributeBatch Err]:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // UPDATE MATERI
 
 // GENERATE QUIZ DENGAN AI (Gemini)

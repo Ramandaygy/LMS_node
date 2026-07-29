@@ -6,8 +6,12 @@ const GuruMaterials = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedMaterialModal, setSelectedMaterialModal] = useState(null);
-  const [selectedPublishModal, setSelectedPublishModal] = useState(null);
-  const [publishTargetClass, setPublishTargetClass] = useState('');
+  
+  // Batch selection states
+  const [selectedMaterialIds, setSelectedMaterialIds] = useState([]);
+  const [showDistributeModal, setShowDistributeModal] = useState(false);
+  const [distributeTargetClass, setDistributeTargetClass] = useState('');
+  const [distributing, setDistributing] = useState(false);
 
   const [form, setForm] = useState({
     title: '',
@@ -64,17 +68,20 @@ const GuruMaterials = () => {
     data.append('title', form.title);
     data.append('description', form.description);
     data.append('content', form.content);
-    data.append('class_id', form.class_id);
+    data.append('class_id', form.class_id || '');
     data.append('subject_id', form.subject_id);
     data.append('external_link', form.external_link);
+    // If saving without class, mark as draft in bank
+    data.append('is_published', form.class_id ? 'true' : 'false');
     if (form.file) data.append('file', form.file);
+
     try {
       if (editingId) {
         await api.put(`/materials/${editingId}`, data, { headers: { 'Content-Type': 'multipart/form-data' } });
         alert('Materi berhasil diupdate');
       } else {
         await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
-        alert('Materi berhasil disimpan ke koleksi!');
+        alert('Materi berhasil disimpan ke Bank Materi! Silakan centang & distribusikan ke kelas saat siap.');
       }
       setForm({ title: '', description: '', content: '', class_id: '', subject_id: '', external_link: '', file: null });
       setEditingId(null);
@@ -149,7 +156,7 @@ const GuruMaterials = () => {
     }
   };
 
-  // Safe file download function for Base64 Data URIs & normal URLs
+  // Safe file downloader for Base64 Data URIs & normal URLs
   const downloadFile = (fileUrl, fileName) => {
     if (!fileUrl) return;
     if (fileUrl.startsWith('data:')) {
@@ -165,18 +172,50 @@ const GuruMaterials = () => {
     }
   };
 
-  // Handle assign/publish material to specific class
-  const handleAssignToClass = async () => {
-    if (!selectedPublishModal) return;
+  // Checkbox Selection Logic
+  const handleToggleSelect = (id) => {
+    setSelectedMaterialIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedMaterialIds(filteredMaterials.map(m => m._id));
+    } else {
+      setSelectedMaterialIds([]);
+    }
+  };
+
+  // Batch Distribution Logic
+  const handleBatchDistributeSubmit = async () => {
+    if (selectedMaterialIds.length === 0) {
+      alert('Pilih minimal 1 materi untuk didistribusikan');
+      return;
+    }
+    if (!distributeTargetClass) {
+      alert('Pilih kelas target distribusi');
+      return;
+    }
+
+    setDistributing(true);
     try {
-      const data = new FormData();
-      data.append('class_id', publishTargetClass);
-      await api.put(`/materials/${selectedPublishModal._id}`, data);
-      alert('Materi berhasil dibagikan ke kelas target!');
-      setSelectedPublishModal(null);
-      fetchMaterials();
+      const res = await api.post('/materials/distribute-batch', {
+        material_ids: selectedMaterialIds,
+        class_id: distributeTargetClass
+      });
+
+      if (res.data.success) {
+        alert(`Berhasil mendistribusikan ${selectedMaterialIds.length} materi ke kelas target!`);
+        setShowDistributeModal(false);
+        setSelectedMaterialIds([]);
+        fetchMaterials();
+      }
     } catch (err) {
-      alert('Gagal membagikan materi ke kelas');
+      console.error('Distribute batch err:', err);
+      alert(err.response?.data?.message || 'Gagal mendistribusikan materi');
+    } finally {
+      setDistributing(false);
     }
   };
 
@@ -192,20 +231,23 @@ const GuruMaterials = () => {
     return true;
   });
 
+  const selectedMaterialsList = materials.filter(m => selectedMaterialIds.includes(m._id));
+
   if (loading) return <div className="loading">Memuat materi...</div>;
 
   return (
     <div className="guru-materials-container">
       <div className="page-header">
         <h1>Bank & Modul Materi Pembelajaran</h1>
-        <p>Kumpulkan materi pembelajaran di Bank Materi, lalu bagikan ke kelas target secara terpusat.</p>
+        <p>Buat dan kumpulkan materi di Bank Materi. Pilih & distribusikan beberapa materi ke kelas target saat siap.</p>
       </div>
 
+      {/* FORM PEMBUATAN MATERI */}
       <div className="cards-grid">
         <div className="form-card">
           <h3>
             <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
-            {editingId ? 'Edit Materi' : 'Buat Materi Baru (Simpan ke Bank / Kelas)'}
+            {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
           </h3>
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -213,19 +255,19 @@ const GuruMaterials = () => {
               <input name="title" placeholder="Contoh: Bab 1 — Pengenalan Bahasa Pemrograman" value={form.title} onChange={handleChange} required />
             </div>
             <div className="form-group">
-              <label>Deskripsi / Ringkasan Materi</label>
+              <label>Deskripsi</label>
               <textarea name="description" placeholder="Ringkasan singkat materi (atau klik Generate AI di bawah)" rows="2" value={form.description} onChange={handleChange} />
             </div>
             <div className="form-group">
-              <label>Isi / Konten Materi Pembelajaran</label>
+              <label>Konten Materi</label>
               <textarea name="content" placeholder="Isi materi lengkap (teks/HTML, atau klik Generate AI di bawah)" rows="6" value={form.content} onChange={handleChange} />
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Target Kelas (Bisa disimpan di Bank Materi)</label>
+                <label>Kelas</label>
                 <select name="class_id" value={form.class_id} onChange={handleChange}>
-                  <option value="">📁 Simpan ke Bank Materi Guru (Semua Kelas)</option>
-                  {teacherClasses.map(c => <option key={c._id} value={c._id}>Kelas {c.name}</option>)}
+                  <option value="">Pilih Kelas</option>
+                  {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -285,7 +327,7 @@ const GuruMaterials = () => {
 
             <div className="form-actions-row" style={{ display: 'flex', gap: '10px' }}>
               <button type="submit" className="btn-primary" style={{ width: '100%', padding: '12px 20px', borderRadius: '12px', fontWeight: '800' }}>
-                {editingId ? 'Update Materi' : 'Simpan Materi ke Koleksi'}
+                {editingId ? 'Update Materi' : 'Simpan Materi'}
               </button>
               {editingId && (
                 <button type="button" className="btn-secondary" onClick={() => {
@@ -298,8 +340,8 @@ const GuruMaterials = () => {
         </div>
       </div>
 
-      {/* FILTER TABS KOLEKSI MATERI */}
-      <div className="filter-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      {/* TABS KOLEKSI & FILTER */}
+      <div className="filter-tabs" style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
         <button 
           onClick={() => setMaterialFilter('all')}
           style={{ padding: '8px 18px', borderRadius: '20px', border: '1px solid #cbd5e1', background: materialFilter === 'all' ? '#0284c7' : '#fff', color: materialFilter === 'all' ? '#fff' : '#475569', fontWeight: '700', cursor: 'pointer' }}
@@ -316,7 +358,53 @@ const GuruMaterials = () => {
           onClick={() => setMaterialFilter('published')}
           style={{ padding: '8px 18px', borderRadius: '20px', border: '1px solid #cbd5e1', background: materialFilter === 'published' ? '#0284c7' : '#fff', color: materialFilter === 'published' ? '#fff' : '#475569', fontWeight: '700', cursor: 'pointer' }}
         >
-          🏫 Materi Per Kelas
+          🏫 Materi Didistribusikan
+        </button>
+      </div>
+
+      {/* BATCH ACTION STRIP (DENGAN CEKLIS SAMA SEPERTI YANG DIMAKSUD USER) */}
+      <div className="batch-action-bar" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '14px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', color: '#0f172a' }}>
+            <input 
+              type="checkbox" 
+              onChange={handleSelectAll} 
+              checked={filteredMaterials.length > 0 && selectedMaterialIds.length === filteredMaterials.length}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+            />
+            Pilih Semua Materi
+          </label>
+          <span style={{ fontSize: '12px', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '12px', fontWeight: '800' }}>
+            {selectedMaterialIds.length} Terpilih
+          </span>
+        </div>
+
+        <button 
+          onClick={() => {
+            if (selectedMaterialIds.length === 0) {
+              alert('Pilih minimal 1 materi untuk didistribusikan ke kelas!');
+              return;
+            }
+            setShowDistributeModal(true);
+          }}
+          disabled={selectedMaterialIds.length === 0}
+          style={{
+            background: selectedMaterialIds.length > 0 ? '#16a34a' : '#cbd5e1',
+            color: '#ffffff',
+            border: 'none',
+            padding: '10px 20px',
+            borderRadius: '12px',
+            fontWeight: '800',
+            fontSize: '13px',
+            cursor: selectedMaterialIds.length > 0 ? 'pointer' : 'not-allowed',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: selectedMaterialIds.length > 0 ? '0 4px 12px rgba(22, 163, 74, 0.25)' : 'none'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span>
+          Distribusikan Materi Terpilih ke Kelas
         </button>
       </div>
 
@@ -324,7 +412,7 @@ const GuruMaterials = () => {
       <div className="materials-section">
         <h3>
           <span className="material-symbols-outlined section-icon">library_books</span>
-          Koleksi & Bank Materi Pembelajaran
+          Daftar Koleksi & Bank Materi
           <span className="count-badge">{filteredMaterials.length}</span>
         </h3>
 
@@ -335,70 +423,144 @@ const GuruMaterials = () => {
           </div>
         ) : (
           <div className="materials-list">
-            {filteredMaterials.map(m => (
-              <div 
-                key={m._id} 
-                className="material-card"
-                onClick={() => setSelectedMaterialModal(m)}
-                style={{ cursor: 'pointer' }}
-              >
-                <div className="card-header">
-                  <h4>{m.title}</h4>
-                  <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
-                    <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: '800' }}>{m.subject_name}</span>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleEdit(m); }}
-                      style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                      title="Edit Materi"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleDelete(m._id); }}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                      title="Hapus Materi"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
-                    </button>
-                  </div>
-                </div>
-                {m.description && <p className="desc">{m.description}</p>}
-                {m.content && (
-                  <div className="content-preview">{stripHtml(m.content)}</div>
-                )}
-                
-                <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                  <div className="meta" style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b' }}>
-                    <span>
-                      <span className="material-symbols-outlined meta-icon" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>school</span>
-                      {m.class_name || 'Bank Materi'}
-                    </span>
-                    <span>
-                      <span className="material-symbols-outlined meta-icon" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>calendar_today</span>
-                      {m.createdAt ? new Date(m.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Terbaru'}
-                    </span>
+            {filteredMaterials.map(m => {
+              const isChecked = selectedMaterialIds.includes(m._id);
+              const isDistributed = m.class_id && m.class_name !== 'Bank Materi';
+
+              return (
+                <div 
+                  key={m._id} 
+                  className={`material-card ${isChecked ? 'selected-card-border' : ''}`}
+                  onClick={() => setSelectedMaterialModal(m)}
+                  style={{ 
+                    cursor: 'pointer',
+                    position: 'relative',
+                    borderLeft: isChecked ? '5px solid #16a34a' : '1px solid #e0e3e5',
+                    background: isChecked ? '#f0fdf4' : '#ffffff'
+                  }}
+                >
+                  <div className="card-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                    
+                    {/* CHECKBOX DENGAN STOP PROPAGATION */}
+                    <div onClick={(e) => e.stopPropagation()} style={{ paddingTop: '2px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked} 
+                        onChange={() => handleToggleSelect(m._id)}
+                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                      />
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <h4 style={{ margin: '0 0 4px 0' }}>{m.title}</h4>
+                      <div className="header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: '800' }}>{m.subject_name}</span>
+                        {isDistributed ? (
+                          <span className="badge" style={{ background: '#dcfce7', color: '#15803d', fontWeight: '800' }}>🏫 {m.class_name}</span>
+                        ) : (
+                          <span className="badge" style={{ background: '#f1f5f9', color: '#64748b', fontWeight: '700' }}>📁 Bank Materi (Draft)</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="header-actions-right" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: '6px' }}>
+                      <button 
+                        onClick={() => handleEdit(m)}
+                        style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Edit Materi"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(m._id)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                        title="Hapus Materi"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>delete</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="actions-right" style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => setSelectedMaterialModal(m)}
-                      style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155', padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>visibility</span> Detail Isi Materi
-                    </button>
-                    <button 
-                      onClick={() => { setSelectedPublishModal(m); setPublishTargetClass(m.class_id || ''); }}
-                      style={{ background: '#0284c7', border: 'none', color: '#ffffff', padding: '5px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>send</span> Bagikan ke Kelas
-                    </button>
+                  {m.description && <p className="desc" style={{ marginTop: '8px' }}>{m.description}</p>}
+                  {m.content && (
+                    <div className="content-preview">{stripHtml(m.content)}</div>
+                  )}
+                  
+                  <div className="card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+                    <div className="meta" style={{ display: 'flex', gap: '12px', fontSize: '12px', color: '#64748b' }}>
+                      <span>
+                        <span className="material-symbols-outlined meta-icon" style={{ fontSize: '16px', verticalAlign: 'middle', marginRight: '4px' }}>calendar_today</span>
+                        {m.createdAt ? new Date(m.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Terbaru'}
+                      </span>
+                    </div>
+
+                    <div className="actions-right" style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => setSelectedMaterialModal(m)}
+                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Detail Isi Materi
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* MODAL POPUP BATCH DISTRIBUSI MATERI DENGAN CEKLIS SAMA */}
+      {showDistributeModal && (
+        <div className="modal-backdrop" onClick={() => setShowDistributeModal(false)}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
+            <div className="modal-header">
+              <h3>
+                <span className="material-symbols-outlined">rocket_launch</span>
+                Distribusi {selectedMaterialIds.length} Materi ke Kelas Target
+              </h3>
+              <button className="btn-close-modal" onClick={() => setShowDistributeModal(false)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: '13px', color: '#475569', marginBottom: '14px' }}>
+                Pilih kelas target untuk mengirimkan <strong>{selectedMaterialIds.length} materi terpilih</strong>:
+              </p>
+              <div className="form-group" style={{ marginBottom: '16px' }}>
+                <label>Target Kelas Tujuan</label>
+                <select value={distributeTargetClass} onChange={(e) => setDistributeTargetClass(e.target.value)} style={{ padding: '10px 12px', borderRadius: '10px', width: '100%', fontSize: '14px', border: '1px solid #cbd5e1' }} required>
+                  <option value="">-- Pilih Kelas Target --</option>
+                  {teacherClasses.map(c => <option key={c._id} value={c._id}>Kelas {c.name}</option>)}
+                </select>
+              </div>
+
+              <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <strong style={{ fontSize: '12px', color: '#334155', display: 'block', marginBottom: '8px' }}>Daftar Materi yang Akan Dikirim:</strong>
+                <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '13px', color: '#0f172a' }}>
+                  {selectedMaterialsList.map(m => (
+                    <li key={m._id} style={{ marginBottom: '4px' }}>
+                      <strong>{m.title}</strong> <span style={{ fontSize: '11px', color: '#64748b' }}>({m.subject_name})</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+            <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button className="btn-cancel" onClick={() => setShowDistributeModal(false)}>Batal</button>
+              <button 
+                className="btn-submit" 
+                onClick={handleBatchDistributeSubmit} 
+                disabled={distributing}
+                style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '10px 22px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span>
+                {distributing ? 'Mendistribusikan...' : 'Kirim Sekarang ke Kelas'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL POPUP DETAIL MATERI PEMBELAJARAN */}
       {selectedMaterialModal && (
@@ -438,7 +600,6 @@ const GuruMaterials = () => {
                 />
               </div>
 
-              {/* LAMPIRAN FILE / LINK DENGAN SAFE DOWNLOAD HELPER */}
               {(selectedMaterialModal.file_url || selectedMaterialModal.external_link) && (
                 <div style={{ background: '#eff6ff', padding: '14px 16px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
                   <strong style={{ fontSize: '12px', color: '#1e40af', display: 'block', marginBottom: '8px' }}>Lampiran & Tautan Materi:</strong>
@@ -468,41 +629,6 @@ const GuruMaterials = () => {
 
             <div className="modal-footer" style={{ marginTop: '24px', textAlign: 'right' }}>
               <button className="btn-cancel" onClick={() => setSelectedMaterialModal(null)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Tutup</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL POPUP BAGIKAN KE KELAS TARGET */}
-      {selectedPublishModal && (
-        <div className="modal-backdrop" onClick={() => setSelectedPublishModal(null)}>
-          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3>
-                <span className="material-symbols-outlined">send</span>
-                Bagikan Materi ke Kelas
-              </h3>
-              <button className="btn-close-modal" onClick={() => setSelectedPublishModal(null)}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '13px', color: '#475569', marginBottom: '14px' }}>
-                Pilih kelas target untuk mempublikasikan materi <strong>"{selectedPublishModal.title}"</strong>:
-              </p>
-              <div className="form-group">
-                <label>Target Kelas</label>
-                <select value={publishTargetClass} onChange={(e) => setPublishTargetClass(e.target.value)} style={{ padding: '10px', borderRadius: '10px', width: '100%' }}>
-                  <option value="">📁 Simpan di Bank Materi Guru (Semua Kelas)</option>
-                  {teacherClasses.map(c => <option key={c._id} value={c._id}>Kelas {c.name}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', justify: 'flex-end', gap: '10px' }}>
-              <button className="btn-cancel" onClick={() => setSelectedPublishModal(null)}>Batal</button>
-              <button className="btn-submit" onClick={handleAssignToClass} style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}>
-                Publikasikan ke Kelas
-              </button>
             </div>
           </div>
         </div>

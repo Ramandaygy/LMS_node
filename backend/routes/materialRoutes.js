@@ -6,6 +6,7 @@ const { uploadMaterial } = require('../middleware/uploadMiddleware');
 
 // Upload materi dengan file (single)
 router.post('/', auth, uploadMaterial.single('file'), materialController.createMaterial);
+router.post('/distribute-batch', auth, materialController.distributeMaterialsBatch);
 router.post('/generate-ai', auth, materialController.generateMaterial);
 router.post('/generate-quiz-ai', auth, materialController.generateQuiz);
 
