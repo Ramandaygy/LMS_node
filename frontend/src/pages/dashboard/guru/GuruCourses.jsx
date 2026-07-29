@@ -80,6 +80,7 @@ const GuruCourses = () => {
     maxScore: 100
   });
   const [creatingTask, setCreatingTask] = useState(false);
+  const [previewMaterialModal, setPreviewMaterialModal] = useState(null);
 
   const handleSaveNewTaskSubmit = async (e) => {
     e.preventDefault();
@@ -592,20 +593,56 @@ const GuruCourses = () => {
                   <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat materi sesi...</div>
                 ) : sessionMaterials.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {sessionMaterials.map((mat) => (
-                      <div key={mat._id} style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>{mat.title}</strong>
-                          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>{mat.description || 'Materi pembelajaran'}</p>
+                    {sessionMaterials.map((mat) => {
+                      const fileExt = (mat.file_name || mat.file_url || '').split('.').pop().toLowerCase();
+                      let iconName = 'description';
+                      let badgeBg = '#e0f2fe';
+                      let badgeColor = '#0284c7';
+
+                      if (['pdf'].includes(fileExt)) {
+                        iconName = 'picture_as_pdf';
+                        badgeBg = '#fee2e2';
+                        badgeColor = '#dc2626';
+                      } else if (['doc', 'docx'].includes(fileExt)) {
+                        iconName = 'description';
+                        badgeBg = '#dbeafe';
+                        badgeColor = '#2563eb';
+                      } else if (['ppt', 'pptx'].includes(fileExt)) {
+                        iconName = 'slideshow';
+                        badgeBg = '#ffedd5';
+                        badgeColor = '#ea580c';
+                      }
+
+                      return (
+                        <div key={mat._id} style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: badgeBg, color: badgeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>{iconName}</span>
+                            </div>
+                            <div>
+                              <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>{mat.title}</strong>
+                              <span style={{ fontSize: '12px', color: '#64748b' }}>
+                                {mat.file_name ? `${mat.file_name} ${mat.file_size ? `(${(mat.file_size / 1024 / 1024).toFixed(1)} MB)` : ''}` : (mat.description || 'Berkas Dokumen Pembelajaran')}
+                              </span>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              onClick={() => setPreviewMaterialModal(mat)}
+                              style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Preview / Buka
+                            </button>
+                            <button 
+                              onClick={() => navigate('/dashboard/guru/materials')}
+                              style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', color: '#334155', cursor: 'pointer' }}
+                            >
+                              Bank Materi
+                            </button>
+                          </div>
                         </div>
-                        <button 
-                          onClick={() => navigate('/dashboard/guru/materials')}
-                          style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', color: '#0284c7', cursor: 'pointer' }}
-                        >
-                          Buka di Bank Materi
-                        </button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
@@ -1437,6 +1474,76 @@ const GuruCourses = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP 4: PREVIEW FILE / DETAIL MATERI */}
+      {previewMaterialModal && (
+        <div className="modal-backdrop" onClick={() => setPreviewMaterialModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '720px', width: '90%', maxHeight: '85vh', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>description</span>
+                Preview / Detail Materi: {previewMaterialModal.title}
+              </h3>
+              <button onClick={() => setPreviewMaterialModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px' }}>
+              {previewMaterialModal.description && (
+                <p style={{ fontSize: '13px', color: '#475569', marginBottom: '14px', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  {previewMaterialModal.description}
+                </p>
+              )}
+
+              {previewMaterialModal.content && (
+                <div style={{ fontSize: '13px', color: '#1e293b', lineHeight: '1.6', marginBottom: '16px', background: '#ffffff', padding: '14px', borderRadius: '10px', border: '1px solid #cbd5e1' }} dangerouslySetInnerHTML={{ __html: previewMaterialModal.content }} />
+              )}
+
+              {previewMaterialModal.file_url ? (
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '12px', overflow: 'hidden', minHeight: '280px', background: '#f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                  {previewMaterialModal.file_url.endsWith('.pdf') ? (
+                    <iframe src={previewMaterialModal.file_url} title="Preview File PDF" style={{ width: '100%', height: '400px', border: 'none' }} />
+                  ) : previewMaterialModal.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img src={previewMaterialModal.file_url} alt="Preview Materi" style={{ maxWidth: '100%', maxHeight: '400px', borderRadius: '8px' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '56px', color: '#0284c7' }}>file_present</span>
+                      <p style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', margin: '8px 0 4px 0' }}>
+                        {previewMaterialModal.file_name || 'Dokumen Materi Pembelajaran'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Klik tombol di bawah untuk membuka atau mengunduh berkas materi.</p>
+                    </div>
+                  )}
+                </div>
+              ) : previewMaterialModal.external_link ? (
+                <div style={{ padding: '16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px' }}>
+                  <strong style={{ fontSize: '13px', color: '#0369a1', display: 'block', marginBottom: '4px' }}>Tautan Eksternal Materi:</strong>
+                  <a href={previewMaterialModal.external_link} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontSize: '13px', wordBreak: 'break-all' }}>
+                    {previewMaterialModal.external_link}
+                  </a>
+                </div>
+              ) : null}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
+              {previewMaterialModal.file_url && (
+                <a
+                  href={previewMaterialModal.file_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ background: '#0284c7', color: '#ffffff', textDecoration: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>open_in_new</span> Buka / Unduh Berkas
+                </a>
+              )}
+              <button onClick={() => setPreviewMaterialModal(null)} style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}
