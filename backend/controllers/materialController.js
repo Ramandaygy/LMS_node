@@ -45,6 +45,8 @@ exports.createMaterial = async (req, res) => {
     let teacherIdVal = teacherId;
     try { teacherIdVal = new mongoose.Types.ObjectId(teacherId.toString()); } catch (e) { teacherIdVal = teacherId; }
 
+    const isPublished = (req.body.is_published === 'true' || req.body.is_published === true) && !!classIdVal;
+
     const materialData = {
       title: req.body.title,
       description: req.body.description || '',
@@ -57,17 +59,18 @@ exports.createMaterial = async (req, res) => {
       file_size: fileSize,
       file_type: fileType,
       external_link: req.body.external_link || '',
-      is_published: req.body.is_published !== 'false' && req.body.is_published !== false,
+      is_published: isPublished,
       order: parseInt(req.body.order) || 0
     };
 
     const material = await materialService.createMaterial(materialData);
 
-    // Kirim push notification ke siswa dan ortu
-    try {
-      const notificationController = require('./notificationController');
-      const siswaCol = mongoose.connection.collection('users_siswa');
-      const classIdStr = req.body.class_id.toString();
+    // Kirim push notification HANYA jika materi dipublikasikan langsung ke kelas
+    if (isPublished && classIdVal) {
+      try {
+        const notificationController = require('./notificationController');
+        const siswaCol = mongoose.connection.collection('users_siswa');
+        const classIdStr = classIdVal.toString();
       let classIdObj;
       try {
         classIdObj = new mongoose.Types.ObjectId(classIdStr);

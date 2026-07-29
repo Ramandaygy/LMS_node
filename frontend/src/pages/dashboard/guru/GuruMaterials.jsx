@@ -76,7 +76,8 @@ const GuruMaterials = () => {
     data.append('class_id', form.class_id || '');
     data.append('subject_id', form.subject_id || (teacherSubjects[0]?._id || ''));
     data.append('external_link', form.external_link || '');
-    data.append('is_published', form.class_id ? 'true' : 'false');
+    // Materi baru disimpan ke Bank Materi terlebih dahulu (Draft), tidak langsung terdistribusi ke siswa
+    data.append('is_published', 'false');
     if (form.file) data.append('file', form.file);
 
     try {

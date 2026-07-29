@@ -327,7 +327,7 @@ const GuruQuiz = () => {
 
           {expandedQuestionIndex !== null && (
             <div className="input-score-banner">
-              <strong>Penginputan Nilai untuk Soal #{expandedQuestionIndex + 1}:</strong> "{typeof questions[expandedQuestionIndex] === 'object' ? questions[expandedQuestionIndex].text : questions[expandedQuestionIndex]}"
+              <strong>Penilaian Bintang Kuis untuk Soal #{expandedQuestionIndex + 1}:</strong> "{typeof questions[expandedQuestionIndex] === 'object' ? questions[expandedQuestionIndex].text : questions[expandedQuestionIndex]}"
             </div>
           )}
 
@@ -341,28 +341,53 @@ const GuruQuiz = () => {
                     <th>No</th>
                     <th>Nama Siswa</th>
                     <th>NIS</th>
-                    <th>Input Nilai Kuis (0-100)</th>
+                    <th>Penilaian Bintang Kuis (1 - 5 Bintang)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredStudents.map((st, i) => (
-                    <tr key={st._id}>
-                      <td>{i + 1}</td>
-                      <td><strong>{st.full_name}</strong></td>
-                      <td>{st.nis || '-'}</td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          placeholder="Nilai..."
-                          value={studentScores[st._id] || ''}
-                          onChange={(e) => handleScoreChange(st._id, e.target.value)}
-                          className="score-input-cell"
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredStudents.map((st, i) => {
+                    const currentScore = Number(studentScores[st._id]) || 0;
+                    let currentStars = 0;
+                    if (currentScore >= 100) currentStars = 5;
+                    else if (currentScore >= 80) currentStars = 4;
+                    else if (currentScore >= 60) currentStars = 3;
+                    else if (currentScore >= 40) currentStars = 2;
+                    else if (currentScore >= 20) currentStars = 1;
+
+                    return (
+                      <tr key={st._id}>
+                        <td>{i + 1}</td>
+                        <td><strong>{st.full_name}</strong></td>
+                        <td>{st.nis || '-'}</td>
+                        <td>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            {[1, 2, 3, 4, 5].map((starNum) => {
+                              const isFilled = starNum <= currentStars;
+                              return (
+                                <span
+                                  key={starNum}
+                                  className="material-symbols-outlined"
+                                  onClick={() => handleScoreChange(st._id, starNum * 20)}
+                                  style={{
+                                    fontSize: '24px',
+                                    color: isFilled ? '#f59e0b' : '#cbd5e1',
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                  }}
+                                  title={`Beri ${starNum} Bintang (${starNum * 20} Poin)`}
+                                >
+                                  {isFilled ? 'star' : 'star_outline'}
+                                </span>
+                              );
+                            })}
+                            <span style={{ fontSize: '12px', fontWeight: '800', color: currentStars > 0 ? '#d97706' : '#94a3b8', marginLeft: '8px' }}>
+                              {currentStars > 0 ? `${currentStars} Bintang` : 'Pilih Bintang'}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 
@@ -372,8 +397,8 @@ const GuruQuiz = () => {
                     className="btn-save-all-scores"
                     onClick={() => handleSaveAllScores(expandedQuestionIndex)}
                   >
-                    <span className="material-symbols-outlined">save</span>
-                    Simpan Seluruh Nilai Kuis
+                    <span className="material-symbols-outlined">star</span>
+                    Simpan Seluruh Bintang Kuis
                   </button>
                 </div>
               )}

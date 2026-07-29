@@ -67,7 +67,7 @@ exports.getMaterialsForStudent = async (classId, subjectId = null) => {
   return await enrichMaterials(materials);
 };
 
-// GENERATE KONTEN MATERI DENGAN AI (Gemini Auto-Prompting)
+// GENERATE KONTEN MATERI DENGAN AI (Gemini Auto-Prompting Backend)
 exports.generateMaterialAI = async (data) => {
   const { title, prompt, subject_name, class_name, description } = data;
 
@@ -75,28 +75,97 @@ exports.generateMaterialAI = async (data) => {
   const targetSubject = subject_name || 'Informatika';
   const targetClass = class_name || 'SMP';
 
-  const actualPrompt = prompt || `Buat materi pembelajaran sekolah yang sangat lengkap, jelas, dan terstruktur mengenai topik "${targetTitle}" untuk mata pelajaran "${targetSubject}" tingkat kelas "${targetClass}". ${description ? `Konteks tambahan dari guru: ${description}` : ''}`;
+  const isProgramming = /pemrograman|coding|algoritma|variabel|python|javascript|html|css|pascal|c\+\+|java|database|basis data|jaringan/i.test(`${targetTitle} ${targetSubject}`);
+  const isMath = /matematika|aljabar|geometri|kalkulus|persamaan|fungsi|trigonometri|statistik/i.test(`${targetTitle} ${targetSubject}`);
+
+  let fallbackContent = '';
+
+  if (isProgramming) {
+    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
+<p>Dalam bidang <strong>${targetSubject}</strong>, topik <strong>${targetTitle}</strong> merupakan landasan penting untuk memahami instruksi komputer, struktur logika program, dan pemecahan masalah (computational thinking).</p>
+
+<h4>1. Konsep Utama & Prinsip Dasar</h4>
+<p><strong>${targetTitle}</strong> mencakup aturan penulisan kode (sintaksis), penggunaan struktur data, dan eksekusi logika oleh komputer. Komponen utama yang perlu dipahami meliputi:</p>
+<ul>
+  <li><strong>Variabel & Tipe Data:</strong> Tempat menyimpan nilai seperti angka (integer/float), teks (string), dan nilai kebenaran (boolean).</li>
+  <li><strong>Struktur Kontrol Flow:</strong> Percabangan (Logika <code>IF...ELSE</code>) dan Perulangan (Looping <code>FOR/WHILE</code>) untuk mengatur alur program.</li>
+  <li><strong>Fungsi / Prosedur:</strong> Blok kode yang dapat dipanggil berulang kali untuk menjalankan tugas tertentu.</li>
+</ul>
+
+<h4>2. Contoh Sintaksis & Kode Program Sederhana</h4>
+<p>Berikut adalah ilustrasi logika dasar penulisan kode pada <strong>${targetTitle}</strong>:</p>
+<pre style="background:#1e293b; color:#f8fafc; padding:14px; border-radius:10px; font-family:monospace; font-size:13px; line-height:1.5;">
+// Contoh Implementasi Dasar Logika ${targetTitle}
+let namaMateri = "${targetTitle}";
+let nilaiKKM = 75;
+let nilaiSiswa = 85;
+
+if (nilaiSiswa >= nilaiKKM) {
+    console.log("Selamat, Anda tuntas mempelajari " + namaMateri);
+} else {
+    console.log("Silakan pelajari ulang konsep " + namaMateri);
+}
+</pre>
+
+<h4>3. Penerapan Praktis & Pemecahan Masalah</h4>
+<p>Penerapan ${targetTitle} digunakan dalam pembuatan aplikasi web, perangkat lunak mobile, hingga sistem otomatisasi cerdas. Siswa dilatih untuk berpikir logis dan sistematis.</p>
+
+<h4>4. Soal Latihan & Evaluasi Mandiri</h4>
+<ol>
+  <li>Jelaskan fungsi utama dari <strong>${targetTitle}</strong> dalam pengembangan program komputer!</li>
+  <li>Buatlah urutan langkah (pseudocode) sederhana yang menerapkan konsep ${targetTitle}!</li>
+</ol>`;
+  } else if (isMath) {
+    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
+<p>Topik <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> bertujuan untuk melatih pola pikir kritis, analisis matematis, dan pemecahan masalah bernalar.</p>
+
+<h4>1. Definisi & Rumus Dasar</h4>
+<p>Dalam memahami <strong>${targetTitle}</strong>, terdapat beberapa teorema dasar dan rumus penting yang harus dikuasai:</p>
+<ul>
+  <li><strong>Konsep Dasar:</strong> Penjelasan variabel dan simbol yang digunakan dalam perhitungan.</li>
+  <li><strong>Persamaan Utama:</strong> Aturan matematika dasar yang berlaku secara konsisten.</li>
+</ul>
+
+<h4>2. Pembahasan Langkah demi Langkah & Contoh Soal</h4>
+<p>Berikut adalah contoh penerapan konsep perhitungan pada <strong>${targetTitle}</strong>:</p>
+<div style="background:#f8fafc; border-left:4px solid #0284c7; padding:12px 16px; margin:12px 0;">
+  <strong>Contoh Kasus:</strong> Diketahui masalah mengenai ${targetTitle}.<br/>
+  <strong>Langkah 1:</strong> Identifikasi data yang diketahui dan ditanyakan.<br/>
+  <strong>Langkah 2:</strong> Gunakan rumus utama untuk menghitung nilai akhir secara teliti.<br/>
+  <strong>Hasil:</strong> Diperoleh nilai solusi yang akurat.
+</div>
+
+<h4>3. Rangkuman & Latihan Soal Mandiri</h4>
+<ol>
+  <li>Sebutkan 2 prinsip utama yang ada pada topik <strong>${targetTitle}</strong>!</li>
+  <li>Kerjakan latihan soal mengenai ${targetTitle} dengan mengikuti langkah-langkah di atas!</li>
+</ol>`;
+  } else {
+    fallbackContent = `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
+<p>Materi <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> dirancang untuk memberikan pemahaman komprehensif, wawasan teori, dan penerapan praktis untuk kelas <strong>${targetClass}</strong>.</p>
+
+<h4>1. Tujuan Pembelajaran & Konsep Utama</h4>
+<p>Setelah mempelajari bab ini, siswa diharapkan mampu menguasai konsep <strong>${targetTitle}</strong> secara mendalam.</p>
+<ul>
+  <li><strong>Pengertian Utama:</strong> Definisi komprehensif dari ${targetTitle} beserta latar belakang topik.</li>
+  <li><strong>Karakteristik & Ciri Khusus:</strong> Unsur-unsur penting yang membentuk ${targetTitle}.</li>
+  <li><strong>Penerapan Nyata:</strong> Contoh pengaplikasian topik ini dalam kehidupan sehari-hari.</li>
+</ul>
+
+<h4>2. Pembahasan Uraian Materi</h4>
+<p>Pembahasan pada bab <strong>${targetTitle}</strong> mencakup analisis struktur, analisis fungsi, serta kaitan topik ini dengan mata pelajaran ${targetSubject} secara keseluruhan.</p>
+
+<h4>3. Rangkuman & Soal Evaluasi Siswa</h4>
+<ol>
+  <li>Jelaskan pengertian dan pentingnya mempelajari <strong>${targetTitle}</strong>!</li>
+  <li>Berikan 2 contoh konkret penerapan ${targetTitle} yang kamu temukan di sekitarmu!</li>
+</ol>`;
+  }
 
   const defaultRichFallback = {
     title: targetTitle,
     description: description || `Materi pembelajaran lengkap mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} tingkat ${targetClass}.`,
-    content: `<h3>Pengenalan Pembelajaran: ${targetTitle}</h3>
-<p>Materi pembelajaran ini membahas mengenai <strong>${targetTitle}</strong> pada mata pelajaran <strong>${targetSubject}</strong> untuk siswa kelas <strong>${targetClass}</strong>.</p>
-<h4>1. Tujuan Pembelajaran & Konsep Utama</h4>
-<p>Setelah mempelajari materi ini, siswa diharapkan dapat memahami konsep dasar, prinsip utama, dan pengaplikasian dari ${targetTitle}.</p>
-<ul>
-  <li><strong>Pengertian Utama:</strong> Definisi dasar dan pentingnya mempelajari ${targetTitle}.</li>
-  <li><strong>Fungsi & Manfaat:</strong> Penerapan praktis dalam kehidupan sehari-hari dan bidang ${targetSubject}.</li>
-  <li><strong>Prinsip Kerja / Teori:</strong> Penjelasan rinci langkah demi langkah.</li>
-</ul>
-<h4>2. Uraian & Pembahasan Materi</h4>
-<p>Topik <strong>${targetTitle}</strong> merupakan salah satu kompetensi dasar utama. Pemahaman yang mendalam pada bab ini menjadi fondasi penting untuk bab-bab selanjutnya.</p>
-<h4>3. Rangkuman & Latihan Mandiri</h4>
-<p>Cobalah untuk menjawab pertanyaan singkat berikut untuk menguji pemahaman Anda:</p>
-<ol>
-  <li>Jelaskan apa yang dimaksud dengan ${targetTitle}?</li>
-  <li>Sebutkan 2 contoh penerapan ${targetTitle} yang kamu ketahui!</li>
-</ol>`
+    content: fallbackContent
   };
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -104,24 +173,41 @@ exports.generateMaterialAI = async (data) => {
     return defaultRichFallback;
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // List of Gemini AI model variants to attempt sequentially
+  const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
 
-    const systemPrompt = `Anda adalah asisten AI pendidik profesional Indonesia. 
-Buatlah materi pembelajaran sekolah yang terstruktur, lengkap, dan menarik.
-Wajib me-return output JSON murni dengan format persis:
+  const systemPrompt = `Anda adalah seorang penyusun kurikulum dan guru ahli profesional Indonesia.
+Buatlah materi pembelajaran sekolah yang SANGAT DETAIL, LENGKAP, dan BERKUALITAS TINGGI untuk topik "${targetTitle}" mata pelajaran "${targetSubject}" kelas "${targetClass}".
+Beri penjelasan mendalam (bukan ringkasan prompt/template).
+Wajib me-return output JSON murni tanpa markdown codeblock fence:
 {
   "title": "${targetTitle}",
-  "description": "Ringkasan singkat 1-2 kalimat mengenai materi ini",
-  "content": "Isi materi lengkap dalam HTML terstruktur (menggunakan <p>, <h3>, <h4>, <ul>, <li>, <ol>, <strong>, dan contoh latihan)"
-}
-Jangan menambahkan teks markdown fence di luar JSON.`;
+  "description": "Deskripsi/ringkasan materi 1-2 kalimat yang menarik",
+  "content": "Isi materi lengkap dalam HTML terstruktur (<p>, <h3>, <h4>, <ul>, <li>, <ol>, <strong>, <pre>, <code>) dengan penjelasan materi riil, konsep, contoh, dan soal latihan"
+}`;
 
-    const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
+  const actualPrompt = prompt || `Buat materi pembelajaran sekolah terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
+  const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
 
-    const result = await model.generateContent(fullPrompt);
-    let rawText = result.response.text().trim();
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    let rawText = '';
+
+    // Attempt candidates
+    for (const modelName of modelCandidates) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(fullPrompt);
+        rawText = result.response.text().trim();
+        if (rawText) break;
+      } catch (e) {
+        console.warn(`[Gemini Model ${modelName} Failed]:`, e.message);
+      }
+    }
+
+    if (!rawText) {
+      return defaultRichFallback;
+    }
 
     // Extract JSON object safely using regex
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -137,7 +223,7 @@ Jangan menambahkan teks markdown fence di luar JSON.`;
       content: aiContent.content || defaultRichFallback.content
     };
   } catch (err) {
-    console.error('[Gemini AI Material Error]:', err.message);
+    console.error('[Gemini AI Material Gen Error]:', err.message);
     return defaultRichFallback;
   }
 };
