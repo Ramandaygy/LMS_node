@@ -82,6 +82,53 @@ const GuruCourses = () => {
   const [creatingTask, setCreatingTask] = useState(false);
   const [previewMaterialModal, setPreviewMaterialModal] = useState(null);
 
+  // Direct Upload Material Modal State
+  const [uploadMaterialModal, setUploadMaterialModal] = useState(null);
+  const [uploadForm, setUploadForm] = useState({
+    title: '',
+    description: '',
+    file: null
+  });
+  const [uploadingFile, setUploadingFile] = useState(false);
+
+  const handleDirectUploadMaterialSubmit = async (e) => {
+    e.preventDefault();
+    if (!uploadForm.title.trim() || !uploadMaterialModal) return;
+    setUploadingFile(true);
+    try {
+      const sch = uploadMaterialModal.targetSchedule;
+      const classId = sch.class_id?._id || sch.class_id || sch.id;
+      const sessionNum = uploadMaterialModal.targetSessionNum || 1;
+
+      const formData = new FormData();
+      formData.append('title', uploadForm.title);
+      formData.append('description', uploadForm.description);
+      formData.append('class_id', classId);
+      formData.append('session_number', sessionNum);
+      formData.append('is_published', true);
+      if (uploadForm.file) {
+        formData.append('file', uploadForm.file);
+      }
+
+      await api.post('/materials', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      alert(`Materi "${uploadForm.title}" berhasil diunggah dan terbit di Sesi ke-${sessionNum}!`);
+      setUploadMaterialModal(null);
+      setUploadForm({ title: '', description: '', file: null });
+
+      if (activeCourseDetail) {
+        fetchRealSessionData(activeCourseDetail.schedule, sessionNum);
+      }
+    } catch (err) {
+      console.error('Error uploading material directly:', err);
+      alert(err.response?.data?.message || err.message || 'Gagal mengunggah materi.');
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
   const handleSaveNewTaskSubmit = async (e) => {
     e.preventDefault();
     if (!newTaskForm.title.trim() || !createNewTaskModal) return;
@@ -576,17 +623,25 @@ const GuruCourses = () => {
 
               {/* BOX MATERI SESI REAL DATA */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
                     Materi Sesi ke-{currentSessionNum}
                   </strong>
-                  <button
-                    onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
-                    style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Berkas Media Library / Bank Materi
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setUploadMaterialModal({ targetSchedule: sch, targetSessionNum: currentSessionNum })}
+                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload_file</span> + Upload File Materi
+                    </button>
+                    <button
+                      onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
+                      style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span> Bank Materi
+                    </button>
+                  </div>
                 </div>
 
                 {loadingSessionData ? (
@@ -1162,7 +1217,7 @@ const GuruCourses = () => {
                       className="btn-action-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenBankMaterialModal(sch, meetingNum);
+                        setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' });
                       }}
                       style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
@@ -1174,7 +1229,7 @@ const GuruCourses = () => {
                       className="btn-action-outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleOpenTaskModal(sch, meetingNum);
+                        setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'asesmen' });
                       }}
                       style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
@@ -1471,6 +1526,65 @@ const GuruCourses = () => {
                   style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
                 >
                   {creatingTask ? 'Menyimpan...' : 'Simpan & Sematkan Tugas'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP 5: DIRECT UPLOAD FILE MATERI MODAL */}
+      {uploadMaterialModal && (
+        <div className="modal-backdrop" onClick={() => setUploadMaterialModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '560px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>upload_file</span>
+                Upload File Materi untuk Kelas {uploadMaterialModal.targetSchedule.class_name} (Sesi ke-{uploadMaterialModal.targetSessionNum || 1})
+              </h3>
+              <button onClick={() => setUploadMaterialModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleDirectUploadMaterialSubmit}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Judul Materi *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Modul 1 - Pengenalan Pemrograman Dasar"
+                  value={uploadForm.title}
+                  onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Deskripsi / Ringkasan Materi</label>
+                <textarea
+                  rows="3"
+                  placeholder="Tuliskan petunjuk atau ringkasan singkat materi ini..."
+                  value={uploadForm.description}
+                  onChange={(e) => setUploadForm({ ...uploadForm, description: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Pilih File Materi (PDF, DOCX, PPTX, JPG, PNG)</label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png"
+                  onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files[0] })}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '12px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={() => setUploadMaterialModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+                <button
+                  type="submit"
+                  disabled={uploadingFile}
+                  style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
+                >
+                  {uploadingFile ? 'Mengunggah...' : 'Upload & Terbitkan ke Sesi'}
                 </button>
               </div>
             </form>

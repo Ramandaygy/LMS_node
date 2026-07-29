@@ -43,7 +43,7 @@ exports.createAssignment = async (req, res) => {
     try {
       const notificationController = require('./notificationController');
       const siswaCol = mongoose.connection.collection('users_siswa');
-      const classIdStr = req.body.class.toString();
+      const classIdStr = (req.body.class || req.body.class_id || '').toString();
       let classIdObj;
       try {
         classIdObj = new mongoose.Types.ObjectId(classIdStr);

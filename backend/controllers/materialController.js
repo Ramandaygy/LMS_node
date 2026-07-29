@@ -34,11 +34,11 @@ exports.createMaterial = async (req, res) => {
       }
     }
 
-    let classIdVal = null;
+    let classIdVal = req.body.class_id || null;
     if (req.body.class_id && mongoose.Types.ObjectId.isValid(req.body.class_id.toString())) {
       classIdVal = new mongoose.Types.ObjectId(req.body.class_id.toString());
     }
-    let subjectIdVal = null;
+    let subjectIdVal = req.body.subject_id || null;
     if (req.body.subject_id && mongoose.Types.ObjectId.isValid(req.body.subject_id.toString())) {
       subjectIdVal = new mongoose.Types.ObjectId(req.body.subject_id.toString());
     }
@@ -47,15 +47,17 @@ exports.createMaterial = async (req, res) => {
       teacherIdVal = new mongoose.Types.ObjectId(teacherId.toString());
     }
 
-    const isPublished = (req.body.is_published === 'true' || req.body.is_published === true) && !!classIdVal;
+    const isPublished = (req.body.is_published === 'true' || req.body.is_published === true || !!classIdVal);
 
     const materialData = {
       title: req.body.title,
       description: req.body.description || '',
       content: req.body.content || '',
       class_id: classIdVal,
+      class_name: req.body.class_name || (typeof req.body.class_id === 'string' ? req.body.class_id : ''),
       grade_level: req.body.grade_level || 'all',
       subject_id: subjectIdVal,
+      subject_name: req.body.subject_name || '',
       uploaded_by: teacherIdVal,
       file_url: fileUrl,
       file_name: fileName,

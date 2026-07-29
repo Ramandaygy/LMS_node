@@ -291,9 +291,11 @@ HANYA kembalikan JSON array valid tanpa markdown fence.`;
 async function enrichMaterials(materials) {
   if (!materials.length) return [];
 
-  const classIds = [...new Set(materials.map(m => m.class_id?.toString()).filter(Boolean))];
-  const subjectIds = [...new Set(materials.map(m => m.subject_id?.toString()).filter(Boolean))];
-  const teacherIds = [...new Set(materials.map(m => m.uploaded_by?.toString()).filter(Boolean))];
+  const validObjId = (id) => id && typeof id === 'string' && mongoose.Types.ObjectId.isValid(id) && id.length === 24;
+
+  const classIds = [...new Set(materials.map(m => m.class_id?.toString()).filter(validObjId))];
+  const subjectIds = [...new Set(materials.map(m => m.subject_id?.toString()).filter(validObjId))];
+  const teacherIds = [...new Set(materials.map(m => m.uploaded_by?.toString()).filter(validObjId))];
 
   const classCol = mongoose.connection.collection('classes');
   const subjectCol = mongoose.connection.collection('subjects');
@@ -307,10 +309,17 @@ async function enrichMaterials(materials) {
   const subjectMap = Object.fromEntries(subjects.map(s => [s._id.toString(), s.name]));
   const teacherMap = Object.fromEntries(teachers.map(t => [t._id.toString(), t.full_name]));
 
-  return materials.map(m => ({
-    ...m.toObject(),
-    class_name: classMap[m.class_id?.toString()] || 'Bank Materi',
-    subject_name: subjectMap[m.subject_id?.toString()] || 'Mata Pelajaran',
-    teacher_name: teacherMap[m.uploaded_by?.toString()] || 'Guru'
-  }));
+  return materials.map(m => {
+    const obj = m.toObject ? m.toObject() : m;
+    const cIdStr = obj.class_id?.toString() || '';
+    const sIdStr = obj.subject_id?.toString() || '';
+    const uIdStr = obj.uploaded_by?.toString() || '';
+
+    return {
+      ...obj,
+      class_name: obj.class_name || classMap[cIdStr] || (cIdStr && cIdStr.length < 24 ? cIdStr : 'Bank Materi'),
+      subject_name: obj.subject_name || subjectMap[sIdStr] || 'Mata Pelajaran',
+      teacher_name: obj.teacher_name || teacherMap[uIdStr] || 'Guru'
+    };
+  });
 }
