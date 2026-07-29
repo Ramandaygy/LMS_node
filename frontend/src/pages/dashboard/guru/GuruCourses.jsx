@@ -344,8 +344,8 @@ const GuruCourses = () => {
                 <span className="material-symbols-outlined">library_add</span> + Berkas Media Library / Bank Materi
               </button>
               <button 
-                onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`)}
-                style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
                 <span className="material-symbols-outlined">edit_calendar</span> Isi Presensi Sesi Ini
               </button>
@@ -465,7 +465,7 @@ const GuruCourses = () => {
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Edit Rencana & Realisasi
                     </button>
                     <button 
-                      onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}`)}
+                      onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
                       style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>fact_check</span> Isi Presensi

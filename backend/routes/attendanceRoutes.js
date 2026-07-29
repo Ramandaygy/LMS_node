@@ -7,6 +7,7 @@ const attendanceController = require('../controllers/attendanceController');
 router.get('/schedules', auth, attendanceController.getTeacherSchedules);
 router.get('/classes', auth, attendanceController.getTeacherClasses);
 router.get('/students/:classId', auth, attendanceController.getClassStudents);
+router.get('/sessions-summary', auth, attendanceController.getScheduleSessionsSummary);
 router.get('/', auth, attendanceController.getAttendance);
 router.post('/save', auth, attendanceController.saveAttendance);
 

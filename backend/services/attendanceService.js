@@ -42,15 +42,18 @@ exports.getAttendanceByScheduleAndDate = async (scheduleId, date, teacherId) => 
 };
 
 // Simpan absensi (bulk upsert)
-exports.saveAttendance = async (attendanceList, scheduleId, classId, date, teacherId) => {
+exports.saveAttendance = async (attendanceList, scheduleId, classId, date, teacherId, sessionNumber = 1) => {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
 
-  // Hapus semua absensi yang sudah ada untuk jadwal, kelas, guru, tanggal tsb
+  // Hapus semua absensi yang sudah ada untuk jadwal, kelas, guru, tanggal / sesi tsb
   await Attendance.deleteMany({
     schedule_id: scheduleId,
     teacher_id: teacherId,
-    date: { $gte: start, $lt: new Date(start.getTime() + 24 * 60 * 60 * 1000) },
+    $or: [
+      { date: { $gte: start, $lt: new Date(start.getTime() + 24 * 60 * 60 * 1000) } },
+      { session_number: sessionNumber }
+    ]
   });
 
   if (attendanceList.length === 0) return;
@@ -63,7 +66,33 @@ exports.saveAttendance = async (attendanceList, scheduleId, classId, date, teach
     date: start,
     status: item.status,
     note: item.note || '',
+    session_number: sessionNumber
   }));
 
   await Attendance.insertMany(newRecords);
+};
+
+// Summary per-session untuk satu jadwal
+exports.getScheduleSessionsSummary = async (scheduleId) => {
+  const records = await Attendance.find({ schedule_id: scheduleId });
+  const summaryBySession = {};
+  records.forEach(rec => {
+    const sess = rec.session_number || 1;
+    if (!summaryBySession[sess]) {
+      summaryBySession[sess] = {
+        total: 0,
+        present: 0,
+        sick: 0,
+        permit: 0,
+        absent: 0,
+        date: rec.date
+      };
+    }
+    summaryBySession[sess].total += 1;
+    if (rec.status === 'present') summaryBySession[sess].present += 1;
+    else if (rec.status === 'sick') summaryBySession[sess].sick += 1;
+    else if (rec.status === 'permit') summaryBySession[sess].permit += 1;
+    else if (rec.status === 'absent') summaryBySession[sess].absent += 1;
+  });
+  return summaryBySession;
 };

@@ -166,7 +166,7 @@
 }
 
 .btn-save-primary {
-  background: #16a34a;
+  background: #0284c7;
   color: #ffffff;
   border: none;
   padding: 8px 18px;
@@ -180,7 +180,7 @@
 }
 
 .btn-save-primary:hover {
-  background: #15803d;
+  background: #0369a1;
 }
 
 /* SIAKAD BLUE TABLE */
@@ -458,7 +458,8 @@
   border-radius: 50%;
   border: 1px solid #cbd5e1;
   background: #ffffff;
-  color: #64748b;
+  color: #475569;
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -466,26 +467,33 @@
   transition: all 0.15s ease;
 }
 
-.status-btn.active.present {
-  background: #16a34a;
-  color: #ffffff;
-  border-color: #16a34a;
+.status-btn:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  background: #f0f9ff;
 }
 
-.status-btn.active.absent {
-  background: #dc2626;
-  color: #ffffff;
-  border-color: #dc2626;
+.status-btn.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3) !important;
 }
 
-.status-btn.active.permit {
-  background: #2563eb;
-  color: #ffffff;
-  border-color: #2563eb;
+.btn-mark-all {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #0284c7;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.status-btn.active.sick {
-  background: #d97706;
-  color: #ffffff;
-  border-color: #d97706;
+.btn-mark-all:hover {
+  background: #e0f2fe;
 }

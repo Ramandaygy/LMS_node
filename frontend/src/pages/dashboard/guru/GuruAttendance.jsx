@@ -21,7 +21,6 @@ const GuruAttendance = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Mode View: 'history' (Riwayat Perkuliahan & Presensi Kelas SIAKAD Style) vs 'input' (Form Presensi Siswa)
   const [activeViewMode, setActiveViewMode] = useState('history');
   const [activeSessionNumber, setActiveSessionNumber] = useState(9);
 
@@ -29,7 +28,13 @@ const GuruAttendance = () => {
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
+    const modeParam = searchParams.get('mode');
+    const sessionParam = searchParams.get('session_number');
+    if (modeParam === 'input' || sessionParam) {
+      setActiveViewMode('input');
+      if (sessionParam) setActiveSessionNumber(parseInt(sessionParam));
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (selectedSchedule && selectedClass) {
@@ -127,6 +132,25 @@ const GuruAttendance = () => {
     setAttendanceData(newData);
   };
 
+  const [dbSessionsSummary, setDbSessionsSummary] = useState({});
+
+  useEffect(() => {
+    if (selectedSchedule) {
+      fetchSessionsSummary(selectedSchedule);
+    }
+  }, [selectedSchedule]);
+
+  const fetchSessionsSummary = async (schId) => {
+    try {
+      const res = await api.get(`/attendance/sessions-summary?schedule_id=${schId}`);
+      if (res.data.success) {
+        setDbSessionsSummary(res.data.summary || {});
+      }
+    } catch (err) {
+      console.error('Error fetching sessions summary:', err);
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setError('');
@@ -141,9 +165,11 @@ const GuruAttendance = () => {
         attendance: attendanceList,
         schedule_id: selectedSchedule,
         class_id: selectedClass,
-        date: selectedDate
+        date: selectedDate,
+        session_number: activeSessionNumber
       });
       setSuccess('Absensi berhasil disimpan!');
+      fetchSessionsSummary(selectedSchedule);
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error saving attendance:', error);
@@ -227,7 +253,7 @@ const GuruAttendance = () => {
     setTimeout(() => setSuccess(''), 3000);
   };
 
-  // Generate 16 Meetings Schedule matching SIAKAD / EdLink reference photo
+  // Generate 16 Meetings Schedule matching SIAKAD / EdLink reference photo using real saved DB data
   const generate16SessionsList = () => {
     const baseSubject = selectedScheduleInfo?.subject || 'INFORMATIKA';
     const baseRoom = selectedScheduleInfo?.room || ('KM.D4.' + (selectedScheduleInfo?.class_name || '8A'));
@@ -257,9 +283,12 @@ const GuruAttendance = () => {
       const sessNum = i + 1;
       const dateObj = new Date(2026, 3, 6 + (i * 7));
       const formattedDate = `${dayName}, ${dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} ${timeStr}`;
-      const isPast = sessNum <= 11;
-      const hadirCount = isPast ? (sessNum % 2 === 0 ? totalStudents : totalStudents - 1) : 0;
-      const pctVal = isPast ? ((hadirCount / totalStudents) * 100).toFixed(2) : '-';
+
+      const realSummary = dbSessionsSummary[sessNum];
+      const hasRealData = realSummary && realSummary.total > 0;
+
+      const hadirCount = hasRealData ? realSummary.present : '-';
+      const pctVal = hasRealData ? ((realSummary.present / realSummary.total) * 100).toFixed(2) + '%' : '-';
 
       const customData = customTopics[sessNum];
 
@@ -270,9 +299,9 @@ const GuruAttendance = () => {
         subMateri: customData?.subMateri || `Penjelasan modul dan evaluasi KBM pertemuan ke-${sessNum}.`,
         pengajar: teacherProfileName,
         ruang: customData?.ruang || baseRoom,
-        hadir: isPast ? hadirCount : '-',
-        pct: isPast ? `${pctVal}%` : '-',
-        isCompleted: isPast
+        hadir: hadirCount,
+        pct: pctVal,
+        isCompleted: hasRealData
       };
     });
   };
@@ -370,42 +399,42 @@ const GuruAttendance = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
           {/* HADIR */}
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ background: '#e0f2fe', border: '1px solid #93c5fd', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span> Hadir
             </span>
-            <div style={{ fontSize: '20px', fontWeight: '900', color: '#15803d', marginTop: '2px' }}>
-              {presentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534' }}>({presentCount} Siswa)</span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#0284c7', marginTop: '2px' }}>
+              {presentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#0369a1' }}>({presentCount} Siswa)</span>
             </div>
           </div>
 
           {/* SAKIT */}
-          <div style={{ background: '#fefce8', border: '1px solid #fef08a', padding: '10px 14px', borderRadius: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#854d0e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>medical_services</span> Sakit
             </span>
-            <div style={{ fontSize: '20px', fontWeight: '900', color: '#ca8a04', marginTop: '2px' }}>
-              {sickPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#854d0e' }}>({sickCount} Siswa)</span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#0f172a', marginTop: '2px' }}>
+              {sickPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>({sickCount} Siswa)</span>
             </div>
           </div>
 
           {/* IZIN */}
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '10px 14px', borderRadius: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>assignment_late</span> Izin
             </span>
             <div style={{ fontSize: '20px', fontWeight: '900', color: '#2563eb', marginTop: '2px' }}>
-              {permPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e40af' }}>({permCount} Siswa)</span>
+              {permPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#1d4ed8' }}>({permCount} Siswa)</span>
             </div>
           </div>
 
           {/* ALPA */}
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '12px' }}>
-            <span style={{ fontSize: '11px', fontWeight: '800', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>cancel</span> Alpa
             </span>
-            <div style={{ fontSize: '20px', fontWeight: '900', color: '#dc2626', marginTop: '2px' }}>
-              {absentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#991b1b' }}>({absentCount} Siswa)</span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#64748b', marginTop: '2px' }}>
+              {absentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#475569' }}>({absentCount} Siswa)</span>
             </div>
           </div>
         </div>

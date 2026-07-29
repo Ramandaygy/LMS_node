@@ -117,12 +117,13 @@ exports.getAttendance = async (req, res) => {
 
 exports.saveAttendance = async (req, res) => {
   try {
-    const { attendance, schedule_id, class_id, date } = req.body;
+    const { attendance, schedule_id, class_id, date, session_number } = req.body;
     const teacherId = req.user.id;
     if (!attendance || !schedule_id || !class_id || !date) {
       return res.status(400).json({ error: 'Data tidak lengkap (butuh attendance, schedule_id, class_id, date)' });
     }
-    await attendanceService.saveAttendance(attendance, schedule_id, class_id, date, teacherId);
+    const sessionNum = parseInt(session_number) || 1;
+    await attendanceService.saveAttendance(attendance, schedule_id, class_id, date, teacherId, sessionNum);
 
     // Kirim push notification absensi ke siswa & orang tua secara background
     try {
@@ -177,6 +178,18 @@ exports.saveAttendance = async (req, res) => {
     }
 
     return res.json({ success: true, message: 'Absensi berhasil disimpan' });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getScheduleSessionsSummary = async (req, res) => {
+  try {
+    const { schedule_id } = req.query;
+    if (!schedule_id) return res.status(400).json({ error: 'schedule_id required' });
+    const summary = await attendanceService.getScheduleSessionsSummary(schedule_id);
+    return res.json({ success: true, summary });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: err.message });
