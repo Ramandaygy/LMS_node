@@ -177,6 +177,8 @@ const GuruCourses = () => {
     setLoadingSessionData(true);
     try {
       const targetClassId = (sch.class_id?._id || sch.class_id || sch.id || '').toString();
+      const targetClassName = (sch.class_name || sch.class || '').toString().toLowerCase().trim();
+
       const [matRes, taskRes] = await Promise.allSettled([
         api.get('/materials'),
         api.get('/assignments/guru/me')
@@ -186,8 +188,16 @@ const GuruCourses = () => {
         const allMats = matRes.value.data.data || matRes.value.data.materials || [];
         const filteredMats = allMats.filter(m => {
           const mClassId = (m.class_id?._id || m.class_id || '').toString();
-          const mSessNum = parseInt(m.session_number || 1);
-          return mClassId === targetClassId && mSessNum === sessionNum;
+          const mClassName = (m.class_id?.name || m.class_name || '').toString().toLowerCase().trim();
+          const mSessNum = m.session_number ? parseInt(m.session_number) : null;
+
+          // Match class by ID OR class name OR if material is published for all classes
+          const matchClass = mClassId ? (mClassId === targetClassId) : (mClassName ? mClassName === targetClassName : true);
+          
+          // Match session number specifically OR allow general class materials
+          const matchSession = mSessNum ? (mSessNum === sessionNum) : true;
+
+          return matchClass && matchSession;
         });
         setSessionMaterials(filteredMats);
       } else {
@@ -198,8 +208,12 @@ const GuruCourses = () => {
         const allTasks = taskRes.value.data.data || [];
         const filteredTasks = allTasks.filter(t => {
           const tClassId = (t.class_id?._id || t.class_id || t.class || '').toString();
-          const tSessNum = parseInt(t.session_number || 1);
-          return tClassId === targetClassId && tSessNum === sessionNum;
+          const tSessNum = t.session_number ? parseInt(t.session_number) : null;
+
+          const matchClass = tClassId ? (tClassId === targetClassId) : true;
+          const matchSession = tSessNum ? (tSessNum === sessionNum) : true;
+
+          return matchClass && matchSession;
         });
         setSessionAssignments(filteredTasks);
       } else {
