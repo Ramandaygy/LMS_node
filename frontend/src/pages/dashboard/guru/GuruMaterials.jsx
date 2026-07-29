@@ -86,7 +86,8 @@ const GuruMaterials = () => {
     data.append('title', form.title);
     data.append('description', finalDesc);
     data.append('content', finalContent);
-    data.append('class_id', form.class_id || '');
+    data.append('grade_level', form.grade_level || 'all');
+    if (form.class_id) data.append('class_id', form.class_id);
     data.append('subject_id', form.subject_id || (teacherSubjects[0]?._id || ''));
     data.append('external_link', form.external_link || '');
     data.append('session_number', form.session_number || '1');
@@ -102,7 +103,7 @@ const GuruMaterials = () => {
         await api.post('/materials', data, { headers: { 'Content-Type': 'multipart/form-data' } });
         alert('Materi berhasil disimpan');
       }
-      setForm({ title: '', description: '', content: '', class_id: '', subject_id: teacherSubjects[0]?._id || '', external_link: '', file: null });
+      setForm({ title: '', description: '', content: '', grade_level: 'all', class_id: '', subject_id: teacherSubjects[0]?._id || '', external_link: '', file: null });
       setEditingId(null);
       fetchMaterials();
     } catch (err) {

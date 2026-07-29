@@ -5,7 +5,8 @@ const materialSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, default: '' },
   content: { type: String, default: '' }, // konten teks/HTML
-  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: true },
+  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: false, default: null },
+  grade_level: { type: String, default: 'all' }, // '7', '8', '9', 'all'
   subject_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
   uploaded_by: { type: mongoose.Schema.Types.ObjectId, required: true }, // guru
   file_url: { type: String, default: '' }, // path file upload

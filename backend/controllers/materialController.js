@@ -35,15 +35,17 @@ exports.createMaterial = async (req, res) => {
     }
 
     let classIdVal = null;
-    if (req.body.class_id) {
-      try { classIdVal = new mongoose.Types.ObjectId(req.body.class_id.toString()); } catch (e) { classIdVal = req.body.class_id; }
+    if (req.body.class_id && mongoose.Types.ObjectId.isValid(req.body.class_id.toString())) {
+      classIdVal = new mongoose.Types.ObjectId(req.body.class_id.toString());
     }
     let subjectIdVal = null;
-    if (req.body.subject_id) {
-      try { subjectIdVal = new mongoose.Types.ObjectId(req.body.subject_id.toString()); } catch (e) { subjectIdVal = req.body.subject_id; }
+    if (req.body.subject_id && mongoose.Types.ObjectId.isValid(req.body.subject_id.toString())) {
+      subjectIdVal = new mongoose.Types.ObjectId(req.body.subject_id.toString());
     }
     let teacherIdVal = teacherId;
-    try { teacherIdVal = new mongoose.Types.ObjectId(teacherId.toString()); } catch (e) { teacherIdVal = teacherId; }
+    if (teacherId && mongoose.Types.ObjectId.isValid(teacherId.toString())) {
+      teacherIdVal = new mongoose.Types.ObjectId(teacherId.toString());
+    }
 
     const isPublished = (req.body.is_published === 'true' || req.body.is_published === true) && !!classIdVal;
 
@@ -52,6 +54,7 @@ exports.createMaterial = async (req, res) => {
       description: req.body.description || '',
       content: req.body.content || '',
       class_id: classIdVal,
+      grade_level: req.body.grade_level || 'all',
       subject_id: subjectIdVal,
       uploaded_by: teacherIdVal,
       file_url: fileUrl,
