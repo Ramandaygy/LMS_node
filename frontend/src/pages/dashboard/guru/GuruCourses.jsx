@@ -71,6 +71,56 @@ const GuruCourses = () => {
     setNewCommentText('');
   };
 
+  // Inline Create Task Modal State
+  const [createNewTaskModal, setCreateNewTaskModal] = useState(null);
+  const [newTaskForm, setNewTaskForm] = useState({
+    title: '',
+    description: '',
+    dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    maxScore: 100
+  });
+  const [creatingTask, setCreatingTask] = useState(false);
+
+  const handleSaveNewTaskSubmit = async (e) => {
+    e.preventDefault();
+    if (!newTaskForm.title.trim() || !createNewTaskModal) return;
+    setCreatingTask(true);
+    try {
+      const sch = createNewTaskModal.targetSchedule;
+      const classId = sch.class_id?._id || sch.class_id || sch.id;
+      const sessionNum = createNewTaskModal.targetSessionNum || 1;
+
+      await api.post('/assignments', {
+        title: newTaskForm.title,
+        description: newTaskForm.description,
+        due_date: newTaskForm.dueDate,
+        deadline: newTaskForm.dueDate,
+        max_score: newTaskForm.maxScore,
+        class_id: classId,
+        class: classId,
+        session_number: sessionNum
+      });
+
+      alert(`Tugas "${newTaskForm.title}" berhasil dibuat dan disematkan di Sesi ke-${sessionNum}!`);
+      setCreateNewTaskModal(null);
+      setNewTaskForm({
+        title: '',
+        description: '',
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        maxScore: 100
+      });
+
+      if (activeCourseDetail) {
+        fetchRealSessionData(activeCourseDetail.schedule, sessionNum);
+      }
+    } catch (err) {
+      console.error('Error creating new task inline:', err);
+      alert(err.response?.data?.message || err.message || 'Gagal membuat tugas baru.');
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
   useEffect(() => {
     loadPageData();
   }, []);
@@ -126,7 +176,7 @@ const GuruCourses = () => {
   const fetchRealSessionData = async (sch, sessionNum) => {
     setLoadingSessionData(true);
     try {
-      const classId = sch.class_id?._id || sch.class_id || sch.id;
+      const targetClassId = (sch.class_id?._id || sch.class_id || sch.id || '').toString();
       const [matRes, taskRes] = await Promise.allSettled([
         api.get('/materials'),
         api.get('/assignments/guru/me')
@@ -135,8 +185,9 @@ const GuruCourses = () => {
       if (matRes.status === 'fulfilled') {
         const allMats = matRes.value.data.data || matRes.value.data.materials || [];
         const filteredMats = allMats.filter(m => {
-          const mClassId = m.class_id?._id || m.class_id;
-          return mClassId === classId && (parseInt(m.session_number) === sessionNum || !m.session_number);
+          const mClassId = (m.class_id?._id || m.class_id || '').toString();
+          const mSessNum = parseInt(m.session_number || 1);
+          return mClassId === targetClassId && mSessNum === sessionNum;
         });
         setSessionMaterials(filteredMats);
       } else {
@@ -146,8 +197,9 @@ const GuruCourses = () => {
       if (taskRes.status === 'fulfilled') {
         const allTasks = taskRes.value.data.data || [];
         const filteredTasks = allTasks.filter(t => {
-          const tClassId = t.class_id?._id || t.class_id;
-          return tClassId === classId && (parseInt(t.session_number || 1) === sessionNum);
+          const tClassId = (t.class_id?._id || t.class_id || t.class || '').toString();
+          const tSessNum = parseInt(t.session_number || 1);
+          return tClassId === targetClassId && tSessNum === sessionNum;
         });
         setSessionAssignments(filteredTasks);
       } else {
@@ -1279,10 +1331,10 @@ const GuruCourses = () => {
             </div>
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
               <button
-                style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '10px 16px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 16px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 onClick={() => {
+                  setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
                   setTaskModal(null);
-                  navigate('/dashboard/guru/assignments');
                 }}
               >
                 <span className="material-symbols-outlined">add</span> Buat Tugas Baru
@@ -1300,6 +1352,77 @@ const GuruCourses = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* POPUP 3: FORM BUAT TUGAS BARU INLINE */}
+      {createNewTaskModal && (
+        <div className="modal-backdrop" onClick={() => setCreateNewTaskModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '560px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>edit_document</span>
+                Buat Tugas Baru untuk Kelas {createNewTaskModal.targetSchedule.class_name} (Sesi ke-{createNewTaskModal.targetSessionNum || 1})
+              </h3>
+              <button onClick={() => setCreateNewTaskModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSaveNewTaskSubmit}>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Judul Tugas *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Tugas 1 - Pendahuluan Algoritma & Struktur Data"
+                  value={newTaskForm.title}
+                  onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Deskripsi / Petunjuk Penugasan</label>
+                <textarea
+                  rows="3"
+                  placeholder="Tuliskan instruksi tugas secara rinci untuk siswa..."
+                  value={newTaskForm.description}
+                  onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Tenggat Waktu *</label>
+                  <input
+                    type="date"
+                    required
+                    value={newTaskForm.dueDate}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, dueDate: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Skor Maksimal</label>
+                  <input
+                    type="number"
+                    value={newTaskForm.maxScore}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, maxScore: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={() => setCreateNewTaskModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+                <button
+                  type="submit"
+                  disabled={creatingTask}
+                  style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
+                >
+                  {creatingTask ? 'Menyimpan...' : 'Simpan & Sematkan Tugas'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

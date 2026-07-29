@@ -156,7 +156,7 @@ exports.generateMaterial = async (req, res) => {
 // BATCH DISTRIBUSI MATERI DARI BANK KE KELAS TARGET
 exports.distributeMaterialsBatch = async (req, res) => {
   try {
-    const { material_ids, class_id } = req.body;
+    const { material_ids, class_id, session_number } = req.body;
 
     if (!material_ids || !Array.isArray(material_ids) || material_ids.length === 0) {
       return res.status(400).json({ success: false, message: 'Pilih minimal 1 materi untuk didistribusikan' });
@@ -173,13 +173,18 @@ exports.distributeMaterialsBatch = async (req, res) => {
       classIdObj = class_id;
     }
 
+    const updatePayload = {
+      class_id: classIdObj,
+      is_published: true
+    };
+    if (session_number) {
+      updatePayload.session_number = parseInt(session_number);
+    }
+
     await MaterialModel.updateMany(
       { _id: { $in: material_ids.map(id => new mongoose.Types.ObjectId(id.toString())) } },
       {
-        $set: {
-          class_id: classIdObj,
-          is_published: true
-        }
+        $set: updatePayload
       }
     );
 
