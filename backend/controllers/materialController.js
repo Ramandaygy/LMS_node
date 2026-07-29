@@ -71,44 +71,45 @@ exports.createMaterial = async (req, res) => {
         const notificationController = require('./notificationController');
         const siswaCol = mongoose.connection.collection('users_siswa');
         const classIdStr = classIdVal.toString();
-      let classIdObj;
-      try {
-        classIdObj = new mongoose.Types.ObjectId(classIdStr);
-      } catch (e) {
-        classIdObj = null;
-      }
-      
-      const query = {
-        $or: [
-          { class_id: classIdStr },
-          ...(classIdObj ? [{ class_id: classIdObj }] : [])
-        ]
-      };
-      
-      const materialTitle = req.body.title;
-      const students = await siswaCol.find(query).toArray();
-      
-      for (const student of students) {
-        if (student._id) {
-          notificationController.sendPushNotification(
-            student._id.toString(),
-            'Materi Baru!',
-            `Materi baru telah diunggah: ${materialTitle}.`,
-            '/dashboard/siswa/materials'
-          ).catch(e => console.error(e));
+        let classIdObj;
+        try {
+          classIdObj = new mongoose.Types.ObjectId(classIdStr);
+        } catch (e) {
+          classIdObj = null;
         }
         
-        if (student.parent_id) {
-          notificationController.sendPushNotification(
-            student.parent_id.toString(),
-            'Materi Baru untuk Anak Anda',
-            `Ada materi baru untuk ${student.full_name}: ${materialTitle}.`,
-            '/dashboard/ortu'
-          ).catch(e => console.error(e));
+        const query = {
+          $or: [
+            { class_id: classIdStr },
+            ...(classIdObj ? [{ class_id: classIdObj }] : [])
+          ]
+        };
+        
+        const materialTitle = req.body.title;
+        const students = await siswaCol.find(query).toArray();
+        
+        for (const student of students) {
+          if (student._id) {
+            notificationController.sendPushNotification(
+              student._id.toString(),
+              'Materi Baru!',
+              `Materi baru telah diunggah: ${materialTitle}.`,
+              '/dashboard/siswa/materials'
+            ).catch(e => console.error(e));
+          }
+          
+          if (student.parent_id) {
+            notificationController.sendPushNotification(
+              student.parent_id.toString(),
+              'Materi Baru untuk Anak Anda',
+              `Ada materi baru untuk ${student.full_name}: ${materialTitle}.`,
+              '/dashboard/ortu'
+            ).catch(e => console.error(e));
+          }
         }
+      } catch (notifErr) {
+        console.error('Failed to send push notifications for new material:', notifErr);
       }
-    } catch (notifErr) {
-      console.error('Failed to send push notifications for new material:', notifErr);
     }
 
     return res.status(201).json({ success: true, data: material });
