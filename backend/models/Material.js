@@ -14,6 +14,7 @@ const materialSchema = new mongoose.Schema({
   file_type: { type: String, default: '' },
   external_link: { type: String, default: '' }, // link eksternal
   is_published: { type: Boolean, default: true },
+  session_number: { type: Number, default: 1 },
   order: { type: Number, default: 0 },
   source_type: { type: String, enum: ['manual', 'ai'], default: 'manual' },
   ai_prompt: { type: String, default: '' }

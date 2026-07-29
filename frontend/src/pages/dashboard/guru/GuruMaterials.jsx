@@ -20,6 +20,7 @@ const GuruMaterials = () => {
     content: '',
     class_id: '',
     subject_id: '',
+    session_number: '1',
     external_link: '',
     file: null
   });
@@ -77,6 +78,7 @@ const GuruMaterials = () => {
     data.append('class_id', form.class_id || '');
     data.append('subject_id', form.subject_id || (teacherSubjects[0]?._id || ''));
     data.append('external_link', form.external_link || '');
+    data.append('session_number', form.session_number || '1');
     // Materi baru disimpan ke Bank Materi terlebih dahulu (Draft), tidak langsung terdistribusi ke siswa
     data.append('is_published', 'false');
     if (form.file) data.append('file', form.file);
@@ -469,10 +471,10 @@ const GuruMaterials = () => {
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Kelas</label>
+                <label>Kelas Target</label>
                 <select name="class_id" value={form.class_id} onChange={handleChange}>
-                  <option value="">Pilih Kelas</option>
-                  {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                  <option value="">Bank Materi (Draft)</option>
+                  {teacherClasses.map(c => <option key={c._id} value={c._id}>Kelas {c.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -480,6 +482,14 @@ const GuruMaterials = () => {
                 <select name="subject_id" value={form.subject_id} onChange={handleChange} required>
                   <option value="">Pilih Mapel</option>
                   {teacherSubjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Target Sesi KBM (Sesi 1-16)</label>
+                <select name="session_number" value={form.session_number || 1} onChange={handleChange} required>
+                  {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
+                    <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -178,8 +178,54 @@ const GuruAttendance = () => {
 
   const displayedStudents = getSearchFilteredStudents();
   const presentCount = Object.values(attendanceData).filter(a => a.status === 'present').length;
+  const sickCount = Object.values(attendanceData).filter(a => a.status === 'sick').length;
+  const permCount = Object.values(attendanceData).filter(a => a.status === 'permission').length;
+  const absentCount = Object.values(attendanceData).filter(a => a.status === 'absent').length;
+
   const totalStudents = students.length || 32;
-  const attendanceRate = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 100;
+  const presentPct = totalStudents > 0 ? ((presentCount / totalStudents) * 100).toFixed(1) : '0';
+  const sickPct = totalStudents > 0 ? ((sickCount / totalStudents) * 100).toFixed(1) : '0';
+  const permPct = totalStudents > 0 ? ((permCount / totalStudents) * 100).toFixed(1) : '0';
+  const absentPct = totalStudents > 0 ? ((absentCount / totalStudents) * 100).toFixed(1) : '0';
+
+  // Custom topics editing state
+  const [customTopics, setCustomTopics] = useState({});
+  const [editingSessionModal, setEditingSessionModal] = useState(null);
+
+  useEffect(() => {
+    if (selectedSchedule) {
+      try {
+        const savedTopics = localStorage.getItem(`custom_session_topics_${selectedSchedule}`);
+        if (savedTopics) {
+          setCustomTopics(JSON.parse(savedTopics));
+        } else {
+          setCustomTopics({});
+        }
+      } catch (e) {
+        setCustomTopics({});
+      }
+    }
+  }, [selectedSchedule]);
+
+  const handleSaveSessionTopic = () => {
+    if (!editingSessionModal) return;
+    const sessNum = editingSessionModal.sesi;
+    const updated = {
+      ...customTopics,
+      [sessNum]: {
+        materi: editingSessionModal.materi,
+        subMateri: editingSessionModal.subMateri,
+        ruang: editingSessionModal.ruang
+      }
+    };
+    setCustomTopics(updated);
+    if (selectedSchedule) {
+      localStorage.setItem(`custom_session_topics_${selectedSchedule}`, JSON.stringify(updated));
+    }
+    setEditingSessionModal(null);
+    setSuccess(`Rencana & Realisasi Materi Sesi Pertemuan ke-${sessNum} berhasil diperbarui!`);
+    setTimeout(() => setSuccess(''), 3000);
+  };
 
   // Generate 16 Meetings Schedule matching SIAKAD / EdLink reference photo
   const generate16SessionsList = () => {
@@ -188,7 +234,7 @@ const GuruAttendance = () => {
     const dayName = selectedScheduleInfo?.day || 'Senin';
     const timeStr = (selectedScheduleInfo?.start_time || '07:30') + ' - ' + (selectedScheduleInfo?.end_time || '09:30');
 
-    const topics = [
+    const defaultTopics = [
       "Pengenalan Konsep Dasar KBM & Silabus Kurikulum",
       "Pemahaman Tipe Data, Karakteristik Himpunan & Algoritma",
       "Struktur Pembelajaran: Data Preprocessing & Cleaning",
@@ -215,12 +261,15 @@ const GuruAttendance = () => {
       const hadirCount = isPast ? (sessNum % 2 === 0 ? totalStudents : totalStudents - 1) : 0;
       const pctVal = isPast ? ((hadirCount / totalStudents) * 100).toFixed(2) : '-';
 
+      const customData = customTopics[sessNum];
+
       return {
         sesi: sessNum,
         waktu: formattedDate,
-        materi: topics[i] || `Pembahasan Materi Sesi Pertemuan ke-${sessNum}`,
+        materi: customData?.materi || defaultTopics[i] || `Pembahasan Materi Sesi Pertemuan ke-${sessNum}`,
+        subMateri: customData?.subMateri || `Penjelasan modul dan evaluasi KBM pertemuan ke-${sessNum}.`,
         pengajar: teacherProfileName,
-        ruang: baseRoom,
+        ruang: customData?.ruang || baseRoom,
         hadir: isPast ? hadirCount : '-',
         pct: isPast ? `${pctVal}%` : '-',
         isCompleted: isPast
@@ -231,7 +280,7 @@ const GuruAttendance = () => {
   const sessions16List = generate16SessionsList();
 
   if (loading) {
-    return <div className="attendance-loading">Memuat data Presensi Kelas & Riwayat Perkuliahan...</div>;
+    return <div className="attendance-loading">Memuat data Presensi Kelas & Sesi KBM Pembelajaran...</div>;
   }
 
   return (
@@ -240,8 +289,8 @@ const GuruAttendance = () => {
       {/* HEADER BAR (SIAKAD STYLE) */}
       <div className="siakad-top-header">
         <div>
-          <h1 className="siakad-page-title">Presensi Kelas</h1>
-          <p className="siakad-page-subtitle">Riwayat Perkuliahan dan Presensi Kelas</p>
+          <h1 className="siakad-page-title">Presensi & Sesi KBM Kelas</h1>
+          <p className="siakad-page-subtitle">Riwayat KBM dan Rencana / Realisasi Presensi Pertemuan</p>
         </div>
 
         <div className="siakad-header-right-actions">
@@ -256,7 +305,7 @@ const GuruAttendance = () => {
               Kembali ke Dashboard Guru
             </button>
           )}
-          <button className="btn-siakad-pill active">Dosen / Guru</button>
+          <button className="btn-siakad-pill active">Guru Mapel</button>
           <button className="btn-siakad-pill">Siswa</button>
         </div>
       </div>
@@ -269,12 +318,12 @@ const GuruAttendance = () => {
         <div className="meta-grid">
           <div className="meta-col">
             <div className="meta-item">
-              <span className="meta-label">Program Studi / Sekolah:</span>
+              <span className="meta-label">Sekolah:</span>
               <span className="meta-val">SMP Negeri 1 Suradadi</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Mata Pelajaran:</span>
-              <span className="meta-val">{selectedScheduleInfo?.subject || 'INFORMATIKA'} - 2 Jam KBM</span>
+              <span className="meta-val">{selectedScheduleInfo?.subject || 'INFORMATIKA'} - 2 Jam Pelajaran (JP)</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Kurikulum:</span>
@@ -307,7 +356,62 @@ const GuruAttendance = () => {
         </div>
       </div>
 
-      {/* VIEW MODE 1: RIWAYAT PERKULIAHAN & PRESENSI KELAS (TABLE 16 PERTEMUAN - SIAKAD STYLE) */}
+      {/* PERSENTASE REKAPITULASI PRESENSI SISWA (HADIR, SAKIT, IZIN, ALPA) */}
+      <div style={{ background: '#ffffff', borderRadius: '16px', padding: '16px 20px', border: '1px solid #cbd5e1', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>pie_chart</span>
+            Persentase Rekapitulasi Presensi Sesi Ini:
+          </strong>
+          <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569' }}>
+            Total: {totalStudents} Siswa Terdaftar
+          </span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+          {/* HADIR */}
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span> Hadir
+            </span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#15803d', marginTop: '2px' }}>
+              {presentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#166534' }}>({presentCount} Siswa)</span>
+            </div>
+          </div>
+
+          {/* SAKIT */}
+          <div style={{ background: '#fefce8', border: '1px solid #fef08a', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#854d0e', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>medical_services</span> Sakit
+            </span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#ca8a04', marginTop: '2px' }}>
+              {sickPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#854d0e' }}>({sickCount} Siswa)</span>
+            </div>
+          </div>
+
+          {/* IZIN */}
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>assignment_late</span> Izin
+            </span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#2563eb', marginTop: '2px' }}>
+              {permPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e40af' }}>({permCount} Siswa)</span>
+            </div>
+          </div>
+
+          {/* ALPA */}
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: '12px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>cancel</span> Alpa
+            </span>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: '#dc2626', marginTop: '2px' }}>
+              {absentPct}% <span style={{ fontSize: '12px', fontWeight: '700', color: '#991b1b' }}>({absentCount} Siswa)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* VIEW MODE 1: RIWAYAT KBM & PRESENSI KELAS (TABLE 16 PERTEMUAN - SIAKAD STYLE) */}
       {activeViewMode === 'history' && (
         <div className="siakad-table-wrapper">
           
@@ -359,8 +463,19 @@ const GuruAttendance = () => {
                   <td className="text-center font-bold">{row.sesi}</td>
                   <td className="waktu-cell">{row.waktu}</td>
                   <td className="materi-cell">
-                    <p className="materi-title">{row.materi}</p>
-                    <p className="materi-sub">Penjelasan modul dan evaluasi KBM pertemuan ke-{row.sesi}.</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <div>
+                        <p className="materi-title">{row.materi}</p>
+                        <p className="materi-sub">{row.subMateri}</p>
+                      </div>
+                      <button
+                        onClick={() => setEditingSessionModal(row)}
+                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0284c7', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
+                        title="Edit Rencana & Realisasi Materi Sesi Ini"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span> Edit
+                      </button>
+                    </div>
                   </td>
                   <td>{row.pengajar}</td>
                   <td className="text-center">{row.ruang}</td>
@@ -379,6 +494,63 @@ const GuruAttendance = () => {
               ))}
             </tbody>
           </table>
+
+          {/* MODAL EDIT RENCANA & REALISASI MATERI SESI */}
+          {editingSessionModal && (
+            <div className="modal-backdrop" onClick={() => setEditingSessionModal(null)}>
+              <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '540px', borderRadius: '16px' }}>
+                <div className="modal-header">
+                  <h3>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>edit_note</span>
+                    Edit Rencana & Realisasi Materi (Sesi {editingSessionModal.sesi})
+                  </h3>
+                  <button className="btn-close-modal" onClick={() => setEditingSessionModal(null)}>
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group" style={{ marginBottom: '14px' }}>
+                    <label style={{ fontWeight: '700', fontSize: '12px', color: '#334155' }}>Judul Rencana Materi Pertemuan ke-{editingSessionModal.sesi}</label>
+                    <input
+                      type="text"
+                      value={editingSessionModal.materi}
+                      onChange={(e) => setEditingSessionModal({ ...editingSessionModal, materi: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      required
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: '14px' }}>
+                    <label style={{ fontWeight: '700', fontSize: '12px', color: '#334155' }}>Uraian Realisasi & Sub-Materi</label>
+                    <textarea
+                      rows="3"
+                      value={editingSessionModal.subMateri}
+                      onChange={(e) => setEditingSessionModal({ ...editingSessionModal, subMateri: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label style={{ fontWeight: '700', fontSize: '12px', color: '#334155' }}>Ruang Kelas / Lab</label>
+                    <input
+                      type="text"
+                      value={editingSessionModal.ruang}
+                      onChange={(e) => setEditingSessionModal({ ...editingSessionModal, ruang: e.target.value })}
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button className="btn-cancel" onClick={() => setEditingSessionModal(null)}>Batal</button>
+                  <button
+                    className="btn-submit"
+                    onClick={handleSaveSessionTopic}
+                    style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
+                  >
+                    Simpan Perubahan Rencana
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -418,7 +590,7 @@ const GuruAttendance = () => {
             <div className="summary-card present">
               <div className="summary-card-header">
                 <span className="summary-icon material-symbols-outlined">check_circle</span>
-                <span className="summary-badge success">{attendanceRate}% Rate</span>
+                <span className="summary-badge success">{presentPct}% Rate</span>
               </div>
               <div className="summary-card-body">
                 <p className="summary-label">Hadir Hari Ini</p>

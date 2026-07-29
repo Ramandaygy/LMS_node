@@ -60,6 +60,7 @@ exports.createMaterial = async (req, res) => {
       file_type: fileType,
       external_link: req.body.external_link || '',
       is_published: isPublished,
+      session_number: parseInt(req.body.session_number) || 1,
       order: parseInt(req.body.order) || 0
     };
 

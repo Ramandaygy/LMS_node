@@ -216,7 +216,7 @@ const GuruDashboard = () => {
           {/* Status Banner */}
           <div className="status-session-banner">
             <span className="material-symbols-outlined icon-live">sensors</span>
-            <span>Sesi Perkuliahan & KBM Hari Ini Berlangsung Aktif</span>
+            <span>Sesi KBM & Jam Pelajaran Hari Ini Berlangsung Aktif</span>
           </div>
 
           {/* LIST OF CLASS TEACHING CARDS */}
@@ -238,7 +238,7 @@ const GuruDashboard = () => {
                     </div>
                     <div className="sks-badge">
                       <span className="material-symbols-outlined">bookmark</span>
-                      2 Jam KBM
+                      2 Jam Pelajaran (JP)
                     </div>
                   </div>
 
@@ -348,7 +348,7 @@ const GuruDashboard = () => {
               </div>
               <div className="teacher-name-info">
                 <h4>Hai, {profile?.full_name || 'Susi Herlina, S.Kom.'}</h4>
-                <p>Beban mengajar: <strong>{activeClasses.length * 6}.00 SKS / Jam KBM</strong></p>
+                <p>Beban mengajar: <strong>{activeClasses.length * 6} Jam Pelajaran (JP)</strong></p>
               </div>
             </div>
 
