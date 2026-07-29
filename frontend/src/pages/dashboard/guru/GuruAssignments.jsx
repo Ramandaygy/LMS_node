@@ -9,7 +9,8 @@ const GuruAssignments = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
-  
+  const [selectedSubmissionModal, setSelectedSubmissionModal] = useState(null);
+
   const [formData, setFormData] = useState({
     title: '',
     subject_id: '',
@@ -50,7 +51,6 @@ const GuruAssignments = () => {
       const fetchedAssignments = res.data.data || [];
       setAssignments(fetchedAssignments);
 
-      // Default select first assignment if available
       if (fetchedAssignments.length > 0 && !selectedAssignment) {
         handleSelectAssignment(fetchedAssignments[0]);
       }
@@ -74,14 +74,12 @@ const GuruAssignments = () => {
       const fetchedSubmissions = subRes.data?.data || [];
       const classStudents = studentsRes.data?.students || [];
 
-      // Map submissions by student_id string
       const submissionMap = {};
       fetchedSubmissions.forEach(sub => {
         const sId = sub.student_id ? sub.student_id.toString() : '';
         if (sId) submissionMap[sId] = sub;
       });
 
-      // Merge ALL students in the class with their submission status
       let mergedSubmissions = [];
 
       if (classStudents.length > 0) {
@@ -140,6 +138,7 @@ const GuruAssignments = () => {
     fetchSubmissionsAndStudents(assignment);
     setShowCreateForm(false);
     setEditMode(false);
+    setSelectedSubmissionModal(null);
   };
 
   const handleEdit = (assignment, e) => {
@@ -262,8 +261,15 @@ const GuruAssignments = () => {
     if (!selectedAssignment) return;
     setSaving(true);
     try {
+      const isExpired = new Date(selectedAssignment.deadline) < new Date();
+
       const gradesList = Object.keys(grades)
-        .filter(studentId => grades[studentId] !== '')
+        .filter(studentId => {
+          const sub = submissions.find(s => s.student_id === studentId);
+          // Allow grading if student submitted OR if deadline has not passed yet
+          if (!sub || (!sub.isSubmitted && isExpired)) return false;
+          return grades[studentId] !== '';
+        })
         .map(studentId => ({
           student_id: studentId,
           score: Number(grades[studentId]),
@@ -271,7 +277,7 @@ const GuruAssignments = () => {
         }));
 
       if (gradesList.length === 0) {
-        alert('Belum ada nilai yang diisi');
+        alert('Belum ada nilai baru yang diisi untuk siswa yang berhak dinilai.');
         setSaving(false);
         return;
       }
@@ -281,7 +287,8 @@ const GuruAssignments = () => {
       fetchSubmissionsAndStudents(selectedAssignment);
       fetchAssignments();
     } catch (err) {
-      alert('Gagal menyimpan nilai');
+      console.error('Gagal simpan nilai:', err);
+      alert(err.response?.data?.message || 'Gagal menyimpan nilai');
     } finally {
       setSaving(false);
     }
@@ -300,7 +307,7 @@ const GuruAssignments = () => {
     return true;
   });
 
-  // Calculate submission counts for selected assignment
+  const isSelectedAssignmentExpired = selectedAssignment ? new Date(selectedAssignment.deadline) < new Date() : false;
   const submittedCount = submissions.filter(s => s.isSubmitted).length;
   const gradedCount = submissions.filter(s => s.isSubmitted && s.score !== null && s.score !== '' && s.score !== undefined).length;
   const ungradedCount = submissions.filter(s => s.isSubmitted && (s.score === null || s.score === '' || s.score === undefined)).length;
@@ -322,7 +329,7 @@ const GuruAssignments = () => {
         </button>
       </div>
 
-      {/* Filter Tabs (Simplified without standalone Penilaian tab) */}
+      {/* Filter Tabs */}
       <div className="filter-tabs">
         <button className={`tab ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>Semua Tugas ({assignments.length})</button>
         <button className={`tab ${filter === 'active' ? 'active' : ''}`} onClick={() => setFilter('active')}>Aktif</button>
@@ -337,6 +344,10 @@ const GuruAssignments = () => {
           {filteredAssignments.map(assignment => {
             const status = getAssignmentStatus(assignment);
             const isSelected = selectedAssignment?._id === assignment._id;
+            const submCount = assignment.submitted_count || 0;
+            const grdCount = assignment.graded_count || 0;
+            const totStudents = assignment.total_students || 32;
+
             return (
               <div 
                 key={assignment._id} 
@@ -356,7 +367,13 @@ const GuruAssignments = () => {
                     <span className="material-symbols-outlined icon">event_busy</span>
                     Deadline: {new Date(assignment.deadline).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
                   </div>
-                  <div className={`status ${status}`}>
+
+                  {/* PROGRES DIKUMPULKAN & DINILAI SESUAI SUARA USER */}
+                  <div className="card-progress-strip" style={{ fontSize: '11px', color: '#475569', fontWeight: '700', marginTop: '4px' }}>
+                    <span>Mengumpulkan: <strong>{submCount}</strong></span> • <span>Dinilai: <strong>{grdCount}</strong></span>
+                  </div>
+
+                  <div className={`status ${status}`} style={{ marginTop: '4px' }}>
                     {status === 'active' ? 'Aktif' : 'Selesai'}
                   </div>
                 </div>
@@ -516,7 +533,7 @@ const GuruAssignments = () => {
                 )}
               </div>
 
-              {/* STATS SUBMISI (SUDAH DINILAI / BELUM DINILAI / BELUM MENGUMPULKAN) */}
+              {/* STATS SUBMISI */}
               <div className="submission-stats-strip">
                 <div className="stat-pill green">
                   <span className="dot"></span>
@@ -535,10 +552,10 @@ const GuruAssignments = () => {
                 </div>
               </div>
 
-              {/* TABEL SISWA SEKELAS (FULL 1 KELAS DENGAN SHADOW ABU-ABU PADA YANG BELUM MENGUMPULKAN) */}
+              {/* TABEL SISWA SEKELAS */}
               <div className="submissions-table-wrapper">
                 <div className="table-header-title">
-                  <h3>Daftar Pengumpulan & Penilaian Siswa Sekelas</h3>
+                  <h3>Daftar Pengumpulkan & Penilaian Siswa Sekelas</h3>
                 </div>
 
                 <table className="submissions-table">
@@ -547,7 +564,7 @@ const GuruAssignments = () => {
                       <th style={{ width: '40px' }}>No</th>
                       <th>Nama Siswa</th>
                       <th>Waktu Mengumpulkan</th>
-                      <th>File / Jawaban</th>
+                      <th>Detail Jawaban</th>
                       <th style={{ width: '130px', textAlign: 'center' }}>Status</th>
                       <th>Feedback Guru</th>
                       <th style={{ width: '100px', textAlign: 'center' }}>Nilai</th>
@@ -560,6 +577,8 @@ const GuruAssignments = () => {
                       submissions.map((sub, idx) => {
                         const isSubmitted = sub.isSubmitted;
                         const isGraded = isSubmitted && sub.score !== null && sub.score !== '' && sub.score !== undefined;
+                        // DIKECUALIKAN DARI INPUT NILAI JIKA BELUM MENGUMPULKAN DAN WAKTU DEADLINE TELAH LEWAT
+                        const isExpiredNotSubmitted = !isSubmitted && isSelectedAssignmentExpired;
 
                         return (
                           <tr 
@@ -580,20 +599,31 @@ const GuruAssignments = () => {
                               }
                             </td>
                             <td>
+                              {/* POP-UP PREVIEW RINGKAS AGAR TIDAK MAKAN TEMPAT DI TABEL */}
                               {isSubmitted ? (
-                                <div className="submission-answer-cell">
+                                <div className="submission-actions-cell" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                   {sub.file && (
-                                    <a href={`/uploads/${sub.file}`} target="_blank" rel="noreferrer" className="ans-link">
-                                      <span className="material-symbols-outlined">description</span> File Jawaban
+                                    <a href={sub.file.startsWith('http') ? sub.file : `/uploads/${sub.file}`} target="_blank" rel="noreferrer" className="btn-table-file">
+                                      <span className="material-symbols-outlined">picture_as_pdf</span> File
                                     </a>
                                   )}
                                   {sub.link && (
-                                    <a href={sub.link} target="_blank" rel="noreferrer" className="ans-link">
-                                      <span className="material-symbols-outlined">link</span> Link Tugas
+                                    <a href={sub.link} target="_blank" rel="noreferrer" className="btn-table-link">
+                                      <span className="material-symbols-outlined">link</span> Link
                                     </a>
                                   )}
-                                  {sub.content && <p className="ans-text">{sub.content}</p>}
-                                  {!sub.file && !sub.link && !sub.content && <span className="text-dash">Sudah Mengumpulkan</span>}
+                                  {sub.content && (
+                                    <button 
+                                      className="btn-table-preview"
+                                      onClick={() => setSelectedSubmissionModal(sub)}
+                                      title="Lihat Detail Jawaban Teks"
+                                    >
+                                      <span className="material-symbols-outlined">visibility</span> Lihat Jawaban
+                                    </button>
+                                  )}
+                                  {!sub.file && !sub.link && !sub.content && (
+                                    <span className="text-dash">Sudah Mengumpulkan</span>
+                                  )}
                                 </div>
                               ) : (
                                 <span className="text-dash">Belum Mengumpulkan</span>
@@ -601,7 +631,11 @@ const GuruAssignments = () => {
                             </td>
                             <td className="text-center">
                               {!isSubmitted ? (
-                                <span className="status-badge-chip grey">Belum Mengumpulkan</span>
+                                isSelectedAssignmentExpired ? (
+                                  <span className="status-badge-chip red" title="Terlewati Deadline">Melewati Deadline</span>
+                                ) : (
+                                  <span className="status-badge-chip grey">Belum Mengumpulkan</span>
+                                )
                               ) : isGraded ? (
                                 <span className="status-badge-chip green">Sudah Dinilai</span>
                               ) : (
@@ -614,7 +648,9 @@ const GuruAssignments = () => {
                                 className="feedback-input"
                                 value={feedbacks[sub.student_id] || ''} 
                                 onChange={(e) => handleFeedbackChange(sub.student_id, e.target.value)} 
-                                placeholder="Tulis feedback..." 
+                                placeholder={isExpiredNotSubmitted ? "Waktu pengerjaan berakhir" : "Tulis feedback..."} 
+                                disabled={isExpiredNotSubmitted}
+                                style={isExpiredNotSubmitted ? { opacity: 0.5, cursor: 'not-allowed', background: '#f1f5f9' } : {}}
                               />
                             </td>
                             <td className="text-center">
@@ -626,6 +662,9 @@ const GuruAssignments = () => {
                                 placeholder="0-100"
                                 min="0"
                                 max="100"
+                                disabled={isExpiredNotSubmitted}
+                                title={isExpiredNotSubmitted ? "Siswa melewatin deadline tanpa mengumpulkan tugas, nilai dikunci" : "Input Nilai Siswa"}
+                                style={isExpiredNotSubmitted ? { opacity: 0.5, cursor: 'not-allowed', background: '#e2e8f0' } : {}}
                               />
                             </td>
                           </tr>
@@ -653,6 +692,35 @@ const GuruAssignments = () => {
         </div>
 
       </div>
+
+      {/* MODAL POPUP LIHAT JAWABAN SISWA (AGAR TIDAK MAKAN TEMPAT) */}
+      {selectedSubmissionModal && (
+        <div className="modal-backdrop" onClick={() => setSelectedSubmissionModal(null)}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <span className="material-symbols-outlined">article</span>
+                Detail Jawaban: {selectedSubmissionModal.student_name}
+              </h3>
+              <button className="btn-close-modal" onClick={() => setSelectedSubmissionModal(null)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-meta-row" style={{ marginBottom: '16px', fontSize: '13px', color: '#64748b' }}>
+                <span>Waktu Pengumpulan: <strong>{selectedSubmissionModal.submitted_at ? new Date(selectedSubmissionModal.submitted_at).toLocaleString('id-ID') : '-'}</strong></span>
+              </div>
+              <div className="modal-answer-text" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                {selectedSubmissionModal.content}
+              </div>
+            </div>
+            <div className="modal-footer" style={{ marginTop: '20px', textAlign: 'right' }}>
+              <button className="btn-cancel" onClick={() => setSelectedSubmissionModal(null)}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

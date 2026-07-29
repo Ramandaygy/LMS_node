@@ -1,4 +1,4 @@
-/* STYLES FOR GURU ASSIGNMENTS (FULL 1 KELAS & SHADOW ABU-ABU UNTUK BELUM MENGUMPULKAN) */
+/* STYLES FOR GURU ASSIGNMENTS (FULL 1 KELAS & POPUP MODAL JAWABAN) */
 
 .guru-assignments-container {
   padding: 28px;
@@ -163,7 +163,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .status.active {
@@ -423,7 +423,6 @@
   transition: background 0.15s ease;
 }
 
-/* SHADOW ABU-ABU PADA SISWA YANG BELUM MENGUMPULKAN */
 .submission-row.not-submitted-row-shadow {
   background: #f8fafc;
   box-shadow: inset 4px 0 0 #94a3b8;
@@ -437,7 +436,6 @@
 .student-name-group strong {
   display: block;
   color: #0f172a;
-
   font-size: 13px;
 }
 
@@ -457,21 +455,25 @@
   font-size: 12px;
 }
 
-.ans-link {
-  color: #0284c7;
-  font-weight: 700;
-  font-size: 12px;
-  text-decoration: none;
+/* BUTTON TABLE PREVIEW (RINGKAS & TIDAK MAKAN TEMPAT) */
+.btn-table-file, .btn-table-link, .btn-table-preview {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
 }
 
-.ans-text {
-  margin: 0;
-  font-size: 12px;
-  color: #334155;
-}
+.btn-table-file { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.btn-table-link { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.btn-table-preview { background: #fdf4ff; color: #c026d3; border: 1px solid #f5d0fe; }
+
+.btn-table-preview:hover { background: #fae8ff; }
 
 /* BADGE CHIPS STATUS SUBMISI */
 .status-badge-chip {
@@ -485,6 +487,7 @@
 .status-badge-chip.green { background: #dcfce7; color: #15803d; }
 .status-badge-chip.amber { background: #fef3c7; color: #b45309; }
 .status-badge-chip.grey { background: #e2e8f0; color: #475569; }
+.status-badge-chip.red { background: #fee2e2; color: #dc2626; }
 
 .feedback-input {
   width: 100%;
@@ -531,6 +534,57 @@
 
 .btn-save-all-grades:hover {
   background: #15803d;
+}
+
+/* MODAL POPUP STYLES */
+.modal-backdrop {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content-box {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.modal-header h3 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-close-modal {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 /* FORM CREATE / EDIT */

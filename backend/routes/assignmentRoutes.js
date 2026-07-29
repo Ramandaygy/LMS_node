@@ -27,7 +27,8 @@ router.post('/:assignmentId/submit', authMiddleware, uploadSubmission.single('fi
 // Lihat submisi assignment
 router.get('/:assignmentId/submissions', authMiddleware, submissionController.getAssignmentSubmissions);
 
-// Beri nilai
+// Beri nilai (baik /grade maupun /grades)
 router.post('/:assignmentId/grade', authMiddleware, submissionController.gradeSubmission);
+router.post('/:assignmentId/grades', authMiddleware, submissionController.gradeSubmission);
 
 module.exports = router;

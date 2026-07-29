@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
-import ForumDiscussion from '../../../components/Forum/ForumDiscussion';
 import '../../../styles/dashboard/guru/guru-materials.css';
 
 const GuruMaterials = () => {
@@ -162,7 +161,7 @@ const GuruMaterials = () => {
       </div>
 
       <div className="cards-grid">
-        <div className="form-card" style={{ width: '100%', maxWidth: '800px', margin: '0 auto' }}>
+        <div className="form-card">
           <h3>
             <span className="material-symbols-outlined card-icon">{editingId ? 'edit' : 'upload_file'}</span>
             {editingId ? 'Edit Materi' : 'Tambah Materi Baru'}
@@ -360,14 +359,6 @@ const GuruMaterials = () => {
         )}
       </div>
 
-      {/* FORUM DISKUSI PER MATA PELAJARAN */}
-      {teacherSubjects.length > 0 && (
-        <div style={{ marginTop: '36px' }}>
-          <ForumDiscussion
-            subjectId={form.subject_id || teacherSubjects[0]._id}
-          />
-        </div>
-      )}
     </div>
   );
 };

@@ -37,12 +37,21 @@ exports.getSubmissionsByAssignment = async (assignmentId) => {
   }));
 };
 
-// Guru memberi nilai
+// Guru memberi nilai (upsert jika siswa belum ada record submisi)
 exports.gradeSubmission = async (assignmentId, studentId, score, feedback, teacherId) => {
-  const submission = await Submission.findOne({ assignment_id: assignmentId, student_id: studentId });
-  if (!submission) throw new Error('Submission not found');
-  submission.score = score;
-  submission.feedback = feedback;
+  let submission = await Submission.findOne({ assignment_id: assignmentId, student_id: studentId });
+  if (!submission) {
+    submission = new Submission({
+      assignment_id: assignmentId,
+      student_id: studentId,
+      content: '',
+      link: '',
+      file: '',
+      submitted_at: null
+    });
+  }
+  submission.score = score !== null && score !== '' && score !== undefined ? Number(score) : null;
+  submission.feedback = feedback || '';
   submission.graded_at = new Date();
   submission.graded_by = teacherId;
   await submission.save();
