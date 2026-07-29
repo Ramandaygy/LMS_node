@@ -151,6 +151,40 @@ const SiswaCbt = () => {
     }
   };
 
+  const renderStarRating = (score, maxScore = 100) => {
+    const numScore = Number(score) || 0;
+    const percentage = (numScore / maxScore) * 100;
+    let starsCount = 5;
+    if (percentage < 20) starsCount = 1;
+    else if (percentage < 40) starsCount = 2;
+    else if (percentage < 60) starsCount = 3;
+    else if (percentage < 80) starsCount = 4;
+    else starsCount = 5;
+
+    const starsArr = [];
+    for (let i = 1; i <= 5; i++) {
+      starsArr.push(
+        <span 
+          key={i} 
+          className="material-symbols-outlined" 
+          style={{ 
+            color: i <= starsCount ? '#f59e0b' : '#cbd5e1', 
+            fontSize: '18px',
+            verticalAlign: 'middle'
+          }}
+        >
+          {i <= starsCount ? 'star' : 'star_outline'}
+        </span>
+      );
+    }
+
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '1px' }} title={`Perolehan: ${starsCount} Bintang (Skor: ${numScore})`}>
+        {starsArr}
+      </div>
+    );
+  };
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -188,9 +222,13 @@ const SiswaCbt = () => {
 
         {/* Score Summary Box */}
         <div className="cbt-result-summary-card">
-          <div className={`score-badge-circle ${examResult.is_passed ? 'passed' : 'failed'}`}>
-            <span className="score-value">{examResult.score}</span>
-            <span className="score-label">Nilai Akhir</span>
+          <div className={`score-badge-circle ${examResult.is_passed ? 'passed' : 'failed'}`} style={{ width: 'auto', minWidth: '200px', height: 'auto', borderRadius: '24px', padding: '20px 28px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', marginBottom: '6px' }}>
+              {renderStarRating(examResult.score, 100)}
+            </div>
+            <span className="score-label" style={{ fontSize: '13px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Perolehan Bintang ({examResult.score} Poin)
+            </span>
           </div>
 
           <div className="result-stats-grid">
@@ -443,8 +481,8 @@ const SiswaCbt = () => {
               <div className="exam-card-header">
                 <span className="subject-badge">{exam.subject?.name || 'Mata Pelajaran'}</span>
                 {exam.has_submitted ? (
-                  <span className={`status-badge ${exam.my_result?.is_passed ? 'passed' : 'failed'}`}>
-                    Selesai (Skor: {exam.my_score})
+                  <span className={`status-badge ${exam.my_result?.is_passed ? 'passed' : 'failed'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    Selesai {renderStarRating(exam.my_score || 0)}
                   </span>
                 ) : (
                   <span className="status-badge active">Siap Dikerjakan</span>
