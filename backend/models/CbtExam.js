@@ -20,6 +20,9 @@ const cbtExamSchema = new mongoose.Schema({
   is_master: { type: Boolean, default: false },
   is_active: { type: Boolean, default: true },
   session_number: { type: Number, default: 1 },
+  start_time: { type: Date, default: null },
+  end_time: { type: Date, default: null },
+  hide_correct_answers: { type: Boolean, default: true },
   questions: [questionSchema]
 }, {
   timestamps: true

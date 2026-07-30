@@ -33,11 +33,12 @@ const GuruQuiz = () => {
   const [distributing, setDistributing] = useState(false);
 
   // Submissions Modal State
-  const [viewSubmissionModal, setViewSubmissionModal] = useState(null); // { quiz, submissions: [] }
+  const [viewSubmissionModal, setViewSubmissionModal] = useState(null);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
   // Live Quiz & Scoring State
   const [selectedClass, setSelectedClass] = useState('8B');
+  const [selectedQuizId, setSelectedQuizId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [studentScores, setStudentScores] = useState({});
   const [studentStars, setStudentStars] = useState({});
@@ -113,7 +114,12 @@ const GuruQuiz = () => {
       const uniqueNames = [...new Set(names)];
       setSubjects(uniqueNames);
       if (uniqueNames.length > 0) setSelectedSubject(uniqueNames[0]);
-      if (allMasterClasses.length > 0) setClasses(allMasterClasses);
+
+      if (allMasterClasses.length > 0) {
+        setClasses(allMasterClasses);
+        const firstClassName = allMasterClasses[0]?.name || allMasterClasses[0]?.class_name;
+        if (firstClassName) setSelectedClass(firstClassName);
+      }
     } catch (err) {
       console.error('Failed to fetch teacher profile/subjects', err);
     }
@@ -133,9 +139,7 @@ const GuruQuiz = () => {
 
       if (classList.length > 0 && classes.length === 0) {
         setClasses(classList.map(c => ({ name: c, id: c })));
-      }
-      if (classList.length > 0 && !selectedClass) {
-        setSelectedClass(classList[0]);
+        if (!selectedClass) setSelectedClass(classList[0]);
       }
     } catch (err) {
       console.error('Failed to fetch students', err);
@@ -264,7 +268,6 @@ const GuruQuiz = () => {
 
   const handleSetStudentStar = (stId, starNum) => {
     setStudentStars(prev => ({ ...prev, [stId]: starNum }));
-    // Auto calculate equivalent score (1 star = 20, 5 stars = 100)
     setStudentScores(prev => ({ ...prev, [stId]: starNum * 20 }));
   };
 
@@ -315,7 +318,19 @@ const GuruQuiz = () => {
     return stars;
   };
 
+  // ONLY PUBLISHED (DIRECTED) QUIZZES!
   const publishedQuizzes = allQuizzes.filter(q => !q.is_master);
+
+  // Filter published quizzes for currently selected class
+  const publishedQuizzesForClass = publishedQuizzes.filter(q => {
+    if (!selectedClass) return true;
+    const targetNorm = selectedClass.toLowerCase().replace(/kelas\s*/gi, '').trim();
+    const qClassNorm = (q.class_name || '').toLowerCase().replace(/kelas\s*/gi, '').trim();
+    return qClassNorm === targetNorm || qClassNorm.includes(targetNorm) || targetNorm.includes(qClassNorm);
+  });
+
+  const activeLiveQuiz = publishedQuizzesForClass.find(q => q._id === selectedQuizId) || publishedQuizzesForClass[0];
+
   const filteredStudentsList = getFilteredStudentsForClass();
 
   return (
@@ -526,16 +541,19 @@ const GuruQuiz = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', display: 'block', marginBottom: '4px' }}>PAKET QUIZ:</label>
+                <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', display: 'block', marginBottom: '4px' }}>KUIS TERBIT (DIRECTED):</label>
                 <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#0f172a' }}
+                  value={selectedQuizId}
+                  onChange={(e) => setSelectedQuizId(e.target.value)}
+                  style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', fontWeight: '700', color: '#0f172a', maxWidth: '240px' }}
                 >
-                  {masterQuizzes.map(q => (
-                    <option key={q._id} value={q.title}>{q.title} ({q.questions?.length || 0} Soal)</option>
-                  ))}
-                  {!masterQuizzes.length && <option value="Informatika">Quiz Informatika Dasar</option>}
+                  {publishedQuizzesForClass.length > 0 ? (
+                    publishedQuizzesForClass.map(q => (
+                      <option key={q._id} value={q._id}>{q.title} (Sesi ke-{q.session_number || 1})</option>
+                    ))
+                  ) : (
+                    <option value="">-- Belum Ada Kuis Terbit untuk {selectedClass} --</option>
+                  )}
                 </select>
               </div>
 
@@ -546,7 +564,7 @@ const GuruQuiz = () => {
                   placeholder="Ketik nama atau NISN..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', width: '200px' }}
+                  style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', width: '180px' }}
                 />
               </div>
             </div>
@@ -559,24 +577,37 @@ const GuruQuiz = () => {
             </button>
           </div>
 
-          {/* TWO COLUMNS: LEFT SOAL QUIZ, RIGHT INPUT NILAI */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(400px, 1.5fr)', gap: '20px' }}>
-            
-            {/* LEFT COLUMN: SOAL KUIS (WITH HIDDEN KEY BY DEFAULT) */}
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>format_list_bulleted</span>
-                Pertanyaan Quiz Live
+          {/* TWO COLUMNS OR EMPTY PUBLISHED STATE */}
+          {publishedQuizzesForClass.length === 0 ? (
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '40px 20px', textAlign: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>quiz</span>
+              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '10px 0 4px 0' }}>
+                Belum Ada Live Quiz yang Diterbitkan ke Kelas {selectedClass}
               </h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px 0' }}>
+                Soal kuis belum disematkan (directed). Buka tab <strong>"Bank Master Quiz"</strong> lalu klik <strong>"Sematkan ke Sesi"</strong> untuk menerbitkan kuis ke kelas ini.
+              </p>
+              <button
+                onClick={() => setActiveTab('master')}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}
+              >
+                Buka Bank Master Quiz
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(400px, 1.5fr)', gap: '20px' }}>
+              
+              {/* LEFT COLUMN: SOAL KUIS (WITH HIDDEN KEY BY DEFAULT) */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>format_list_bulleted</span>
+                  Pertanyaan Live Quiz ({activeLiveQuiz?.title})
+                </h3>
+                <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '14px' }}>
+                  Target Kelas: <strong>{activeLiveQuiz?.class_name || selectedClass}</strong> | Sesi ke-{activeLiveQuiz?.session_number || 1}
+                </span>
 
-              {(() => {
-                const currentQuiz = masterQuizzes.find(q => q.title === selectedSubject) || masterQuizzes[0];
-                const qList = currentQuiz?.questions || [
-                  { question_text: 'Jelaskan konsep dasar algoritma dan pemrograman!', answer: 'Algoritma adalah langkah sistematis penyelesaian masalah.' },
-                  { question_text: 'Sebutkan 3 jenis tipe data dasar!', answer: 'Integer, String, Boolean.' }
-                ];
-
-                return qList.map((q, idx) => (
+                {(activeLiveQuiz?.questions || []).map((q, idx) => (
                   <div key={idx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px', marginBottom: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
                       <strong style={{ fontSize: '13px', color: '#0284c7' }}>Soal #{idx + 1}</strong>
@@ -608,80 +639,80 @@ const GuruQuiz = () => {
                       </div>
                     )}
                   </div>
-                ));
-              })()}
-            </div>
-
-            {/* RIGHT COLUMN: TABEL SISWA & INPUT BINTANG / NILAI */}
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>person</span>
-                  Input Bintang & Nilai Kuis Siswa ({selectedClass || 'Kelas 8B'})
-                </h3>
+                ))}
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>No</th>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Nama Siswa</th>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Bintang ⭐</th>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1', width: '100px' }}>Nilai (0-100)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudentsList.length > 0 ? (
-                      filteredStudentsList
-                        .filter(s => !searchQuery || s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map((st, idx) => (
-                          <tr key={st._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '10px 12px' }}>{idx + 1}</td>
-                            <td style={{ padding: '10px 12px', fontWeight: '700', color: '#0f172a' }}>{st.full_name}</td>
-                            <td style={{ padding: '10px 12px' }}>
-                              <div style={{ display: 'flex', gap: '2px' }}>
-                                {[1, 2, 3, 4, 5].map(starNum => (
-                                  <button
-                                    key={starNum}
-                                    type="button"
-                                    onClick={() => handleSetStudentStar(st._id, starNum)}
-                                    style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer' }}
-                                    title={`Beri ${starNum} Bintang (${starNum * 20} Poin)`}
-                                  >
-                                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: (studentStars[st._id] || 0) >= starNum ? '#f59e0b' : '#cbd5e1' }}>
-                                      {(studentStars[st._id] || 0) >= starNum ? 'star' : 'star_border'}
-                                    </span>
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
-                            <td style={{ padding: '10px 12px' }}>
-                              <input
-                                type="number"
-                                min="0"
-                                max="100"
-                                placeholder="0"
-                                value={studentScores[st._id] !== undefined ? studentScores[st._id] : ''}
-                                onChange={(e) => setStudentScores({ ...studentScores, [st._id]: e.target.value })}
-                                style={{ width: '75px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
-                              />
-                            </td>
-                          </tr>
-                        ))
-                    ) : (
-                      <tr>
-                        <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                          Belum ada data siswa.
-                        </td>
+              {/* RIGHT COLUMN: TABEL SISWA & INPUT BINTANG / NILAI */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>person</span>
+                    Input Bintang & Nilai Kuis Siswa ({selectedClass || 'Kelas 8B'})
+                  </h3>
+                </div>
+
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>No</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Nama Siswa</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Bintang ⭐</th>
+                        <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1', width: '100px' }}>Nilai (0-100)</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {filteredStudentsList.length > 0 ? (
+                        filteredStudentsList
+                          .filter(s => !searchQuery || s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .map((st, idx) => (
+                            <tr key={st._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '10px 12px' }}>{idx + 1}</td>
+                              <td style={{ padding: '10px 12px', fontWeight: '700', color: '#0f172a' }}>{st.full_name || st.name}</td>
+                              <td style={{ padding: '10px 12px' }}>
+                                <div style={{ display: 'flex', gap: '2px' }}>
+                                  {[1, 2, 3, 4, 5].map(starNum => (
+                                    <button
+                                      key={starNum}
+                                      type="button"
+                                      onClick={() => handleSetStudentStar(st._id, starNum)}
+                                      style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer' }}
+                                      title={`Beri ${starNum} Bintang (${starNum * 20} Poin)`}
+                                    >
+                                      <span className="material-symbols-outlined" style={{ fontSize: '20px', color: (studentStars[st._id] || 0) >= starNum ? '#f59e0b' : '#cbd5e1' }}>
+                                        {(studentStars[st._id] || 0) >= starNum ? 'star' : 'star_border'}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </td>
+                              <td style={{ padding: '10px 12px' }}>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  placeholder="0"
+                                  value={studentScores[st._id] !== undefined ? studentScores[st._id] : ''}
+                                  onChange={(e) => setStudentScores({ ...studentScores, [st._id]: e.target.value })}
+                                  style={{ width: '75px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
+                                />
+                              </td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                            Belum ada data siswa.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
 
-          </div>
+            </div>
+          )}
         </div>
       )}
 

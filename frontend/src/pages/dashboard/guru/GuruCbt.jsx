@@ -26,6 +26,9 @@ const GuruCbt = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [passScore, setPassScore] = useState(75);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [hideCorrectAnswers, setHideCorrectAnswers] = useState(true);
 
   // Question Form State
   const [questions, setQuestions] = useState([
@@ -37,10 +40,14 @@ const GuruCbt = () => {
   const [selectedExamForResults, setSelectedExamForResults] = useState(null);
   const [examResults, setExamResults] = useState([]);
   const [loadingResults, setLoadingResults] = useState(false);
+
   // Distribute Modal State
   const [distributeModal, setDistributeModal] = useState(null);
   const [targetClassForDistribute, setTargetClassForDistribute] = useState('');
   const [targetSessionForDistribute, setTargetSessionForDistribute] = useState(1);
+  const [distributeStartTime, setDistributeStartTime] = useState('');
+  const [distributeEndTime, setDistributeEndTime] = useState('');
+  const [distributeHideCorrectAnswers, setDistributeHideCorrectAnswers] = useState(true);
   const [distributing, setDistributing] = useState(false);
 
   const handlePublishCbtToClassSession = async () => {
@@ -53,7 +60,10 @@ const GuruCbt = () => {
         class_id: targetClass,
         session_number: Number(targetSessionForDistribute) || 1,
         duration_minutes: distributeModal.targetExam.duration_minutes,
-        pass_score: distributeModal.targetExam.pass_score
+        pass_score: distributeModal.targetExam.pass_score,
+        start_time: distributeStartTime || null,
+        end_time: distributeEndTime || null,
+        hide_correct_answers: distributeHideCorrectAnswers
       });
       alert(`Berhasil menerbitkan Ujian CBT "${distributeModal.targetExam.title}" ke Sesi ke-${targetSessionForDistribute}!`);
       setDistributeModal(null);
@@ -144,10 +154,6 @@ const GuruCbt = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
-  const handleModalImportClick = () => {
-    if (modalFileInputRef.current) modalFileInputRef.current.click();
-  };
-
   const handleExcelFileChange = async (e, isModal = false) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -168,11 +174,9 @@ const GuruCbt = () => {
         const importedQuestions = response.data.questions || [];
 
         if (isModal || showCreateModal) {
-          // Append imported questions to modal question builder form
           setQuestions((prev) => [...prev.filter(q => q.question_text.trim() !== ''), ...importedQuestions]);
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Excel ke form pembuatan ujian.`);
         } else {
-          // Open create modal pre-filled with imported questions
           setQuestions(importedQuestions);
           setShowCreateModal(true);
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Excel. Silakan lengkapi Judul Ujian & Simpan.`);
@@ -268,12 +272,15 @@ const GuruCbt = () => {
 
     try {
       const payload = {
-        title,
+        title: title.trim(),
         subject: selectedSubject,
         class_id: selectedClass || null,
         duration_minutes: Number(durationMinutes),
         pass_score: Number(passScore),
         is_active: true,
+        start_time: startTime || null,
+        end_time: endTime || null,
+        hide_correct_answers: hideCorrectAnswers,
         questions
       };
 
@@ -282,6 +289,9 @@ const GuruCbt = () => {
         setSuccess('Paket Ujian CBT berhasil dibuat dan dipublikasikan.');
         setShowCreateModal(false);
         setTitle('');
+        setStartTime('');
+        setEndTime('');
+        setHideCorrectAnswers(true);
         setQuestions([{ question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }]);
         fetchExams();
       }
@@ -330,6 +340,13 @@ const GuruCbt = () => {
     } finally {
       setLoadingResults(false);
     }
+  };
+
+  const handleOpenDistribute = (exam) => {
+    setDistributeModal({ targetExam: exam });
+    setDistributeStartTime(exam.start_time ? new Date(exam.start_time).toISOString().slice(0, 16) : '');
+    setDistributeEndTime(exam.end_time ? new Date(exam.end_time).toISOString().slice(0, 16) : '');
+    setDistributeHideCorrectAnswers(exam.hide_correct_answers !== undefined ? exam.hide_correct_answers : true);
   };
 
   if (loading) return <div className="cbt-guru-loading">Memuat Manajemen Ujian CBT...</div>;
@@ -401,58 +418,79 @@ const GuruCbt = () => {
         <table className="guru-cbt-table">
           <thead>
             <tr>
-              <th>No</th>
-              <th>Judul Paket Ujian</th>
+              <th>Status</th>
+              <th>Judul Ujian</th>
               <th>Mata Pelajaran</th>
-              <th>Jumlah Soal</th>
-              <th>Durasi</th>
-              <th>KKM</th>
-              <th>Status Aktif</th>
-              <th>Aksi & Excel</th>
+              <th>Target Kelas</th>
+              <th>Durasi / KKM</th>
+              <th>Waktu Aktif</th>
+              <th>Pertanyaan</th>
+              <th>Aksi Ujian</th>
             </tr>
           </thead>
           <tbody>
             {exams.length > 0 ? (
-              exams.map((exam, idx) => (
+              exams.map((exam) => (
                 <tr key={exam._id}>
-                  <td className="text-center">{idx + 1}</td>
-                  <td className="font-bold">{exam.title}</td>
-                  <td>{exam.subject?.name || '-'}</td>
-                  <td className="text-center">{exam.total_questions || 0} Soal</td>
-                  <td className="text-center">{exam.duration_minutes} Menit</td>
-                  <td className="text-center font-bold text-sky">{exam.pass_score}</td>
                   <td className="text-center">
                     <button
-                      className={`status-toggle-btn ${exam.is_active ? 'active' : 'inactive'}`}
                       onClick={() => handleToggleActive(exam)}
+                      className={`status-toggle-btn ${exam.is_active ? 'active' : 'inactive'}`}
+                      title={exam.is_active ? 'Nonaktifkan Ujian' : 'Aktifkan Ujian'}
                     >
-                      {exam.is_active ? 'Aktif' : 'Non-Aktif'}
+                      {exam.is_active ? 'Aktif' : 'Nonaktif'}
                     </button>
                   </td>
+                  <td className="font-bold">{exam.title}</td>
+                  <td>{exam.subject_name || exam.subject?.name || '-'}</td>
+                  <td className="text-center font-bold">
+                    {exam.is_master ? (
+                      <span className="badge-master">Master Bank</span>
+                    ) : (
+                      exam.class_name || 'Semua Kelas'
+                    )}
+                  </td>
                   <td>
-                    <div className="action-buttons-group">
+                    <div style={{ fontSize: '12px' }}>⏱️ {exam.duration_minutes} Menit</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>🎯 KKM: {exam.pass_score}</div>
+                  </td>
+                  <td style={{ fontSize: '11px', color: '#334155' }}>
+                    {exam.start_time && exam.end_time ? (
+                      <div>
+                        <div>📅 {new Date(exam.start_time).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                        <div>s/d {new Date(exam.end_time).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                      </div>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>Selalu Aktif</span>
+                    )}
+                  </td>
+                  <td className="text-center font-bold">{exam.total_questions || exam.questions?.length || 0} Soal</td>
+                  <td>
+                    <div className="table-actions">
+                      {exam.is_master ? (
+                        <button
+                          className="btn-action distribute"
+                          onClick={() => handleOpenDistribute(exam)}
+                          title="Sematkan Ujian ke Kelas & Sesi"
+                        >
+                          <span className="material-symbols-outlined">publish</span>
+                          Sematkan
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-action results"
+                          onClick={() => handleViewResults(exam)}
+                          title="Lihat Nilai Siswa"
+                        >
+                          <span className="material-symbols-outlined">analytics</span>
+                          Nilai
+                        </button>
+                      )}
                       <button
-                        className="btn-action primary"
-                        onClick={() => setDistributeModal({ targetExam: exam })}
-                        title="Terbitkan / Sematkan ke Sesi Kelas"
-                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        className="btn-action delete"
+                        onClick={() => handleDeleteExam(exam._id)}
+                        title="Hapus Ujian"
                       >
-                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>publish</span>
-                        Terbitkan
-                      </button>
-                      <button className="btn-action view" onClick={() => handleViewResults(exam)} title="Lihat Hasil Siswa">
-                        <span className="material-symbols-outlined">analytics</span>
-                        Hasil
-                      </button>
-                      <button
-                        className="btn-action excel"
-                        onClick={() => handleExportExamResultsExcel(exam._id, exam.title)}
-                        title="Export Rekap & Soal ke Excel"
-                      >
-                        <span className="material-symbols-outlined">download</span>
-                        Excel
-                      </button>
-                      <button className="btn-action delete" onClick={() => handleDeleteExam(exam._id)} title="Hapus Ujian">
                         <span className="material-symbols-outlined">delete</span>
                       </button>
                     </div>
@@ -538,7 +576,7 @@ const GuruCbt = () => {
                 </div>
 
                 <div className="form-group">
-                  <label>KKM (Nilai Kelulusan) *</label>
+                  <label>Batas Nilai Lulus (KKM) *</label>
                   <input
                     type="number"
                     min="0"
@@ -551,60 +589,88 @@ const GuruCbt = () => {
                 </div>
               </div>
 
-              {/* QUESTIONS BUILDER & EXCEL IMPORT HEADER SECTION */}
-              <div className="questions-section-header">
-                <h3>Daftar Soal Pilihan Ganda ({questions.length} Soal)</h3>
-                <div className="q-header-buttons">
-                  <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick}>
-                    <span className="material-symbols-outlined">upload_file</span>
-                    Import Soal (Excel)
-                  </button>
-                  <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
-                    <span className="material-symbols-outlined">add</span>
-                    Tambah Soal Manual
-                  </button>
+              {/* DATE RANGE SCHEDULE & ANSWER KEY PRIVACY */}
+              <div className="form-row-grid" style={{ background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+                <div className="form-group">
+                  <label style={{ color: '#0284c7', fontWeight: '800' }}>Waktu Mulai Ujian (Jadwal Mulai)</label>
+                  <input
+                    type="datetime-local"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{ color: '#dc2626', fontWeight: '800' }}>Waktu Selesai Ujian (Jadwal Selesai)</label>
+                  <input
+                    type="datetime-local"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group" style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '10px' }}>
+                  <input
+                    type="checkbox"
+                    id="hideCorrectAnswers"
+                    checked={hideCorrectAnswers}
+                    onChange={(e) => setHideCorrectAnswers(e.target.checked)}
+                    style={{ width: '18px', height: '18px' }}
+                  />
+                  <label htmlFor="hideCorrectAnswers" style={{ fontWeight: '800', cursor: 'pointer', margin: 0 }}>
+                    Sembunyikan Kunci Jawaban Setelah Ujian (Siswa tidak bisa melihat kunci/jawaban yang betul)
+                  </label>
                 </div>
               </div>
 
-              <div className="questions-list-form">
+              {/* Soal Ujian */}
+              <div className="form-questions-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3>Soal Pilihan Ganda ({questions.length})</h3>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="button" className="btn-action distribute" onClick={handleModalImportClick}>
+                      <span className="material-symbols-outlined">upload_file</span> Import Excel
+                    </button>
+                    <button type="button" className="btn-add-question" onClick={handleAddQuestion}>
+                      + Tambah Soal
+                    </button>
+                  </div>
+                </div>
+
                 {questions.map((q, qIdx) => (
-                  <div key={qIdx} className="question-item-card">
-                    <div className="q-card-header">
-                      <span className="q-number">Soal Nomor #{qIdx + 1}</span>
+                  <div key={qIdx} className="question-builder-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <strong>Nomor Soal #{qIdx + 1}</strong>
                       {questions.length > 1 && (
-                        <button
-                          type="button"
-                          className="btn-delete-q"
-                          onClick={() => handleRemoveQuestion(qIdx)}
-                        >
-                          <span className="material-symbols-outlined">delete</span>
-                        </button>
+                        <button type="button" onClick={() => handleRemoveQuestion(qIdx)} style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: '800' }}>Hapus</button>
                       )}
                     </div>
 
                     <div className="form-group">
-                      <label>Pertanyaan / Pertanyaan Teks *</label>
-                      <textarea
-                        rows="2"
+                      <label>Pertanyaan *</label>
+                      <input
+                        type="text"
                         required
-                        placeholder="Tuliskan pertanyaan di sini..."
+                        placeholder="Ketik pertanyaan kuis..."
                         value={q.question_text}
                         onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
-                        className="form-textarea"
+                        className="form-input"
                       />
                     </div>
 
-                    <div className="options-input-grid">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px' }}>
                       {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
-                        <div key={oIdx} className="option-input-item">
-                          <label className="radio-label">
+                        <div key={oIdx} className="option-builder-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <input
                               type="radio"
                               name={`correct_${qIdx}`}
                               checked={q.correct_option === oIdx}
                               onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
                             />
-                            <strong>{letter}</strong> (Kunci)
+                            <strong>{letter}</strong>
                           </label>
                           <input
                             type="text"
@@ -612,7 +678,8 @@ const GuruCbt = () => {
                             placeholder={`Pilihan ${letter}...`}
                             value={q.options[oIdx]}
                             onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
-                            className="form-input opt-input"
+                            className="form-input"
+                            style={{ flex: 1 }}
                           />
                         </div>
                       ))}
@@ -723,14 +790,15 @@ const GuruCbt = () => {
           </div>
         </div>
       )}
-      {/* POPUP DISTRIBUTE / PUBLISH CBT TO CLASS & SESSION */}
+
+      {/* POPUP DISTRIBUTE / PUBLISH CBT TO CLASS & SESSION WITH SCHEDULING */}
       {distributeModal && (
         <div className="modal-overlay" onClick={() => setDistributeModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '520px', width: '90%', borderRadius: '20px', padding: '24px' }}>
+          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '560px', width: '92%', borderRadius: '20px', padding: '24px' }}>
             <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>publish</span>
-                Terbitkan Ujian CBT ke Kelas & Sesi
+                Terbitkan & Atur Jadwal Ujian CBT
               </h3>
               <button onClick={() => setDistributeModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <span className="material-symbols-outlined">close</span>
@@ -739,40 +807,77 @@ const GuruCbt = () => {
 
             <div style={{ marginBottom: '14px' }}>
               <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>{distributeModal.targetExam.title}</strong>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Pilih target kelas dan nomor sesi pertemuan untuk menyematkan Ujian CBT ini.</p>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Atur target kelas, nomor sesi, serta jadwal aktif pengerjaan untuk kelas ini.</p>
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Target Kelas *</label>
-              <select
-                value={targetClassForDistribute}
-                onChange={(e) => setTargetClassForDistribute(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
-              >
-                {classes.map(c => (
-                  <option key={c._id || c.id} value={c._id || c.id}>{c.name || c.class_name}</option>
-                ))}
-                {!classes.length && (
-                  <>
-                    <option value="8B">Kelas 8B</option>
-                    <option value="8C">Kelas 8C</option>
-                    <option value="8D">Kelas 8D</option>
-                  </>
-                )}
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Target Kelas *</label>
+                <select
+                  value={targetClassForDistribute}
+                  onChange={(e) => setTargetClassForDistribute(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
+                >
+                  {classes.map(c => (
+                    <option key={c._id || c.id} value={c._id || c.id}>{c.name || c.class_name}</option>
+                  ))}
+                  {!classes.length && (
+                    <>
+                      <option value="8B">Kelas 8B</option>
+                      <option value="8C">Kelas 8C</option>
+                      <option value="8D">Kelas 8D</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Sesi Pertemuan Ke- *</label>
+                <select
+                  value={targetSessionForDistribute}
+                  onChange={(e) => setTargetSessionForDistribute(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
+                >
+                  {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
+                    <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Sesi Pertemuan Ke- *</label>
-              <select
-                value={targetSessionForDistribute}
-                onChange={(e) => setTargetSessionForDistribute(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
-              >
-                {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
-                  <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
-                ))}
-              </select>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#0284c7', display: 'block', marginBottom: '4px' }}>Waktu Mulai Ujian</label>
+                <input
+                  type="datetime-local"
+                  value={distributeStartTime}
+                  onChange={(e) => setDistributeStartTime(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '12px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: '800', color: '#dc2626', display: 'block', marginBottom: '4px' }}>Waktu Selesai Ujian</label>
+                <input
+                  type="datetime-local"
+                  value={distributeEndTime}
+                  onChange={(e) => setDistributeEndTime(e.target.value)}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '12px' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px', background: '#f8fafc', padding: '10px', borderRadius: '8px' }}>
+              <input
+                type="checkbox"
+                id="distributeHideCorrectAnswers"
+                checked={distributeHideCorrectAnswers}
+                onChange={(e) => setDistributeHideCorrectAnswers(e.target.checked)}
+                style={{ width: '16px', height: '16px' }}
+              />
+              <label htmlFor="distributeHideCorrectAnswers" style={{ fontSize: '11px', fontWeight: '800', cursor: 'pointer', margin: 0 }}>
+                Sembunyikan Kunci Jawaban & Pembahasan Ujian untuk kelas ini
+              </label>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>

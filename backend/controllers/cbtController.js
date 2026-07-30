@@ -105,7 +105,15 @@ exports.getExamById = async (req, res) => {
       const examObj = exam.toObject();
 
       if (existingResult) {
-        // If already submitted, return full questions + answers & explanations for review
+        // If already submitted, check if we need to hide keys/explanations
+        const examObj = exam.toObject();
+        if (exam.hide_correct_answers) {
+          examObj.questions = examObj.questions.map(q => ({
+            ...q,
+            correct_option: null,
+            explanation: 'Kunci jawaban & pembahasan disembunyikan oleh guru.'
+          }));
+        }
         return res.json({
           success: true,
           exam: examObj,
@@ -139,7 +147,7 @@ exports.getExamById = async (req, res) => {
 // Create CBT Exam (Guru)
 exports.createExam = async (req, res) => {
   try {
-    const { title, subject, class_id, class_name, duration_minutes, pass_score, is_active, questions } = req.body;
+    const { title, subject, class_id, class_name, duration_minutes, pass_score, is_active, questions, start_time, end_time, hide_correct_answers } = req.body;
 
     if (!title || !subject || !questions || !Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({ success: false, message: 'Judul, mata pelajaran, dan minimal 1 soal wajib diisi.' });
@@ -190,6 +198,9 @@ exports.createExam = async (req, res) => {
       duration_minutes: Number(duration_minutes) || 30,
       pass_score: Number(pass_score) || 75,
       is_active: is_active !== undefined ? is_active : true,
+      start_time: start_time || null,
+      end_time: end_time || null,
+      hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : true,
       questions: cleanedQuestions
     });
 
@@ -204,7 +215,7 @@ exports.createExam = async (req, res) => {
 // Update CBT Exam (Guru)
 exports.updateExam = async (req, res) => {
   try {
-    const { title, subject, class_id, class_name, duration_minutes, pass_score, is_active, questions } = req.body;
+    const { title, subject, class_id, class_name, duration_minutes, pass_score, is_active, questions, start_time, end_time, hide_correct_answers } = req.body;
 
     const exam = await CbtExam.findById(req.params.id);
     if (!exam) {
@@ -219,6 +230,9 @@ exports.updateExam = async (req, res) => {
     if (pass_score !== undefined) exam.pass_score = pass_score;
     if (is_active !== undefined) exam.is_active = is_active;
     if (questions !== undefined) exam.questions = questions;
+    if (start_time !== undefined) exam.start_time = start_time;
+    if (end_time !== undefined) exam.end_time = end_time;
+    if (hide_correct_answers !== undefined) exam.hide_correct_answers = hide_correct_answers;
 
     await exam.save();
     return res.json({ success: true, message: 'Paket Ujian CBT berhasil diperbarui.', exam });
@@ -609,7 +623,7 @@ exports.exportExamExcel = async (req, res) => {
 // Distribute/Publish CBT Exam from Bank Master to Class & Session
 exports.distributeExam = async (req, res) => {
   try {
-    const { master_exam_id, class_id, session_number, duration_minutes, pass_score } = req.body;
+    const { master_exam_id, class_id, session_number, duration_minutes, pass_score, start_time, end_time, hide_correct_answers } = req.body;
     const teacherId = req.user.id || req.user._id;
 
     let masterExam = null;
@@ -645,6 +659,9 @@ exports.distributeExam = async (req, res) => {
       is_master: false,
       is_active: true,
       session_number: parseInt(session_number) || 1,
+      start_time: start_time !== undefined ? start_time : masterExam.start_time,
+      end_time: end_time !== undefined ? end_time : masterExam.end_time,
+      hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : (masterExam.hide_correct_answers !== undefined ? masterExam.hide_correct_answers : true),
       questions: masterExam.questions || []
     });
 

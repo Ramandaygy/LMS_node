@@ -50,12 +50,12 @@ exports.getUsersByRole = async (role) => {
 
   switch (role) {
     case 'siswa':
-      users = await getCollection('users_siswa').aggregate([
+      const siswaFromColl = await getCollection('users_siswa').aggregate([
         { $lookup: { from: 'classes', localField: 'class_id', foreignField: '_id', as: 'class_details' } },
         { $lookup: { from: 'users_ortu', localField: 'parent_id', foreignField: '_id', as: 'parent_details' } },
         {
           $addFields: {
-            class_name: { $arrayElemAt: ['$class_details.name', 0] },
+            class_name: { $ifNull: [{ $arrayElemAt: ['$class_details.name', 0] }, '$class_name'] },
             parent: { $arrayElemAt: ['$parent_details', 0] }
           }
         },
@@ -66,6 +66,16 @@ exports.getUsersByRole = async (role) => {
           }
         }
       ]).toArray();
+
+      const mainUsersSiswa = await getCollection('users').find({ role: 'siswa' }).toArray();
+      
+      const allSiswaMap = new Map();
+      [...siswaFromColl, ...mainUsersSiswa].forEach(s => {
+        if (s && s._id) {
+          allSiswaMap.set(s._id.toString(), s);
+        }
+      });
+      users = Array.from(allSiswaMap.values());
       break;
 
     case 'guru':
