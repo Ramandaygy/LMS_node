@@ -36,6 +36,7 @@ const GuruCbt = () => {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedExamForResults, setSelectedExamForResults] = useState(null);
   const [examResults, setExamResults] = useState([]);
+  const [loadingResults, setLoadingResults] = useState(false);
   // Distribute Modal State
   const [distributeModal, setDistributeModal] = useState(null);
   const [targetClassForDistribute, setTargetClassForDistribute] = useState('');

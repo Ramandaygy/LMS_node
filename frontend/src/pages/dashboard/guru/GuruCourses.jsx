@@ -775,6 +775,8 @@ const GuruCourses = () => {
                     </p>
                   </div>
                 )}
+              </div>
+
               {/* BOX UJIAN CBT SESI */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
