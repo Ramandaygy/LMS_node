@@ -124,44 +124,91 @@ exports.deleteQuiz = async (req, res) => {
   }
 };
 
-// AI GENERATE QUIZ
+// AI GENERATE QUIZ WITH VARIETY & UNIQUE QUESTIONS
 exports.generateQuizAI = async (req, res) => {
   try {
     const { topic, subject_name, num_questions, material_id } = req.body;
     let contextTopic = topic || 'Informatika Dasar';
 
-    // If material_id is provided, pull text/title from Material!
     if (material_id) {
       const Material = require('../models/Material');
       const mat = await Material.findById(material_id);
       if (mat) {
-        contextTopic = `Materi: "${mat.title}". Deskripsi: "${mat.description || ''}". Konten: "${(mat.content || '').slice(0, 500)}"`;
+        contextTopic = `Judul Dokumen: "${mat.title}". Deskripsi: "${mat.description || ''}". Isi Ringkasan: "${(mat.content || mat.title || '').slice(0, 800)}"`;
       }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
+    const count = Number(num_questions) || 5;
+    const randomSeed = Math.floor(Math.random() * 10000);
 
     if (!apiKey) {
-      return res.json({
-        success: true,
-        questions: [
-          { question_text: `Apa pengertian utama dari ${topic || 'materi ini'}?`, answer: 'Prinsip dasar dan fungsi utamanya.', options: ['Pilihan A', 'Pilihan B', 'Pilihan C', 'Pilihan D'], correct_option: 0, points: 10, time_limit_seconds: 30 },
-          { question_text: `Sebutkan salah satu contoh penerapan ${topic || 'materi'}!`, answer: 'Penerapan pada sistem kehidupan/komputer.', options: ['Opsi 1', 'Opsi 2', 'Opsi 3', 'Opsi 4'], correct_option: 1, points: 10, time_limit_seconds: 30 }
-        ]
-      });
+      // Varied Fallback Questions Generator
+      const fallbackQuestions = [
+        {
+          question_text: `Apa konsep utama yang dipelajari pada ${topic || 'materi ini'}?`,
+          answer: 'Memahami sintaks dasar dan alur logika eksekusi program.',
+          options: ['Sintaks & Alur Eksekusi', 'Desain Grafis Animasi', 'Manajemen Server Cloud', 'Pengujian Perangkat Keras'],
+          correct_option: 0,
+          points: 10,
+          time_limit_seconds: 30
+        },
+        {
+          question_text: `Manakah komponen utama yang paling krusial pada ${topic || 'topik ini'}?`,
+          answer: 'Struktur data pendukung dan fungsi logika.',
+          options: ['Kabel Jaringan', 'Struktur Data & Fungsi Logika', 'Ukuran Layar Monitor', 'Kecepatan Printer'],
+          correct_option: 1,
+          points: 10,
+          time_limit_seconds: 30
+        },
+        {
+          question_text: `Apa fungsi dari instruksi atau metode dasar pada ${topic || 'materi ini'}?`,
+          answer: 'Memproses masukan data menjadi keluaran yang valid.',
+          options: ['Menghapus sistem operasi', 'Menutup koneksi internet', 'Memproses masukan data menjadi keluaran valid', 'Mengunci layar komputer'],
+          correct_option: 2,
+          points: 10,
+          time_limit_seconds: 30
+        },
+        {
+          question_text: `Mengapa penerapan ${topic || 'materi ini'} sangat penting dalam sistem komputer?`,
+          answer: 'Meningkatkan efisiensi kerja dan mengurangi risiko kesalahan logika.',
+          options: ['Agar komputer lebih berat', 'Meningkatkan efisiensi kerja & mengurangi kesalahan logika', 'Menambah daya listrik', 'Mengganti komponen memori'],
+          correct_option: 1,
+          points: 10,
+          time_limit_seconds: 30
+        },
+        {
+          question_text: `Bagaimana alur penyelesaian masalah yang paling tepat pada ${topic || 'materi ini'}?`,
+          answer: 'Analisis masalah -> Perancangan solusi -> Implementasi -> Pengujian.',
+          options: ['Pengujian -> Analisis -> Hapus', 'Analisis -> Perancangan -> Implementasi -> Pengujian', 'Implementasi -> Abaikan -> Selesai', 'Perancangan saja'],
+          correct_option: 1,
+          points: 10,
+          time_limit_seconds: 30
+        }
+      ];
+
+      return res.json({ success: true, questions: fallbackQuestions.slice(0, count) });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const promptText = `Buatlah ${num_questions || 5} soal kuis pilihan ganda singkat mengenai "${contextTopic}" untuk mata pelajaran "${subject_name || 'Informatika'}".
-Output murni JSON array:
+    const promptText = `Anda adalah pembuat kuis profesional. Buatlah ${count} soal kuis pilihan ganda yang SANGAT BERVARIASI, UNIK, dan BERBEDA SATU SAMA LAIN mengenai "${contextTopic}" untuk mata pelajaran "${subject_name || 'Informatika'}".
+Seed variasi: ${randomSeed}.
+
+PENTING:
+- Setiap soal HARUS membahas aspek yang berbeda (misal: definisi, fungsi, contoh penerapan, sintaks/komponen, dan analisis kasus).
+- JANGAN ADA SOAL YANG DUPLIKAT ATAU MIRIP!
+- Berikan 4 pilihan jawaban unik (A, B, C, D) untuk setiap soal.
+- Tentukan indeks kunci jawaban benar (correct_option: 0 untuk A, 1 untuk B, 2 untuk C, 3 untuk D).
+
+Output Wajib murni JSON array tanpa format markdown apapun:
 [
   {
-    "question_text": "Pertanyaan kuis...",
+    "question_text": "Teks pertanyaan 1 yang unik...",
     "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
     "correct_option": 0,
-    "answer": "Penjelasan/Kunci singkat",
+    "answer": "Kunci jawaban & penjelasan singkat...",
     "points": 10,
     "time_limit_seconds": 30
   }
@@ -178,7 +225,22 @@ Output murni JSON array:
     return res.json({
       success: true,
       questions: [
-        { question_text: `Apa tujuan utama dari ${req.body.topic || 'materi ini'}?`, answer: 'Memahami dasar konsep.', options: ['Jawaban A', 'Jawaban B', 'Jawaban C', 'Jawaban D'], correct_option: 0, points: 10, time_limit_seconds: 30 }
+        {
+          question_text: `Apa tujuan utama dari ${req.body.topic || 'materi ini'}?`,
+          answer: 'Memahami dasar konsep dan implementasi.',
+          options: ['Memahami dasar konsep & implementasi', 'Mengganti hardware', 'Menghapus database', 'Mematikan daya server'],
+          correct_option: 0,
+          points: 10,
+          time_limit_seconds: 30
+        },
+        {
+          question_text: `Sebutkan langkah awal saat mempelajari ${req.body.topic || 'materi ini'}!`,
+          answer: 'Identifikasi kebutuhan dan variabel dasar.',
+          options: ['Langsung menguji tanpa rencana', 'Identifikasi kebutuhan & variabel dasar', 'Menjual perangkat', 'Menghapus file'],
+          correct_option: 1,
+          points: 10,
+          time_limit_seconds: 30
+        }
       ]
     });
   }

@@ -40,6 +40,8 @@ const GuruQuiz = () => {
   const [selectedClass, setSelectedClass] = useState('8B');
   const [searchQuery, setSearchQuery] = useState('');
   const [studentScores, setStudentScores] = useState({});
+  const [studentStars, setStudentStars] = useState({});
+  const [showAnswerMap, setShowAnswerMap] = useState({});
 
   useEffect(() => {
     fetchMasterQuizzes();
@@ -123,13 +125,40 @@ const GuruQuiz = () => {
       const data = response.data.data || [];
       setStudents(data);
 
-      const classList = [...new Set(data.map(s => s.class_name).filter(Boolean))];
+      const classList = [...new Set(data.map(s => {
+        if (!s) return null;
+        if (typeof s.class_id === 'object' && s.class_id?.name) return s.class_id.name;
+        return s.class_name || (typeof s.class_id === 'string' ? s.class_id : null);
+      }).filter(Boolean))];
+
       if (classList.length > 0 && classes.length === 0) {
         setClasses(classList.map(c => ({ name: c, id: c })));
+      }
+      if (classList.length > 0 && !selectedClass) {
+        setSelectedClass(classList[0]);
       }
     } catch (err) {
       console.error('Failed to fetch students', err);
     }
+  };
+
+  const getStudentClassStr = (st) => {
+    if (!st) return '';
+    if (typeof st.class_id === 'object' && st.class_id?.name) return st.class_id.name;
+    return st.class_name || (typeof st.class_id === 'string' ? st.class_id : '');
+  };
+
+  const getFilteredStudentsForClass = () => {
+    if (!students || students.length === 0) return [];
+    if (!selectedClass) return students;
+
+    const targetNorm = selectedClass.toLowerCase().replace(/kelas\s*/gi, '').trim();
+    const filtered = students.filter(st => {
+      const stClassNorm = getStudentClassStr(st).toLowerCase().replace(/kelas\s*/gi, '').trim();
+      return stClassNorm === targetNorm || stClassNorm.includes(targetNorm) || targetNorm.includes(stClassNorm);
+    });
+
+    return filtered.length > 0 ? filtered : students;
   };
 
   const handleGenerateAI = async () => {
@@ -145,7 +174,7 @@ const GuruQuiz = () => {
       if (res.data && res.data.success) {
         const generated = res.data.questions || [];
         setQuestions(prev => [...prev.filter(q => q.question_text.trim() !== ''), ...generated]);
-        alert(`Berhasil membuat ${generated.length} pertanyaan kuis via AI dari sumber materi!`);
+        alert(`Berhasil membuat ${generated.length} pertanyaan kuis unik via AI dari sumber materi!`);
       }
     } catch (err) {
       console.error('Failed to generate AI quiz', err);
@@ -233,10 +262,16 @@ const GuruQuiz = () => {
     }
   };
 
+  const handleSetStudentStar = (stId, starNum) => {
+    setStudentStars(prev => ({ ...prev, [stId]: starNum }));
+    // Auto calculate equivalent score (1 star = 20, 5 stars = 100)
+    setStudentScores(prev => ({ ...prev, [stId]: starNum * 20 }));
+  };
+
   const handleSaveAllScores = async () => {
     const scoresToSubmit = Object.entries(studentScores).filter(([_, score]) => score !== '');
     if (scoresToSubmit.length === 0) {
-      alert('Tidak ada nilai kuis baru yang dimasukkan.');
+      alert('Tidak ada nilai kuis atau bintang baru yang dimasukkan.');
       return;
     }
 
@@ -244,21 +279,27 @@ const GuruQuiz = () => {
     try {
       await Promise.all(
         scoresToSubmit.map(async ([studentId, score]) => {
+          const starsEarned = studentStars[studentId] || Math.min(5, Math.ceil(Number(score) / 20));
           await api.post('/grades', {
             student: studentId,
             score: Number(score),
             type: 'quiz',
-            note: `Quiz Live: ${selectedSubject || 'Informatika'}`
+            note: `Quiz Live: ${selectedSubject || 'Informatika'} (${starsEarned} Bintang ⭐)`
           });
           successCount++;
         })
       );
-      alert(`Berhasil menyimpan ${successCount} nilai kuis siswa sekelas ke Ledger Penilaian!`);
+      alert(`Berhasil menyimpan ${successCount} nilai kuis ke Progress Siswa!`);
       setStudentScores({});
+      setStudentStars({});
     } catch (err) {
       console.error('Failed to submit scores:', err);
       alert('Gagal menyimpan beberapa nilai kuis.');
     }
+  };
+
+  const toggleShowAnswer = (idx) => {
+    setShowAnswerMap(prev => ({ ...prev, [idx]: !prev[idx] }));
   };
 
   const renderStars = (rating) => {
@@ -275,6 +316,7 @@ const GuruQuiz = () => {
   };
 
   const publishedQuizzes = allQuizzes.filter(q => !q.is_master);
+  const filteredStudentsList = getFilteredStudentsForClass();
 
   return (
     <div className="guru-quiz-container">
@@ -513,14 +555,14 @@ const GuruQuiz = () => {
               onClick={handleSaveAllScores}
               style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <span className="material-symbols-outlined">save</span> 💾 Simpan Nilai Kuis ke Ledger
+              <span className="material-symbols-outlined">save</span> 💾 Simpan Nilai Kuis ke Progress Siswa
             </button>
           </div>
 
           {/* TWO COLUMNS: LEFT SOAL QUIZ, RIGHT INPUT NILAI */}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(400px, 1.5fr)', gap: '20px' }}>
             
-            {/* LEFT COLUMN: SOAL KUIS */}
+            {/* LEFT COLUMN: SOAL KUIS (WITH HIDDEN KEY BY DEFAULT) */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>format_list_bulleted</span>
@@ -543,9 +585,26 @@ const GuruQuiz = () => {
                     <p style={{ fontSize: '13px', color: '#0f172a', margin: '0 0 8px 0', fontWeight: '700' }}>
                       {q.question_text || q.text}
                     </p>
+
+                    {/* TOGGLE HIDDEN ANSWER KEY */}
                     {q.answer && (
-                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 10px', borderRadius: '8px', fontSize: '12px', color: '#0369a1' }}>
-                        <strong>Kunci Jawaban:</strong> {q.answer}
+                      <div style={{ marginTop: '8px' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleShowAnswer(idx)}
+                          style={{ background: 'none', border: 'none', color: '#0284c7', fontSize: '12px', fontWeight: '800', cursor: 'pointer', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                            {showAnswerMap[idx] ? 'visibility_off' : 'visibility'}
+                          </span>
+                          {showAnswerMap[idx] ? 'Sembunyikan Kunci Jawaban' : 'Tampilkan Kunci Jawaban'}
+                        </button>
+
+                        {showAnswerMap[idx] && (
+                          <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 10px', borderRadius: '8px', fontSize: '12px', color: '#0369a1', marginTop: '6px' }}>
+                            <strong>Kunci Jawaban:</strong> {q.answer}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -553,12 +612,12 @@ const GuruQuiz = () => {
               })()}
             </div>
 
-            {/* RIGHT COLUMN: TABEL SISWA & INPUT NILAI */}
+            {/* RIGHT COLUMN: TABEL SISWA & INPUT BINTANG / NILAI */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>person</span>
-                  Input Nilai Kuis Siswa ({selectedClass || 'Kelas 8B'})
+                  Input Bintang & Nilai Kuis Siswa ({selectedClass || 'Kelas 8B'})
                 </h3>
               </div>
 
@@ -568,20 +627,35 @@ const GuruQuiz = () => {
                     <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
                       <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>No</th>
                       <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Nama Siswa</th>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>NISN</th>
-                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1', width: '120px' }}>Nilai Kuis (0-100)</th>
+                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1' }}>Bintang ⭐</th>
+                      <th style={{ padding: '10px 12px', borderBottom: '1px solid #cbd5e1', width: '100px' }}>Nilai (0-100)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {students.filter(s => selectedClass ? s.class_name === selectedClass : true).length > 0 ? (
-                      students
-                        .filter(s => selectedClass ? s.class_name === selectedClass : true)
+                    {filteredStudentsList.length > 0 ? (
+                      filteredStudentsList
                         .filter(s => !searchQuery || s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
                         .map((st, idx) => (
                           <tr key={st._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <td style={{ padding: '10px 12px' }}>{idx + 1}</td>
                             <td style={{ padding: '10px 12px', fontWeight: '700', color: '#0f172a' }}>{st.full_name}</td>
-                            <td style={{ padding: '10px 12px', color: '#64748b' }}>{st.nisn || st.nis || '-'}</td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <div style={{ display: 'flex', gap: '2px' }}>
+                                {[1, 2, 3, 4, 5].map(starNum => (
+                                  <button
+                                    key={starNum}
+                                    type="button"
+                                    onClick={() => handleSetStudentStar(st._id, starNum)}
+                                    style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer' }}
+                                    title={`Beri ${starNum} Bintang (${starNum * 20} Poin)`}
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: (studentStars[st._id] || 0) >= starNum ? '#f59e0b' : '#cbd5e1' }}>
+                                      {(studentStars[st._id] || 0) >= starNum ? 'star' : 'star_border'}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </td>
                             <td style={{ padding: '10px 12px' }}>
                               <input
                                 type="number"
@@ -590,7 +664,7 @@ const GuruQuiz = () => {
                                 placeholder="0"
                                 value={studentScores[st._id] !== undefined ? studentScores[st._id] : ''}
                                 onChange={(e) => setStudentScores({ ...studentScores, [st._id]: e.target.value })}
-                                style={{ width: '80px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
+                                style={{ width: '75px', padding: '6px 8px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', fontWeight: '800', textAlign: 'center', color: '#0284c7' }}
                               />
                             </td>
                           </tr>
@@ -598,7 +672,7 @@ const GuruQuiz = () => {
                     ) : (
                       <tr>
                         <td colSpan="4" style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                          Belum ada data siswa untuk kelas ini.
+                          Belum ada data siswa.
                         </td>
                       </tr>
                     )}
