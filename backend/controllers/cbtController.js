@@ -17,10 +17,46 @@ exports.getExams = async (req, res) => {
       userObjId = userId;
     }
 
+    // Self-healing migration: Any exam with no target class is marked as master exam template
+    try {
+      await CbtExam.updateMany(
+        {
+          $or: [
+            { class_id: null },
+            { class_id: { $exists: false } },
+            { class_name: '' },
+            { class_name: 'Semua Kelas' }
+          ],
+          is_master: { $ne: true }
+        },
+        { $set: { is_master: true } }
+      );
+    } catch (migErr) {
+      console.error('CBT Migration error:', migErr);
+    }
+
     let query = {};
 
     if (userRole === 'siswa') {
-      query.is_active = true;
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const student = await siswaCol.findOne({ _id: userObjId });
+      if (!student) {
+        return res.status(404).json({ success: false, message: 'Siswa tidak ditemukan.' });
+      }
+
+      const classConditions = [
+        { class_name: student.class_name }
+      ];
+      if (student.class_id) {
+        classConditions.push({ class_id: student.class_id });
+        classConditions.push({ class_id: student.class_id.toString() });
+      }
+
+      query = {
+        is_active: true,
+        is_master: false,
+        $or: classConditions
+      };
     } else if (userRole === 'guru') {
       query.$or = [
         { teacher: userObjId },
@@ -198,6 +234,7 @@ exports.createExam = async (req, res) => {
       duration_minutes: Number(duration_minutes) || 30,
       pass_score: Number(pass_score) || 75,
       is_active: is_active !== undefined ? is_active : true,
+      is_master: req.body.is_master !== undefined ? req.body.is_master : true,
       start_time: start_time || null,
       end_time: end_time || null,
       hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : true,
@@ -376,15 +413,53 @@ exports.submitExam = async (req, res) => {
   }
 };
 
-// Get Exam Results For Guru
+// Get Exam Results For Guru with robust student details lookup
 exports.getExamResultsForGuru = async (req, res) => {
   try {
     const examId = req.params.id;
-    const results = await CbtResult.find({ exam: examId })
-      .populate('student', 'full_name nis class_name')
-      .sort({ score: -1, submitted_at: 1 });
+    const results = await CbtResult.find({ exam: examId }).sort({ score: -1, submitted_at: 1 });
 
-    return res.json({ success: true, results });
+    const studentIds = results.map(r => r.student).filter(Boolean);
+
+    // Look up students from users_siswa and users collections
+    const siswaCol = mongoose.connection.collection('users_siswa');
+    const siswaList = await siswaCol.find({ _id: { $in: studentIds } }).toArray();
+
+    const usersCol = mongoose.connection.collection('users');
+    const usersList = await usersCol.find({ _id: { $in: studentIds } }).toArray();
+
+    const studentMap = {};
+    siswaList.forEach(s => {
+      studentMap[s._id.toString()] = {
+        full_name: s.full_name || s.name || s.username || 'Siswa',
+        nis: s.nisn || s.nis || '-',
+        class_name: s.class_name || '-'
+      };
+    });
+
+    usersList.forEach(u => {
+      const idStr = u._id.toString();
+      if (!studentMap[idStr]) {
+        studentMap[idStr] = {
+          full_name: u.full_name || u.name || u.username || 'Siswa',
+          nis: u.nisn || u.nis || '-',
+          class_name: u.class_name || '-'
+        };
+      }
+    });
+
+    const resultsWithStudent = results.map(r => {
+      const doc = r.toObject();
+      const sId = r.student ? r.student.toString() : '';
+      doc.student = studentMap[sId] || {
+        full_name: 'Siswa (ID: ' + sId.slice(-4) + ')',
+        nis: '-',
+        class_name: '-'
+      };
+      return doc;
+    });
+
+    return res.json({ success: true, results: resultsWithStudent });
   } catch (err) {
     console.error('Error fetching exam results:', err);
     return res.status(500).json({ success: false, message: 'Gagal memuat rekap hasil Ujian CBT.' });
@@ -540,9 +615,33 @@ exports.exportExamExcel = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ujian CBT tidak ditemukan.' });
     }
 
-    const results = await CbtResult.find({ exam: examId })
-      .populate('student', 'full_name nis class_name')
-      .sort({ score: -1 });
+    const results = await CbtResult.find({ exam: examId }).sort({ score: -1 });
+
+    const studentIds = results.map(r => r.student).filter(Boolean);
+    const siswaCol = mongoose.connection.collection('users_siswa');
+    const siswaList = await siswaCol.find({ _id: { $in: studentIds } }).toArray();
+
+    const usersCol = mongoose.connection.collection('users');
+    const usersList = await usersCol.find({ _id: { $in: studentIds } }).toArray();
+
+    const studentMap = {};
+    siswaList.forEach(s => {
+      studentMap[s._id.toString()] = {
+        full_name: s.full_name || s.name || s.username || 'Siswa',
+        nis: s.nisn || s.nis || '-',
+        class_name: s.class_name || '-'
+      };
+    });
+    usersList.forEach(u => {
+      const idStr = u._id.toString();
+      if (!studentMap[idStr]) {
+        studentMap[idStr] = {
+          full_name: u.full_name || u.name || u.username || 'Siswa',
+          nis: u.nisn || u.nis || '-',
+          class_name: u.class_name || '-'
+        };
+      }
+    });
 
     const workbook = new ExcelJS.Workbook();
 
@@ -565,11 +664,13 @@ exports.exportExamExcel = async (req, res) => {
     h1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
 
     results.forEach((r, idx) => {
+      const sId = r.student ? r.student.toString() : '';
+      const sData = studentMap[sId] || { full_name: 'Siswa', nis: '-', class_name: '-' };
       sheet1.addRow({
         no: idx + 1,
-        student_name: r.student?.full_name || '-',
-        nis: r.student?.nis || '-',
-        class_name: r.student?.class_name || '-',
+        student_name: sData.full_name,
+        nis: sData.nis,
+        class_name: sData.class_name,
         correct: r.correct_count,
         wrong: r.wrong_count,
         score: r.score,

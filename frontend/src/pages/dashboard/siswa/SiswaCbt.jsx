@@ -31,7 +31,7 @@ const SiswaCbt = () => {
   const [quizLeaderboardModal, setQuizLeaderboardModal] = useState(null); // { quiz, submissions: [] }
 
   useEffect(() => {
-    fetchExams();
+    fetchExams(true);
     fetchStudentQuizzes();
   }, []);
 
@@ -55,9 +55,9 @@ const SiswaCbt = () => {
     };
   }, [activeExam, examResult, timeLeftSeconds]);
 
-  const fetchExams = async () => {
+  const fetchExams = async (showFullLoader = false) => {
     try {
-      setLoading(true);
+      if (showFullLoader) setLoading(true);
       const res = await api.get('/cbt/exams');
       if (res.data.success) {
         setExams(res.data.exams || []);
@@ -66,7 +66,7 @@ const SiswaCbt = () => {
       console.error('Error fetching CBT exams:', err);
       setError('Gagal memuat daftar ujian CBT.');
     } finally {
-      setLoading(false);
+      if (showFullLoader) setLoading(false);
     }
   };
 

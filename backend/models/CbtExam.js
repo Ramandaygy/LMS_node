@@ -28,4 +28,8 @@ const cbtExamSchema = new mongoose.Schema({
   timestamps: true
 });
 
+cbtExamSchema.index({ teacher: 1 });
+cbtExamSchema.index({ class_id: 1 });
+cbtExamSchema.index({ is_master: 1, is_active: 1 });
+
 module.exports = mongoose.model('CbtExam', cbtExamSchema);

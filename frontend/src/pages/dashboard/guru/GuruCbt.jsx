@@ -77,7 +77,7 @@ const GuruCbt = () => {
   };
 
   useEffect(() => {
-    fetchExams();
+    fetchExams(true);
     fetchSubjectsAndClasses();
   }, []);
 
@@ -92,9 +92,9 @@ const GuruCbt = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const fetchExams = async () => {
+  const fetchExams = async (showFullLoader = false) => {
     try {
-      setLoading(true);
+      if (showFullLoader) setLoading(true);
       const res = await api.get('/cbt/exams');
       if (res.data.success) {
         setExams(res.data.exams || []);
@@ -103,7 +103,7 @@ const GuruCbt = () => {
       console.error('Error fetching exams:', err);
       setError('Gagal memuat daftar Ujian CBT.');
     } finally {
-      setLoading(false);
+      if (showFullLoader) setLoading(false);
     }
   };
 

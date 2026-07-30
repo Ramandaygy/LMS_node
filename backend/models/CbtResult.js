@@ -20,4 +20,7 @@ const cbtResultSchema = new mongoose.Schema({
   timestamps: true
 });
 
+cbtResultSchema.index({ student: 1, exam: 1 });
+cbtResultSchema.index({ exam: 1 });
+
 module.exports = mongoose.model('CbtResult', cbtResultSchema);
