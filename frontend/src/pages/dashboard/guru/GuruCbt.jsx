@@ -154,6 +154,10 @@ const GuruCbt = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
 
+  const handleModalImportClick = () => {
+    if (modalFileInputRef.current) modalFileInputRef.current.click();
+  };
+
   const handleExcelFileChange = async (e, isModal = false) => {
     const file = e.target.files[0];
     if (!file) return;
