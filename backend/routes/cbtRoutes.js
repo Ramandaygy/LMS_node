@@ -18,6 +18,7 @@ router.post('/exams', cbtController.createExam);
 router.put('/exams/:id', cbtController.updateExam);
 router.delete('/exams/:id', cbtController.deleteExam);
 
+router.post('/distribute', cbtController.distributeExam);
 router.post('/submit', cbtController.submitExam);
 router.get('/exams/:id/results', cbtController.getExamResultsForGuru);
 

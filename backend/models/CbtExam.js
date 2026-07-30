@@ -9,13 +9,17 @@ const questionSchema = new mongoose.Schema({
 
 const cbtExamSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  subject: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject', required: true },
-  class_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', required: false },
+  description: { type: String, default: '' },
+  subject: { type: mongoose.Schema.Types.Mixed, default: null },
+  subject_name: { type: String, default: '' },
+  class_id: { type: mongoose.Schema.Types.Mixed, default: null },
   class_name: { type: String, default: '' },
-  teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  teacher: { type: mongoose.Schema.Types.Mixed, required: false },
   duration_minutes: { type: Number, default: 30 },
   pass_score: { type: Number, default: 75 },
+  is_master: { type: Boolean, default: false },
   is_active: { type: Boolean, default: true },
+  session_number: { type: Number, default: 1 },
   questions: [questionSchema]
 }, {
   timestamps: true

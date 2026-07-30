@@ -775,6 +775,48 @@ const GuruCourses = () => {
                     </p>
                   </div>
                 )}
+              {/* BOX UJIAN CBT SESI */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>computer</span>
+                    Ujian CBT (Computer Based Test) Sesi ke-{currentSessionNum}
+                  </strong>
+                  <button
+                    onClick={() => navigate('/dashboard/guru/cbt')}
+                    style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>quiz</span> Bank Ujian CBT
+                  </button>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#cbd5e1' }}>laptop_mac</span>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    Kelola dan terbitkan Ujian CBT dari <strong>Bank Master CBT</strong> untuk Sesi ke-{currentSessionNum}.
+                  </p>
+                </div>
+              </div>
+
+              {/* BOX LIVE QUIZ SESI */}
+              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>speed</span>
+                    Live Quiz Interaktif Sesi ke-{currentSessionNum}
+                  </strong>
+                  <button
+                    onClick={() => navigate('/dashboard/guru/quiz')}
+                    style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>bolt</span> Bank Live Quiz
+                  </button>
+                </div>
+                <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#cbd5e1' }}>extension</span>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    Gunakan <strong>Bank Master Quiz</strong> untuk menyematkan kuis cepat interaktif pada Sesi ke-{currentSessionNum}.
+                  </p>
+                </div>
               </div>
 
               {/* BOX FORUM DISKUSI SESI REAL DATA */}

@@ -36,7 +36,34 @@ const GuruCbt = () => {
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedExamForResults, setSelectedExamForResults] = useState(null);
   const [examResults, setExamResults] = useState([]);
-  const [loadingResults, setLoadingResults] = useState(false);
+  // Distribute Modal State
+  const [distributeModal, setDistributeModal] = useState(null);
+  const [targetClassForDistribute, setTargetClassForDistribute] = useState('');
+  const [targetSessionForDistribute, setTargetSessionForDistribute] = useState(1);
+  const [distributing, setDistributing] = useState(false);
+
+  const handlePublishCbtToClassSession = async () => {
+    if (!distributeModal || !distributeModal.targetExam) return;
+    setDistributing(true);
+    try {
+      const targetClass = targetClassForDistribute || (classes[0]?._id || classes[0]?.id || '8B');
+      await api.post('/cbt/distribute', {
+        master_exam_id: distributeModal.targetExam._id,
+        class_id: targetClass,
+        session_number: Number(targetSessionForDistribute) || 1,
+        duration_minutes: distributeModal.targetExam.duration_minutes,
+        pass_score: distributeModal.targetExam.pass_score
+      });
+      alert(`Berhasil menerbitkan Ujian CBT "${distributeModal.targetExam.title}" ke Sesi ke-${targetSessionForDistribute}!`);
+      setDistributeModal(null);
+      fetchExams();
+    } catch (err) {
+      console.error('Error distributing CBT:', err);
+      alert(err.response?.data?.message || 'Gagal menerbitkan Ujian CBT.');
+    } finally {
+      setDistributing(false);
+    }
+  };
 
   useEffect(() => {
     fetchExams();
@@ -403,6 +430,15 @@ const GuruCbt = () => {
                   </td>
                   <td>
                     <div className="action-buttons-group">
+                      <button
+                        className="btn-action primary"
+                        onClick={() => setDistributeModal({ targetExam: exam })}
+                        title="Terbitkan / Sematkan ke Sesi Kelas"
+                        style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>publish</span>
+                        Terbitkan
+                      </button>
                       <button className="btn-action view" onClick={() => handleViewResults(exam)} title="Lihat Hasil Siswa">
                         <span className="material-symbols-outlined">analytics</span>
                         Hasil
@@ -683,6 +719,71 @@ const GuruCbt = () => {
                 </table>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* POPUP DISTRIBUTE / PUBLISH CBT TO CLASS & SESSION */}
+      {distributeModal && (
+        <div className="modal-overlay" onClick={() => setDistributeModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '520px', width: '90%', borderRadius: '20px', padding: '24px' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>publish</span>
+                Terbitkan Ujian CBT ke Kelas & Sesi
+              </h3>
+              <button onClick={() => setDistributeModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>{distributeModal.targetExam.title}</strong>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Pilih target kelas dan nomor sesi pertemuan untuk menyematkan Ujian CBT ini.</p>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Target Kelas *</label>
+              <select
+                value={targetClassForDistribute}
+                onChange={(e) => setTargetClassForDistribute(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
+              >
+                {classes.map(c => (
+                  <option key={c._id || c.id} value={c._id || c.id}>{c.name || c.class_name}</option>
+                ))}
+                {!classes.length && (
+                  <>
+                    <option value="8B">Kelas 8B</option>
+                    <option value="8C">Kelas 8C</option>
+                    <option value="8D">Kelas 8D</option>
+                  </>
+                )}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Sesi Pertemuan Ke- *</label>
+              <select
+                value={targetSessionForDistribute}
+                onChange={(e) => setTargetSessionForDistribute(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
+              >
+                {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
+                  <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setDistributeModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+              <button
+                onClick={handlePublishCbtToClassSession}
+                disabled={distributing}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
+              >
+                {distributing ? 'Menerbitkan...' : 'Terbitkan Ujian ke Sesi'}
+              </button>
+            </div>
           </div>
         </div>
       )}

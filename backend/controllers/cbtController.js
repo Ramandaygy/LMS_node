@@ -605,3 +605,58 @@ exports.exportExamExcel = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal mengeksport data Excel.' });
   }
 };
+
+// Distribute/Publish CBT Exam from Bank Master to Class & Session
+exports.distributeExam = async (req, res) => {
+  try {
+    const { master_exam_id, class_id, session_number, duration_minutes, pass_score } = req.body;
+    const teacherId = req.user.id || req.user._id;
+
+    let masterExam = null;
+    if (master_exam_id) {
+      masterExam = await CbtExam.findById(master_exam_id);
+    }
+
+    if (!masterExam) {
+      return res.status(404).json({ success: false, message: 'Template Ujian Master CBT tidak ditemukan.' });
+    }
+
+    const classCol = mongoose.connection.collection('classes');
+    let classObj = null;
+    let classNameStr = req.body.class_name || 'Kelas';
+
+    if (class_id && mongoose.Types.ObjectId.isValid(class_id.toString())) {
+      classObj = await classCol.findOne({ _id: new mongoose.Types.ObjectId(class_id.toString()) });
+      if (classObj) classNameStr = classObj.name;
+    } else if (typeof class_id === 'string') {
+      classNameStr = class_id;
+    }
+
+    const newPublishedExam = new CbtExam({
+      title: masterExam.title,
+      description: masterExam.description || '',
+      subject: masterExam.subject,
+      subject_name: masterExam.subject_name || '',
+      class_id: classObj ? classObj._id : class_id,
+      class_name: classNameStr,
+      teacher: teacherId,
+      duration_minutes: duration_minutes || masterExam.duration_minutes || 30,
+      pass_score: pass_score || masterExam.pass_score || 75,
+      is_master: false,
+      is_active: true,
+      session_number: parseInt(session_number) || 1,
+      questions: masterExam.questions || []
+    });
+
+    await newPublishedExam.save();
+
+    return res.json({
+      success: true,
+      message: `Berhasil menerbitkan Ujian CBT ke Kelas ${classNameStr} Sesi ke-${session_number || 1}!`,
+      exam: newPublishedExam
+    });
+  } catch (err) {
+    console.error('Error distributing CBT exam:', err);
+    return res.status(500).json({ success: false, message: 'Gagal menerbitkan Ujian CBT ke kelas.' });
+  }
+};

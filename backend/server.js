@@ -143,6 +143,12 @@ app.use(
   require('./routes/cbtRoutes')
 );
 
+// QUIZ & LIVE QUIZ
+app.use(
+  '/api/quiz',
+  require('./routes/quizRoutes')
+);
+
 // FORUM DISKUSI
 app.use(
   '/api/forum',
