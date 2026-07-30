@@ -238,15 +238,15 @@ const GuruQuiz = () => {
       await api.post('/quiz/distribute', {
         master_quiz_id: distributeModal.targetQuiz._id,
         class_id: targetClass,
-        session_number: Number(targetSessionForDistribute) || 1
+        session_number: 1
       });
-      alert(`Berhasil menyematkan Live Quiz "${distributeModal.targetQuiz.title}" ke Kelas ${targetClass} Sesi ke-${targetSessionForDistribute}!`);
+      alert(`Berhasil mendistribusikan Live Quiz "${distributeModal.targetQuiz.title}" ke Kelas ${targetClass}!`);
       setDistributeModal(null);
       fetchMasterQuizzes();
       fetchAllQuizzes();
     } catch (err) {
       console.error('Error distributing quiz:', err);
-      alert(err.response?.data?.message || 'Gagal menyematkan Live Quiz.');
+      alert(err.response?.data?.message || 'Gagal mendistribusikan Live Quiz.');
     } finally {
       setDistributing(false);
     }
