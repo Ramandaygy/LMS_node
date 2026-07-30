@@ -184,14 +184,11 @@ const SiswaQuiz = () => {
             <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 20px 0' }}>{activeQuiz.title}</p>
 
             <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '20px', maxWidth: '360px', margin: '0 auto 24px auto' }}>
-              <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748b', marginBottom: '4px' }}>PEROLEHAN BINTANG & SKOR</div>
-              <div style={{ fontSize: '32px', fontWeight: '900', color: '#0284c7', marginBottom: '6px' }}>
-                {quizResult.score} / 100
-              </div>
+              <div style={{ fontSize: '12px', fontWeight: '800', color: '#64748b', marginBottom: '8px' }}>APRESIASI BINTANG PERFORMA</div>
               <div>
                 {renderStars(quizResult.star_rating)}
-                <span style={{ fontSize: '13px', fontWeight: '800', color: '#f59e0b', marginLeft: '6px' }}>
-                  ({quizResult.star_rating} Bintang)
+                <span style={{ fontSize: '15px', fontWeight: '800', color: '#f59e0b', marginLeft: '6px', display: 'block', marginTop: '6px' }}>
+                  ({quizResult.star_rating} Bintang ⭐)
                 </span>
               </div>
             </div>

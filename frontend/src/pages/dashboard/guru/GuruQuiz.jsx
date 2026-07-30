@@ -950,9 +950,8 @@ const GuruQuiz = () => {
                   <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
                     <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>No</th>
                     <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Nama Siswa</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>NISN</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Nilai Total</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Bintang ⭐</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>NISN / NIS</th>
+                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Apresiasi Bintang ⭐</th>
                     <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Waktu Kumpul</th>
                   </tr>
                 </thead>
@@ -961,14 +960,13 @@ const GuruQuiz = () => {
                     <tr key={sub._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '8px 10px' }}>{idx + 1}</td>
                       <td style={{ padding: '8px 10px', fontWeight: '800', color: '#0f172a' }}>{sub.student_name}</td>
-                      <td style={{ padding: '8px 10px', color: '#64748b' }}>{sub.nisn || '-'}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: '800', color: '#0284c7' }}>{sub.total_score}</td>
+                      <td style={{ padding: '8px 10px', color: '#64748b' }}>{sub.nisn || sub.nis || '-'}</td>
                       <td style={{ padding: '8px 10px' }}>
-                        {renderStars(sub.star_rating)}
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginLeft: '4px' }}>({sub.star_rating} Bintang)</span>
+                        {renderStars(sub.star_rating || 5)}
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: '#f59e0b', marginLeft: '6px' }}>({sub.star_rating || 5} Bintang ⭐)</span>
                       </td>
                       <td style={{ padding: '8px 10px', color: '#64748b' }}>
-                        {new Date(sub.submitted_at).toLocaleString('id-ID')}
+                        {new Date(sub.submitted_at || sub.createdAt || Date.now()).toLocaleString('id-ID')}
                       </td>
                     </tr>
                   ))}

@@ -21,6 +21,17 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [notifSettings, setNotifSettings] = useState(() => {
+    const saved = localStorage.getItem('lms_notif_settings');
+    return saved ? JSON.parse(saved) : { popup_active: true, email_alert: true, activity_sound: true };
+  });
+
+  const toggleNotif = (key) => {
+    const updated = { ...notifSettings, [key]: !notifSettings[key] };
+    setNotifSettings(updated);
+    localStorage.setItem('lms_notif_settings', JSON.stringify(updated));
+    setSuccess('Pengaturan notifikasi berhasil diperbarui!');
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -331,6 +342,45 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* PENGATURAN NOTIFIKASI POP-UP & ALERT */}
+        <div style={{ marginTop: '24px', background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>notifications_active</span>
+            Pengaturan Notifikasi & Pop-Up Alert
+          </h3>
+          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+            Atur preferensi kemunculan notifikasi pop-up dan peringatan kegiatan agar tidak mengganggu aktivitas Anda.
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div>
+                <strong style={{ fontSize: '13px', color: '#1e293b', display: 'block' }}>Pop-up Notification Sistem</strong>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Tampilkan jendela pop-up pemberitahuan ulasan & kegiatan baru</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifSettings.popup_active}
+                onChange={() => toggleNotif('popup_active')}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0284c7' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#ffffff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1' }}>
+              <div>
+                <strong style={{ fontSize: '13px', color: '#1e293b', display: 'block' }}>Pengingat Email & Laporan Kegiatan</strong>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Kirim ringkasan laporan presensi dan nilai ke email terdaftar</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={notifSettings.email_alert}
+                onChange={() => toggleNotif('email_alert')}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#0284c7' }}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="profile-actions">
           {!isEditing && !isChangingPassword && (
             <>
@@ -340,8 +390,8 @@ const Profile = () => {
               <button className="btn-password" onClick={() => setIsChangingPassword(true)}>
                 Ganti Password
               </button>
-              <button className="btn-password" onClick={handleTestNotification} style={{background: '#28a745'}}>
-                Test Notifikasi Asli
+              <button className="btn-password" onClick={handleSubscribeNotification} style={{ background: '#0284c7', color: '#ffffff' }}>
+                Aktifkan Notifikasi Web Push
               </button>
             </>
           )}

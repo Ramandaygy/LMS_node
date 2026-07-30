@@ -28,16 +28,31 @@ exports.getDiscussions = async (req, res) => {
 // Create Discussion Topic
 exports.createDiscussion = async (req, res) => {
   try {
-    const { subjectId, materialId, title, content } = req.body;
+    let { subjectId, materialId, title, content } = req.body;
 
-    if (!subjectId || !title || !content) {
-      return res.status(400).json({ success: false, message: 'Mata pelajaran, judul topik, dan isi pertanyaan wajib diisi.' });
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: 'Judul topik dan isi pertanyaan wajib diisi.' });
+    }
+
+    const Material = require('../models/Material');
+    const Subject = require('../models/Subject');
+
+    if ((!subjectId || subjectId === 'undefined') && materialId) {
+      const mat = await Material.findById(materialId);
+      if (mat) {
+        subjectId = mat.subject_id || mat.subject;
+      }
+    }
+
+    if (!subjectId || subjectId === 'undefined') {
+      const defaultSub = await Subject.findOne();
+      if (defaultSub) subjectId = defaultSub._id;
     }
 
     const newDiscussion = new ForumDiscussion({
       subject: subjectId,
       material: materialId || null,
-      author: req.user._id,
+      author: req.user._id || req.user.id,
       title,
       content,
       replies: [],

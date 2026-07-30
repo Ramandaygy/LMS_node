@@ -324,7 +324,25 @@ exports.getQuizSubmissions = async (req, res) => {
   try {
     const QuizSubmission = require('../models/QuizSubmission');
     const { quiz_id } = req.params;
-    const submissions = await QuizSubmission.find({ quiz_id }).sort({ total_score: -1 });
+
+    const quiz = await QuizBank.findById(quiz_id);
+    let quizIdsToSearch = [quiz_id];
+
+    if (quiz && quiz.is_master) {
+      // Find all published quizzes derived from this master quiz or matching title
+      const childQuizzes = await QuizBank.find({
+        $or: [
+          { title: quiz.title, is_master: false },
+          { _id: quiz_id }
+        ]
+      }).select('_id');
+      quizIdsToSearch = childQuizzes.map(q => q._id);
+    }
+
+    const submissions = await QuizSubmission.find({ quiz_id: { $in: quizIdsToSearch } })
+      .populate('student_id', 'full_name nis nisn class_name')
+      .sort({ star_rating: -1, total_score: -1, createdAt: -1 });
+
     return res.json({ success: true, submissions });
   } catch (err) {
     console.error('Error fetching quiz submissions:', err);
