@@ -111,6 +111,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     siswa: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/siswa' },
       { key: 'cbt', label: 'Ujian CBT', icon: 'quiz', path: '/dashboard/siswa/cbt' },
+      { key: 'quiz', label: 'Quiz Live', icon: 'bolt', path: '/dashboard/siswa/quiz' },
       { key: 'progress', label: 'Progress', icon: 'trending_up', path: '/dashboard/siswa/progress' },
       { key: 'assignments', label: 'Tugas', icon: 'assignment', path: '/dashboard/siswa/assignments' },
       { key: 'materials', label: 'Materi', icon: 'card_membership', path: '/dashboard/siswa/materials' },

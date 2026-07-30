@@ -93,6 +93,7 @@ import SiswaMaterials from './pages/dashboard/siswa/SiswaMaterials';
 import SiswaProgress from './pages/dashboard/siswa/SiswaProgress';
 import SiswaSchedule from './pages/dashboard/siswa/SiswaSchedule';
 import SiswaCbt from './pages/dashboard/siswa/SiswaCbt';
+import SiswaQuiz from './pages/dashboard/siswa/SiswaQuiz';
 
 // ============================================
 // ORTU SUB PAGES
@@ -469,6 +470,17 @@ function App() {
             <ProtectedRoute allowedRole="siswa">
               <DashboardLayout role="siswa">
                 <SiswaCbt />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/siswa/quiz"
+          element={
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <SiswaQuiz />
               </DashboardLayout>
             </ProtectedRoute>
           }

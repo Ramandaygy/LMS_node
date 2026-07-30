@@ -3,7 +3,7 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/siswa/siswa-cbt.css';
 
 const SiswaCbt = () => {
-  const [activeMainTab, setActiveMainTab] = useState('cbt'); // 'cbt' | 'quiz'
+  const [activeMainTab, setActiveMainTab] = useState('active_exams'); // 'active_exams' | 'history'
 
   // CBT State
   const [exams, setExams] = useState([]);
@@ -22,17 +22,8 @@ const SiswaCbt = () => {
   const [examResult, setExamResult] = useState(null);
   const [reviewExam, setReviewExam] = useState(null);
 
-  // Live Quiz State (Siswa)
-  const [studentQuizzes, setStudentQuizzes] = useState([]);
-  const [activeQuiz, setActiveQuiz] = useState(null); // Full quiz object for attempting
-  const [quizAnswers, setQuizAnswers] = useState({}); // { 0: 1, 1: 0 }
-  const [quizSubmitting, setQuizSubmitting] = useState(false);
-  const [quizResult, setQuizResult] = useState(null); // { score, star_rating }
-  const [quizLeaderboardModal, setQuizLeaderboardModal] = useState(null); // { quiz, submissions: [] }
-
   useEffect(() => {
     fetchExams(true);
-    fetchStudentQuizzes();
   }, []);
 
   // Timer Countdown Effect for CBT
@@ -67,16 +58,6 @@ const SiswaCbt = () => {
       setError('Gagal memuat daftar ujian CBT.');
     } finally {
       if (showFullLoader) setLoading(false);
-    }
-  };
-
-  const fetchStudentQuizzes = async () => {
-    try {
-      const res = await api.get('/quiz');
-      const all = res.data.quizzes || [];
-      setStudentQuizzes(all.filter(q => !q.is_master));
-    } catch (err) {
-      console.error('Error fetching student quizzes:', err);
     }
   };
 
@@ -169,50 +150,6 @@ const SiswaCbt = () => {
     }
   };
 
-  // LIVE QUIZ HANDLERS
-  const handleStartQuiz = (qz) => {
-    setActiveQuiz(qz);
-    setQuizAnswers({});
-    setQuizResult(null);
-  };
-
-  const handleSelectQuizOption = (qIdx, oIdx) => {
-    setQuizAnswers(prev => ({ ...prev, [qIdx]: oIdx }));
-  };
-
-  const handleSubmitQuiz = async () => {
-    if (!activeQuiz) return;
-    setQuizSubmitting(true);
-    try {
-      const res = await api.post('/quiz/submit', {
-        quiz_id: activeQuiz._id,
-        answers: quizAnswers
-      });
-
-      if (res.data.success) {
-        setQuizResult({
-          score: res.data.score,
-          star_rating: res.data.star_rating
-        });
-      }
-    } catch (err) {
-      console.error('Error submitting quiz:', err);
-      alert(err.response?.data?.message || 'Gagal mengumpulkan kuis.');
-    } finally {
-      setQuizSubmitting(false);
-    }
-  };
-
-  const handleOpenQuizLeaderboard = async (qz) => {
-    setQuizLeaderboardModal({ quiz: qz, submissions: [] });
-    try {
-      const res = await api.get(`/quiz/${qz._id}/submissions`);
-      setQuizLeaderboardModal({ quiz: qz, submissions: res.data.submissions || [] });
-    } catch (err) {
-      console.error('Error fetching quiz leaderboard:', err);
-    }
-  };
-
   const getExamScheduleStatus = (exam) => {
     if (!exam.start_time || !exam.end_time) {
       return { isAvailable: true, label: 'Siap Dikerjakan', class: 'active' };
@@ -251,19 +188,6 @@ const SiswaCbt = () => {
     return 'unanswered';
   };
 
-  const renderStars = (rating) => {
-    const stars = [];
-    const count = Number(rating) || 1;
-    for (let i = 1; i <= 5; i++) {
-      stars.push(
-        <span key={i} className="material-symbols-outlined" style={{ fontSize: '18px', color: i <= count ? '#f59e0b' : '#cbd5e1', verticalAlign: 'middle' }}>
-          {i <= count ? 'star' : 'star_border'}
-        </span>
-      );
-    }
-    return stars;
-  };
-
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -271,7 +195,7 @@ const SiswaCbt = () => {
   };
 
   if (loading && !activeExam && !reviewExam) {
-    return <div className="cbt-loading">Memuat Halaman Ujian & Kuis...</div>;
+    return <div className="cbt-loading">Memuat Halaman Ujian CBT...</div>;
   }
 
   // =========================================================================
@@ -576,26 +500,31 @@ const SiswaCbt = () => {
     );
   }
 
-  // MAIN DASHBOARD VIEW (CBT & QUIZ TABS)
+  // Filter exams based on selected tab
+  const activeExamsList = exams.filter(e => !e.has_submitted);
+  const completedExamsList = exams.filter(e => e.has_submitted);
+
   return (
     <div className="cbt-container">
       <div className="cbt-page-header">
         <div>
-          <h1 className="page-title">Ujian CBT & Quiz Sesi Kelas</h1>
-          <p className="page-subtitle">Kerjakan Ujian CBT resmi dan Live Quiz Sesi untuk mengumpulkan Bintang & Nilai Rapor.</p>
+          <h1 className="page-title">Ujian CBT (Computer Based Test)</h1>
+          <p className="page-subtitle">Kerjakan Ujian CBT resmi kelas Anda dan lihat riwayat beserta pembahasan hasil ujian.</p>
         </div>
       </div>
+
+      {error && <div className="cbt-alert-error">{error}</div>}
 
       {/* TAB SELECTION */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid #cbd5e1', marginBottom: '20px' }}>
         <button
-          onClick={() => setActiveMainTab('cbt')}
+          onClick={() => setActiveMainTab('active_exams')}
           style={{
             padding: '10px 20px',
             border: 'none',
             background: 'none',
-            borderBottom: activeMainTab === 'cbt' ? '3px solid #0284c7' : '3px solid transparent',
-            color: activeMainTab === 'cbt' ? '#0284c7' : '#64748b',
+            borderBottom: activeMainTab === 'active_exams' ? '3px solid #0284c7' : '3px solid transparent',
+            color: activeMainTab === 'active_exams' ? '#0284c7' : '#64748b',
             fontWeight: '800',
             fontSize: '14px',
             cursor: 'pointer',
@@ -604,16 +533,16 @@ const SiswaCbt = () => {
             gap: '8px'
           }}
         >
-          <span className="material-symbols-outlined">computer</span> Ujian CBT ({exams.length})
+          <span className="material-symbols-outlined">computer</span> Ujian Aktif ({activeExamsList.length})
         </button>
         <button
-          onClick={() => setActiveMainTab('quiz')}
+          onClick={() => setActiveMainTab('history')}
           style={{
             padding: '10px 20px',
             border: 'none',
             background: 'none',
-            borderBottom: activeMainTab === 'quiz' ? '3px solid #0284c7' : '3px solid transparent',
-            color: activeMainTab === 'quiz' ? '#0284c7' : '#64748b',
+            borderBottom: activeMainTab === 'history' ? '3px solid #0284c7' : '3px solid transparent',
+            color: activeMainTab === 'history' ? '#0284c7' : '#64748b',
             fontWeight: '800',
             fontSize: '14px',
             cursor: 'pointer',
@@ -622,28 +551,22 @@ const SiswaCbt = () => {
             gap: '8px'
           }}
         >
-          <span className="material-symbols-outlined">star</span> Live Quiz Sesi & Bintang ⭐ ({studentQuizzes.length})
+          <span className="material-symbols-outlined">history</span> Riwayat Ujian ({completedExamsList.length})
         </button>
       </div>
 
-      {/* TAB 1: UJIAN CBT */}
-      {activeMainTab === 'cbt' && (
+      {/* TAB 1: UJIAN CBT AKTIF */}
+      {activeMainTab === 'active_exams' && (
         <div>
-          {exams.length > 0 ? (
+          {activeExamsList.length > 0 ? (
             <div className="cbt-exams-grid">
-              {exams.map((exam) => {
+              {activeExamsList.map((exam) => {
                 const sched = getExamScheduleStatus(exam);
                 return (
                   <div key={exam._id} className="cbt-exam-card">
                     <div className="exam-card-header">
                       <span className="subject-badge">{exam.subject_name || exam.subject?.name || 'Mata Pelajaran'}</span>
-                      {exam.has_submitted ? (
-                        <span className={`status-badge ${exam.my_result?.is_passed ? 'passed' : 'failed'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          Selesai (Nilai: {exam.my_score || 0})
-                        </span>
-                      ) : (
-                        <span className={`status-badge ${sched.class}`}>{sched.label}</span>
-                      )}
+                      <span className={`status-badge ${sched.class}`}>{sched.label}</span>
                     </div>
 
                     <h3 className="exam-card-title">{exam.title}</h3>
@@ -665,22 +588,15 @@ const SiswaCbt = () => {
                     </div>
 
                     <div className="exam-card-actions">
-                      {exam.has_submitted ? (
-                        <button className="cbt-btn-card review" onClick={() => handleStartExam(exam._id)}>
-                          <span className="material-symbols-outlined">visibility</span>
-                          Lihat Hasil & Pembahasan
-                        </button>
-                      ) : (
-                        <button
-                          className="cbt-btn-card start"
-                          disabled={!sched.isAvailable}
-                          onClick={() => handleStartExam(exam._id)}
-                          style={!sched.isAvailable ? { opacity: 0.5, cursor: 'not-allowed', background: '#cbd5e1' } : {}}
-                        >
-                          <span className="material-symbols-outlined">play_arrow</span>
-                          {sched.isAvailable ? 'Mulai Ujian CBT' : 'Belum Tersedia'}
-                        </button>
-                      )}
+                      <button
+                        className="cbt-btn-card start"
+                        disabled={!sched.isAvailable}
+                        onClick={() => handleStartExam(exam._id)}
+                        style={!sched.isAvailable ? { opacity: 0.5, cursor: 'not-allowed', background: '#cbd5e1' } : {}}
+                      >
+                        <span className="material-symbols-outlined">play_arrow</span>
+                        {sched.isAvailable ? 'Mulai Ujian CBT' : 'Belum Tersedia'}
+                      </button>
                     </div>
                   </div>
                 );
@@ -689,46 +605,51 @@ const SiswaCbt = () => {
           ) : (
             <div className="cbt-empty-state">
               <span className="material-symbols-outlined empty-icon">quiz</span>
-              <h3>Belum Ada Paket Ujian CBT</h3>
-              <p>Belum ada ujian CBT yang diterbitkan untuk kelas Anda.</p>
+              <h3>Tidak Ada Ujian Aktif</h3>
+              <p>Belum ada ujian CBT baru yang dijadwalkan untuk kelas Anda.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* TAB 2: LIVE QUIZ SESI & BINTANG */}
-      {activeMainTab === 'quiz' && (
+      {/* TAB 2: RIWAYAT UJIAN CBT */}
+      {activeMainTab === 'history' && (
         <div>
-          {studentQuizzes.length > 0 ? (
+          {completedExamsList.length > 0 ? (
             <div className="cbt-exams-grid">
-              {studentQuizzes.map((qz) => (
-                <div key={qz._id} className="cbt-exam-card" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-                  <div className="exam-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '800', background: '#0284c7', color: '#ffffff', padding: '3px 8px', borderRadius: '6px' }}>
-                      Kelas {qz.class_name || '8B'}
-                    </span>
-                    <span style={{ fontSize: '11px', fontWeight: '800', background: '#f0f9ff', color: '#0284c7', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                      Sesi ke-{qz.session_number || 1}
+              {completedExamsList.map((exam) => (
+                <div key={exam._id} className="cbt-exam-card">
+                  <div className="exam-card-header">
+                    <span className="subject-badge">{exam.subject_name || exam.subject?.name || 'Mata Pelajaran'}</span>
+                    <span className={`status-badge ${exam.my_result?.is_passed ? 'passed' : 'failed'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      Selesai (Nilai: {exam.my_score || 0})
                     </span>
                   </div>
 
-                  <h3 className="exam-card-title" style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px 0' }}>{qz.title}</h3>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 14px 0' }}>
-                    Mata Pelajaran: {qz.subject_name || 'Informatika'} | {qz.questions?.length || 0} Pertanyaan
-                  </p>
+                  <h3 className="exam-card-title">{exam.title}</h3>
+                  <p className="exam-teacher">Guru Pengampu: {exam.teacher?.full_name || '-'}</p>
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handleStartQuiz(qz)}
-                      style={{ flex: 1, background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Kerjakan Kuis
-                    </button>
-                    <button
-                      onClick={() => handleOpenQuizLeaderboard(qz)}
-                      style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>star</span> Bintang Teman
+                  <div className="exam-meta-details">
+                    <div className="meta-item">
+                      <span className="material-symbols-outlined">help</span>
+                      <span>{exam.total_questions || 0} Soal</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="material-symbols-outlined">grade</span>
+                      <span>KKM: {exam.pass_score || 75}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="material-symbols-outlined">event_available</span>
+                      <span style={{ fontSize: '11px' }}>
+                        {exam.my_result?.submitted_at ? new Date(exam.my_result.submitted_at).toLocaleDateString('id-ID') : '-'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="exam-card-actions">
+                    <button className="cbt-btn-card review" onClick={() => handleStartExam(exam._id)}>
+                      <span className="material-symbols-outlined">visibility</span>
+                      Lihat Hasil & Pembahasan Soal
                     </button>
                   </div>
                 </div>
@@ -736,66 +657,11 @@ const SiswaCbt = () => {
             </div>
           ) : (
             <div className="cbt-empty-state">
-              <span className="material-symbols-outlined empty-icon">star</span>
-              <h3>Belum Ada Kuis Sesi</h3>
-              <p>Belum ada kuis interaktif yang disematkan guru untuk sesi pertemuan kelas Anda.</p>
+              <span className="material-symbols-outlined empty-icon">history</span>
+              <h3>Belum Ada Riwayat Ujian</h3>
+              <p>Anda belum pernah menyelesaikan ujian CBT.</p>
             </div>
           )}
-        </div>
-      )}
-
-      {/* QUIZ LEADERBOARD & STARS MODAL FOR SISWA */}
-      {quizLeaderboardModal && (
-        <div className="modal-overlay" onClick={() => setQuizLeaderboardModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
-          <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '600px', width: '92%', maxHeight: '85vh', borderRadius: '20px', padding: '24px', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
-                  ⭐ Bintang & Peringkat Kuis Teman Sekelas
-                </h3>
-                <span style={{ fontSize: '12px', color: '#64748b' }}>
-                  {quizLeaderboardModal.quiz?.title} (Sesi ke-{quizLeaderboardModal.quiz?.session_number})
-                </span>
-              </div>
-              <button onClick={() => setQuizLeaderboardModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {quizLeaderboardModal.submissions?.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: '#f1f5f9', color: '#334155', textAlign: 'left' }}>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Peringkat</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Nama Siswa</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Nilai</th>
-                    <th style={{ padding: '8px 10px', borderBottom: '1px solid #cbd5e1' }}>Bintang ⭐</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quizLeaderboardModal.submissions.map((sub, idx) => (
-                    <tr key={sub._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '8px 10px', fontWeight: '800' }}>#{idx + 1}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: '700', color: '#0f172a' }}>{sub.student_name}</td>
-                      <td style={{ padding: '8px 10px', fontWeight: '800', color: '#0284c7' }}>{sub.total_score}</td>
-                      <td style={{ padding: '8px 10px' }}>
-                        {renderStars(sub.star_rating)}
-                        <span style={{ fontSize: '11px', fontWeight: '700', color: '#f59e0b', marginLeft: '4px' }}>({sub.star_rating})</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
-                Belum ada siswa yang mengerjakan kuis ini.
-              </div>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
-              <button onClick={() => setQuizLeaderboardModal(null)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Tutup</button>
-            </div>
-          </div>
         </div>
       )}
     </div>
