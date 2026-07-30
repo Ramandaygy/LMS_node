@@ -28,8 +28,7 @@ const GuruQuiz = () => {
 
   // Distribute Modal State
   const [distributeModal, setDistributeModal] = useState(null);
-  const [targetClassForDistribute, setTargetClassForDistribute] = useState('');
-  const [targetSessionForDistribute, setTargetSessionForDistribute] = useState(1);
+  const [targetClassForDistribute, setTargetClassForDistribute] = useState('8B');
   const [distributing, setDistributing] = useState(false);
 
   // Submissions Modal State
@@ -443,7 +442,7 @@ const GuruQuiz = () => {
                       onClick={() => setDistributeModal({ targetQuiz: qz })}
                       style={{ flex: 1, background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>publish</span> Sematkan ke Sesi
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>publish</span> Distribusikan Kuis
                     </button>
                     <button
                       onClick={() => handleDeleteMasterQuiz(qz._id)}
@@ -484,7 +483,7 @@ const GuruQuiz = () => {
                         Kelas {qz.class_name || '8B'}
                       </span>
                       <span style={{ fontSize: '11px', fontWeight: '800', background: '#f0f9ff', color: '#0284c7', padding: '3px 8px', borderRadius: '6px', border: '1px solid #bae6fd' }}>
-                        Sesi ke-{qz.session_number || 1}
+                        Terbit & Aktif
                       </span>
                     </div>
                     <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px 0' }}>{qz.title}</h3>
@@ -862,7 +861,7 @@ const GuruQuiz = () => {
             <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>publish</span>
-                Sematkan Live Quiz ke Kelas & Sesi
+                Distribusikan Live Quiz ke Kelas
               </h3>
               <button onClick={() => setDistributeModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <span className="material-symbols-outlined">close</span>
@@ -871,10 +870,10 @@ const GuruQuiz = () => {
 
             <div style={{ marginBottom: '14px' }}>
               <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block', marginBottom: '4px' }}>{distributeModal.targetQuiz.title}</strong>
-              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Pilih kelas dan sesi pertemuan untuk menyematkan kuis ini.</p>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Pilih target kelas untuk mendistribusikan kuis ini.</p>
             </div>
 
-            <div style={{ marginBottom: '14px' }}>
+            <div style={{ marginBottom: '20px' }}>
               <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Target Kelas *</label>
               <select
                 value={targetClassForDistribute}
@@ -894,19 +893,6 @@ const GuruQuiz = () => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Sesi Pertemuan Ke- *</label>
-              <select
-                value={targetSessionForDistribute}
-                onChange={(e) => setTargetSessionForDistribute(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px' }}
-              >
-                {Array.from({ length: 16 }, (_, i) => i + 1).map(num => (
-                  <option key={num} value={num}>Sesi Pertemuan ke-{num}</option>
-                ))}
-              </select>
-            </div>
-
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button onClick={() => setDistributeModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
               <button
@@ -914,7 +900,7 @@ const GuruQuiz = () => {
                 disabled={distributing}
                 style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', cursor: 'pointer' }}
               >
-                {distributing ? 'Menyematkan...' : 'Sematkan Kuis ke Sesi'}
+                {distributing ? 'Mendistribusikan...' : 'Distribusikan Kuis'}
               </button>
             </div>
           </div>

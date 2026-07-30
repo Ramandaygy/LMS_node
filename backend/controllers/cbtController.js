@@ -2,8 +2,66 @@ const CbtExam = require('../models/CbtExam');
 const CbtResult = require('../models/CbtResult');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
+const Subject = require('../models/Subject');
 
 const mongoose = require('mongoose');
+
+// Helper to enrich exam docs with populated Subject & Teacher info reliably
+async function enrichExamsWithDetails(examsArray) {
+  if (!Array.isArray(examsArray) || examsArray.length === 0) return [];
+
+  const subjectIds = new Set();
+  const teacherIds = new Set();
+
+  examsArray.forEach(e => {
+    const sId = e.subject ? (e.subject._id || e.subject).toString() : (e.subject_id ? e.subject_id.toString() : '');
+    if (sId && mongoose.Types.ObjectId.isValid(sId)) subjectIds.add(sId);
+    
+    const tId = e.teacher ? (e.teacher._id || e.teacher).toString() : '';
+    if (tId && mongoose.Types.ObjectId.isValid(tId)) teacherIds.add(tId);
+  });
+
+  const subjects = await Subject.find({ _id: { $in: Array.from(subjectIds) } }).lean();
+  const subjectMap = {};
+  subjects.forEach(s => { subjectMap[s._id.toString()] = s; });
+
+  const guruCol = mongoose.connection.collection('users_guru');
+  const guruObjectIds = Array.from(teacherIds).map(id => {
+    try { return new mongoose.Types.ObjectId(id); } catch(err) { return id; }
+  });
+  
+  const [teachersUser, teachersGuru] = await Promise.all([
+    User.find({ _id: { $in: Array.from(teacherIds) } }).lean(),
+    guruCol.find({ _id: { $in: guruObjectIds } }).toArray()
+  ]);
+
+  const teacherMap = {};
+  teachersUser.forEach(u => { teacherMap[u._id.toString()] = u; });
+  teachersGuru.forEach(g => { teacherMap[g._id.toString()] = g; });
+
+  return examsArray.map(e => {
+    const doc = typeof e.toObject === 'function' ? e.toObject() : { ...e };
+
+    // Resolve Subject
+    const sId = doc.subject ? (doc.subject._id || doc.subject).toString() : (doc.subject_id ? doc.subject_id.toString() : '');
+    if (sId && subjectMap[sId]) {
+      doc.subject = subjectMap[sId];
+      doc.subject_name = subjectMap[sId].name;
+    } else if (doc.subject && typeof doc.subject === 'object' && doc.subject.name) {
+      doc.subject_name = doc.subject.name;
+    }
+
+    // Resolve Teacher
+    const tId = doc.teacher ? (doc.teacher._id || doc.teacher).toString() : '';
+    if (tId && teacherMap[tId]) {
+      doc.teacher = teacherMap[tId];
+    } else if (!doc.teacher || typeof doc.teacher !== 'object') {
+      doc.teacher = { full_name: 'Guru Pengampu' };
+    }
+
+    return doc;
+  });
+}
 
 // Get List of Exams (For Siswa & Guru)
 exports.getExams = async (req, res) => {
@@ -64,11 +122,13 @@ exports.getExams = async (req, res) => {
       ];
     }
 
-    const exams = await CbtExam.find(query)
+    const rawExams = await CbtExam.find(query)
       .populate('subject', 'name code')
       .populate('class_id', 'name')
       .populate('teacher', 'full_name')
       .sort({ createdAt: -1 });
+
+    const exams = await enrichExamsWithDetails(rawExams);
 
     // If Siswa, attach their previous attempt/result if exists
     if (userRole === 'siswa') {
@@ -84,7 +144,7 @@ exports.getExams = async (req, res) => {
       });
 
       const examsWithStatus = exams.map(e => {
-        const doc = e.toObject();
+        const doc = { ...e };
         const myResult = resultMap[e._id.toString()];
         doc.has_submitted = !!myResult;
         doc.my_score = myResult ? myResult.score : null;
@@ -98,7 +158,7 @@ exports.getExams = async (req, res) => {
     }
 
     const examsForGuru = exams.map(e => {
-      const doc = e.toObject();
+      const doc = { ...e };
       doc.total_questions = e.questions ? e.questions.length : 0;
       return doc;
     });
@@ -113,14 +173,16 @@ exports.getExams = async (req, res) => {
 // Get Exam Detail (For Siswa Taking Test or Guru Viewing)
 exports.getExamById = async (req, res) => {
   try {
-    const exam = await CbtExam.findById(req.params.id)
+    const rawExam = await CbtExam.findById(req.params.id)
       .populate('subject', 'name code')
       .populate('class_id', 'name')
       .populate('teacher', 'full_name');
 
-    if (!exam) {
+    if (!rawExam) {
       return res.status(404).json({ success: false, message: 'Ujian CBT tidak ditemukan.' });
     }
+
+    const [exam] = await enrichExamsWithDetails([rawExam]);
 
     const userRole = req.user.role;
     const userId = req.user._id || req.user.id || req.user;
@@ -138,13 +200,11 @@ exports.getExamById = async (req, res) => {
         exam: exam._id
       });
 
-      const examObj = exam.toObject();
-
       if (existingResult) {
         // If already submitted, check if we need to hide keys/explanations
-        const examObj = exam.toObject();
+        const examObj = { ...exam };
         if (exam.hide_correct_answers) {
-          examObj.questions = examObj.questions.map(q => ({
+          examObj.questions = (examObj.questions || []).map(q => ({
             ...q,
             correct_option: null,
             explanation: 'Kunci jawaban & pembahasan disembunyikan oleh guru.'
@@ -159,7 +219,8 @@ exports.getExamById = async (req, res) => {
       }
 
       // If student is starting test, strip correct_option & explanation to prevent cheating
-      examObj.questions = examObj.questions.map((q, idx) => ({
+      const examObj = { ...exam };
+      examObj.questions = (examObj.questions || []).map((q, idx) => ({
         _id: q._id,
         index: idx,
         question_text: q.question_text,
@@ -198,8 +259,11 @@ exports.createExam = async (req, res) => {
     }
 
     let subjectObjId;
+    let subjectNameStr = req.body.subject_name || '';
     try {
       subjectObjId = new mongoose.Types.ObjectId(subject.toString());
+      const subObj = await Subject.findById(subjectObjId).lean();
+      if (subObj) subjectNameStr = subObj.name;
     } catch (e) {
       subjectObjId = subject;
     }
@@ -228,6 +292,7 @@ exports.createExam = async (req, res) => {
     const newExam = new CbtExam({
       title: title.trim(),
       subject: subjectObjId,
+      subject_name: subjectNameStr,
       class_id: classObjId,
       class_name: class_name || '',
       teacher: teacherObjId,
@@ -260,7 +325,13 @@ exports.updateExam = async (req, res) => {
     }
 
     if (title !== undefined) exam.title = title;
-    if (subject !== undefined) exam.subject = subject;
+    if (subject !== undefined) {
+      exam.subject = subject;
+      if (mongoose.Types.ObjectId.isValid(subject.toString())) {
+        const subObj = await Subject.findById(subject).lean();
+        if (subObj) exam.subject_name = subObj.name;
+      }
+    }
     if (class_id !== undefined) exam.class_id = class_id;
     if (class_name !== undefined) exam.class_name = class_name;
     if (duration_minutes !== undefined) exam.duration_minutes = duration_minutes;

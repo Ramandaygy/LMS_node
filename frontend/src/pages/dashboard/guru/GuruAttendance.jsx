@@ -318,7 +318,7 @@ const GuruAttendance = () => {
       {/* HEADER BAR (SIAKAD STYLE) */}
       <div className="siakad-top-header">
         <div>
-          <h1 className="siakad-page-title">Presensi & Sesi KBM Kelas</h1>
+          <h1 className="siakad-page-title">Presensi & Pertemuan KBM Kelas</h1>
           <p className="siakad-page-subtitle">Riwayat KBM dan Rencana / Realisasi Presensi Pertemuan</p>
         </div>
 
@@ -467,14 +467,14 @@ const GuruAttendance = () => {
 
             <button className="btn-save-primary" onClick={() => handleOpenInputForm(9)}>
               <span className="material-symbols-outlined">edit_calendar</span>
-              Perbaharui Presensi Sesi Ini (Pertemuan ke-9)
+              Perbaharui Presensi Pertemuan Hari Ini
             </button>
           </div>
 
           <table className="siakad-attendance-table">
             <thead>
               <tr>
-                <th style={{ width: '50px' }}>Sesi</th>
+                <th style={{ width: '80px' }}>Pertemuan</th>
                 <th style={{ width: '180px' }}>Waktu</th>
                 <th>Rencana & Realisasi Materi</th>
                 <th style={{ width: '150px' }}>Pengajar</th>
@@ -487,7 +487,7 @@ const GuruAttendance = () => {
             <tbody>
               {sessions16List.map((row) => (
                 <tr key={row.sesi} className={row.sesi === 9 ? 'current-active-session-row' : ''}>
-                  <td className="text-center font-bold">{row.sesi}</td>
+                  <td className="text-center font-bold">Ke-{row.sesi}</td>
                   <td className="waktu-cell">{row.waktu}</td>
                   <td className="materi-cell">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
@@ -498,7 +498,7 @@ const GuruAttendance = () => {
                       <button
                         onClick={() => setEditingSessionModal(row)}
                         style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0284c7', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
-                        title="Edit Rencana & Realisasi Materi Sesi Ini"
+                        title="Edit Rencana & Realisasi Materi Pertemuan Ini"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span> Edit
                       </button>
@@ -512,7 +512,7 @@ const GuruAttendance = () => {
                     <button
                       className={`btn-absen-icon ${row.isCompleted ? 'completed' : 'pending'}`}
                       onClick={() => handleOpenInputForm(row.sesi)}
-                      title={`Isi Presensi Sesi Pertemuan ke-${row.sesi}`}
+                      title={`Isi Presensi Pertemuan ke-${row.sesi}`}
                     >
                       <span className="material-symbols-outlined">fact_check</span>
                     </button>
@@ -529,7 +529,7 @@ const GuruAttendance = () => {
                 <div className="modal-header">
                   <h3>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>edit_note</span>
-                    Edit Rencana & Realisasi Materi (Sesi {editingSessionModal.sesi})
+                    Edit Rencana & Realisasi Materi (Pertemuan {editingSessionModal.sesi})
                   </h3>
                   <button className="btn-close-modal" onClick={() => setEditingSessionModal(null)}>
                     <span className="material-symbols-outlined">close</span>

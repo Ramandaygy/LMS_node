@@ -570,7 +570,7 @@ const SiswaCbt = () => {
                     </div>
 
                     <h3 className="exam-card-title">{exam.title}</h3>
-                    <p className="exam-teacher">Guru Pengampu: {exam.teacher?.full_name || '-'}</p>
+                    <p className="exam-teacher">Guru Pengampu: {exam.teacher?.full_name || exam.teacher_name || '-'}</p>
 
                     <div className="exam-meta-details">
                       <div className="meta-item">
@@ -627,7 +627,7 @@ const SiswaCbt = () => {
                   </div>
 
                   <h3 className="exam-card-title">{exam.title}</h3>
-                  <p className="exam-teacher">Guru Pengampu: {exam.teacher?.full_name || '-'}</p>
+                  <p className="exam-teacher">Guru Pengampu: {exam.teacher?.full_name || exam.teacher_name || '-'}</p>
 
                   <div className="exam-meta-details">
                     <div className="meta-item">

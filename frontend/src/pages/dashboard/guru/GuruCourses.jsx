@@ -517,7 +517,7 @@ const GuruCourses = () => {
           {/* TAB BAR FOR INLINE TAB SWITCHING */}
           <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', overflowX: 'auto' }}>
             {[
-              { id: 'sesi', label: 'Sesi' },
+              { id: 'sesi', label: 'Jadwal Pertemuan' },
               { id: 'asesmen', label: 'Asesmen / Tugas' },
               { id: 'timeline', label: 'Timeline' },
               { id: 'peserta', label: 'Peserta Siswa' },
@@ -544,14 +544,14 @@ const GuruCourses = () => {
           </div>
         </div>
 
-        {/* TAB CONTENT 1: SESI (16 SESSIONS VIEW) */}
+        {/* TAB CONTENT 1: PERTEMUAN KBM (16 MEETINGS VIEW) */}
         {activeTab === 'sesi' && (
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
             
-            {/* LEFT COLUMN: 16 SESSIONS LIST */}
+            {/* LEFT COLUMN: 16 MEETINGS LIST */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px', maxHeight: '720px', overflowY: 'auto' }}>
               <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#334155', margin: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                Terdapat 16 Sesi KBM
+                Jadwal 16 Pertemuan KBM ({sch.day || 'Reguler'})
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {Array.from({ length: 16 }, (_, i) => {
@@ -559,7 +559,7 @@ const GuruCourses = () => {
                   const isActive = currentSesiIdx === i;
                   const pKey = `${sch.id}_session_${sessNum}`;
                   const sessPlan = sessionPlans[pKey];
-                  const displayTitle = sessPlan?.rencana || `Sesi Pertemuan ke-${sessNum}`;
+                  const displayTitle = sessPlan?.rencana || `Pertemuan ke-${sessNum}`;
 
                   return (
                     <div
@@ -580,7 +580,7 @@ const GuruCourses = () => {
                         </strong>
                       </div>
                       <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                        Sesi KBM Pertemuan ke-{sessNum}
+                        Pertemuan KBM ({sch.day || 'Jadwal Reguler'}, {sch.start_time || '07:30'})
                       </span>
                     </div>
                   );
@@ -595,7 +595,7 @@ const GuruCourses = () => {
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
-                    Sesi #{currentSessionNum} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>Sesi Anda</span>
+                    Pertemuan ke-{currentSessionNum} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>{sch.day || 'Jadwal Reguler'} ({sch.start_time || '07:30'} - {sch.end_time || '09:30'})</span>
                   </h3>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -631,12 +631,12 @@ const GuruCourses = () => {
                 </div>
               </div>
 
-              {/* BOX MATERI SESI REAL DATA */}
+              {/* BOX MATERI PERTEMUAN REAL DATA */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
-                    Materi Sesi ke-{currentSessionNum}
+                    Materi Pertemuan ke-{currentSessionNum}
                   </strong>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
@@ -655,7 +655,7 @@ const GuruCourses = () => {
                 </div>
 
                 {loadingSessionData ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat materi sesi...</div>
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat materi pertemuan...</div>
                 ) : sessionMaterials.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {sessionMaterials.map((mat) => {
@@ -690,7 +690,7 @@ const GuruCourses = () => {
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <strong style={{ fontSize: '14px', color: '#0f172a' }}>{mat.title}</strong>
                                 <span style={{ fontSize: '10px', fontWeight: '800', background: isCurrentSessionMat ? '#0284c7' : '#e2e8f0', color: isCurrentSessionMat ? '#ffffff' : '#475569', padding: '2px 6px', borderRadius: '4px' }}>
-                                  {isCurrentSessionMat ? `Sesi ke-${currentSessionNum} (Sesi Ini)` : `Sesi ke-${mat.session_number || 1}`}
+                                  {isCurrentSessionMat ? `Pertemuan ke-${currentSessionNum} (Pertemuan Ini)` : `Pertemuan ke-${mat.session_number || 1}`}
                                 </span>
                               </div>
                               <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '2px' }}>
@@ -715,7 +715,7 @@ const GuruCourses = () => {
                                 onClick={() => handleAttachMaterialToSession(mat._id, currentSessionNum)}
                                 style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                               >
-                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>push_pin</span> Sematkan ke Sesi ke-{currentSessionNum}
+                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>push_pin</span> Sematkan ke Pertemuan ke-{currentSessionNum}
                               </button>
                             )}
                           </div>
@@ -727,29 +727,29 @@ const GuruCourses = () => {
                   <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1' }}>folder_off</span>
                     <p style={{ fontSize: '13px', color: '#94a3b8', margin: '6px 0 0 0' }}>
-                      Belum ada materi yang diunggah untuk Sesi ke-{currentSessionNum}.
+                      Belum ada materi yang diunggah untuk Pertemuan ke-{currentSessionNum}.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* BOX TUGAS SESI REAL DATA */}
+              {/* BOX TUGAS PERTEMUAN REAL DATA */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>assignment</span>
-                    Aktivitas & Tugas Sesi ke-{currentSessionNum}
+                    Aktivitas & Tugas Pertemuan ke-{currentSessionNum}
                   </strong>
                   <button
                     onClick={() => handleOpenTaskModal(sch, currentSessionNum)}
                     style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Aktivitas / Tugas Sesi
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span> + Aktivitas / Tugas Pertemuan
                   </button>
                 </div>
 
                 {loadingSessionData ? (
-                  <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat tugas sesi...</div>
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat tugas...</div>
                 ) : sessionAssignments.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {sessionAssignments.map((task) => (
@@ -762,7 +762,7 @@ const GuruCourses = () => {
                           onClick={() => navigate('/dashboard/guru/assignments')}
                           style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', color: '#0284c7', cursor: 'pointer' }}
                         >
-                          Lihat Pengumpulan
+                          Lihat Pengumpulkan
                         </button>
                       </div>
                     ))}
@@ -771,18 +771,18 @@ const GuruCourses = () => {
                   <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
                     <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#cbd5e1' }}>assignment_late</span>
                     <p style={{ fontSize: '13px', color: '#94a3b8', margin: '6px 0 0 0' }}>
-                      Belum ada aktivitas atau tugas yang disematkan pada Sesi ke-{currentSessionNum}.
+                      Belum ada aktivitas atau tugas yang disematkan pada Pertemuan ke-{currentSessionNum}.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* BOX UJIAN CBT SESI */}
+              {/* BOX UJIAN CBT PERTEMUAN */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>computer</span>
-                    Ujian CBT (Computer Based Test) Sesi ke-{currentSessionNum}
+                    Ujian CBT (Computer Based Test) Pertemuan ke-{currentSessionNum}
                   </strong>
                   <button
                     onClick={() => navigate('/dashboard/guru/cbt')}
@@ -794,17 +794,17 @@ const GuruCourses = () => {
                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#cbd5e1' }}>laptop_mac</span>
                   <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-                    Kelola dan terbitkan Ujian CBT dari <strong>Bank Master CBT</strong> untuk Sesi ke-{currentSessionNum}.
+                    Kelola dan terbitkan Ujian CBT dari <strong>Bank Master CBT</strong> untuk Pertemuan ke-{currentSessionNum}.
                   </p>
                 </div>
               </div>
 
-              {/* BOX LIVE QUIZ SESI */}
+              {/* BOX LIVE QUIZ PERTEMUAN */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>speed</span>
-                    Live Quiz Interaktif Sesi ke-{currentSessionNum}
+                    Live Quiz Interaktif Pertemuan ke-{currentSessionNum}
                   </strong>
                   <button
                     onClick={() => navigate('/dashboard/guru/quiz')}
@@ -816,7 +816,7 @@ const GuruCourses = () => {
                 <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#cbd5e1' }}>extension</span>
                   <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
-                    Gunakan <strong>Bank Master Quiz</strong> untuk menyematkan kuis cepat interaktif pada Sesi ke-{currentSessionNum}.
+                    Gunakan <strong>Bank Master Quiz</strong> untuk mendistribusikan kuis cepat interaktif pada Pertemuan ke-{currentSessionNum}.
                   </p>
                 </div>
               </div>

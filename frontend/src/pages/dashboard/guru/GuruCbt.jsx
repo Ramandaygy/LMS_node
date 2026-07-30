@@ -227,6 +227,18 @@ const GuruCbt = () => {
     setQuestions(updated);
   };
 
+  const formatToLocalDatetimeInput = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   const handleOpenCreate = () => {
     setIsEditing(false);
     setEditingExamId(null);
@@ -248,8 +260,8 @@ const GuruCbt = () => {
     setSelectedSubject(exam.subject?._id || exam.subject || '');
     setDurationMinutes(exam.duration_minutes);
     setPassScore(exam.pass_score);
-    setStartTime(exam.start_time ? new Date(exam.start_time).toISOString().slice(0, 16) : '');
-    setEndTime(exam.end_time ? new Date(exam.end_time).toISOString().slice(0, 16) : '');
+    setStartTime(formatToLocalDatetimeInput(exam.start_time));
+    setEndTime(formatToLocalDatetimeInput(exam.end_time));
     setHideCorrectAnswers(exam.hide_correct_answers !== undefined ? exam.hide_correct_answers : true);
     setQuestions(exam.questions && exam.questions.length > 0 ? exam.questions : [
       { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
@@ -359,8 +371,8 @@ const GuruCbt = () => {
 
   const handleOpenDistribute = (exam) => {
     setDistributeModal({ targetExam: exam });
-    setDistributeStartTime(exam.start_time ? new Date(exam.start_time).toISOString().slice(0, 16) : '');
-    setDistributeEndTime(exam.end_time ? new Date(exam.end_time).toISOString().slice(0, 16) : '');
+    setDistributeStartTime(formatToLocalDatetimeInput(exam.start_time));
+    setDistributeEndTime(formatToLocalDatetimeInput(exam.end_time));
     setDistributeHideCorrectAnswers(exam.hide_correct_answers !== undefined ? exam.hide_correct_answers : true);
   };
 
