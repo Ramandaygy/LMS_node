@@ -127,7 +127,18 @@ exports.deleteQuiz = async (req, res) => {
 // AI GENERATE QUIZ
 exports.generateQuizAI = async (req, res) => {
   try {
-    const { topic, subject_name, num_questions } = req.body;
+    const { topic, subject_name, num_questions, material_id } = req.body;
+    let contextTopic = topic || 'Informatika Dasar';
+
+    // If material_id is provided, pull text/title from Material!
+    if (material_id) {
+      const Material = require('../models/Material');
+      const mat = await Material.findById(material_id);
+      if (mat) {
+        contextTopic = `Materi: "${mat.title}". Deskripsi: "${mat.description || ''}". Konten: "${(mat.content || '').slice(0, 500)}"`;
+      }
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -143,7 +154,7 @@ exports.generateQuizAI = async (req, res) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const promptText = `Buatlah ${num_questions || 5} soal kuis pilihan ganda singkat mengenai topik "${topic || 'Informatika Dasar'}" untuk mata pelajaran "${subject_name || 'Informatika'}".
+    const promptText = `Buatlah ${num_questions || 5} soal kuis pilihan ganda singkat mengenai "${contextTopic}" untuk mata pelajaran "${subject_name || 'Informatika'}".
 Output murni JSON array:
 [
   {
@@ -172,3 +183,90 @@ Output murni JSON array:
     });
   }
 };
+
+// SUBMIT QUIZ (SISWA)
+exports.submitQuiz = async (req, res) => {
+  try {
+    const QuizSubmission = require('../models/QuizSubmission');
+    const Grade = require('../models/Grade');
+    const { quiz_id, answers } = req.body;
+    const studentId = req.user.id || req.user._id;
+
+    const quiz = await QuizBank.findById(quiz_id);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Kuis tidak ditemukan.' });
+
+    let totalPoints = 0;
+    let maxPoints = 0;
+    const processedAnswers = [];
+
+    (quiz.questions || []).forEach((q, idx) => {
+      const qPts = q.points || 10;
+      maxPoints += qPts;
+      const studentAns = answers && answers[idx] !== undefined ? answers[idx] : -1;
+      const isCorrect = Number(studentAns) === Number(q.correct_option);
+      if (isCorrect) totalPoints += qPts;
+
+      processedAnswers.push({
+        question_index: idx,
+        selected_option: studentAns,
+        is_correct: isCorrect,
+        points_earned: isCorrect ? qPts : 0
+      });
+    });
+
+    const percentage = maxPoints > 0 ? (totalPoints / maxPoints) * 100 : 0;
+    let starRating = 1;
+    if (percentage >= 90) starRating = 5;
+    else if (percentage >= 75) starRating = 4;
+    else if (percentage >= 60) starRating = 3;
+    else if (percentage >= 45) starRating = 2;
+
+    const submission = new QuizSubmission({
+      quiz_id,
+      student_id: studentId,
+      student_name: req.user.full_name || 'Siswa',
+      nisn: req.user.nisn || req.user.nis || '',
+      class_name: quiz.class_name || 'Kelas',
+      session_number: quiz.session_number || 1,
+      answers: processedAnswers,
+      total_score: Math.round(percentage),
+      max_score: 100,
+      star_rating: starRating
+    });
+
+    await submission.save();
+
+    // Auto save to Grade ledger
+    await Grade.create({
+      student: studentId,
+      score: Math.round(percentage),
+      type: 'quiz',
+      note: `Quiz Sesi ${quiz.session_number}: ${quiz.title} (${starRating} Bintang ⭐)`
+    }).catch(err => console.error('Auto grade error:', err));
+
+    return res.json({
+      success: true,
+      message: 'Kuis berhasil dikumpulkan!',
+      score: Math.round(percentage),
+      star_rating: starRating,
+      submission
+    });
+  } catch (err) {
+    console.error('Error submitting quiz:', err);
+    return res.status(500).json({ success: false, message: 'Gagal mengumpulkan jawaban kuis.' });
+  }
+};
+
+// GET QUIZ SUBMISSIONS (For Teacher or Class Leaderboard)
+exports.getQuizSubmissions = async (req, res) => {
+  try {
+    const QuizSubmission = require('../models/QuizSubmission');
+    const { quiz_id } = req.params;
+    const submissions = await QuizSubmission.find({ quiz_id }).sort({ total_score: -1 });
+    return res.json({ success: true, submissions });
+  } catch (err) {
+    console.error('Error fetching quiz submissions:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memuat hasil kuis siswa.' });
+  }
+};
+
