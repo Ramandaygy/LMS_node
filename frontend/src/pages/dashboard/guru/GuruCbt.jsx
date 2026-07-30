@@ -471,7 +471,7 @@ const GuruCbt = () => {
                   <td className="text-center font-bold">{exam.total_questions || exam.questions?.length || 0} Soal</td>
                   <td>
                     <div className="table-actions">
-                      {exam.is_master ? (
+                      {exam.is_master && (
                         <button
                           className="btn-action distribute"
                           onClick={() => handleOpenDistribute(exam)}
@@ -480,16 +480,15 @@ const GuruCbt = () => {
                           <span className="material-symbols-outlined">publish</span>
                           Sematkan
                         </button>
-                      ) : (
-                        <button
-                          className="btn-action results"
-                          onClick={() => handleViewResults(exam)}
-                          title="Lihat Nilai Siswa"
-                        >
-                          <span className="material-symbols-outlined">analytics</span>
-                          Nilai
-                        </button>
                       )}
+                      <button
+                        className="btn-action results"
+                        onClick={() => handleViewResults(exam)}
+                        title="Lihat Nilai Siswa"
+                      >
+                        <span className="material-symbols-outlined">analytics</span>
+                        Nilai
+                      </button>
                       <button
                         className="btn-action delete"
                         onClick={() => handleDeleteExam(exam._id)}
@@ -551,21 +550,7 @@ const GuruCbt = () => {
                 </div>
               </div>
 
-              <div className="form-row-grid tri">
-                <div className="form-group">
-                  <label>Target Kelas (Opsional)</label>
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="form-select"
-                  >
-                    <option value="">Semua Kelas</option>
-                    {classes.map((cls) => (
-                      <option key={cls._id} value={cls._id}>Kelas {cls.name}</option>
-                    ))}
-                  </select>
-                </div>
-
+              <div className="form-row-grid">
                 <div className="form-group">
                   <label>Durasi (Menit) *</label>
                   <input
@@ -631,76 +616,79 @@ const GuruCbt = () => {
 
               {/* Soal Ujian */}
               <div className="form-questions-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginTop: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div className="questions-section-header">
                   <h3>Soal Pilihan Ganda ({questions.length})</h3>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" className="btn-action distribute" onClick={handleModalImportClick}>
+                  <div className="q-header-buttons">
+                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick}>
                       <span className="material-symbols-outlined">upload_file</span> Import Excel
                     </button>
-                    <button type="button" className="btn-add-question" onClick={handleAddQuestion}>
+                    <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
                       + Tambah Soal
                     </button>
                   </div>
                 </div>
 
-                {questions.map((q, qIdx) => (
-                  <div key={qIdx} className="question-builder-card" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                      <strong>Nomor Soal #{qIdx + 1}</strong>
-                      {questions.length > 1 && (
-                        <button type="button" onClick={() => handleRemoveQuestion(qIdx)} style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontWeight: '800' }}>Hapus</button>
-                      )}
-                    </div>
+                <div className="questions-list-form" style={{ marginTop: '14px' }}>
+                  {questions.map((q, qIdx) => (
+                    <div key={qIdx} className="question-item-card" style={{ marginBottom: '14px' }}>
+                      <div className="q-card-header">
+                        <span className="q-number">Nomor Soal #{qIdx + 1}</span>
+                        {questions.length > 1 && (
+                          <button type="button" className="btn-delete-q" onClick={() => handleRemoveQuestion(qIdx)} title="Hapus Soal">
+                            <span className="material-symbols-outlined">delete</span>
+                          </button>
+                        )}
+                      </div>
 
-                    <div className="form-group">
-                      <label>Pertanyaan *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Ketik pertanyaan kuis..."
-                        value={q.question_text}
-                        onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
+                      <div className="form-group">
+                        <label>Pertanyaan *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Ketik pertanyaan kuis..."
+                          value={q.question_text}
+                          onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '10px' }}>
-                      {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
-                        <div key={oIdx} className="option-builder-group" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <label className="radio-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div className="options-input-grid">
+                        {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
+                          <div key={oIdx} className="option-input-item">
+                            <label className="radio-label">
+                              <input
+                                type="radio"
+                                name={`correct_${qIdx}`}
+                                checked={q.correct_option === oIdx}
+                                onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
+                              />
+                              <strong>{letter}</strong> (Kunci)
+                            </label>
                             <input
-                              type="radio"
-                              name={`correct_${qIdx}`}
-                              checked={q.correct_option === oIdx}
-                              onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
+                              type="text"
+                              required
+                              placeholder={`Pilihan ${letter}...`}
+                              value={q.options[oIdx]}
+                              onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
+                              className="form-input opt-input"
                             />
-                            <strong>{letter}</strong>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder={`Pilihan ${letter}...`}
-                            value={q.options[oIdx]}
-                            onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
-                            className="form-input"
-                            style={{ flex: 1 }}
-                          />
-                        </div>
-                      ))}
-                    </div>
+                          </div>
+                        ))}
+                      </div>
 
-                    <div className="form-group" style={{ marginTop: '12px' }}>
-                      <label>Pembahasan / Penjelasan Kunci (Opsional)</label>
-                      <input
-                        type="text"
-                        placeholder="Penjelasan mengapa kunci jawaban tersebut benar..."
-                        value={q.explanation}
-                        onChange={(e) => handleExplanationChange(qIdx, e.target.value)}
-                        className="form-input"
-                      />
+                      <div className="form-group" style={{ marginTop: '12px' }}>
+                        <label>Pembahasan / Penjelasan Kunci (Opsional)</label>
+                        <input
+                          type="text"
+                          placeholder="Penjelasan mengapa kunci jawaban tersebut benar..."
+                          value={q.explanation}
+                          onChange={(e) => handleExplanationChange(qIdx, e.target.value)}
+                          className="form-input"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
               <div className="form-modal-footer">
