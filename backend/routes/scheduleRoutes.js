@@ -3,7 +3,9 @@ const router = express.Router();
 const scheduleController = require('../controllers/scheduleController');
 const authMiddleware = require('../middleware/authMiddleware');
 
+// ============================================================
 // SEMUA ROUTE PAKAI authMiddleware 
+// ============================================================
 
 // GET - Ambil semua jadwal (bisa filter by academic_year_id)
 router.get(
@@ -75,19 +77,19 @@ router.put(
   scheduleController.updateSchedule
 );
 
+
+// DELETE - Hapus semua jadwal berdasarkan academic_year_id (untuk replace)
+router.delete(
+  '/',
+  authMiddleware,
+  scheduleController.deleteSchedulesByYear   
+);
+
 // DELETE - Hapus 1 jadwal by ID
 router.delete(
   '/:id',
   authMiddleware,
-  scheduleController.deleteSchedule
-);
-
-// DELETE - Hapus semua jadwal berdasarkan academic_year_id (untuk replace)
-// NOTE: Route ini HARUS di atas route /:id agar tidak tertimpa
-router.delete(
-  '/',
-  authMiddleware,
-  scheduleController.deleteSchedulesByYear
+  scheduleController.deleteSchedule          
 );
 
 module.exports = router;
