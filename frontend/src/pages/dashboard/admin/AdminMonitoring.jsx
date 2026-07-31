@@ -259,26 +259,6 @@ const AdminMonitoring = () => {
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>supervisor_account</span>
             Pemetaan Guru & Pengampuan
           </button>
-
-          <button
-            onClick={() => setActiveTab('activities')}
-            style={{
-              padding: '12px 24px',
-              fontWeight: '700',
-              fontSize: '15px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'activities' ? '3px solid #3b82f6' : '3px solid transparent',
-              color: activeTab === 'activities' ? '#2563eb' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
-            Log Aktivitas Mengajar
-          </button>
         </div>
       )}
 
@@ -879,39 +859,6 @@ const AdminMonitoring = () => {
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: AKTIVITAS GURU (ADMIN ONLY)                                        */}
-      {/* ========================================================================= */}
-      {!isGuru && activeTab === 'activities' && (
-        <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '16px' }}>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Log Aktivitas Mengajar Real-Time</h3>
-            <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '6px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', width: '250px' }}>
-              <span className="material-symbols-outlined" style={{ color: '#94a3b8', marginRight: '6px', fontSize: '18px' }}>search</span>
-              <input
-                type="text"
-                placeholder="Filter nama guru..."
-                value={activityTeacherSearch}
-                onChange={(e) => setActivityTeacherSearch(e.target.value)}
-                style={{ border: 'none', background: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
-              />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {activities.map((act) => (
-              <div key={act._id} style={{ paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <strong style={{ color: '#0f172a' }}>{act.user_name}</strong>
-                  <span style={{ fontSize: '12px', color: '#94a3b8' }}>{new Date(act.created_at).toLocaleString('id-ID')}</span>
-                </div>
-                <div style={{ fontSize: '13px', color: '#334155' }}>{act.action} - {act.detail}</div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

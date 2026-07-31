@@ -223,6 +223,50 @@ exports.promoteStudents = async (yearId) => {
   };
 };
 
+exports.promoteSemester = async (currentYearId) => {
+  const currentAY = await AcademicYear.findById(currentYearId);
+  if (!currentAY) {
+    throw new Error('Tahun ajaran tidak ditemukan');
+  }
+
+  // 1. Nonaktifkan tahun ajaran saat ini
+  currentAY.is_active = false;
+  await currentAY.save();
+
+  // 2. Tentukan semester target
+  const targetSemester = currentAY.semester.toLowerCase() === 'ganjil' ? 'Genap' : 'Ganjil';
+  let targetAY = await AcademicYear.findOne({
+    year: currentAY.year,
+    semester: { $regex: new RegExp(`^${targetSemester}$`, 'i') }
+  });
+
+  // Jika belum ada tahun ajaran semester target, buat otomatis
+  if (!targetAY) {
+    targetAY = await AcademicYear.create({
+      year: currentAY.year,
+      semester: targetSemester,
+      is_active: true,
+      start_date: new Date(),
+      end_date: new Date(new Date().setMonth(new Date().getMonth() + 6))
+    });
+  } else {
+    targetAY.is_active = true;
+    await targetAY.save();
+  }
+
+  // 3. Nonaktifkan semua tahun ajaran lainnya
+  await AcademicYear.updateMany(
+    { _id: { $ne: targetAY._id } },
+    { $set: { is_active: false } }
+  );
+
+  return {
+    previous_semester: currentAY.semester,
+    active_semester: targetAY.semester,
+    year: targetAY.year
+  };
+};
+
 // Drop the old single unique index if it exists, to allow year + semester duplicates
 mongoose.connection.once('open', async () => {
   try {

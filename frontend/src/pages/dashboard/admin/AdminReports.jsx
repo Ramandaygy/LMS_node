@@ -337,8 +337,8 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>1. Rekap Data Akademik Master (Agregat Sekolah)</h3>
-            <p>Rekapitulasi Leger Nilai master seluruh kelas (7A-7J, 8A-8J, 9A-9I), statistik rata-rata per mata pelajaran, dan ketuntasan KKM.</p>
+            <h3>1. Laporan Nilai & Leger</h3>
+            <p>Rekapitulasi nilai master leger seluruh kelas, statistik rata-rata mata pelajaran, dan ketuntasan KKM.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('academic-master', 'Pratinjau Leger Master Akademik')}>
@@ -355,20 +355,20 @@ const AdminReports = () => {
           </div>
         </div>
 
-        {/* PILAR 2: PRESENSI & RED FLAG */}
+        {/* PILAR 2: PRESENSI */}
         <div className="pillar-card attendance">
           <div className="pillar-card-header">
             <div className="pillar-icon attendance">
               <span className="material-symbols-outlined">how_to_reg</span>
             </div>
             <div className="pillar-tags">
-              <span className="tag warning">Red Flag BK (Alpa)</span>
+              <span className="tag warning">Siswa Alpa</span>
               <span className="tag">% Kehadiran</span>
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>2. Rekap Kehadiran (Presensi) & Siswa Red Flag</h3>
-            <p>Persentase presensi harian/bulanan per kelas dan deteksi otomatis daftar siswa bermasalah (Alpa ≥ 3 hari) untuk BK & Wali Kelas.</p>
+            <h3>2. Laporan Presensi</h3>
+            <p>Persentase kehadiran harian per kelas dan deteksi otomatis siswa tidak hadir.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('attendance-recap', 'Pratinjau Presensi Kelas & Red Flag')}>
@@ -385,7 +385,7 @@ const AdminReports = () => {
           </div>
         </div>
 
-        {/* PILAR 3: USER MANAGEMENT & ROMBEL */}
+        {/* PILAR 3: DATA PENGGUNA */}
         <div className="pillar-card users">
           <div className="pillar-card-header">
             <div className="pillar-icon users">
@@ -397,8 +397,8 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>3. Rekap Pengguna & Manajemen Akun (Rombel)</h3>
-            <p>Pengelompokan jumlah siswa aktif per kelas (rombel), data induk guru pengampu, serta analisis keaktifan login pengguna LMS.</p>
+            <h3>3. Laporan Data Pengguna</h3>
+            <p>Pengelompokan jumlah siswa aktif per kelas, data guru pengampu, dan keaktifan akun.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('user-management', 'Pratinjau Data Master User & Rombel')}>
@@ -415,7 +415,7 @@ const AdminReports = () => {
           </div>
         </div>
 
-        {/* PILAR 4: EVALUASI & CBT */}
+        {/* PILAR 4: UJIAN & CBT */}
         <div className="pillar-card cbt">
           <div className="pillar-card-header">
             <div className="pillar-icon cbt">
@@ -427,8 +427,8 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>4. Rekap Evaluasi & Pelaksanaan Ujian (CBT / Asesmen)</h3>
-            <p>Rekapitulasi partisipasi pengerjaan tugas & ujian siswa, persentase koreksi nilai oleh guru, serta ekspor nilai murni CBT.</p>
+            <h3>4. Laporan Ujian & CBT</h3>
+            <p>Partisipasi pengerjaan tugas/ujian siswa, status koreksi nilai oleh guru, dan nilai CBT.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('evaluations', 'Pratinjau Evaluasi Ujian & Tugas')}>
@@ -445,7 +445,7 @@ const AdminReports = () => {
           </div>
         </div>
 
-        {/* PILAR 5: AUDIT TRAIL & LOG AKSES */}
+        {/* PILAR 5: LOG AUDIT TRAIL */}
         <div className="pillar-card audit">
           <div className="pillar-card-header">
             <div className="pillar-icon audit">
@@ -457,8 +457,8 @@ const AdminReports = () => {
             </div>
           </div>
           <div className="pillar-card-body">
-            <h3>5. Rekap Sistem & Audit Trail (Pengawasan)</h3>
-            <p>Catatan audit trail riwayat aksi pengguna, perubahan data sensitif, waktu login, dan log keamanan platform LMS.</p>
+            <h3>5. Laporan Log Audit Trail</h3>
+            <p>Catatan riwayat aksi pengguna, perubahan data penting, dan log login sistem.</p>
           </div>
           <div className="pillar-card-footer">
             <button className="btn-preview" onClick={() => handleOpenPreview('audit-trail', 'Pratinjau Audit Trail & Log Sistem')}>

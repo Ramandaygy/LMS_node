@@ -44,5 +44,10 @@ router.post(
   controller.promoteStudents
 );
 
+router.post(
+  '/:id/promote-semester',
+  controller.promoteSemester
+);
+
 module.exports =
   router;

@@ -129,8 +129,14 @@ const AdminAcademicYear = () => {
   };
 
   // ========== KENAIKAN KELAS (sementara, karena backend mungkin belum siap) ==========
+  // ========== KENAIKAN KELAS / SEMESTER ==========
   const openPromoteModal = (year) => {
-    setPromoteModal({ open: true, yearId: year._id, yearName: year.year });
+    setPromoteModal({ 
+      open: true, 
+      yearId: year._id, 
+      yearName: year.year, 
+      semester: year.semester || 'Ganjil' 
+    });
     setSourceClass('');
     setStudentsForPromotion([]);
   };
@@ -146,18 +152,37 @@ const AdminAcademicYear = () => {
   };
 
   const handlePromote = async () => {
-    if (!window.confirm(`PERINGATAN: Tindakan ini akan menaikkan kelas semua siswa aktif secara acak ke kelas tingkat berikutnya, dan meluluskan siswa kelas akhir ke tahun ajaran ${promoteModal.yearName}. Tindakan ini tidak bisa dibatalkan secara otomatis. Lanjutkan?`)) return;
-    setPromotionLoading(true);
-    try {
-      const response = await api.post(`/academic-years/${promoteModal.yearId}/promote`);
-      const { data } = response.data;
-      setSuccess(`Berhasil! ${data.promotedTo8} siswa naik ke kelas 8, ${data.promotedTo9} siswa naik ke kelas 9, dan ${data.graduated} siswa lulus.`);
-      setPromoteModal({ open: false, yearId: null, yearName: '' });
-      fetchClasses();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Gagal melakukan kenaikan kelas');
-    } finally {
-      setPromotionLoading(false);
+    const isNaikSemester = (promoteModal.semester || '').toLowerCase() === 'ganjil';
+
+    if (isNaikSemester) {
+      if (!window.confirm(`Apakah Anda yakin ingin melakukan Kenaikan Semester dari Ganjil ke Genap untuk tahun ajaran ${promoteModal.yearName}? \n\nSiswa akan tetap berada di kelas masing-masing, hanya semester aktif sistem yang akan berubah.`)) return;
+      setPromotionLoading(true);
+      try {
+        const response = await api.post(`/academic-years/${promoteModal.yearId}/promote-semester`);
+        const { message } = response.data;
+        setSuccess(message || 'Kenaikan semester berhasil dilakukan.');
+        setPromoteModal({ open: false, yearId: null, yearName: '', semester: '' });
+        fetchAcademicYears();
+      } catch (err) {
+        setError(err.response?.data?.error || 'Gagal melakukan kenaikan semester');
+      } finally {
+        setPromotionLoading(false);
+      }
+    } else {
+      if (!window.confirm(`PERINGATAN: Tindakan ini akan menaikkan kelas semua siswa aktif secara acak ke kelas tingkat berikutnya, dan meluluskan siswa kelas akhir ke tahun ajaran ${promoteModal.yearName}. Tindakan ini tidak bisa dibatalkan secara otomatis. Lanjutkan?`)) return;
+      setPromotionLoading(true);
+      try {
+        const response = await api.post(`/academic-years/${promoteModal.yearId}/promote`);
+        const { data } = response.data;
+        setSuccess(`Berhasil! ${data.promotedTo8} siswa naik ke kelas 8, ${data.promotedTo9} siswa naik ke kelas 9, dan ${data.graduated} siswa lulus.`);
+        setPromoteModal({ open: false, yearId: null, yearName: '', semester: '' });
+        fetchAcademicYears();
+        fetchClasses();
+      } catch (err) {
+        setError(err.response?.data?.error || 'Gagal melakukan kenaikan kelas');
+      } finally {
+        setPromotionLoading(false);
+      }
     }
   };
 
@@ -286,31 +311,49 @@ const AdminAcademicYear = () => {
         </div>
       )}
 
-      {/* MODAL KENAIKAN KELAS AUTO */}
-      {promoteModal.open && (
-        <div className="modal-overlay" onClick={() => setPromoteModal({ open: false })}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>Kenaikan Kelas - {promoteModal.yearName}</h3>
-            <div className="alert-warning" style={{ padding: '15px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '8px', marginBottom: '20px' }}>
-              <strong>Peringatan!</strong> Sistem akan:
-              <ul style={{ margin: '10px 0 0 20px' }}>
-                <li>Mengacak dan menaikkan siswa Kelas 7 ke Kelas 8 secara merata.</li>
-                <li>Mengacak dan menaikkan siswa Kelas 8 ke Kelas 9 secara merata.</li>
-                <li>Meluluskan seluruh siswa Kelas 9 (menjadi Alumni di tahun ajaran ini).</li>
-              </ul>
-              <br/>
-              <em>Pastikan semua kelas tujuan (Kelas 8 dan 9) sudah dibuat di menu Data Master.</em>
-            </div>
-            
-            {promotionLoading && <div className="loading-spinner" style={{ textAlign: 'center', marginBottom: '20px' }}>Sedang memproses... mohon tunggu.</div>}
-            
-            <div className="modal-buttons">
-              <button onClick={() => setPromoteModal({ open: false })}>Batal</button>
-              <button onClick={handlePromote} disabled={promotionLoading} style={{ backgroundColor: '#dc3545' }}>Proses Sekarang</button>
+      {/* MODAL KENAIKAN KELAS / SEMESTER AUTO */}
+      {promoteModal.open && (() => {
+        const isNaikSemester = (promoteModal.semester || '').toLowerCase() === 'ganjil';
+        return (
+          <div className="modal-overlay" onClick={() => setPromoteModal({ open: false })}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h3>{isNaikSemester ? 'Kenaikan Semester' : 'Kenaikan Kelas'} - {promoteModal.yearName}</h3>
+              <div className="alert-warning" style={{ padding: '15px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '8px', marginBottom: '20px' }}>
+                {isNaikSemester ? (
+                  <>
+                    <strong>Informasi Kenaikan Semester:</strong>
+                    <ul style={{ margin: '10px 0 0 20px' }}>
+                      <li>Menonaktifkan semester Ganjil dan mengaktifkan semester Genap.</li>
+                      <li><strong>Siswa tidak mengalami kenaikan kelas/jenjang</strong> dan tetap terdaftar di kelas mereka saat ini.</li>
+                      <li>Siswa dapat langsung melanjutkan proses KBM di semester baru.</li>
+                    </ul>
+                  </>
+                ) : (
+                  <>
+                    <strong>Peringatan Kenaikan Kelas:</strong>
+                    <ul style={{ margin: '10px 0 0 20px' }}>
+                      <li>Mengacak dan menaikkan siswa Kelas 7 ke Kelas 8 secara merata.</li>
+                      <li>Mengacak dan menaikkan siswa Kelas 8 ke Kelas 9 secara merata.</li>
+                      <li>Meluluskan seluruh siswa Kelas 9 (menjadi Alumni di tahun ajaran ini).</li>
+                    </ul>
+                    <br/>
+                    <em>Pastikan semua kelas tujuan (Kelas 8 dan 9) sudah dibuat di menu Data Master.</em>
+                  </>
+                )}
+              </div>
+              
+              {promotionLoading && <div className="loading-spinner" style={{ textAlign: 'center', marginBottom: '20px' }}>Sedang memproses... mohon tunggu.</div>}
+              
+              <div className="modal-buttons">
+                <button onClick={() => setPromoteModal({ open: false })}>Batal</button>
+                <button onClick={handlePromote} disabled={promotionLoading} style={{ backgroundColor: isNaikSemester ? '#0284c7' : '#dc3545', color: '#fff' }}>
+                  {isNaikSemester ? 'Proses Naik Semester' : 'Proses Naik Kelas'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* MODAL ALUMNI */}
       {alumniModal.open && (() => {

@@ -12,31 +12,50 @@ async function syncTeacherClassesAndSubjects(teacherIds) {
   try {
     const guruCollection = mongoose.connection.collection('users_guru');
     
+    // Fetch all schedules for these teachers in a single query
+    const objectIds = teacherIds.filter(id => id && mongoose.Types.ObjectId.isValid(id.toString())).map(id => new mongoose.Types.ObjectId(id.toString()));
+    const allSchedules = await Schedule.find({ teacher_id: { $in: objectIds } });
+    
+    // Group schedules by teacher
+    const schedulesByTeacher = {};
+    allSchedules.forEach(s => {
+      if (s.teacher_id) {
+        const tIdStr = s.teacher_id.toString();
+        if (!schedulesByTeacher[tIdStr]) {
+          schedulesByTeacher[tIdStr] = [];
+        }
+        schedulesByTeacher[tIdStr].push(s);
+      }
+    });
+
+    const bulkOps = [];
     for (const tid of teacherIds) {
-      if (!tid || !mongoose.Types.ObjectId.isValid(tid.toString())) continue;
-      const objTid = new mongoose.Types.ObjectId(tid.toString());
+      if (!tid) continue;
+      const tidStr = tid.toString();
+      const objTid = new mongoose.Types.ObjectId(tidStr);
+      const schedules = schedulesByTeacher[tidStr] || [];
       
-      // Ambil seluruh jadwal guru ini
-      const schedules = await Schedule.find({ teacher_id: objTid });
-      
-      // Kumpulkan class_id unik
       const uniqueClasses = [...new Set(schedules.map(s => s.class_id ? s.class_id.toString() : null).filter(Boolean))];
       const classObjectIds = uniqueClasses.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
       
-      // Kumpulkan subject_id unik
       const uniqueSubjects = [...new Set(schedules.map(s => s.subject_id ? s.subject_id.toString() : null).filter(Boolean))];
       const subjectObjectIds = uniqueSubjects.filter(id => mongoose.Types.ObjectId.isValid(id)).map(id => new mongoose.Types.ObjectId(id));
       
-      // Update data guru
-      await guruCollection.updateOne(
-        { _id: objTid },
-        { 
-          $set: { 
-            classes: classObjectIds,
-            subjects: subjectObjectIds
-          } 
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: objTid },
+          update: {
+            $set: {
+              classes: classObjectIds,
+              subjects: subjectObjectIds
+            }
+          }
         }
-      );
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await guruCollection.bulkWrite(bulkOps);
     }
     console.log(`[ML/Sync] Berhasil sinkronisasi kelas & mapel untuk ${teacherIds.length} guru.`);
   } catch (err) {
@@ -78,8 +97,7 @@ exports.createSchedule = async (data) => {
 };
 
 exports.bulkSaveSchedule = async (scheduleList) => {
-  const results = [];
-  if (!Array.isArray(scheduleList)) return results;
+  if (!Array.isArray(scheduleList) || scheduleList.length === 0) return [];
 
   let defaultYearId = null;
   const activeYear = await mongoose.connection.collection('academic_years').findOne({ is_active: true });
@@ -90,8 +108,10 @@ exports.bulkSaveSchedule = async (scheduleList) => {
     if (anyYear) defaultYearId = anyYear._id;
   }
 
+  const operations = [];
+
   for (const item of scheduleList) {
-    if (!item.class_id || !item.subject_id || !item.teacher_id || !item.day || !item.time_slot || !item.start_time || !item.end_time) {
+    if (!item.class_id || !item.subject_id || !item.teacher_id || !item.day || !item.time_slot) {
       continue;
     }
 
@@ -99,50 +119,47 @@ exports.bulkSaveSchedule = async (scheduleList) => {
       ? new mongoose.Types.ObjectId(item.academic_year_id.toString())
       : defaultYearId;
 
-    if (!yearId) {
-      continue;
-    }
+    if (!yearId) continue;
 
     const classId = new mongoose.Types.ObjectId(item.class_id.toString());
     const subjectId = new mongoose.Types.ObjectId(item.subject_id.toString());
     const teacherId = new mongoose.Types.ObjectId(item.teacher_id.toString());
 
-    const existing = await Schedule.findOne({
-      class_id: classId,
-      academic_year_id: yearId,
-      day: item.day,
-      time_slot: Number(item.time_slot)
+    operations.push({
+      updateOne: {
+        filter: {
+          class_id: classId,
+          academic_year_id: yearId,
+          day: item.day,
+          time_slot: Number(item.time_slot)
+        },
+        update: {
+          $set: {
+            subject_id: subjectId,
+            teacher_id: teacherId,
+            start_time: item.start_time || '07:00',
+            end_time: item.end_time || '07:40',
+            room: item.room || '',
+            generated_type: item.generated_type || 'manual',
+            updated_at: new Date()
+          },
+          $setOnInsert: {
+            created_at: new Date()
+          }
+        },
+        upsert: true
+      }
     });
+  }
 
-    if (existing) {
-      existing.subject_id = subjectId;
-      existing.teacher_id = teacherId;
-      existing.start_time = item.start_time;
-      existing.end_time = item.end_time;
-      existing.room = item.room || '';
-      await existing.save();
-      results.push(existing);
-    } else {
-      const created = await Schedule.create({
-        class_id: classId,
-        subject_id: subjectId,
-        teacher_id: teacherId,
-        academic_year_id: yearId,
-        day: item.day,
-        time_slot: Number(item.time_slot),
-        start_time: item.start_time,
-        end_time: item.end_time,
-        room: item.room || '',
-        generated_type: item.generated_type || 'manual'
-      });
-      results.push(created);
-    }
+  if (operations.length > 0) {
+    await Schedule.bulkWrite(operations);
   }
 
   const teacherIds = [...new Set(scheduleList.map(s => s.teacher_id).filter(Boolean))];
   await syncTeacherClassesAndSubjects(teacherIds);
 
-  return results;
+  return { success: true, count: operations.length };
 };
 
 exports.getAllSchedules = async () => {

@@ -93,3 +93,29 @@ exports.promoteStudents = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+exports.promoteSemester = async (req, res) => {
+  try {
+    const result = await service.promoteSemester(req.params.id);
+    
+    // Log Activity
+    try {
+      const AcademicYear = require('../models/AcademicYear');
+      const ay = await AcademicYear.findById(req.params.id);
+      const yearLabel = ay ? `${ay.year} - ${ay.semester}` : 'Tahun Ajaran';
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req, 'Kenaikan Semester', `Kenaikan semester dari semester ${result.previous_semester} ke ${result.active_semester} pada tahun ajaran ${result.year}.`);
+    } catch (logErr) {
+      console.error('Failed to log promotion activity:', logErr);
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Kenaikan semester berhasil dari semester ${result.previous_semester} ke ${result.active_semester}.`, 
+      data: result 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
