@@ -1074,12 +1074,28 @@ exports.importSchedules = async (req, res) => {
 
     const getCellValueStr = (cell) => {
       if (!cell) return '';
-      let val = cell.text !== undefined && cell.text !== null && cell.text !== '' ? cell.text : cell.value;
-      if (val === null || val === undefined) return '';
-      if (typeof val === 'object') {
-        val = val.result !== undefined && val.result !== null ? val.result : (val.text || val.value || '');
+      let val = cell.value;
+      if (val === null || val === undefined) {
+        val = cell.text;
       }
       if (val === null || val === undefined) return '';
+
+      if (typeof val === 'object') {
+        if (val.richText && Array.isArray(val.richText)) {
+          val = val.richText.map(r => r.text || '').join('');
+        } else if (val.result !== undefined && val.result !== null) {
+          val = val.result;
+        } else if (val.text !== undefined && val.text !== null) {
+          val = val.text;
+        } else {
+          val = cell.text || '';
+        }
+      }
+
+      if (val === null || val === undefined || typeof val === 'object') {
+        return '';
+      }
+
       return String(val).trim();
     };
 
