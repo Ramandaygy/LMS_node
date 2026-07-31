@@ -231,7 +231,9 @@ const AdminAcademicYear = () => {
                   </td>
                   <td className="academic-actions">
                     <button className="btn-edit" onClick={() => handleEdit(year)}>Edit</button>
-                    <button className="btn-promote" onClick={() => openPromoteModal(year)}>Kenaikan Kelas</button>
+                    <button className="btn-promote" onClick={() => openPromoteModal(year)}>
+                      {(year.semester || '').toLowerCase() === 'ganjil' ? 'Kenaikan Semester' : 'Kenaikan Kelas'}
+                    </button>
                     <button className="btn-alumni" onClick={() => openAlumniModal(year)}>Alumni</button>
                   </td>
                 </tr>

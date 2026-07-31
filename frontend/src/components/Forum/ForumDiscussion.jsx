@@ -278,56 +278,75 @@ const ForumDiscussion = ({ subjectId, materialId, currentUser }) => {
                   <p className="topic-content">{item.content}</p>
                 </div>
 
-                {/* Topic Actions (Like & Reply Count) */}
-                <div className="topic-actions">
+                {/* Topic Actions (Instagram Style Like & Reply Count) */}
+                <div className="topic-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', margin: '12px 0' }}>
                   <button
                     className={`btn-like ${hasLiked ? 'liked' : ''}`}
                     onClick={() => handleToggleLike(item._id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: hasLiked ? '#ed4956' : '#64748b', fontWeight: '700', fontSize: '13px' }}
                   >
-                    <span className="material-symbols-outlined">thumb_up</span>
-                    <span>Suka ({item.likes?.length || 0})</span>
+                    <span className="material-symbols-outlined" style={{ color: hasLiked ? '#ed4956' : '#64748b', fontSize: '20px' }}>
+                      {hasLiked ? 'favorite' : 'favorite_border'}
+                    </span>
+                    <span>{item.likes?.length || 0} Suka</span>
                   </button>
 
-                  <div className="reply-count-badge">
-                    <span className="material-symbols-outlined">chat_bubble_outline</span>
-                    <span>{item.replies?.length || 0} Tanggapan</span>
+                  <div className="reply-count-badge" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '13px', fontWeight: '700' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>chat_bubble_outline</span>
+                    <span>{item.replies?.length || 0} Komentar</span>
                   </div>
                 </div>
 
-                {/* Replies Thread Section */}
-                <div className="replies-thread-section">
+                {/* Instagram Style Replies Thread Section */}
+                <div className="replies-thread-section" style={{ padding: '0 8px' }}>
                   {item.replies && item.replies.length > 0 && (
-                    <div className="replies-list">
-                      {item.replies.map((reply, rIdx) => (
-                        <div key={reply._id || rIdx} className="reply-item">
-                          <div className="reply-avatar">
-                            {reply.author?.profileImage ? (
-                              <img src={reply.author.profileImage} alt="Avatar" />
-                            ) : (
-                              <span>{getInitials(reply.author?.full_name)}</span>
-                            )}
-                          </div>
-
-                          <div className="reply-content-box">
-                            <div className="reply-author-row">
-                              <span className="reply-author-name">{reply.author?.full_name || 'Pengguna'}</span>
-                              <span className={`role-pill mini ${reply.author?.role || 'siswa'}`}>
-                                {reply.author?.role === 'guru' ? 'GURU' : 'SISWA'}
-                              </span>
-                              <span className="reply-time">{formatDate(reply.created_at)}</span>
+                    <div className="replies-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '14px' }}>
+                      {item.replies.map((reply, rIdx) => {
+                        const rName = reply.author?.full_name || 'Pengguna';
+                        return (
+                          <div key={reply._id || rIdx} className="reply-item" style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                            <div className="reply-avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '12px', flexShrink: 0 }}>
+                              {reply.author?.profileImage ? (
+                                <img src={reply.author.profileImage} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <span>{getInitials(rName)}</span>
+                              )}
                             </div>
-                            <p className="reply-text">{reply.content}</p>
+
+                            <div className="reply-content-box" style={{ flex: 1, background: '#f8fafc', padding: '10px 14px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                              <div className="reply-author-row" style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                <strong style={{ fontSize: '12px', color: '#0f172a', fontWeight: '800' }}>{rName}</strong>
+                                <span style={{ fontSize: '10px', background: reply.author?.role === 'guru' ? '#e0f2fe' : '#f1f5f9', color: reply.author?.role === 'guru' ? '#0284c7' : '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: '800' }}>
+                                  {reply.author?.role === 'guru' ? 'GURU' : 'SISWA'}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '13px', color: '#334155', margin: '2px 0 6px 0', lineHeight: '1.4' }}>{reply.content}</p>
+                              
+                              {/* Instagram Comment Sub-Action Row */}
+                              <div style={{ display: 'flex', gap: '14px', alignItems: 'center', fontSize: '11px', color: '#94a3b8', fontWeight: '700' }}>
+                                <span>{formatDate(reply.created_at)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReplyInputs({ ...replyInputs, [item._id]: `@${rName} ` });
+                                  }}
+                                  style={{ background: 'none', border: 'none', padding: 0, color: '#0284c7', fontWeight: '800', cursor: 'pointer', fontSize: '11px' }}
+                                >
+                                  Balas
+                                </button>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
-                  {/* Add Reply Input Box */}
-                  <div className="add-reply-box">
+                  {/* Instagram Style Reply Input Box */}
+                  <div className="add-reply-box" style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '10px' }}>
                     <input
                       type="text"
-                      placeholder="Tuliskan tanggapan atau jawaban Anda..."
+                      placeholder={`Balas komentar sebagai ${currentUser?.full_name || 'Pengguna'}...`}
                       value={replyInputs[item._id] || ''}
                       onChange={(e) =>
                         setReplyInputs({ ...replyInputs, [item._id]: e.target.value })
@@ -335,14 +354,15 @@ const ForumDiscussion = ({ subjectId, materialId, currentUser }) => {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleAddReply(item._id);
                       }}
-                      className="reply-input"
+                      style={{ flex: 1, padding: '10px 14px', borderRadius: '20px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
                     />
                     <button
                       className="btn-send-reply"
                       disabled={submittingReplyId === item._id}
                       onClick={() => handleAddReply(item._id)}
+                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                      <span className="material-symbols-outlined">send</span>
+                      <span>Kirim</span>
                     </button>
                   </div>
                 </div>

@@ -434,7 +434,7 @@ const GuruCourses = () => {
     (s.day || '').toUpperCase() === selectedDay.toUpperCase()
   );
 
-  const displaySchedules = filteredDbSchedules.map((s, idx) => ({
+  const rawSchedules = filteredDbSchedules.map((s, idx) => ({
     id: s._id,
     class_id: s.class_id?._id || s.class_id,
     class_name: s.class_id?.name || 'Kelas',
@@ -447,6 +447,48 @@ const GuruCourses = () => {
     presensi_count: 11 + idx,
     total_pertemuan: 16
   }));
+
+  // Merge consecutive or duplicate schedule entries for the same class & subject & day
+  const mergeSchedules = (list) => {
+    if (!list || list.length === 0) return [];
+    const grouped = {};
+    list.forEach((sch, idx) => {
+      const key = `${sch.class_name}_${sch.subject}_${(sch.day || '').toUpperCase()}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          ...sch,
+          start_time: sch.start_time || '07:30',
+          end_time: sch.end_time || '09:30',
+          jp_count: 1,
+          pertemuan_list: [sch.pertemuan_ke || (9 + idx)]
+        };
+      } else {
+        const existing = grouped[key];
+        if (sch.start_time && sch.start_time < existing.start_time) {
+          existing.start_time = sch.start_time;
+        }
+        if (sch.end_time && sch.end_time > existing.end_time) {
+          existing.end_time = sch.end_time;
+        }
+        existing.jp_count += 1;
+        if (sch.pertemuan_ke) existing.pertemuan_list.push(sch.pertemuan_ke);
+      }
+    });
+
+    return Object.values(grouped).map((item) => {
+      const minP = Math.min(...item.pertemuan_list);
+      const maxP = Math.max(...item.pertemuan_list);
+      const labelP = minP === maxP ? `PERTEMUAN KE - ${minP}` : `PERTEMUAN KE - ${minP} & ${maxP}`;
+      return {
+        ...item,
+        pertemuan_ke: minP,
+        pertemuan_display: labelP,
+        total_jp: `${item.jp_count * 2} Jam Pelajaran (JP)`
+      };
+    });
+  };
+
+  const displaySchedules = mergeSchedules(rawSchedules);
 
   // RENDER EDLINK SIAKAD COURSE DETAIL VIEW (SCREENSHOT 41)
   if (activeCourseDetail) {
@@ -477,20 +519,6 @@ const GuruCourses = () => {
                 Kelas: {sch.class_name || 'Kelas'} | Sistem KBM Reguler
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
-                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <span className="material-symbols-outlined">library_add</span> + Berkas Media Library / Bank Materi
-              </button>
-              <button 
-                onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
-                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <span className="material-symbols-outlined">edit_calendar</span> Isi Presensi Sesi Ini
-              </button>
-            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', background: '#f8fafc', padding: '14px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
@@ -516,11 +544,9 @@ const GuruCourses = () => {
           <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid #e2e8f0', paddingBottom: '2px', overflowX: 'auto' }}>
             {[
               { id: 'sesi', label: 'Jadwal Pertemuan' },
-              { id: 'asesmen', label: 'Asesmen / Tugas' },
-              { id: 'timeline', label: 'Timeline' },
+              { id: 'asesmen', label: ' Tugas' },
               { id: 'peserta', label: 'Peserta Siswa' },
-              { id: 'nilai', label: 'Laporan Nilai' },
-              { id: 'info', label: 'Info Kelas' }
+              { id: 'nilai', label: 'Laporan Nilai' }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -546,10 +572,10 @@ const GuruCourses = () => {
         {activeTab === 'sesi' && (
           <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
             
-            {/* LEFT COLUMN: 16 MEETINGS LIST */}
+            {/* LEFT COLUMN: 16 MEETINGS LIST WITH DATES */}
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px', maxHeight: '720px', overflowY: 'auto' }}>
               <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#334155', margin: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                Jadwal 16 Pertemuan KBM ({sch.day || 'Reguler'})
+                Jadwal 16 Pertemuan ({sch.day || 'Reguler'})
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {Array.from({ length: 16 }, (_, i) => {
@@ -557,7 +583,15 @@ const GuruCourses = () => {
                   const isActive = currentSesiIdx === i;
                   const pKey = `${sch.id}_session_${sessNum}`;
                   const sessPlan = sessionPlans[pKey];
-                  const displayTitle = sessPlan?.rencana || `Pertemuan ke-${sessNum}`;
+                  
+                  // Compute actual weekly date
+                  const startDate = new Date(2026, 0, 5);
+                  const dayMap = { 'SENIN': 0, 'SELASA': 1, 'RABU': 2, 'KAMIS': 3, 'JUMAT': 4, 'SABTU': 5 };
+                  const offset = dayMap[(sch.day || 'SENIN').toUpperCase()] || 0;
+                  const mDate = new Date(startDate);
+                  mDate.setDate(startDate.getDate() + (i * 7) + offset);
+                  const dateStr = mDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                  const displayTitle = sessPlan?.rencana || dateStr;
 
                   return (
                     <div
@@ -578,7 +612,7 @@ const GuruCourses = () => {
                         </strong>
                       </div>
                       <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                        Pertemuan KBM ({sch.day || 'Jadwal Reguler'}, {sch.start_time || '07:30'})
+                        {dateStr} ({sch.start_time || '07:30'} WIB)
                       </span>
                     </div>
                   );
@@ -589,67 +623,53 @@ const GuruCourses = () => {
             {/* RIGHT COLUMN: SESSION CONTENT */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               
-              {/* BOX RENCANA & REALISASI MATERI */}
+              {/* BOX RENCANA MATERI */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
-                    Pertemuan ke-{currentSessionNum} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>{sch.day || 'Jadwal Reguler'} ({sch.start_time || '07:30'} - {sch.end_time || '09:30'})</span>
+                  <h3 style={{ fontSize: '17px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
+                    {(() => {
+                      const startDate = new Date(2026, 0, 5);
+                      const dayMap = { 'SENIN': 0, 'SELASA': 1, 'RABU': 2, 'KAMIS': 3, 'JUMAT': 4, 'SABTU': 5 };
+                      const offset = dayMap[(sch.day || 'SENIN').toUpperCase()] || 0;
+                      const mDate = new Date(startDate);
+                      mDate.setDate(startDate.getDate() + (currentSesiIdx * 7) + offset);
+                      return mDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+                    })()} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>{sch.start_time || '07:30'} - {sch.end_time || '09:30'} WIB</span>
                   </h3>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => {
                         setEditingPlanModal({ schId: sch.id, sessionNum: currentSessionNum });
-                        setPlanForm({ rencana: planData.rencana || '', realisasi: planData.realisasi || '' });
+                        setPlanForm({ rencana: planData.rencana || '', realisasi: '' });
                       }}
                       style={{ background: '#ffffff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Edit Rencana & Realisasi
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Edit Rencana Materi
                     </button>
                     <button 
                       onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
-                      style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>fact_check</span> Isi Presensi
                     </button>
                   </div>
                 </div>
 
-                <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Rencana Materi:</label>
-                  <p style={{ fontSize: '14px', fontWeight: planData.rencana ? '700' : '400', color: planData.rencana ? '#0f172a' : '#94a3b8', margin: 0 }}>
-                    {planData.rencana || '-'}
-                  </p>
-                </div>
-
                 <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '2px' }}>Realisasi Materi:</label>
-                  <p style={{ fontSize: '13px', color: planData.realisasi ? '#334155' : '#94a3b8', margin: 0 }}>
-                    {planData.realisasi || '-'}
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '4px' }}>Rencana Materi Pembelajaran:</label>
+                  <p style={{ fontSize: '14px', fontWeight: planData.rencana ? '700' : '400', color: planData.rencana ? '#0f172a' : '#94a3b8', margin: 0 }}>
+                    {planData.rencana || 'Belum ada deskripsi rencana materi yang dimasukkan.'}
                   </p>
                 </div>
               </div>
 
               {/* BOX MATERI PERTEMUAN REAL DATA */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
-                    Materi Pertemuan ke-{currentSessionNum}
+                    Materi Pembelajaran
                   </strong>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => setUploadMaterialModal({ targetSchedule: sch, targetSessionNum: currentSessionNum })}
-                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>upload_file</span> + Upload File Materi
-                    </button>
-                    <button
-                      onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
-                      style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span> Bank Materi
-                    </button>
-                  </div>
                 </div>
 
                 {loadingSessionData ? (
@@ -1007,20 +1027,46 @@ const GuruCourses = () => {
         {/* TAB CONTENT 5: LAPORAN NILAI INLINE */}
         {activeTab === 'nilai' && (
           <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>
                   Laporan Rekapitulasi Nilai Kelas {sch.class_name}
                 </h3>
                 <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
-                  Rekapitulasi Nilai Tugas, UTS, dan UAS Mata Pelajaran <strong>{sch.subject} ({sch.class_name})</strong>.
+                  Rekapitulasi Nilai Tugas (T1, T2, T3), Rata-rata Tugas, UTS, dan UAS Mata Pelajaran <strong>{sch.subject} ({sch.class_name})</strong>.
                 </p>
               </div>
               <button 
-                onClick={() => navigate('/dashboard/guru/input-nilai')}
-                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                onClick={() => {
+                  const listData = classGrades.length > 0 ? classGrades : (classStudents.length > 0 ? classStudents : [
+                    { full_name: 'Aditya Pratama', nisn: '00829101', t1: 85, t2: 88, t3: 82, uts: 88, uas: 90 },
+                    { full_name: 'Bina Cahya', nisn: '00829102', t1: 88, t2: 85, t3: 88, uts: 88, uas: 90 },
+                    { full_name: 'Citra Dewi', nisn: '00829103', t1: 80, t2: 86, t3: 89, uts: 88, uas: 90 }
+                  ]);
+                  let csv = "No,Nama Siswa,T1,T2,T3,Rata-rata Tugas,Nilai UTS,Nilai UAS,Nilai Akhir\n";
+                  listData.forEach((st, idx) => {
+                    const name = `"${st.full_name || st.student_name || st.name || ('Siswa ' + (idx + 1))}"`;
+                    const t1 = st.t1 !== undefined ? st.t1 : (st.tugas || 85);
+                    const t2 = st.t2 !== undefined ? st.t2 : Math.min(100, Math.max(70, t1 + (idx % 2 === 0 ? 3 : -2)));
+                    const t3 = st.t3 !== undefined ? st.t3 : Math.min(100, Math.max(70, t1 + (idx % 3 === 0 ? -3 : 4)));
+                    const avgTugas = Math.round((t1 + t2 + t3) / 3);
+                    const uts = st.uts || 88;
+                    const uas = st.uas || 90;
+                    const nilaiAkhir = st.nilai_akhir || Math.round((avgTugas * 0.4) + (uts * 0.3) + (uas * 0.3));
+                    csv += `${idx + 1},${name},${t1},${t2},${t3},${avgTugas},${uts},${uas},${nilaiAkhir}\n`;
+                  });
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.setAttribute('download', `Rekap_Nilai_Semester_${sch.subject}_${sch.class_name}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(22, 163, 74, 0.2)' }}
               >
-                <span className="material-symbols-outlined">edit_note</span> Input / Edit Nilai
+                <span className="material-symbols-outlined">download</span> Unduh Rekap Nilai Semester (.csv)
               </button>
             </div>
 
@@ -1030,7 +1076,10 @@ const GuruCourses = () => {
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
                     <th style={{ padding: '12px', color: '#475569' }}>No</th>
                     <th style={{ padding: '12px', color: '#475569' }}>Nama Siswa</th>
-                    <th style={{ padding: '12px', color: '#475569' }}>Rata-rata Tugas</th>
+                    <th style={{ padding: '12px', color: '#475569', textAlign: 'center' }}>T1</th>
+                    <th style={{ padding: '12px', color: '#475569', textAlign: 'center' }}>T2</th>
+                    <th style={{ padding: '12px', color: '#475569', textAlign: 'center' }}>T3</th>
+                    <th style={{ padding: '12px', color: '#0284c7', fontWeight: '800' }}>Rata-rata Tugas</th>
                     <th style={{ padding: '12px', color: '#475569' }}>Nilai UTS</th>
                     <th style={{ padding: '12px', color: '#475569' }}>Nilai UAS</th>
                     <th style={{ padding: '12px', color: '#475569' }}>Nilai Akhir</th>
@@ -1038,21 +1087,34 @@ const GuruCourses = () => {
                 </thead>
                 <tbody>
                   {(classGrades.length > 0 ? classGrades : (classStudents.length > 0 ? classStudents : [
-                    { full_name: 'Aditya Pratama', nisn: '00829101' },
-                    { full_name: 'Bina Cahya', nisn: '00829102' },
-                    { full_name: 'Citra Dewi', nisn: '00829103' }
-                  ])).map((st, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px', fontWeight: '700', color: '#64748b' }}>{idx + 1}</td>
-                      <td style={{ padding: '12px', color: '#0f172a', fontWeight: '800' }}>{st.full_name || st.student_name || st.name}</td>
-                      <td style={{ padding: '12px', color: '#334155', fontWeight: '700' }}>{st.tugas || 85}</td>
-                      <td style={{ padding: '12px', color: '#334155', fontWeight: '700' }}>{st.uts || 88}</td>
-                      <td style={{ padding: '12px', color: '#334155', fontWeight: '700' }}>{st.uas || 90}</td>
-                      <td style={{ padding: '12px' }}>
-                        <strong style={{ color: '#0284c7', fontSize: '14px' }}>{st.nilai_akhir || 87.5}</strong>
-                      </td>
-                    </tr>
-                  ))}
+                    { full_name: 'Aditya Pratama', nisn: '00829101', t1: 85, t2: 88, t3: 82, uts: 88, uas: 90 },
+                    { full_name: 'Bina Cahya', nisn: '00829102', t1: 88, t2: 85, t3: 88, uts: 88, uas: 90 },
+                    { full_name: 'Citra Dewi', nisn: '00829103', t1: 80, t2: 86, t3: 89, uts: 88, uas: 90 }
+                  ])).map((st, idx) => {
+                    const t1 = st.t1 !== undefined ? st.t1 : (st.tugas || 85);
+                    const t2 = st.t2 !== undefined ? st.t2 : Math.min(100, Math.max(70, t1 + (idx % 2 === 0 ? 3 : -2)));
+                    const t3 = st.t3 !== undefined ? st.t3 : Math.min(100, Math.max(70, t1 + (idx % 3 === 0 ? -3 : 4)));
+                    const avgTugas = Math.round((t1 + t2 + t3) / 3);
+                    const uts = st.uts || 88;
+                    const uas = st.uas || 90;
+                    const nilaiAkhir = Math.round((avgTugas * 0.4) + (uts * 0.3) + (uas * 0.3));
+
+                    return (
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px', fontWeight: '700', color: '#64748b' }}>{idx + 1}</td>
+                        <td style={{ padding: '12px', color: '#0f172a', fontWeight: '800' }}>{st.full_name || st.student_name || st.name}</td>
+                        <td style={{ padding: '12px', color: '#334155', fontWeight: '700', textAlign: 'center' }}>{t1}</td>
+                        <td style={{ padding: '12px', color: '#334155', fontWeight: '700', textAlign: 'center' }}>{t2}</td>
+                        <td style={{ padding: '12px', color: '#334155', fontWeight: '700', textAlign: 'center' }}>{t3}</td>
+                        <td style={{ padding: '12px', color: '#0284c7', fontWeight: '800' }}>{avgTugas}</td>
+                        <td style={{ padding: '12px', color: '#334155', fontWeight: '700' }}>{uts}</td>
+                        <td style={{ padding: '12px', color: '#334155', fontWeight: '700' }}>{uas}</td>
+                        <td style={{ padding: '12px' }}>
+                          <strong style={{ color: '#0284c7', fontSize: '14px' }}>{st.nilai_akhir || nilaiAkhir}</strong>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1209,26 +1271,20 @@ const GuruCourses = () => {
                     title="Klik untuk membuka Halaman Detail Modul Kelas SIAKAD EdLink"
                   >
                     <div className="card-subject-info">
-                      <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
                         {sch.subject || 'Mata Pelajaran'} ({sch.class_name || 'Kelas'})
-                        <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '800', marginLeft: '8px', background: '#e0f2fe', padding: '2px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>open_in_new</span> Lihat Detail Modul
-                        </span>
                       </h3>
-                      <span className="badge-status Selesai" style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '800', marginTop: '4px', display: 'inline-block' }}>
-                        Selesai / Aktif
-                      </span>
                     </div>
                     <div className="sks-badge" style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span className="material-symbols-outlined">bookmark</span>
-                      2 Jam Pelajaran (JP)
+                      {sch.total_jp || '2 Jam Pelajaran (JP)'}
                     </div>
                   </div>
 
                   <div 
                     className="card-info-grid"
                     onClick={() => setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' })}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
                   >
                     <div className="info-cell">
                       <span className="material-symbols-outlined info-icon">schedule</span>
@@ -1243,26 +1299,6 @@ const GuruCourses = () => {
                       <div>
                         <span className="cell-label">Ruangan</span>
                         <p className="cell-value">{sch.room || ('Ruang Kelas ' + sch.class_name)}</p>
-                      </div>
-                    </div>
-
-                    <div className="info-cell">
-                      <span className="material-symbols-outlined info-icon">auto_stories</span>
-                      <div>
-                        <span className="cell-label">Pertemuan ke - {meetingNum}</span>
-                        <p className="cell-value" style={{ fontWeight: planData?.rencana ? '700' : '400', color: planData?.rencana ? '#0f172a' : '#94a3b8' }}>
-                          {planData?.rencana || '-'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="info-cell">
-                      <span className="material-symbols-outlined info-icon check">check_circle</span>
-                      <div>
-                        <span className="cell-label">Presensi Guru</span>
-                        <p className="cell-value" style={{ fontWeight: '800', color: '#15803d' }}>
-                          {presensiNum} dari {totalMeeting} Pertemuan (1 Semester)
-                        </p>
                       </div>
                     </div>
                   </div>
@@ -1284,24 +1320,24 @@ const GuruCourses = () => {
                       className="btn-action-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'sesi' });
+                        handleOpenBankMaterialModal(sch, meetingNum);
                       }}
                       style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span className="material-symbols-outlined">menu_book</span>
-                      Kelas / Modul Materi
+                      <span className="material-symbols-outlined">library_books</span>
+                      Distribusikan Materi (Popup)
                     </button>
 
                     <button
                       className="btn-action-outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setActiveCourseDetail({ schedule: sch, activeSessionIdx: targetSessionIdx, activeTab: 'asesmen' });
+                        handleOpenTaskModal(sch, meetingNum);
                       }}
                       style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
                       <span className="material-symbols-outlined">assignment</span>
-                      Tugas Kelas
+                      Distribusikan Tugas (Popup)
                     </button>
 
                     <div className="dropdown-action-wrapper" style={{ position: 'relative' }}>
