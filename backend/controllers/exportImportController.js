@@ -1072,6 +1072,17 @@ exports.importSchedules = async (req, res) => {
 
     const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
 
+    const getCellValueStr = (cell) => {
+      if (!cell) return '';
+      let val = cell.text !== undefined && cell.text !== null && cell.text !== '' ? cell.text : cell.value;
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'object') {
+        val = val.result !== undefined && val.result !== null ? val.result : (val.text || val.value || '');
+      }
+      if (val === null || val === undefined) return '';
+      return String(val).trim();
+    };
+
     // DETEKSI FORMAT: Apakah Grid Sekolah (seperti screenshot) atau Template Kita?
     let isGridFormat = false;
     let gridHeaderRow = 6;
@@ -1079,7 +1090,7 @@ exports.importSchedules = async (req, res) => {
     for (let r = 1; r <= 15; r++) {
       const row = worksheet.getRow(r);
       for (let c = 1; c <= 30; c++) {
-        const val = (row.getCell(c).text || row.getCell(c).value?.toString() || '').toUpperCase().trim();
+        const val = getCellValueStr(row.getCell(c)).toUpperCase();
         if (val && (val.includes('KELAS VII') || val.includes('KELAS VIII') || val.includes('KELAS IX') || val.includes('KELAS 7') || val.includes('KELAS 8') || val.includes('KELAS 9'))) {
           isGridFormat = true;
           gridHeaderRow = r;
@@ -1158,9 +1169,7 @@ exports.importSchedules = async (req, res) => {
 
       // Pindai dari kolom 1 ke kolom 50
       for (let col = 1; col <= 50; col++) {
-        let gradeVal = gradeRow.getCell(col).text || gradeRow.getCell(col).value?.toString() || '';
-        if (typeof gradeVal === 'object') gradeVal = gradeVal.result || gradeVal.text || '';
-        gradeVal = gradeVal.toUpperCase().trim();
+        let gradeVal = getCellValueStr(gradeRow.getCell(col)).toUpperCase();
 
         if (gradeVal) {
           if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
@@ -1172,17 +1181,15 @@ exports.importSchedules = async (req, res) => {
           }
         }
 
-        let classCellText = classRow.getCell(col).text || classRow.getCell(col).value?.toString() || '';
-        if (typeof classCellText === 'object') classCellText = classCellText.result || classCellText.text || '';
-        classCellText = classCellText.toUpperCase().trim();
+        let classCellText = getCellValueStr(classRow.getCell(col)).toUpperCase();
 
         if (classCellText) {
           let className = classCellText;
           if (/^[A-Z]$/.test(classCellText) && currentGrade) {
             className = `${currentGrade}${classCellText}`;
           }
-
           const foundClass = classes.find(c => {
+            if (!c || !c.name) return false;
             const normC = normalize(c.name);
             const normTarget = normalize(className);
             const normCell = normalize(classCellText);
@@ -1226,9 +1233,7 @@ exports.importSchedules = async (req, res) => {
 
         // Cek Kolom 1..6 untuk deteksi Hari
         for (let c = 1; c <= 6; c++) {
-          let cellText = row.getCell(c).text || row.getCell(c).value?.toString() || '';
-          if (typeof cellText === 'object') cellText = cellText.result || cellText.text || '';
-          const matchedDay = normalizeDayStr(cellText);
+          const matchedDay = normalizeDayStr(getCellValueStr(row.getCell(c)));
           if (matchedDay) {
             currentDay = matchedDay;
             break;
@@ -1242,9 +1247,7 @@ exports.importSchedules = async (req, res) => {
         let periodVal = '';
 
         for (let c = 1; c <= 6; c++) {
-          let cellStr = row.getCell(c).text || row.getCell(c).value?.toString() || '';
-          if (typeof cellStr === 'object') cellStr = cellStr.result || cellStr.text || '';
-          cellStr = String(cellStr).trim();
+          let cellStr = getCellValueStr(row.getCell(c));
 
           if (/^\d{1,2}$/.test(cellStr) && !periodVal) {
             periodVal = cellStr;
@@ -1296,9 +1299,7 @@ exports.importSchedules = async (req, res) => {
         }
 
         for (const [colIndex, classId] of Object.entries(colToClassMap)) {
-          let codeVal = row.getCell(Number(colIndex)).text || row.getCell(Number(colIndex)).value?.toString() || '';
-          if (typeof codeVal === 'object') codeVal = codeVal.result || codeVal.text || '';
-          codeVal = codeVal.trim();
+          let codeVal = getCellValueStr(row.getCell(Number(colIndex)));
 
           if (!codeVal || codeVal === '-' || codeVal === '/' || codeVal === '.') {
             continue;
@@ -1309,11 +1310,11 @@ exports.importSchedules = async (req, res) => {
             continue;
           }
 
-          let foundTeacher = teachers.find(t => t.teacher_code && t.teacher_code.toString().toLowerCase().trim() === codeVal.toLowerCase());
+          let foundTeacher = teachers.find(t => t && t.teacher_code && String(t.teacher_code).toLowerCase().trim() === codeVal.toLowerCase());
           if (!foundTeacher) {
             const teacherNameKey = OFFICIAL_TEACHER_LEGEND[codeVal] || OFFICIAL_TEACHER_LEGEND[codeVal.toUpperCase()];
             if (teacherNameKey) {
-              foundTeacher = teachers.find(t => normalize(t.full_name).includes(normalize(teacherNameKey)));
+              foundTeacher = teachers.find(t => t && t.full_name && normalize(t.full_name).includes(normalize(teacherNameKey)));
               if (foundTeacher) {
                 await getCollection('users_guru').updateOne(
                   { _id: foundTeacher._id },
