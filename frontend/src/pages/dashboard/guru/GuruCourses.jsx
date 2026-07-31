@@ -434,21 +434,19 @@ const GuruCourses = () => {
     (s.day || '').toUpperCase() === selectedDay.toUpperCase()
   );
 
-  const displaySchedules = filteredDbSchedules.length > 0 
-    ? filteredDbSchedules.map((s, idx) => ({
-        id: s._id,
-        class_id: s.class_id?._id || s.class_id,
-        class_name: s.class_id?.name || 'Kelas',
-        subject: s.subject_id?.name || 'Informatika',
-        day: s.day,
-        start_time: s.start_time || '07:30',
-        end_time: s.end_time || '09:30',
-        room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
-        pertemuan_ke: 9 + idx,
-        presensi_count: 11 + idx,
-        total_pertemuan: 16
-      }))
-    : baseSchedules;
+  const displaySchedules = filteredDbSchedules.map((s, idx) => ({
+    id: s._id,
+    class_id: s.class_id?._id || s.class_id,
+    class_name: s.class_id?.name || 'Kelas',
+    subject: s.subject_id?.name || 'Informatika',
+    day: s.day,
+    start_time: s.start_time || '07:30',
+    end_time: s.end_time || '09:30',
+    room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
+    pertemuan_ke: 9 + idx,
+    presensi_count: 11 + idx,
+    total_pertemuan: 16
+  }));
 
   // RENDER EDLINK SIAKAD COURSE DETAIL VIEW (SCREENSHOT 41)
   if (activeCourseDetail) {
@@ -1191,14 +1189,15 @@ const GuruCourses = () => {
           </div>
 
           <div className="schedules-card-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {displaySchedules.map((sch, index) => {
-              const schId = sch.id || index;
-              const meetingNum = sch.pertemuan_ke || (7 + index);
-              const targetSessionIdx = Math.max(0, Math.min(15, meetingNum - 1));
-              const presensiNum = sch.presensi_count || (10 + index);
-              const totalMeeting = sch.total_pertemuan || 16;
-              const planKey = `${sch.id}_session_${meetingNum}`;
-              const planData = sessionPlans[planKey];
+            {displaySchedules.length > 0 ? (
+              displaySchedules.map((sch, index) => {
+                const schId = sch.id || index;
+                const meetingNum = sch.pertemuan_ke || (7 + index);
+                const targetSessionIdx = Math.max(0, Math.min(15, meetingNum - 1));
+                const presensiNum = sch.presensi_count || (10 + index);
+                const totalMeeting = sch.total_pertemuan || 16;
+                const planKey = `${sch.id}_session_${meetingNum}`;
+                const planData = sessionPlans[planKey];
 
               return (
                 <div key={schId} className="teaching-card">
@@ -1335,7 +1334,14 @@ const GuruCourses = () => {
                   </div>
                 </div>
               );
-            })}
+            })
+          ) : (
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '48px 24px', textAlign: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>event_busy</span>
+              <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '12px 0 4px 0' }}>Tidak Ada Jadwal Mengajar pada Hari {selectedDay}</h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Anda tidak memiliki jadwal KBM pada hari ini. Silakan pilih hari lain atau tampilkan hari reguler.</p>
+            </div>
+          )}
           </div>
         </div>
 

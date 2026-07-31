@@ -251,11 +251,30 @@ exports.submitQuiz = async (req, res) => {
   try {
     const QuizSubmission = require('../models/QuizSubmission');
     const Grade = require('../models/Grade');
+    const User = require('../models/User');
     const { quiz_id, answers } = req.body;
     const studentId = req.user.id || req.user._id;
 
     const quiz = await QuizBank.findById(quiz_id);
     if (!quiz) return res.status(404).json({ success: false, message: 'Kuis tidak ditemukan.' });
+
+    // Resolve Student Full Name & NISN
+    let studentName = req.user.full_name || req.user.name;
+    let studentNis = req.user.nisn || req.user.nis || '';
+
+    if (!studentName || studentName === 'Siswa') {
+      let studentDoc = await User.findById(studentId).lean();
+      if (!studentDoc) {
+        const siswaCol = mongoose.connection.collection('users_siswa');
+        try {
+          studentDoc = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId.toString()) });
+        } catch(e) {}
+      }
+      if (studentDoc) {
+        studentName = studentDoc.full_name || studentDoc.name || 'Siswa';
+        studentNis = studentDoc.nisn || studentDoc.nis || studentDoc.username || '';
+      }
+    }
 
     let totalPoints = 0;
     let maxPoints = 0;
@@ -286,8 +305,8 @@ exports.submitQuiz = async (req, res) => {
     const submission = new QuizSubmission({
       quiz_id,
       student_id: studentId,
-      student_name: req.user.full_name || 'Siswa',
-      nisn: req.user.nisn || req.user.nis || '',
+      student_name: studentName || 'Siswa',
+      nisn: studentNis || '-',
       class_name: quiz.class_name || 'Kelas',
       session_number: quiz.session_number || 1,
       answers: processedAnswers,
@@ -323,6 +342,7 @@ exports.submitQuiz = async (req, res) => {
 exports.getQuizSubmissions = async (req, res) => {
   try {
     const QuizSubmission = require('../models/QuizSubmission');
+    const User = require('../models/User');
     const { quiz_id } = req.params;
 
     const quiz = await QuizBank.findById(quiz_id);
@@ -339,9 +359,44 @@ exports.getQuizSubmissions = async (req, res) => {
       quizIdsToSearch = childQuizzes.map(q => q._id);
     }
 
-    const submissions = await QuizSubmission.find({ quiz_id: { $in: quizIdsToSearch } })
-      .populate('student_id', 'full_name nis nisn class_name')
-      .sort({ star_rating: -1, total_score: -1, createdAt: -1 });
+    const rawSubmissions = await QuizSubmission.find({ quiz_id: { $in: quizIdsToSearch } })
+      .sort({ star_rating: -1, total_score: -1, createdAt: -1 })
+      .lean();
+
+    // Enrich student names and NISN from User & users_siswa collections
+    const studentIds = rawSubmissions.map(s => s.student_id).filter(Boolean);
+    const objIds = studentIds.map(id => {
+      try { return new mongoose.Types.ObjectId(id.toString()); } catch(e) { return id; }
+    });
+
+    const [mainUsers, siswaUsers] = await Promise.all([
+      User.find({ _id: { $in: objIds } }).lean(),
+      mongoose.connection.collection('users_siswa').find({ _id: { $in: objIds } }).toArray()
+    ]);
+
+    const studentMap = {};
+    mainUsers.forEach(u => { studentMap[u._id.toString()] = u; });
+    siswaUsers.forEach(s => { studentMap[s._id.toString()] = s; });
+
+    const submissions = rawSubmissions.map(sub => {
+      const sId = sub.student_id ? sub.student_id.toString() : '';
+      const sInfo = studentMap[sId];
+      let realName = sub.student_name;
+      let realNis = sub.nisn;
+
+      if ((!realName || realName === 'Siswa') && sInfo) {
+        realName = sInfo.full_name || sInfo.name;
+      }
+      if ((!realNis || realNis === '-') && sInfo) {
+        realNis = sInfo.nisn || sInfo.nis || sInfo.username || '';
+      }
+
+      return {
+        ...sub,
+        student_name: realName || 'Siswa',
+        nisn: realNis || '-'
+      };
+    });
 
     return res.json({ success: true, submissions });
   } catch (err) {
