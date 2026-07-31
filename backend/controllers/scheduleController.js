@@ -21,27 +21,59 @@ exports.createSchedule = async (req, res) => {
   }
 };
 
+// controllers/scheduleController.js
+
 exports.bulkSaveSchedule = async (req, res) => {
   try {
-    const { schedules } = req.body;
+    const { schedules, replace } = req.body;
+    
     if (!Array.isArray(schedules) || schedules.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada data jadwal untuk disimpan' });
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Tidak ada data jadwal untuk disimpan' 
+      });
     }
 
+    // Validasi waktu
     for (const item of schedules) {
       if (item.start_time && item.start_time < '07:00') {
-        return res.status(400).json({ success: false, message: `Jam mulai (${item.start_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+        return res.status(400).json({ 
+          success: false, 
+          message: `Jam mulai (${item.start_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` 
+        });
       }
       if (item.end_time && item.end_time > '15:00') {
-        return res.status(400).json({ success: false, message: `Jam selesai (${item.end_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` });
+        return res.status(400).json({ 
+          success: false, 
+          message: `Jam selesai (${item.end_time}) di luar jam operasional KBM sekolah (07:00 - 15:00)` 
+        });
       }
     }
 
+    // Jika replace true, hapus semua jadwal untuk tahun ajaran ini
+    if (replace) {
+      const yearId = schedules[0]?.academic_year_id;
+      if (yearId && mongoose.Types.ObjectId.isValid(yearId)) {
+        await Schedule.deleteMany({ 
+          academic_year_id: new mongoose.Types.ObjectId(yearId)
+        });
+      }
+    }
+
+    // Simpan jadwal baru
     const result = await scheduleService.bulkSaveSchedule(schedules);
-    return res.json({ success: true, data: result });
+    
+    return res.json({ 
+      success: true, 
+      data: result,
+      message: `Berhasil menyimpan ${result.length || result.insertedCount || schedules.length} jadwal`
+    });
   } catch (err) {
     console.error('ERROR BULK SAVE:', err);
-    return res.status(400).json({ success: false, message: err.message || 'Gagal menyimpan jadwal' });
+    return res.status(400).json({ 
+      success: false, 
+      message: err.message || 'Gagal menyimpan jadwal' 
+    });
   }
 };
 
@@ -91,13 +123,40 @@ exports.updateSchedule = async (req, res) => {
   }
 };
 
-exports.deleteSchedule = async (req, res) => {
+exports.deleteSchedulesByYear = async (req, res) => {
   try {
-    await scheduleService.deleteSchedule(req.params.id);
-    return res.json({ success: true });
+    const { academic_year_id } = req.query;
+    
+    if (!academic_year_id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'academic_year_id wajib diisi' 
+      });
+    }
+
+    // Validasi format ObjectId
+    if (!mongoose.Types.ObjectId.isValid(academic_year_id)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Format academic_year_id tidak valid' 
+      });
+    }
+
+    const result = await Schedule.deleteMany({
+      academic_year_id: new mongoose.Types.ObjectId(academic_year_id)
+    });
+
+    return res.json({
+      success: true,
+      message: `Berhasil menghapus ${result.deletedCount} jadwal`,
+      deletedCount: result.deletedCount
+    });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, message: 'Failed to delete schedule' });
+    console.error('Delete schedules by year error:', err);
+    return res.status(500).json({ 
+      success: false, 
+      message: `Gagal menghapus jadwal: ${err.message}` 
+    });
   }
 };
 

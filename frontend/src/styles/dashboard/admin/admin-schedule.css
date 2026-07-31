@@ -1016,3 +1016,65 @@
     right: -3px;
   }
 }
+
+/* ============================================================
+   MODE TOGGLE BUTTONS
+   ============================================================ */
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.mode-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mode-btn:hover {
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.mode-btn.active {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mode-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* Responsive mode toggle */
+@media (max-width: 768px) {
+  .mode-btn {
+    font-size: 9px;
+    padding: 4px 8px;
+  }
+  .mode-btn .material-symbols-outlined {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mode-btn {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+  .mode-btn .material-symbols-outlined {
+    font-size: 12px;
+  }
+}

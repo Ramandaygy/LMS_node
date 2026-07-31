@@ -22,6 +22,11 @@ const AdminSchedule = () => {
   const [piketData, setPiketData] = useState({});
 
   // ============================================================
+  // MODE TAMPILAN: 'compact' (kode) atau 'detail' (nama lengkap)
+  // ============================================================
+  const [displayMode, setDisplayMode] = useState('compact'); // 'compact' | 'detail'
+
+  // ============================================================
   // TIME SLOTS SESUAI JADWAL ASLI
   // ============================================================
   const [timeSlots, setTimeSlots] = useState([
@@ -73,9 +78,6 @@ const AdminSchedule = () => {
 
   const [days] = useState(['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU']);
 
-  // ============================================================
-  // MODAL UNTUK EDIT JADWAL (lebih compact)
-  // ============================================================
   const [modal, setModal] = useState({
     open: false,
     day: '',
@@ -86,9 +88,6 @@ const AdminSchedule = () => {
     room: ''
   });
 
-  // ============================================================
-  // MODAL UNTUK EDIT WAKTU (lebih baik)
-  // ============================================================
   const [timeEditModal, setTimeEditModal] = useState({
     open: false,
     slotIndex: null,
@@ -216,29 +215,20 @@ const AdminSchedule = () => {
     return a.name.localeCompare(b.name);
   });
 
-  // ============================================================
-  // HANDLE HAPUS JADWAL (1 per 1)
-  // ============================================================
   const handleDeleteSchedule = (day, timeSlot, classId, e) => {
-    e.stopPropagation(); // Mencegah trigger modal edit
-    
+    e.stopPropagation();
     if (!window.confirm(`Hapus jadwal untuk ${day} - ${timeSlots.find(t => t.slot === timeSlot)?.label} - Kelas ${allClasses.find(c => c._id === classId)?.name}?`)) {
       return;
     }
-    
     const key = `${day}_${timeSlot}_${classId}`;
     setScheduleData(prev => {
       const newData = { ...prev };
       delete newData[key];
       return newData;
     });
-    
     setMessage({ type: 'success', text: 'Jadwal berhasil dihapus (belum tersimpan ke database)' });
   };
 
-  // ============================================================
-  // HANDLE EDIT WAKTU (dengan modal yang lebih baik)
-  // ============================================================
   const handleOpenTimeEdit = (slotIndex) => {
     setTimeEditModal({
       open: true,
@@ -331,9 +321,12 @@ const AdminSchedule = () => {
         return;
       }
 
-      // Hapus semua jadwal lama untuk tahun ajaran ini, lalu simpan yang baru
-      await api.delete(`/schedules?academic_year_id=${yearToSave}`);
-      await api.post('/schedules/bulk', { schedules });
+      // Kirim dengan flag replace
+      await api.post('/schedules/bulk', { 
+        schedules,
+        replace: true 
+      });
+      
       setMessage({ type: 'success', text: 'Jadwal berhasil disimpan' });
       await fetchExistingSchedule();
     } catch (err) {
@@ -402,9 +395,11 @@ const AdminSchedule = () => {
   };
 
   // ============================================================
-  // RENDER GRID VIEW (COMPACT)
+  // RENDER GRID VIEW (dengan 2 mode tampilan)
   // ============================================================
   const renderGridView = () => {
+    const isCompact = displayMode === 'compact';
+
     return (
       <table className="compact-schedule">
         <thead>
@@ -448,8 +443,6 @@ const AdminSchedule = () => {
                     const subject = subjects.find(s => s._id === data.subjectId);
                     const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
                     
-                    const displaySubject = subject?.name || subject?.code || '—';
-                    const displayTeacher = teacher?.full_name || teacher?.username || '-';
                     const bgColor = getMapelColor(data.subjectId);
 
                     if (isBreak) {
@@ -468,6 +461,36 @@ const AdminSchedule = () => {
                       );
                     }
 
+                    // ============================================================
+                    // MODE COMPACT (kode) vs DETAIL (nama lengkap)
+                    // ============================================================
+                    let displaySubject = '—';
+                    let displayTeacher = '-';
+                    let displayCode = '-';
+
+                    if (data.subjectId) {
+                      if (isCompact) {
+                        // Mode Compact: tampilkan kode mapel
+                        displaySubject = subject?.code || subject?.name?.slice(0, 4) || '—';
+                      } else {
+                        // Mode Detail: tampilkan nama lengkap mapel
+                        displaySubject = subject?.name || subject?.code || '—';
+                      }
+                    }
+
+                    if (data.teacherId) {
+                      if (isCompact) {
+                        // Mode Compact: tampilkan kode guru
+                        displayTeacher = teacher?.teacher_code || teacher?.username || teacher?.code || '-';
+                        displayCode = displayTeacher;
+                      } else {
+                        // Mode Detail: tampilkan nama lengkap guru
+                        displayTeacher = teacher?.full_name || teacher?.username || '-';
+                        // Tampilkan kode di bawah nama
+                        displayCode = teacher?.teacher_code || teacher?.username || teacher?.code || '-';
+                      }
+                    }
+
                     return (
                       <td
                         key={cls._id}
@@ -477,11 +500,20 @@ const AdminSchedule = () => {
                         <div 
                           className="cell-content"
                           onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
-                          title="Klik untuk edit"
+                          title={isCompact ? `Klik untuk edit: ${displaySubject} - ${displayTeacher}` : `Klik untuk edit`}
                         >
-                          <div className="cell-subject" title={displaySubject}>{displaySubject}</div>
-                          <div className="cell-teacher" title={displayTeacher}>{displayTeacher}</div>
-                          {data.room && <div className="cell-room">{data.room}</div>}
+                          <div className="cell-subject" title={displaySubject}>
+                            {displaySubject}
+                          </div>
+                          <div className="cell-teacher" title={displayTeacher}>
+                            {displayTeacher}
+                          </div>
+                          {!isCompact && data.room && (
+                            <div className="cell-room">{data.room}</div>
+                          )}
+                          {isCompact && data.room && (
+                            <div className="cell-room" style={{ fontSize: '6px' }}>{data.room}</div>
+                          )}
                         </div>
                         {data.subjectId && (
                           <button 
@@ -500,6 +532,13 @@ const AdminSchedule = () => {
                     {piketTeachers.length > 0 ? (
                       piketTeachers.map((pid, i) => {
                         const teacher = teachers.find(t => t._id === pid);
+                        if (isCompact) {
+                          return (
+                            <div key={i} className="piket-name">
+                              {teacher?.teacher_code || teacher?.username || '-'}
+                            </div>
+                          );
+                        }
                         return (
                           <div key={i} className="piket-name">
                             {teacher?.full_name || teacher?.username || teacher?.teacher_code || '-'}
@@ -520,7 +559,7 @@ const AdminSchedule = () => {
   };
 
   // ============================================================
-  // RENDER TIME EDIT MODAL (lebih baik)
+  // RENDER TIME EDIT MODAL
   // ============================================================
   const renderTimeEditModal = () => {
     if (!timeEditModal.open) return null;
@@ -576,7 +615,7 @@ const AdminSchedule = () => {
   };
 
   // ============================================================
-  // RENDER ASSIGN MODAL (lebih compact)
+  // RENDER ASSIGN MODAL
   // ============================================================
   const renderAssignModal = () => {
     if (!modal.open) return null;
@@ -672,6 +711,56 @@ const AdminSchedule = () => {
               <option key={c._id} value={c._id}>{c.name}</option>
             ))}
           </select>
+
+          {/* ============================================================
+              MODE TOGGLE: COMPACT vs DETAIL
+          ============================================================ */}
+          <div className="mode-toggle" style={{ display: 'flex', gap: '4px', background: '#f1f5f9', borderRadius: '12px', padding: '4px' }}>
+            <button
+              className={`mode-btn ${displayMode === 'compact' ? 'active' : ''}`}
+              onClick={() => setDisplayMode('compact')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                background: displayMode === 'compact' ? 'white' : 'transparent',
+                color: displayMode === 'compact' ? '#0f172a' : '#64748b',
+                fontWeight: '600',
+                fontSize: '11px',
+                cursor: 'pointer',
+                boxShadow: displayMode === 'compact' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>compress</span>
+              Kode
+            </button>
+            <button
+              className={`mode-btn ${displayMode === 'detail' ? 'active' : ''}`}
+              onClick={() => setDisplayMode('detail')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: 'none',
+                background: displayMode === 'detail' ? 'white' : 'transparent',
+                color: displayMode === 'detail' ? '#0f172a' : '#64748b',
+                fontWeight: '600',
+                fontSize: '11px',
+                cursor: 'pointer',
+                boxShadow: displayMode === 'detail' ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>expand</span>
+              Detail
+            </button>
+          </div>
 
           <div className="dropdown" ref={actionsRef} style={{ marginLeft: '4px' }}>
             <button className="dropdown-btn" onClick={() => setActionsOpen(!actionsOpen)}>
