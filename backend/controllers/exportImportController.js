@@ -1070,7 +1070,11 @@ exports.importSchedules = async (req, res) => {
     const subjects = await getCollection('subjects').find({}).toArray();
     const teachers = await getCollection('users_guru').find({}).toArray();
 
-    const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+    const normalize = str => {
+      if (!str) return '';
+      if (typeof str === 'object') return '';
+      return String(str).toLowerCase().replace(/[^a-z0-9]/g, '');
+    };
 
     const getCellValueStr = (cell) => {
       if (!cell) return '';
@@ -1382,7 +1386,8 @@ exports.importSchedules = async (req, res) => {
       // -------------------------------------------------------------
       let headers = {};
       worksheet.getRow(1).eachCell((cell, colNumber) => {
-        if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber;
+        const hVal = getCellValueStr(cell);
+        if (hVal) headers[hVal.toLowerCase()] = colNumber;
       });
 
       const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
@@ -1477,8 +1482,12 @@ exports.importSchedules = async (req, res) => {
       await getCollection('schedules').insertMany(schedulesToInsert);
 
       // Auto-sync teachers' assigned classes and subjects
-      const scheduleService = require('../services/scheduleService');
-      await scheduleService.syncAllTeachers();
+      try {
+        const scheduleService = require('../services/scheduleService');
+        await scheduleService.syncAllTeachers();
+      } catch (syncErr) {
+        console.error('Failed to sync teachers after import:', syncErr);
+      }
 
       try {
         await logActivity(req, 'Import Jadwal', `Mengimport ${schedulesToInsert.length} jadwal pelajaran dari file Excel.`);
