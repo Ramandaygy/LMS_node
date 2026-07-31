@@ -1401,7 +1401,7 @@ exports.importSchedules = async (req, res) => {
         const normName = normalize(name);
         return subjects.find(s => normalize(s.name) === normName);
       };
-
+      
       const findTeacher = (name) => {
         const normName = normalize(name);
         return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
