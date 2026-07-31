@@ -1196,15 +1196,38 @@ exports.importSchedules = async (req, res) => {
 
       let currentDay = '';
 
+      const normalizeDayStr = (str) => {
+        if (!str) return '';
+        const u = String(str).toUpperCase().replace(/['`]/g, '').trim();
+        if (u.includes('SENIN')) return 'SENIN';
+        if (u.includes('SELASA')) return 'SELASA';
+        if (u.includes('RABU')) return 'RABU';
+        if (u.includes('KAMIS')) return 'KAMIS';
+        if (u.includes('JUMAT') || u.includes('JUMAT')) return 'JUMAT';
+        if (u.includes('SABTU')) return 'SABTU';
+        return '';
+      };
+
+      const defaultTimeSlots = {
+        1: { start: '07:15', end: '07:55' },
+        2: { start: '07:55', end: '08:35' },
+        3: { start: '08:35', end: '09:15' },
+        4: { start: '09:35', end: '10:15' },
+        5: { start: '10:15', end: '10:55' },
+        6: { start: '10:55', end: '11:35' },
+        7: { start: '12:05', end: '12:45' },
+        8: { start: '12:45', end: '13:25' },
+        9: { start: '13:25', end: '14:05' }
+      };
+
       for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
         
-        // Cek Kolom 1..3 untuk deteksi Hari
-        for (let c = 1; c <= 3; c++) {
+        // Cek Kolom 1..6 untuk deteksi Hari
+        for (let c = 1; c <= 6; c++) {
           let cellText = row.getCell(c).text || row.getCell(c).value?.toString() || '';
           if (typeof cellText === 'object') cellText = cellText.result || cellText.text || '';
-          cellText = cellText.toUpperCase().trim();
-          const matchedDay = validDays.find(d => cellText.includes(d));
+          const matchedDay = normalizeDayStr(cellText);
           if (matchedDay) {
             currentDay = matchedDay;
             break;
@@ -1213,14 +1236,14 @@ exports.importSchedules = async (req, res) => {
 
         if (!currentDay) continue;
 
-        // Cari Waktu (misal 07:20-08:00) dan Jam Ke (misal 1, 2) dari kolom 1..5
+        // Cari Waktu (misal 07:20-08:00) dan Jam Ke (misal 1, 2) dari kolom 1..6
         let timeVal = '';
         let periodVal = '';
 
-        for (let c = 1; c <= 5; c++) {
+        for (let c = 1; c <= 6; c++) {
           let cellStr = row.getCell(c).text || row.getCell(c).value?.toString() || '';
           if (typeof cellStr === 'object') cellStr = cellStr.result || cellStr.text || '';
-          cellStr = cellStr.trim();
+          cellStr = String(cellStr).trim();
 
           if (/^\d{1,2}$/.test(cellStr) && !periodVal) {
             periodVal = cellStr;
@@ -1229,20 +1252,33 @@ exports.importSchedules = async (req, res) => {
           }
         }
 
-        if (!timeVal) continue;
+        let timeSlotNum = Number(periodVal) || 1;
+        let startTime = '';
+        let endTime = '';
 
-        const cleanTimeVal = timeVal.toUpperCase();
-        if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
-          continue;
+        if (timeVal) {
+          const cleanTimeVal = timeVal.toUpperCase();
+          if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
+            continue;
+          }
+          const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
+          if (timeParts.length >= 2) {
+            startTime = timeParts[0];
+            endTime = timeParts[1];
+          }
         }
 
-        const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
-        if (timeParts.length < 2) continue;
-        const startTime = timeParts[0];
-        const endTime = timeParts[1];
+        if (!startTime || !endTime) {
+          if (defaultTimeSlots[timeSlotNum]) {
+            startTime = defaultTimeSlots[timeSlotNum].start;
+            endTime = defaultTimeSlots[timeSlotNum].end;
+          } else {
+            startTime = '07:15';
+            endTime = '08:00';
+          }
+        }
 
         // Slot Number (1..8) berdasarkan waktu mulai
-        let timeSlotNum = Number(periodVal) || 1;
         if (startTime) {
           const timeDigits = startTime.split(':').map(Number);
           if (timeDigits.length === 2) {

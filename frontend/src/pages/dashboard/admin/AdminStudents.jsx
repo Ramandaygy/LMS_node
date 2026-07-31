@@ -557,21 +557,91 @@ const AdminStudents = () => {
 
       {/* Modal Detail Siswa */}
       {showDetailModal && selectedStudent && (
-        <div className="modal-overlay" onClick={() => setShowDetailModal(false)}>
-          <div className="admin-students-modal modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <h3>Detail Siswa</h3>
-            <div className="detail-field"><strong>Nama Lengkap:</strong> {selectedStudent.full_name}</div>
-            <div className="detail-field"><strong>NIS:</strong> {selectedStudent.nis}</div>
-            <div className="detail-field"><strong>Email:</strong> {selectedStudent.email}</div>
-            <div className="detail-field"><strong>Kelas:</strong> {selectedStudent.class_name || '-'}</div>
-            <div className="detail-field"><strong>Alamat:</strong> {selectedStudent.alamat || selectedStudent.address || '-'}</div>
-            <div className="detail-field"><strong>Orang Tua:</strong> {selectedStudent.parent?.full_name || '-'}</div>
-            <div className="detail-field"><strong>Nomor Telepon Ortu:</strong> {selectedStudent.parent?.phone || '-'}</div>
-            <div className="detail-field"><strong>Status:</strong> {selectedStudent.is_active ? 'Aktif' : 'Nonaktif'}</div>
-            <div className="detail-field"><strong>ID Siswa:</strong> {selectedStudent.id || selectedStudent._id}</div>
-            <div className="modal-buttons" style={{ marginTop: '20px' }}>
-              <button type="button" className="btn-cancel" onClick={() => setShowDetailModal(false)}>Tutup</button>
+        <div className="modal-overlay" onClick={() => setShowDetailModal(false)} style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '640px', background: '#ffffff', borderRadius: '20px', padding: '0', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            
+            {/* Header Banner */}
+            <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', padding: '24px 28px', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(10px)' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#ffffff' }}>school</span>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', fontFamily: 'Outfit, sans-serif' }}>{selectedStudent.full_name}</h3>
+                  <span style={{ fontSize: '13px', opacity: 0.9 }}>NIS: <strong>{selectedStudent.nis || '-'}</strong> • Kelas: <strong>{selectedStudent.class_name || selectedStudent.class_id?.name || 'Belum Diatur'}</strong></span>
+                </div>
+              </div>
+              <span style={{ background: selectedStudent.is_active ? '#dcfce7' : '#fee2e2', color: selectedStudent.is_active ? '#15803d' : '#b91c1c', padding: '6px 14px', borderRadius: '30px', fontWeight: '800', fontSize: '12px' }}>
+                {selectedStudent.is_active ? '● Aktif' : '○ Non-aktif'}
+              </span>
             </div>
+
+            {/* Content Body Grid */}
+            <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', background: '#ffffff' }}>
+              
+              {/* Left Column: Akun & Kontak */}
+              <div style={{ background: '#f8fafc', padding: '16px 18px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>person</span> Informasi Akun & Kontak
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Email Akademik:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.email || '-'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Username Login:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.username || selectedStudent.nis || '-'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Alamat Tempat Tinggal:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.alamat || selectedStudent.address || 'Belum diisi'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>ID Sistem (Mongo ID):</span>
+                    <code style={{ fontSize: '11px', color: '#475569', background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px' }}>{selectedStudent._id || selectedStudent.id}</code>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Orang Tua & Akademik */}
+              <div style={{ background: '#f8fafc', padding: '16px 18px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>family_restroom</span> Data Wali & Akademik
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Nama Orang Tua / Wali:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.parent?.full_name || selectedStudent.parent_name || 'Belum dihubungkan'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Nomor Telepon Ortu:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.parent?.phone || selectedStudent.parent_phone || 'Belum ada'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Kelas Pembelajaran:</span>
+                    <strong style={{ color: '#0284c7', fontSize: '14px' }}>{selectedStudent.class_name || 'Belum Diatur'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b', fontSize: '11px', display: 'block', fontWeight: '700' }}>Tanggal Terdaftar:</span>
+                    <strong style={{ color: '#0f172a' }}>{selectedStudent.createdAt ? new Date(selectedStudent.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Terdaftar'}</strong>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Footer Close Button */}
+            <div style={{ padding: '16px 28px', background: '#f1f5f9', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
+              <button 
+                type="button" 
+                onClick={() => setShowDetailModal(false)}
+                style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+              >
+                Tutup Detail Siswa
+              </button>
+            </div>
+
           </div>
         </div>
       )}
