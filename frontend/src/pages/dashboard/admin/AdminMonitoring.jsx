@@ -17,6 +17,9 @@ const AdminMonitoring = () => {
   const [selectedLegerClass, setSelectedLegerClass] = useState('');
   const [selectedLegerSemester, setSelectedLegerSemester] = useState('Ganjil');
   const [legerViewMode, setLegerViewMode] = useState('vertical'); // 'vertical' | 'horizontal'
+  const [legerSearch, setLegerSearch] = useState('');
+  const [legerPage, setLegerPage] = useState(1);
+  const [legerPerPage, setLegerPerPage] = useState(10);
   const [legerData, setLegerData] = useState(null);
   const [loadingLeger, setLoadingLeger] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
@@ -67,7 +70,7 @@ const AdminMonitoring = () => {
     } else if (activeTab === 'activities' && !isGuru) {
       fetchTeacherActivities();
     }
-  }, [activeTab, selectedLegerClass, studentSearch, selectedClassFilter, selectedRiskFilter, teacherSearch, activityTeacherSearch, isGuru]);
+  }, [activeTab, selectedLegerClass, selectedLegerSemester, studentSearch, selectedClassFilter, selectedRiskFilter, teacherSearch, activityTeacherSearch, isGuru]);
 
   const fetchClasses = async () => {
     try {
@@ -86,7 +89,9 @@ const AdminMonitoring = () => {
     if (!selectedLegerClass) return;
     setLoadingLeger(true);
     try {
-      const res = await api.get('/admin/monitoring/leger', { params: { class_id: selectedLegerClass } });
+      const res = await api.get('/admin/monitoring/leger', { 
+        params: { class_id: selectedLegerClass, semester: selectedLegerSemester } 
+      });
       setLegerData(res.data);
       setLoadingLeger(false);
     } catch (e) {
@@ -289,7 +294,7 @@ const AdminMonitoring = () => {
                 <label style={{ fontWeight: '700', color: '#0f172a', fontSize: '13px' }}>Pilih Kelas:</label>
                 <select
                   value={selectedLegerClass}
-                  onChange={(e) => setSelectedLegerClass(e.target.value)}
+                  onChange={(e) => { setSelectedLegerClass(e.target.value); setLegerPage(1); }}
                   style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '700', fontSize: '13px', outline: 'none' }}
                 >
                   {classes.map((c) => (
@@ -302,13 +307,24 @@ const AdminMonitoring = () => {
                 <label style={{ fontWeight: '700', color: '#0f172a', fontSize: '13px' }}>Semester Export:</label>
                 <select
                   value={selectedLegerSemester}
-                  onChange={(e) => setSelectedLegerSemester(e.target.value)}
+                  onChange={(e) => { setSelectedLegerSemester(e.target.value); setLegerPage(1); }}
                   style={{ padding: '8px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontWeight: '700', fontSize: '13px', outline: 'none' }}
                 >
                   <option value="Ganjil">Semester Ganjil</option>
                   <option value="Genap">Semester Genap</option>
                   <option value="Penuh">Tahun Ajaran Penuh (Ganjil + Genap)</option>
                 </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', padding: '6px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', width: '220px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#94a3b8', fontSize: '18px', marginRight: '6px' }}>search</span>
+                <input
+                  type="text"
+                  placeholder="Cari Nama Siswa / NIS..."
+                  value={legerSearch}
+                  onChange={(e) => { setLegerSearch(e.target.value); setLegerPage(1); }}
+                  style={{ border: 'none', background: 'transparent', fontSize: '12px', outline: 'none', width: '100%' }}
+                />
               </div>
 
               <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '10px', border: '1px solid #cbd5e1' }}>
@@ -365,142 +381,196 @@ const AdminMonitoring = () => {
             <div>
               <div style={{ fontWeight: '800', color: '#1e3a8a', fontSize: '14px' }}>Formula Nilai Akhir Rapor (NA) Kurikulum ({selectedLegerSemester}):</div>
               <div style={{ fontSize: '13px', color: '#1e40af', marginTop: '2px' }}>
-                NA = (NH + PTS + PAS) / 3 — di mana NH = Tugas Harian, PTS = Sumatif Tengah Semester, PAS = Sumatif Akhir Semester.
+                {selectedLegerSemester === 'Ganjil' 
+                  ? 'Catatan: Leger Nilai Semester Ganjil ditampilkan kosong (-) karena belum ada penginputan nilai pada sistem periode tersebut.'
+                  : 'NA = (NH + PTS + PAS) / 3 — di mana NH = Tugas Harian, PTS = Sumatif Tengah Semester, PAS = Sumatif Akhir Semester.'}
               </div>
             </div>
           </div>
 
           {/* Leger Matrix Views */}
           <div style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
-            {loadingLeger ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Menghitung matriks leger nilai kelas...</div>
-            ) : !legerData || legerData.students.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Tidak ada data siswa di kelas ini.</div>
-            ) : legerViewMode === 'vertical' ? (
-              /* VERTICAL LEGER LAYOUT PER SISWA */
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {legerData.students.map((st) => (
-                  <div key={st._id} style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ background: st.rank <= 3 ? '#fef3c7' : '#f1f5f9', color: st.rank <= 3 ? '#b45309' : '#475569', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
-                          Rank #{st.rank}
-                        </span>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{st.full_name}</h4>
-                          <span style={{ fontSize: '12px', color: '#64748b' }}>NIS: {st.nis || '-'}</span>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Rata-rata Rapor ({selectedLegerSemester}):</span>
-                          <strong style={{ fontSize: '16px', color: '#0284c7' }}>{st.avgRapor}</strong>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Kehadiran:</span>
-                          <strong style={{ fontSize: '14px', color: '#16a34a' }}>{st.attendanceRate}%</strong>
-                        </div>
-                      </div>
-                    </div>
+            {(() => {
+              if (loadingLeger) {
+                return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Menghitung matriks leger nilai kelas...</div>;
+              }
+              if (!legerData || legerData.students.length === 0) {
+                return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Tidak ada data siswa di kelas ini.</div>;
+              }
 
-                    {/* Vertical Mapel Scores Table */}
+              const filteredStudents = (legerData.students || []).filter((st) => {
+                if (!legerSearch) return true;
+                const term = legerSearch.toLowerCase();
+                return (
+                  (st.full_name || '').toLowerCase().includes(term) ||
+                  (st.nis || '').toLowerCase().includes(term)
+                );
+              });
+
+              const totalLegerPages = Math.ceil(filteredStudents.length / legerPerPage) || 1;
+              const currentLegerPage = Math.min(legerPage, totalLegerPages);
+              const paginatedStudents = filteredStudents.slice(
+                (currentLegerPage - 1) * legerPerPage,
+                currentLegerPage * legerPerPage
+              );
+
+              if (filteredStudents.length === 0) {
+                return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Tidak ada siswa yang cocok dengan pencarian "{legerSearch}".</div>;
+              }
+
+              return (
+                <>
+                  {legerViewMode === 'vertical' ? (
+                    /* VERTICAL LEGER LAYOUT PER SISWA */
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {paginatedStudents.map((st) => (
+                        <div key={st._id} style={{ background: '#ffffff', borderRadius: '14px', border: '1px solid #cbd5e1', padding: '18px', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ background: st.rank <= 3 ? '#fef3c7' : '#f1f5f9', color: st.rank <= 3 ? '#b45309' : '#475569', padding: '4px 10px', borderRadius: '8px', fontWeight: '800', fontSize: '13px' }}>
+                                Rank #{st.rank}
+                              </span>
+                              <div>
+                                <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{st.full_name}</h4>
+                                <span style={{ fontSize: '12px', color: '#64748b' }}>NIS: {st.nis || '-'}</span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Rata-rata Rapor ({selectedLegerSemester}):</span>
+                                <strong style={{ fontSize: '16px', color: '#0284c7' }}>{st.avgRapor}</strong>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>Kehadiran:</span>
+                                <strong style={{ fontSize: '14px', color: '#16a34a' }}>{st.attendanceRate}%</strong>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Vertical Mapel Scores Table */}
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                              <thead>
+                                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                                  <th style={{ padding: '8px 12px' }}>Mata Pelajaran</th>
+                                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>NH (Tugas Harian)</th>
+                                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>PTS</th>
+                                  <th style={{ padding: '8px 12px', textAlign: 'center' }}>PAS</th>
+                                  <th style={{ padding: '8px 12px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>Nilai Akhir (NA)</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {legerData.subjects.map((sub) => {
+                                  const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
+                                  return (
+                                    <tr key={sub._id} style={{ borderBottom: '1px solid #f8fafc' }}>
+                                      <td style={{ padding: '8px 12px', fontWeight: '700', color: '#1e293b' }}>{sub.name}</td>
+                                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.NH}</td>
+                                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.PTS}</td>
+                                      <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.PAS}</td>
+                                      <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: '800', color: sg.NA !== '-' && sg.NA < 75 ? '#dc2626' : '#0284c7' }}>
+                                        {sg.NA}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* HORIZONTAL LEGER MATRIX TABLE */
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
                         <thead>
-                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
-                            <th style={{ padding: '8px 12px' }}>Mata Pelajaran</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>NH (Tugas Harian)</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>PTS</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'center' }}>PAS</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>Nilai Akhir (NA)</th>
+                          <tr style={{ background: '#0f172a', color: '#fff', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}>
+                            <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>Rank</th>
+                            <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>NIS</th>
+                            <th style={{ padding: '12px 16px', borderRight: '1px solid #334155', textAlign: 'left' }} rowSpan={2}>Nama Siswa</th>
+
+                            {legerData.subjects.map((sub) => (
+                              <th key={sub._id} colSpan={4} style={{ padding: '10px', borderRight: '1px solid #334155', borderBottom: '1px solid #334155' }}>
+                                {sub.name}
+                              </th>
+                            ))}
+
+                            <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>Rata Rapor</th>
+                            <th style={{ padding: '12px 16px' }} rowSpan={2}>Presensi (%)</th>
+                          </tr>
+                          <tr style={{ background: '#1e293b', color: '#94a3b8', fontSize: '11px', textAlign: 'center' }}>
+                            {legerData.subjects.map((sub) => (
+                              <React.Fragment key={`sub-cols-${sub._id}`}>
+                                <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>NH</th>
+                                <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>PTS</th>
+                                <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>PAS</th>
+                                <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', color: '#38bdf8', fontWeight: '700' }}>NA</th>
+                              </React.Fragment>
+                            ))}
                           </tr>
                         </thead>
                         <tbody>
-                          {legerData.subjects.map((sub) => {
-                            const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
-                            return (
-                              <tr key={sub._id} style={{ borderBottom: '1px solid #f8fafc' }}>
-                                <td style={{ padding: '8px 12px', fontWeight: '700', color: '#1e293b' }}>{sub.name}</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.NH}</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.PTS}</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'center', color: '#475569' }}>{sg.PAS}</td>
-                                <td style={{ padding: '8px 12px', textAlign: 'center', fontWeight: '800', color: sg.NA !== '-' && sg.NA < 75 ? '#dc2626' : '#0284c7' }}>
-                                  {sg.NA}
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {paginatedStudents.map((st) => (
+                            <tr key={st._id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>
+                              <td style={{ padding: '12px 16px', fontWeight: '800', color: st.rank <= 3 ? '#d97706' : '#64748b' }}>
+                                #{st.rank}
+                              </td>
+                              <td style={{ padding: '12px 16px', color: '#64748b' }}>{st.nis}</td>
+                              <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '700', color: '#0f172a' }}>{st.full_name}</td>
+
+                              {legerData.subjects.map((sub) => {
+                                const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
+                                return (
+                                  <React.Fragment key={`cell-${st._id}-${sub._id}`}>
+                                    <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.NH}</td>
+                                    <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.PTS}</td>
+                                    <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.PAS}</td>
+                                    <td style={{ padding: '10px 8px', fontWeight: '800', color: sg.NA !== '-' && sg.NA < 75 ? '#dc2626' : '#0284c7', background: '#f8fafc' }}>
+                                      {sg.NA}
+                                    </td>
+                                  </React.Fragment>
+                                );
+                              })}
+
+                              <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0f172a', fontSize: '15px', background: '#f1f5f9' }}>
+                                {st.avgRapor}
+                              </td>
+                              <td style={{ padding: '12px 16px', fontWeight: '700', color: '#16a34a' }}>
+                                {st.attendanceRate}%
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
+                  )}
+
+                  {/* Pagination Bar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap', gap: '12px' }}>
+                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>
+                      Menampilkan {paginatedStudents.length} dari {filteredStudents.length} siswa (Halaman {currentLegerPage} dari {totalLegerPages})
+                    </span>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <button
+                        disabled={currentLegerPage <= 1}
+                        onClick={() => setLegerPage(p => Math.max(1, p - 1))}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentLegerPage <= 1 ? '#f1f5f9' : '#fff', color: currentLegerPage <= 1 ? '#94a3b8' : '#0f172a', fontWeight: '700', fontSize: '12px', cursor: currentLegerPage <= 1 ? 'not-allowed' : 'pointer' }}
+                      >
+                        &laquo; Sebelumnya
+                      </button>
+                      <button
+                        disabled={currentLegerPage >= totalLegerPages}
+                        onClick={() => setLegerPage(p => Math.min(totalLegerPages, p + 1))}
+                        style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', background: currentLegerPage >= totalLegerPages ? '#f1f5f9' : '#fff', color: currentLegerPage >= totalLegerPages ? '#94a3b8' : '#0f172a', fontWeight: '700', fontSize: '12px', cursor: currentLegerPage >= totalLegerPages ? 'not-allowed' : 'pointer' }}
+                      >
+                        Selanjutnya &raquo;
+                      </button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              /* HORIZONTAL LEGER MATRIX TABLE */
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', whiteSpace: 'nowrap' }}>
-                  <thead>
-                    <tr style={{ background: '#0f172a', color: '#fff', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}>
-                      <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>Rank</th>
-                      <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>NIS</th>
-                      <th style={{ padding: '12px 16px', borderRight: '1px solid #334155', textAlign: 'left' }} rowSpan={2}>Nama Siswa</th>
-
-                      {legerData.subjects.map((sub) => (
-                        <th key={sub._id} colSpan={4} style={{ padding: '10px', borderRight: '1px solid #334155', borderBottom: '1px solid #334155' }}>
-                          {sub.name}
-                        </th>
-                      ))}
-
-                      <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>Rata Rapor</th>
-                      <th style={{ padding: '12px 16px' }} rowSpan={2}>Presensi (%)</th>
-                    </tr>
-                    <tr style={{ background: '#1e293b', color: '#94a3b8', fontSize: '11px', textAlign: 'center' }}>
-                      {legerData.subjects.map((sub) => (
-                        <React.Fragment key={`sub-cols-${sub._id}`}>
-                          <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>NH</th>
-                          <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>PTS</th>
-                          <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>PAS</th>
-                          <th style={{ padding: '6px 8px', borderRight: '1px solid #475569', color: '#38bdf8', fontWeight: '700' }}>NA</th>
-                        </React.Fragment>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {legerData.students.map((st) => (
-                      <tr key={st._id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'center' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: '800', color: st.rank <= 3 ? '#d97706' : '#64748b' }}>
-                          #{st.rank}
-                        </td>
-                        <td style={{ padding: '12px 16px', color: '#64748b' }}>{st.nis}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '700', color: '#0f172a' }}>{st.full_name}</td>
-
-                        {legerData.subjects.map((sub) => {
-                          const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
-                          return (
-                            <React.Fragment key={`cell-${st._id}-${sub._id}`}>
-                              <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.NH}</td>
-                              <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.PTS}</td>
-                              <td style={{ padding: '10px 8px', color: '#475569' }}>{sg.PAS}</td>
-                              <td style={{ padding: '10px 8px', fontWeight: '800', color: sg.NA < 75 ? '#dc2626' : '#0284c7', background: '#f8fafc' }}>
-                                {sg.NA}
-                              </td>
-                            </React.Fragment>
-                          );
-                        })}
-
-                        <td style={{ padding: '12px 16px', fontWeight: '800', color: '#0f172a', fontSize: '15px', background: '#f1f5f9' }}>
-                          {st.avgRapor}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontWeight: '700', color: '#16a34a' }}>
-                          {st.attendanceRate}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

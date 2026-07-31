@@ -392,7 +392,7 @@ exports.getTeacherActivities = async (req, res) => {
 // ============================================================
 
 // Helper function to build Leger matrix (OPTIMIZED IN-MEMORY PRE-FETCHING)
-async function computeLegerData(classId) {
+async function computeLegerData(classId, semester = 'Genap') {
   const siswaCol = mongoose.connection.collection('users_siswa');
   const classCol = mongoose.connection.collection('classes');
   const subjectCol = mongoose.connection.collection('subjects');
@@ -432,6 +432,8 @@ async function computeLegerData(classId) {
       students: [],
     };
   }
+
+  const isGanjil = (semester || '').toLowerCase() === 'ganjil';
 
   // Build ID list for all students in class
   const studentIdsObj = students.map(s => s._id);
@@ -488,11 +490,11 @@ async function computeLegerData(classId) {
     }
   });
 
-  // Compute leger matrix entirely in-memory with ZERO database calls in loops!
-  const studentLegerList = students.map((st) => {
+  // Compute leger matrix entirely in-memory
+  const studentLegerList = students.map((st, sIdx) => {
     const stIdStr = st._id.toString();
 
-    // 1. Attendance rate
+    // Attendance rate
     const studentAtts = attendanceByStudent[stIdStr] || [];
     const totalAtt = studentAtts.length;
     const presentAtt = studentAtts.filter((a) => {
@@ -509,55 +511,67 @@ async function computeLegerData(classId) {
       const subIdStr = sub._id.toString();
       const key = `${stIdStr}_${subIdStr}`;
 
-      // Submissions for this student + subject
-      const studentSubmissions = submissionsByStudentAndSubject[key] || [];
-      let totalTugasScore = 0;
-      let totalTugasMax = 0;
-      studentSubmissions.forEach(s => {
-        totalTugasScore += s.score;
-        totalTugasMax += s.max_score;
-      });
+      if (isGanjil) {
+        // Semester Ganjil was unrecorded / empty
+        subjectGrades[subIdStr] = {
+          subject_name: sub.name,
+          NH: '-',
+          PTS: '-',
+          PAS: '-',
+          NA: '-',
+          predikat: '-',
+        };
+      } else {
+        // Submissions for this student + subject
+        const studentSubmissions = submissionsByStudentAndSubject[key] || [];
+        let totalTugasScore = 0;
+        let totalTugasMax = 0;
+        studentSubmissions.forEach(s => {
+          totalTugasScore += s.score;
+          totalTugasMax += s.max_score;
+        });
 
-      const hasNH = totalTugasMax > 0;
-      const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
+        const hasNH = totalTugasMax > 0;
+        const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
 
-      // PTS & PAS
-      const PTS = gradesByStudentAndSubject[`${key}_uts`] !== undefined ? gradesByStudentAndSubject[`${key}_uts`] : null;
-      const PAS = gradesByStudentAndSubject[`${key}_uas`] !== undefined ? gradesByStudentAndSubject[`${key}_uas`] : null;
+        // PTS & PAS
+        const PTS = gradesByStudentAndSubject[`${key}_uts`] !== undefined ? gradesByStudentAndSubject[`${key}_uts`] : null;
+        const PAS = gradesByStudentAndSubject[`${key}_uas`] !== undefined ? gradesByStudentAndSubject[`${key}_uas`] : null;
 
-      // Formula NA = (NH + PTS + PAS) / 3
-      let NA = null;
-      if (NH !== null || PTS !== null || PAS !== null) {
-        const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
-        const ptsVal = PTS !== null ? PTS : nhVal;
-        const pasVal = PAS !== null ? PAS : nhVal;
-        NA = Math.round((nhVal + ptsVal + pasVal) / 3);
-      }
+        // Formula NA = (NH + PTS + PAS) / 3
+        let NA = null;
+        if (NH !== null || PTS !== null || PAS !== null) {
+          const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
+          const ptsVal = PTS !== null ? PTS : nhVal;
+          const pasVal = PAS !== null ? PAS : nhVal;
+          NA = Math.round((nhVal + ptsVal + pasVal) / 3);
+        }
 
-      let predikat = '-';
-      if (NA !== null) {
-        if (NA >= 88) predikat = 'A';
-        else if (NA >= 78) predikat = 'B';
-        else if (NA >= 75) predikat = 'C';
-        else predikat = 'D';
-      }
+        let predikat = '-';
+        if (NA !== null) {
+          if (NA >= 88) predikat = 'A';
+          else if (NA >= 78) predikat = 'B';
+          else if (NA >= 75) predikat = 'C';
+          else predikat = 'D';
+        }
 
-      subjectGrades[subIdStr] = {
-        subject_name: sub.name,
-        NH: NH !== null ? NH : '-',
-        PTS: PTS !== null ? PTS : '-',
-        PAS: PAS !== null ? PAS : '-',
-        NA: NA !== null ? NA : '-',
-        predikat,
-      };
+        subjectGrades[subIdStr] = {
+          subject_name: sub.name,
+          NH: NH !== null ? NH : '-',
+          PTS: PTS !== null ? PTS : '-',
+          PAS: PAS !== null ? PAS : '-',
+          NA: NA !== null ? NA : '-',
+          predikat,
+        };
 
-      if (NA !== null) {
-        totalNASum += NA;
-        subjectCount++;
+        if (NA !== null) {
+          totalNASum += NA;
+          subjectCount++;
+        }
       }
     }
 
-    const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : 0;
+    const avgRapor = isGanjil ? '-' : (subjectCount > 0 ? Math.round(totalNASum / subjectCount) : '-');
 
     return {
       _id: st._id,
@@ -567,14 +581,27 @@ async function computeLegerData(classId) {
       totalNASum,
       avgRapor,
       attendanceRate,
+      rank: sIdx + 1
     };
   });
 
-  // Compute Ranking (sort descending by avgRapor)
-  const sortedStudents = [...studentLegerList].sort((a, b) => b.avgRapor - a.avgRapor);
-  sortedStudents.forEach((st, idx) => {
-    st.rank = idx + 1;
-  });
+  // Compute Ranking if not ganjil (sort descending by avgRapor)
+  if (!isGanjil) {
+    const sortedStudents = [...studentLegerList].sort((a, b) => (typeof b.avgRapor === 'number' ? b.avgRapor : 0) - (typeof a.avgRapor === 'number' ? a.avgRapor : 0));
+    sortedStudents.forEach((st, idx) => {
+      st.rank = idx + 1;
+    });
+    return {
+      class_info: {
+        _id: classDoc._id,
+        name: classDoc.name,
+        grade_level: classDoc.grade_level,
+        homeroom_teacher: homeroomTeacherName,
+      },
+      subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
+      students: sortedStudents,
+    };
+  }
 
   return {
     class_info: {
@@ -584,18 +611,18 @@ async function computeLegerData(classId) {
       homeroom_teacher: homeroomTeacherName,
     },
     subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
-    students: sortedStudents,
+    students: studentLegerList,
   };
 }
 
 exports.getLegerByClass = async (req, res) => {
   try {
-    const { class_id } = req.query;
+    const { class_id, semester } = req.query;
     if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
       return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
     }
 
-    const legerData = await computeLegerData(class_id);
+    const legerData = await computeLegerData(class_id, semester);
     return res.status(200).json({ success: true, ...legerData });
   } catch (error) {
     console.error('[AdminMonitoring] Error in getLegerByClass:', error);
@@ -608,12 +635,12 @@ exports.getLegerByClass = async (req, res) => {
 
 exports.exportLegerExcel = async (req, res) => {
   try {
-    const { class_id } = req.query;
+    const { class_id, semester } = req.query;
     if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
       return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
     }
 
-    const legerData = await computeLegerData(class_id);
+    const legerData = await computeLegerData(class_id, semester);
     const ExcelJS = require('exceljs');
 
     const workbook = new ExcelJS.Workbook();

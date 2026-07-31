@@ -696,27 +696,30 @@ const GuruCourses = () => {
                         badgeColor = '#ea580c';
                       }
 
-                      const isCurrentSessionMat = parseInt(mat.session_number || 1) === currentSessionNum;
+                      const uploadDate = mat.createdAt ? new Date(mat.createdAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Baru diunggah';
 
                       return (
-                        <div key={mat._id} style={{ padding: '14px 16px', borderRadius: '12px', border: isCurrentSessionMat ? '1px solid #0284c7' : '1px solid #cbd5e1', background: isCurrentSessionMat ? '#f0f9ff' : '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                            <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: badgeBg, color: badgeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>{iconName}</span>
+                        <div key={mat._id} style={{ padding: '16px 18px', borderRadius: '14px', border: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                            <div style={{ width: '46px', height: '46px', borderRadius: '12px', background: badgeBg, color: badgeColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>{iconName}</span>
                             </div>
                             <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <strong style={{ fontSize: '14px', color: '#0f172a' }}>{mat.title}</strong>
-                                <span style={{ fontSize: '10px', fontWeight: '800', background: isCurrentSessionMat ? '#0284c7' : '#e2e8f0', color: isCurrentSessionMat ? '#ffffff' : '#475569', padding: '2px 6px', borderRadius: '4px' }}>
-                                  {isCurrentSessionMat ? `Pertemuan ke-${currentSessionNum} (Pertemuan Ini)` : `Pertemuan ke-${mat.session_number || 1}`}
+                              <strong style={{ fontSize: '15px', color: '#0f172a', display: 'block', marginBottom: '3px' }}>{mat.title}</strong>
+                              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', fontSize: '12px', color: '#64748b', flexWrap: 'wrap' }}>
+                                <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontWeight: '700', color: '#334155' }}>
+                                  Kelas {sch.class_name}
                                 </span>
+                                <span>
+                                  Diunggah pada: <strong>{uploadDate} WIB</strong>
+                                </span>
+                                {mat.file_size && (
+                                  <span>({(mat.file_size / 1024 / 1024).toFixed(1)} MB)</span>
+                                )}
                               </div>
-                              <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '2px' }}>
-                                {mat.file_name ? `${mat.file_name} ${mat.file_size ? `(${(mat.file_size / 1024 / 1024).toFixed(1)} MB)` : ''}` : (mat.description || 'Berkas Dokumen Pembelajaran')}
-                              </span>
                             </div>
                           </div>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -724,18 +727,10 @@ const GuruCourses = () => {
                                 e.preventDefault();
                                 setPreviewMaterialModal(mat);
                               }}
-                              style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                             >
-                              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Preview / Buka
+                              <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>visibility</span> Preview / Buka Dokumen
                             </button>
-                            {!isCurrentSessionMat && (
-                              <button 
-                                onClick={() => handleAttachMaterialToSession(mat._id, currentSessionNum)}
-                                style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>push_pin</span> Sematkan ke Pertemuan ke-{currentSessionNum}
-                              </button>
-                            )}
                           </div>
                         </div>
                       );
