@@ -568,109 +568,118 @@ const GuruCourses = () => {
           </div>
         </div>
 
-        {/* TAB CONTENT 1: PERTEMUAN KBM (16 MEETINGS VIEW) */}
+        {/* TAB CONTENT 1: PERTEMUAN KBM (COMPACT SELECTION VIEW ACCORDING TO SCREENSHOT 81) */}
         {activeTab === 'sesi' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* LEFT COLUMN: 16 MEETINGS LIST WITH DATES */}
-            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px', maxHeight: '720px', overflowY: 'auto' }}>
-              <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#334155', margin: '0 0 12px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
-                Jadwal 16 Pertemuan ({sch.day || 'Reguler'})
-              </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {Array.from({ length: 16 }, (_, i) => {
-                  const sessNum = i + 1;
-                  const isActive = currentSesiIdx === i;
-                  const pKey = `${sch.id}_session_${sessNum}`;
-                  const sessPlan = sessionPlans[pKey];
-                  
-                  // Compute actual weekly date
-                  const startDate = new Date(2026, 0, 5);
-                  const dayMap = { 'SENIN': 0, 'SELASA': 1, 'RABU': 2, 'KAMIS': 3, 'JUMAT': 4, 'SABTU': 5 };
-                  const offset = dayMap[(sch.day || 'SENIN').toUpperCase()] || 0;
-                  const mDate = new Date(startDate);
-                  mDate.setDate(startDate.getDate() + (i * 7) + offset);
-                  const dateStr = mDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-                  const displayTitle = sessPlan?.rencana || dateStr;
-
-                  return (
-                    <div
-                      key={sessNum}
-                      onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeSessionIdx: i })}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: '12px',
-                        border: isActive ? '2px solid #0284c7' : '1px solid #e2e8f0',
-                        background: isActive ? '#f0f9ff' : '#ffffff',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <strong style={{ fontSize: '12px', color: isActive ? '#0284c7' : '#1e293b' }}>
-                          #{sessNum}. {displayTitle}
-                        </strong>
-                      </div>
-                      <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>
-                        {dateStr} ({sch.start_time || '07:30'} WIB)
-                      </span>
-                    </div>
-                  );
-                })}
+            {/* 1. COMPACT HORIZONTAL MEETING SELECTOR BAR */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>PILIH PERTEMUAN:</span>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {Array.from({ length: 16 }, (_, i) => {
+                    const sessNum = i + 1;
+                    const isActive = currentSesiIdx === i;
+                    return (
+                      <button
+                        key={sessNum}
+                        type="button"
+                        onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeSessionIdx: i })}
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '10px',
+                          border: isActive ? 'none' : '1px solid #cbd5e1',
+                          background: isActive ? '#2563eb' : '#ffffff',
+                          color: isActive ? '#ffffff' : '#334155',
+                          fontWeight: '800',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          boxShadow: isActive ? '0 4px 10px rgba(37, 99, 235, 0.3)' : 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {sessNum}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
-            {/* RIGHT COLUMN: SESSION CONTENT */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              
-              {/* BOX RENCANA MATERI */}
-              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <h3 style={{ fontSize: '17px', fontWeight: '900', color: '#0f172a', margin: 0 }}>
-                    {(() => {
-                      const startDate = new Date(2026, 0, 5);
-                      const dayMap = { 'SENIN': 0, 'SELASA': 1, 'RABU': 2, 'KAMIS': 3, 'JUMAT': 4, 'SABTU': 5 };
-                      const offset = dayMap[(sch.day || 'SENIN').toUpperCase()] || 0;
-                      const mDate = new Date(startDate);
-                      mDate.setDate(startDate.getDate() + (currentSesiIdx * 7) + offset);
-                      return mDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
-                    })()} <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', marginLeft: '8px' }}>{sch.start_time || '07:30'} - {sch.end_time || '09:30'} WIB</span>
-                  </h3>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => {
-                        setEditingPlanModal({ schId: sch.id, sessionNum: currentSessionNum });
-                        setPlanForm({ rencana: planData.rencana || '', realisasi: '' });
-                      }}
-                      style={{ background: '#ffffff', border: '1px solid #0284c7', color: '#0284c7', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit</span> Edit Rencana Materi
-                    </button>
-                    <button 
-                      onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
-                      style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>fact_check</span> Isi Presensi
-                    </button>
+            {/* 2. MAIN SELECTED MEETING CARD */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '18px', flexWrap: 'wrap', gap: '14px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+                      {(() => {
+                        const startDate = new Date(2026, 0, 5);
+                        const dayMap = { 'SENIN': 0, 'SELASA': 1, 'RABU': 2, 'KAMIS': 3, 'JUMAT': 4, 'SABTU': 5 };
+                        const offset = dayMap[(sch.day || 'SENIN').toUpperCase()] || 0;
+                        const mDate = new Date(startDate);
+                        mDate.setDate(startDate.getDate() + (currentSesiIdx * 7) + offset);
+                        return mDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                      })()}
+                    </h2>
+                    <span style={{ background: '#eff6ff', color: '#2563eb', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', border: '1px solid #bfdbfe' }}>
+                      {sch.start_time || '08:00'} - {sch.end_time || '09:20'} WIB
+                    </span>
                   </div>
+                  <span style={{ fontSize: '13px', color: '#64748b', display: 'block', marginTop: '4px', fontWeight: '600' }}>
+                    Materi Minggu Ke-{currentSessionNum} Semester Genap • Kelas {sch.class_name}
+                  </span>
                 </div>
 
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '4px' }}>Rencana Materi Pembelajaran:</label>
-                  <p style={{ fontSize: '14px', fontWeight: planData.rencana ? '700' : '400', color: planData.rencana ? '#0f172a' : '#94a3b8', margin: 0 }}>
-                    {planData.rencana || 'Belum ada deskripsi rencana materi yang dimasukkan.'}
-                  </p>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingPlanModal({ schId: sch.id, sessionNum: currentSessionNum });
+                      setPlanForm({ rencana: planData.rencana || '', realisasi: '' });
+                    }}
+                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#0284c7' }}>edit</span> Edit Rencana
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => navigate(`/dashboard/guru/attendance?schedule_id=${sch.id || ''}&session_number=${currentSessionNum}&mode=input`)}
+                    style={{ background: '#2563eb', color: '#ffffff', border: 'none', padding: '8px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>fact_check</span> Isi Presensi
+                  </button>
                 </div>
               </div>
 
-              {/* BOX MATERI PERTEMUAN REAL DATA */}
-              <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <strong style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span>
-                    Materi Pembelajaran
-                  </strong>
+              {/* Rencana Materi Inner Box */}
+              <div style={{ background: '#f8fafc', borderRadius: '14px', border: '1px solid #e2e8f0', padding: '18px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px', color: '#0284c7' }}>location_on</span> RENCANA MATERI PEMBELAJARAN
+                </span>
+                <p style={{ fontSize: '14px', fontStyle: planData.rencana ? 'normal' : 'italic', fontWeight: planData.rencana ? '700' : '400', color: planData.rencana ? '#0f172a' : '#94a3b8', margin: 0, lineHeight: 1.5 }}>
+                  {planData.rencana || 'Belum ada deskripsi rencana materi yang dimasukkan untuk pertemuan ini. Silakan tambahkan rencana pembelajaran untuk membantu siswa bersiap.'}
+                </p>
+              </div>
+            </div>
+
+            {/* 3. MATERI PEMBELAJARAN CARD */}
+            <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                <div>
+                  <h3 style={{ fontSize: '17px', fontWeight: '800', color: '#0f172a', margin: '0 0 2px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#eab308' }}>folder</span> Materi Pembelajaran
+                  </h3>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '800', textTransform: 'uppercase' }}>DOKUMEN & REFERENSI</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenBankMaterialModal(sch, currentSessionNum)}
+                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add_circle</span> + Pilih Dari Bank Materi
+                </button>
+              </div>
 
                 {loadingSessionData ? (
                   <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat materi pertemuan...</div>
@@ -887,7 +896,6 @@ const GuruCourses = () => {
                 </div>
               </div>
 
-            </div>
           </div>
         )}
 

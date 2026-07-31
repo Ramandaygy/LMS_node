@@ -7,6 +7,9 @@ const SiswaSchedule = () => {
   const [schedules, setSchedules] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [selectedScheduleModal, setSelectedScheduleModal] = useState(null);
+  const [modalMaterials, setModalMaterials] = useState([]);
+  const [modalTasks, setModalTasks] = useState([]);
+  const [loadingModalData, setLoadingModalData] = useState(false);
 
   const [timeSlots] = useState([
     { slot: 1, label: '07:20-08:00' },
@@ -39,6 +42,43 @@ const SiswaSchedule = () => {
       setMessage({ type: 'error', text: 'Gagal memuat jadwal' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenScheduleModal = async (sch) => {
+    setSelectedScheduleModal(sch);
+    setLoadingModalData(true);
+    setModalMaterials([]);
+    setModalTasks([]);
+    try {
+      const subjectId = sch.subject_id?._id || sch.subject_id;
+
+      const [mRes, tRes] = await Promise.allSettled([
+        api.get('/materials'),
+        api.get('/assignments/student/my-assignments')
+      ]);
+
+      if (mRes.status === 'fulfilled') {
+        const allMats = mRes.value.data.data || mRes.value.data.materials || [];
+        setModalMaterials(allMats.filter(m => {
+          const mSub = (m.subject_id?._id || m.subject_id || '').toString();
+          const targetSub = (subjectId || '').toString();
+          return mSub === targetSub || (m.title && sch.subject_id?.name && m.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()));
+        }));
+      }
+
+      if (tRes.status === 'fulfilled') {
+        const allTasks = tRes.value.data.assignments || tRes.value.data.data || [];
+        setModalTasks(allTasks.filter(t => {
+          const tSub = (t.subject_id?._id || t.subject_id || '').toString();
+          const targetSub = (subjectId || '').toString();
+          return tSub === targetSub || (t.title && sch.subject_id?.name && t.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()));
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading modal session details:', err);
+    } finally {
+      setLoadingModalData(false);
     }
   };
 
@@ -75,7 +115,7 @@ const SiswaSchedule = () => {
     <div className="schedule-compact" style={{ padding: '20px' }}>
       <div className="compact-header" style={{ marginBottom: '24px' }}>
         <h2 style={{ fontSize: '24px', color: '#1e293b', fontWeight: '800', fontFamily: 'Outfit, sans-serif' }}>Jadwal Pelajaran & Pertemuan Saya</h2>
-        <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>Klik pada kartu jadwal untuk melihat detail topik, bahan ajar, dan tugas terkait.</p>
+        <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>Klik pada kartu jadwal untuk langsung membuka materi ajar dan tugas kelas.</p>
       </div>
 
       {message.text && (
@@ -156,7 +196,7 @@ const SiswaSchedule = () => {
                             </div>
                             <button
                               type="button"
-                              onClick={() => setSelectedScheduleModal(item)}
+                              onClick={() => handleOpenScheduleModal(item)}
                               style={{ background: '#0284c7', color: '#ffffff', border: 'none', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>info</span> Detail & Aktivitas Sesi
@@ -175,83 +215,120 @@ const SiswaSchedule = () => {
         </table>
       </div>
 
-      {/* Modal Detail Pertemuan Jadwal Siswa */}
+      {/* Modal Detail Pertemuan Jadwal Siswa dengan Akses File Langsung */}
       {selectedScheduleModal && (
         <div className="modal-overlay" onClick={() => setSelectedScheduleModal(null)} style={{ background: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '580px', background: '#ffffff', borderRadius: '20px', padding: '0', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '640px', background: '#ffffff', borderRadius: '24px', padding: '0', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             
             {/* Modal Header */}
-            <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', padding: '24px', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', padding: '24px', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ background: '#0284c7', color: '#ffffff', padding: '3px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
+                <span style={{ background: 'rgba(255,255,255,0.2)', color: '#ffffff', padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', backdropFilter: 'blur(4px)' }}>
                   {selectedScheduleModal.day} • {selectedScheduleModal.start_time || '07:20'} - {selectedScheduleModal.end_time || '08:00'} WIB
                 </span>
-                <h3 style={{ margin: '8px 0 0 0', fontSize: '20px', fontWeight: '800', fontFamily: 'Outfit, sans-serif' }}>
+                <h3 style={{ margin: '8px 0 0 0', fontSize: '22px', fontWeight: '800', fontFamily: 'Outfit, sans-serif' }}>
                   {selectedScheduleModal.subject_id?.name || 'Mata Pelajaran'}
                 </h3>
               </div>
-              <button onClick={() => setSelectedScheduleModal(null)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer' }}>×</button>
+              <button onClick={() => setSelectedScheduleModal(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', fontSize: '20px', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {/* Modal Body Scrollable */}
+            <div style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
               
               {/* Info Pengajar */}
-              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
-                <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '18px' }}>
-                  <span className="material-symbols-outlined">person</span>
+              <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>person</span>
                 </div>
                 <div>
-                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700', display: 'block' }}>GURU PENGAJAR:</span>
+                  <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', display: 'block', textTransform: 'uppercase' }}>GURU PENGAJAR:</span>
                   <strong style={{ fontSize: '15px', color: '#0f172a' }}>{selectedScheduleModal.teacher_id?.full_name || 'Guru Mata Pelajaran'}</strong>
-                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '2px' }}>Kelas: {selectedScheduleModal.class_id?.name || '-'} • Ruang: {selectedScheduleModal.room || 'Reguler KBM'}</span>
+                  <span style={{ fontSize: '12px', color: '#64748b', display: 'block', marginTop: '2px' }}>Kelas: {selectedScheduleModal.class_id?.name || '-'} • Ruangan: {selectedScheduleModal.room || 'Ruang Reguler KBM'}</span>
                 </div>
               </div>
 
-              {/* Rencana Pembelajaran */}
-              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '16px', borderRadius: '12px' }}>
-                <h4 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: '800', color: '#1e3a8a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>menu_book</span> Ringkasan Silabus & Topik Pertemuan:
-                </h4>
-                <p style={{ margin: 0, fontSize: '13px', color: '#1e40af' }}>
-                  Pembelajaran tatap muka interaktif mencakup penjelajahan materi utama, diskusi kelas, serta pengerjaan asesmen latihan harian.
-                </p>
-              </div>
-
-              {/* Tombol Akses Cepat Fitur */}
+              {/* 1. SEKSI FILE MATERI PEMBELAJARAN LANGSUNG */}
               <div>
-                <span style={{ fontSize: '12px', fontWeight: '800', color: '#475569', display: 'block', marginBottom: '10px' }}>AKSES CEPAT PEMBELAJARAN SESI INI:</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <button 
-                    onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/materials'; }}
-                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '12px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontWeight: '700', fontSize: '13px', color: '#0f172a' }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span> 📖 Buka & Unduh Materi Ajar
-                    </span>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>arrow_forward</span>
-                  </button>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>folder</span> 📄 Materi Pembelajaran Sesi Ini
+                </h4>
+                {loadingModalData ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat berkas materi...</div>
+                ) : modalMaterials.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {modalMaterials.map((mat, idx) => (
+                      <div key={mat._id || idx} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{mat.title}</strong>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>
+                            {mat.file_name || 'Dokumen Ajar'} • Diunggah {mat.createdAt ? new Date(mat.createdAt).toLocaleDateString('id-ID') : 'Terbaru'}
+                          </span>
+                        </div>
+                        {mat.file_url ? (
+                          <a href={mat.file_url} target="_blank" rel="noreferrer" style={{ background: '#0284c7', color: '#ffffff', textDecoration: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>download</span> Unduh / Buka
+                          </a>
+                        ) : (
+                          <button onClick={() => window.location.href = '/dashboard/siswa/materials'} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>
+                            Buka Materi
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Belum ada file materi khusus yang diunggah untuk mapel ini.</p>
+                    <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/materials'; }} style={{ marginTop: '8px', background: '#0284c7', color: '#fff', border: 'none', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>
+                      Buka Perpustakaan Materi
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                  <button 
-                    onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/assignments'; }}
-                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '12px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontWeight: '700', fontSize: '13px', color: '#0f172a' }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-symbols-outlined" style={{ color: '#16a34a' }}>assignment</span> 📝 Kerjakan Tugas & Asesmen
-                    </span>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>arrow_forward</span>
-                  </button>
+              {/* 2. SEKSI TUGAS & ASESMEN LANGSUNG */}
+              <div>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#16a34a' }}>assignment</span> 📝 Penugasan Kelas Sesi Ini
+                </h4>
+                {loadingModalData ? (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat penugasan...</div>
+                ) : modalTasks.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {modalTasks.map((t, idx) => (
+                      <div key={t._id || idx} style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', background: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{t.title}</strong>
+                          <span style={{ fontSize: '11px', color: '#e11d48', fontWeight: '700' }}>
+                            Tenggat: {t.due_date ? new Date(t.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Segera'}
+                          </span>
+                        </div>
+                        <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/assignments'; }} style={{ background: '#16a34a', color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>edit_document</span> Kerjakan
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>Tidak ada tenggat tugas aktif untuk mapel ini saat ini.</p>
+                  </div>
+                )}
+              </div>
 
-                  <button 
-                    onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/cbt'; }}
-                    style={{ background: '#ffffff', border: '1px solid #cbd5e1', padding: '12px 16px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontWeight: '700', fontSize: '13px', color: '#0f172a' }}
-                  >
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="material-symbols-outlined" style={{ color: '#d97706' }}>computer</span> 💻 Ruang Ujian CBT / Quiz
-                    </span>
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#94a3b8' }}>arrow_forward</span>
-                  </button>
+              {/* 3. UJIAN CBT & QUIZ FAST LINK */}
+              <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '14px 16px', borderRadius: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '24px' }}>laptop_mac</span>
+                  <div>
+                    <strong style={{ fontSize: '13px', color: '#92400e', display: 'block' }}>Ruang Ujian CBT / Live Quiz</strong>
+                    <span style={{ fontSize: '11px', color: '#b45309' }}>Cek jadwal ujian online & kuis interaktif kelas.</span>
+                  </div>
                 </div>
+                <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/cbt'; }} style={{ background: '#d97706', color: '#ffffff', border: 'none', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer' }}>
+                  Buka CBT
+                </button>
               </div>
 
             </div>
@@ -260,9 +337,9 @@ const SiswaSchedule = () => {
             <div style={{ padding: '16px 24px', background: '#f1f5f9', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
               <button 
                 onClick={() => setSelectedScheduleModal(null)}
-                style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
+                style={{ background: '#0f172a', color: '#ffffff', border: 'none', padding: '10px 24px', borderRadius: '10px', fontWeight: '800', fontSize: '13px', cursor: 'pointer' }}
               >
-                Tutup Sesi
+                Tutup Detail Sesi
               </button>
             </div>
 
