@@ -1030,7 +1030,7 @@ exports.exportSchedulesTemplate = async (req, res) => {
           row.getCell(colPos).value = code;
           row.getCell(colPos).font = { bold: true, size: 9, name: 'Times New Roman' };
           row.getCell(colPos).alignment = { horizontal: 'center' };
-          
+
           row.getCell(colPos + 1).value = name;
           row.getCell(colPos + 1).font = { size: 9, name: 'Times New Roman' };
           colPos += 4;
@@ -1048,7 +1048,7 @@ exports.exportSchedulesTemplate = async (req, res) => {
 exports.importSchedules = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Tidak ada file' });
-    
+
     const activeYear = await getCollection('academic_years').findOne({ is_active: true });
     if (!activeYear) {
       return res.status(400).json({ error: 'Tidak ada tahun ajaran aktif. Silakan aktifkan tahun ajaran terlebih dahulu.' });
@@ -1065,17 +1065,17 @@ exports.importSchedules = async (req, res) => {
         break;
       }
     }
-    
+
     const classes = await getCollection('classes').find({}).toArray();
     const subjects = await getCollection('subjects').find({}).toArray();
     const teachers = await getCollection('users_guru').find({}).toArray();
 
     const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
-    
+
     // DETEKSI FORMAT: Apakah Grid Sekolah (seperti screenshot) atau Template Kita?
     let isGridFormat = false;
     let gridHeaderRow = 6;
-    
+
     for (let r = 1; r <= 15; r++) {
       const row = worksheet.getRow(r);
       for (let c = 1; c <= 30; c++) {
@@ -1152,7 +1152,7 @@ exports.importSchedules = async (req, res) => {
       // -------------------------------------------------------------
       const colToClassMap = {};
       let currentGrade = '';
-      
+
       const gradeRow = worksheet.getRow(gridHeaderRow);
       const classRow = worksheet.getRow(gridHeaderRow + 1);
 
@@ -1181,6 +1181,7 @@ exports.importSchedules = async (req, res) => {
           if (/^[A-Z]$/.test(classCellText) && currentGrade) {
             className = `${currentGrade}${classCellText}`;
           }
+
           const foundClass = classes.find(c => {
             const normC = normalize(c.name);
             const normTarget = normalize(className);
@@ -1222,7 +1223,7 @@ exports.importSchedules = async (req, res) => {
 
       for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
-        
+
         // Cek Kolom 1..6 untuk deteksi Hari
         for (let c = 1; c <= 6; c++) {
           let cellText = row.getCell(c).text || row.getCell(c).value?.toString() || '';
@@ -1363,8 +1364,8 @@ exports.importSchedules = async (req, res) => {
       // FORMAT TEMPLATE KITA
       // -------------------------------------------------------------
       let headers = {};
-      worksheet.getRow(1).eachCell((cell, colNumber) => { 
-        if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber; 
+      worksheet.getRow(1).eachCell((cell, colNumber) => {
+        if (cell.value) headers[cell.value.toString().toLowerCase().trim()] = colNumber;
       });
 
       const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
@@ -1378,12 +1379,12 @@ exports.importSchedules = async (req, res) => {
         const normName = normalize(name);
         return classes.find(c => normalize(c.name) === normName);
       };
-      
+
       const findSubject = (name) => {
         const normName = normalize(name);
         return subjects.find(s => normalize(s.name) === normName);
       };
-      
+
       const findTeacher = (name) => {
         const normName = normalize(name);
         return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
@@ -1469,11 +1470,11 @@ exports.importSchedules = async (req, res) => {
       }
     }
 
-    res.json({ 
-      message: 'Import jadwal pelajaran selesai', 
-      success_count: success, 
-      error_count: errors.length, 
-      errors: errors.slice(0, 15) 
+    res.json({
+      message: 'Import jadwal pelajaran selesai',
+      success_count: success,
+      error_count: errors.length,
+      errors: errors.slice(0, 15)
     });
   } catch (error) {
     res.status(500).json({ error: `Gagal import jadwal: ${error.message}` });
@@ -1574,7 +1575,7 @@ exports.getAcademicMasterReport = async (req, res) => {
     const subjects = await getCollection('subjects').find({}).toArray();
     let queryStudents = {};
     if (class_id && class_id !== 'all') {
-      try { queryStudents.class_id = new mongoose.Types.ObjectId(class_id); } catch(e) { queryStudents.class_id = class_id; }
+      try { queryStudents.class_id = new mongoose.Types.ObjectId(class_id); } catch (e) { queryStudents.class_id = class_id; }
     }
     const students = await getCollection('users_siswa').find(queryStudents).toArray();
     const grades = await getCollection('grades').find({}).toArray();
@@ -1584,26 +1585,26 @@ exports.getAcademicMasterReport = async (req, res) => {
     const studentLegers = students.map(s => {
       const sIdStr = getIdStr(s._id);
       const sClass = classes.find(c => getIdStr(c._id) === getIdStr(s.class_id));
-      
+
       const subjectScores = {};
       let totalScore = 0;
       let countScore = 0;
 
       subjects.forEach(sub => {
         const subIdStr = getIdStr(sub._id);
-        const studentSubs = submissions.filter(subm => 
-          getIdStr(subm.student_id) === sIdStr && 
-          subm.score !== undefined && 
+        const studentSubs = submissions.filter(subm =>
+          getIdStr(subm.student_id) === sIdStr &&
+          subm.score !== undefined &&
           subm.score !== null
         );
-        
+
         let avgNh = 0;
         if (studentSubs.length > 0) {
           avgNh = studentSubs.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0) / studentSubs.length;
         }
 
-        const gradeDoc = grades.find(g => 
-          getIdStr(g.student_id) === sIdStr && 
+        const gradeDoc = grades.find(g =>
+          getIdStr(g.student_id) === sIdStr &&
           getIdStr(g.subject_id) === subIdStr
         );
 
@@ -1651,7 +1652,7 @@ exports.exportAcademicMaster = async (req, res) => {
     const subjects = await getCollection('subjects').find({}).toArray();
     let queryStudents = {};
     if (class_id && class_id !== 'all') {
-      try { queryStudents.class_id = new mongoose.Types.ObjectId(class_id); } catch(e) { queryStudents.class_id = class_id; }
+      try { queryStudents.class_id = new mongoose.Types.ObjectId(class_id); } catch (e) { queryStudents.class_id = class_id; }
     }
     const students = await getCollection('users_siswa').find(queryStudents).toArray();
     const grades = await getCollection('grades').find({}).toArray();
@@ -1704,7 +1705,7 @@ exports.getAttendanceRecapReport = async (req, res) => {
 
     const students = await getCollection('users_siswa').find({}).toArray();
     const parents = await getCollection('users_ortu').find({}).toArray();
-    
+
     let attendances = await getCollection('attendances').find({}).toArray();
     if (!attendances.length) {
       attendances = await getCollection('attendance').find({}).toArray();
@@ -1792,7 +1793,7 @@ exports.exportAttendanceRecap = async (req, res) => {
 
     const students = await getCollection('users_siswa').find({}).toArray();
     const parents = await getCollection('users_ortu').find({}).toArray();
-    
+
     let attendances = await getCollection('attendances').find({}).toArray();
     if (!attendances.length) {
       attendances = await getCollection('attendance').find({}).toArray();
@@ -1802,7 +1803,7 @@ exports.exportAttendanceRecap = async (req, res) => {
     parents.forEach(p => parentMap[getIdStr(p._id)] = p);
 
     const workbook = new ExcelJS.Workbook();
-    
+
     // Tab 1: Rekap per Kelas
     const ws1 = workbook.addWorksheet('Rekapitulasi Kelas');
     ws1.addRow(['No', 'Nama Kelas', 'Jumlah Siswa', 'Total Hadir', 'Sakit', 'Izin', 'Alpa', '% Kehadiran']);
