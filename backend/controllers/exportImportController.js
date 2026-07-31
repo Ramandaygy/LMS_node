@@ -1181,22 +1181,11 @@ exports.importSchedules = async (req, res) => {
           if (/^[A-Z]$/.test(classCellText) && currentGrade) {
             className = `${currentGrade}${classCellText}`;
           }
-
           const foundClass = classes.find(c => {
             const normC = normalize(c.name);
             const normTarget = normalize(className);
             const normCell = normalize(classCellText);
-            if (normC === normTarget || normC === normCell) return true;
-            if (normTarget && normC.endsWith(normTarget)) return true;
-            if (normCell && normC.endsWith(normCell)) return true;
-
-            const matchDigitLetter = className.match(/(\d+)\s*([A-Z])/i) || classCellText.match(/(\d+)\s*([A-Z])/i);
-            if (matchDigitLetter) {
-              const digit = matchDigitLetter[1];
-              const letter = matchDigitLetter[2].toLowerCase();
-              return normC.includes(digit) && normC.endsWith(letter);
-            }
-            return false;
+            return normC === normTarget || normC === normCell;
           });
 
           if (foundClass) {
