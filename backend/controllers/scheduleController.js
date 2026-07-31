@@ -160,6 +160,16 @@ exports.deleteSchedulesByYear = async (req, res) => {
   }
 };
 
+exports.deleteSchedule = async (req, res) => {
+  try {
+    await scheduleService.deleteSchedule(req.params.id);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Failed to delete schedule' });
+  }
+};
+
 exports.getStudentTodaySchedule = async (req, res) => {
   try {
     const studentId = req.user.id;
