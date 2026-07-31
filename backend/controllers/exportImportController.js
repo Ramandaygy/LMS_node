@@ -1070,11 +1070,7 @@ exports.importSchedules = async (req, res) => {
     const subjects = await getCollection('subjects').find({}).toArray();
     const teachers = await getCollection('users_guru').find({}).toArray();
 
-    const normalize = str => {
-      if (!str) return '';
-      if (typeof str === 'object') return '';
-      return String(str).toLowerCase().replace(/[^a-z0-9]/g, '');
-    };
+    const normalize = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
 
     const getCellValueStr = (cell) => {
       if (!cell) return '';
@@ -1386,8 +1382,8 @@ exports.importSchedules = async (req, res) => {
       // -------------------------------------------------------------
       let headers = {};
       worksheet.getRow(1).eachCell((cell, colNumber) => {
-        const hVal = getCellValueStr(cell);
-        if (hVal) headers[hVal.toLowerCase()] = colNumber;
+        const val = getCellValueStr(cell);
+        if (val) headers[val.toLowerCase().trim()] = colNumber;
       });
 
       const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
