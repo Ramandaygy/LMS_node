@@ -788,100 +788,81 @@ exports.exportTeachersTemplate = async (req, res) => {
 exports.exportSchedulesTemplate = async (req, res) => {
   try {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('A4 Januari 2026');
+    const worksheet = workbook.addWorksheet('Template Jadwal');
 
     // Setup column widths
-    const colWidths = [12, 6, 14]; // HARI, JAM KE, WAKTU
-    for (let i = 0; i < 29; i++) colWidths.push(5); // 7A-7J, 8A-8J, 9A-9I
-    colWidths.push(8); // PIKET
+    const colWidths = [12, 6, 14];
+    for (let i = 0; i < 29; i++) colWidths.push(5);
+    colWidths.push(8);
 
     worksheet.columns = colWidths.map((w) => ({ width: w }));
 
     // Styles
-    const borderStyle = {
-      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    };
-
     const headerFill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
     const grade7Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9EAD3' } };
     const grade8Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
     const grade9Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEFE6FF' } };
 
-    // Row 1 - 5: Title Headers
+    // TITLE
     worksheet.mergeCells('A1:AG1');
-    worksheet.getCell('A1').value = 'JADWAL PELAJARAN';
+    worksheet.getCell('A1').value = 'TEMPLATE IMPORT JADWAL PELAJARAN';
     worksheet.getCell('A1').font = { bold: true, size: 14, name: 'Times New Roman' };
     worksheet.getCell('A1').alignment = { horizontal: 'center' };
 
     worksheet.mergeCells('A2:AG2');
-    worksheet.getCell('A2').value = 'SEMESTER GENAP';
-    worksheet.getCell('A2').font = { bold: true, size: 12, name: 'Times New Roman' };
+    worksheet.getCell('A2').value = 'PETUNJUK: Isi kode guru pada kolom kelas yang sesuai';
+    worksheet.getCell('A2').font = { italic: true, size: 10, name: 'Times New Roman' };
     worksheet.getCell('A2').alignment = { horizontal: 'center' };
 
     worksheet.mergeCells('A3:AG3');
-    worksheet.getCell('A3').value = 'SMP NEGERI 1 SURADADI';
-    worksheet.getCell('A3').font = { bold: true, size: 12, name: 'Times New Roman' };
+    worksheet.getCell('A3').value = 'Kosongkan jika tidak ada jadwal. Lihat legenda kode guru di bawah.';
+    worksheet.getCell('A3').font = { italic: true, size: 10, name: 'Times New Roman' };
     worksheet.getCell('A3').alignment = { horizontal: 'center' };
-
-    worksheet.mergeCells('A4:AG4');
-    worksheet.getCell('A4').value = 'TAHUN PELAJARAN 2025/2026';
-    worksheet.getCell('A4').font = { bold: true, size: 11, name: 'Times New Roman' };
-    worksheet.getCell('A4').alignment = { horizontal: 'center' };
-
-    worksheet.mergeCells('A5:AG5');
-    worksheet.getCell('A5').value = 'BERLAKU MULAI 31 MARET 2026';
-    worksheet.getCell('A5').font = { italic: true, size: 10, name: 'Times New Roman' };
-    worksheet.getCell('A5').alignment = { horizontal: 'center' };
 
     // Row 6: Grade Headers
     worksheet.mergeCells('A6:A7');
     worksheet.getCell('A6').value = 'HARI';
+    worksheet.getCell('A6').font = { bold: true, size: 10, name: 'Times New Roman' };
+    worksheet.getCell('A6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('A6').fill = headerFill;
 
     worksheet.mergeCells('B6:B7');
     worksheet.getCell('B6').value = 'JK';
+    worksheet.getCell('B6').font = { bold: true, size: 10, name: 'Times New Roman' };
+    worksheet.getCell('B6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('B6').fill = headerFill;
 
     worksheet.mergeCells('C6:C7');
     worksheet.getCell('C6').value = 'WAKTU';
+    worksheet.getCell('C6').font = { bold: true, size: 10, name: 'Times New Roman' };
+    worksheet.getCell('C6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('C6').fill = headerFill;
 
     worksheet.mergeCells('D6:M6');
     worksheet.getCell('D6').value = 'KELAS VII';
+    worksheet.getCell('D6').font = { bold: true, size: 11, name: 'Times New Roman' };
+    worksheet.getCell('D6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('D6').fill = grade7Fill;
 
     worksheet.mergeCells('N6:W6');
     worksheet.getCell('N6').value = 'KELAS VIII';
+    worksheet.getCell('N6').font = { bold: true, size: 11, name: 'Times New Roman' };
+    worksheet.getCell('N6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('N6').fill = grade8Fill;
 
     worksheet.mergeCells('X6:AF6');
     worksheet.getCell('X6').value = 'KELAS IX';
+    worksheet.getCell('X6').font = { bold: true, size: 11, name: 'Times New Roman' };
+    worksheet.getCell('X6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('X6').fill = grade9Fill;
 
     worksheet.mergeCells('AG6:AG7');
     worksheet.getCell('AG6').value = 'PIKET';
+    worksheet.getCell('AG6').font = { bold: true, size: 10, name: 'Times New Roman' };
+    worksheet.getCell('AG6').alignment = { horizontal: 'center', vertical: 'middle' };
+    worksheet.getCell('AG6').fill = headerFill;
 
-    // Format Row 6 Grade Cells
-    ['A6', 'B6', 'C6', 'AG6'].forEach((ref) => {
-      const cell = worksheet.getCell(ref);
-      cell.font = { bold: true, size: 10, name: 'Times New Roman' };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.fill = headerFill;
-    });
-
-    const g7Cell = worksheet.getCell('D6');
-    g7Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
-    g7Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    g7Cell.fill = grade7Fill;
-
-    const g8Cell = worksheet.getCell('N6');
-    g8Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
-    g8Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    g8Cell.fill = grade8Fill;
-
-    const g9Cell = worksheet.getCell('X6');
-    g9Cell.font = { bold: true, size: 11, name: 'Times New Roman' };
-    g9Cell.alignment = { horizontal: 'center', vertical: 'middle' };
-    g9Cell.fill = grade9Fill;
-
-    // Row 7: Class Letter Subheaders (D7..AF7)
+    // Row 7: Class Letter Subheaders
     const grade7Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     const grade8Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
     const grade9Letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
@@ -913,176 +894,197 @@ exports.exportSchedulesTemplate = async (req, res) => {
       cell.fill = grade9Fill;
     });
 
-    // Schedule Template Sample Data Rows
-    const scheduleRows = [
-      // SENIN
-      { day: 'SENIN', jk: '1', time: '07.00-08.00', isSpecial: true, specialText: 'U P A C A R A   B E N D E R A' },
-      { day: 'SENIN', jk: '2', time: '08.00-08.40', codes: ['Oo', 'C', 'E', 'Gg', 'Ww', 'Ss', 'Pp', 'S', 'Aa', 'Uu', 'I', 'O', 'P', 'K', 'L', 'Z', 'T', 'X', 'Ii', 'Jj', 'J', 'N', 'Y', 'F', 'U', 'Xx', 'Hh', 'Ff', 'Tt'], piket: 'C' },
-      { day: 'SENIN', jk: '3', time: '08.40-09.20', codes: ['Oo', 'C', 'E', 'Gg', 'Ww', 'Ss', 'Pp', 'S', 'Aa', 'Uu', 'I', 'O', 'P', 'K', 'L', 'Z', 'T', 'X', 'M', 'Jj', 'J', 'N', 'Y', 'F', 'U', 'Xx', 'Hh', 'Ff', 'Qq'], piket: 'H' },
-      { day: 'SENIN', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'I' },
-      { day: 'SENIN', jk: '4', time: '09.40-10.20', codes: ['C', 'Oo', 'Vv', 'Xx', 'Ww', 'S', 'Ss', 'V', 'Pp', 'Uu', 'P', 'I', 'Q', 'K', 'Z', 'Gg', 'L', 'X', 'M', 'Ii', 'Y', 'J', 'Tt', 'F', 'B', 'U', 'Qq', 'Ff', 'W'], piket: 'Aa' },
-      { day: 'SENIN', jk: '5', time: '10.20-11.00', codes: ['C', 'Oo', 'Vv', 'Xx', 'H', 'S', 'Ss', 'V', 'Pp', 'Ii', 'P', 'I', 'Q', 'D', 'Z', 'Gg', 'L', 'T', 'X', 'Aa', 'Y', 'J', 'F', 'Hh', 'B', 'U', 'Mm', 'O', 'W'], piket: 'Bb' },
-      { day: 'SENIN', jk: '6', time: '11.00-11.40', codes: ['Vv', 'Oo', 'C', 'Ww', 'H', 'Rr', 'Ss', 'W', 'Uu', 'Ii', 'Q', 'N', 'R', 'D', 'K', 'Gg', 'Z', 'T', 'X', 'Aa', 'Jj', 'J', 'F', 'Hh', 'Qq', 'Tt', 'Mm', 'O', 'Ff'], piket: 'Uu' },
-      { day: 'SENIN', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
-      { day: 'SENIN', jk: '7', time: '12.10-12.50', codes: ['H', 'Pp', 'C', 'Ww', 'E', 'Vv', 'V', 'W', 'Uu', 'S', 'Q', 'D', 'R', 'P', 'K', 'Ii', 'Z', 'L', 'X', 'Rr', 'Jj', 'G', 'F', 'B', 'Hh', 'Tt', 'U', 'Xx', 'Ff'] },
-      { day: 'SENIN', jk: '8', time: '12.50-13.30', codes: ['H', 'Pp', 'Oo', 'Ww', 'E', 'Vv', 'V', 'W', 'Uu', 'S', 'X', 'D', 'R', 'P', 'K', 'Ii', 'Z', 'L', 'Qq', 'Rr', 'Jj', 'G', 'J', 'B', 'Hh', 'Tt', 'U', 'Xx', 'Ff'] },
-
-      // SELASA
-      { day: 'SELASA', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
-      { day: 'SELASA', jk: '1', time: '07.20-08.00', codes: ['Mm', 'Vv', 'Oo', 'C', 'Gg', 'Rr', 'S', 'Ss', 'Ww', 'Ii', 'R', 'Q', 'Z', 'O', 'I', 'L', 'K', 'T', 'Qq', 'X', 'G', 'Y', 'J', 'Hh', 'U', 'Ff', 'V', 'W', 'Xx'], piket: 'K' },
-      { day: 'SELASA', jk: '2', time: '08.00-08.40', codes: ['Mm', 'Vv', 'Oo', 'C', 'Gg', 'Rr', 'S', 'Ss', 'Ww', 'Ii', 'R', 'Q', 'Z', 'O', 'P', 'L', 'K', 'T', 'Qq', 'X', 'G', 'Y', 'J', 'Hh', 'U', 'Ff', 'V', 'W', 'Xx'], piket: 'L' },
-      { day: 'SELASA', jk: '3', time: '08.40-09.20', codes: ['Mm', 'Pp', 'H', 'Oo', 'C', 'Gg', 'Xx', 'Ww', 'Ss', 'Aa', 'N', 'Z', 'O', 'I', 'P', 'Ii', 'K', 'M', 'T', 'X', 'F', 'G', 'B', 'J', 'Y', 'Ff', 'V', 'Tt', 'Hh'], piket: 'M' },
-      { day: 'SELASA', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'W' },
-      { day: 'SELASA', jk: '4', time: '09.40-10.20', codes: ['Vv', 'Mm', 'H', 'Oo', 'C', 'Gg', 'Xx', 'V', 'Ss', 'Aa', 'N', 'Z', 'O', 'I', 'R', 'P', 'Qq', 'M', 'T', 'Jj', 'F', 'G', 'B', 'J', 'Y', 'U', 'Ff', 'Tt', 'Hh'], piket: 'Ff' },
-      { day: 'SELASA', jk: '5', time: '10.20-11.00', codes: ['Vv', 'Mm', 'E', 'Oo', 'H', 'S', 'V', 'T', 'Ss', 'Ww', 'N', 'R', 'I', 'D', 'L', 'P', 'Aa', 'Qq', 'Rr', 'Jj', 'B', 'F', 'Q', 'Tt', 'M', 'U', 'Ff', 'Hh', 'W'], piket: 'Gg' },
-      { day: 'SELASA', jk: '6', time: '11.00-11.40', codes: ['Vv', 'Mm', 'E', 'Gg', 'H', 'S', 'Ww', 'T', 'W', 'Pp', 'X', 'R', 'I', 'D', 'L', 'K', 'Aa', 'Qq', 'Rr', 'Jj', 'B', 'F', 'Q', 'Tt', 'M', 'Y', 'Ff', 'Hh', 'V'], piket: 'W' },
-      { day: 'SELASA', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
-      { day: 'SELASA', jk: '7', time: '12.10-12.50', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Ss', 'Ww', 'S', 'Aa', 'Pp', 'X', 'D', 'R', 'N', 'P', 'K', 'Ii', 'Qq', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'M', 'Y', 'U', 'O', 'V'] },
-      { day: 'SELASA', jk: '8', time: '12.50-13.30', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Pp', 'Ww', 'S', 'Aa', 'Ff', 'Oo', 'D', 'R', 'N', 'P', 'Ss', 'Ii', 'M', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'J', 'Y', 'U', 'O', 'V'] },
-
-      // RABU
-      { day: 'RABU', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
-      { day: 'RABU', jk: '1', time: '07.20-08.00', codes: ['Nn','C','Gg','Pp','Oo','E','Uu','W','Xx','Ww','D','X','K','Q','Vv','Ss','L','Z','Rr','T','F','Jj','N','Y','J','Hh','O','U','Qq'] },
-      { day: 'RABU', jk: '2', time: '08.00-08.40', codes: ['Nn','C','Gg','Pp','Oo','E','Uu','W','Xx','Ww','D','X','K','Q','Vv','Ss','L','Z','Rr','T','F','Jj','G','Y','J','Hh','O','U','Qq'], piket: 'Y' },
-      { day: 'RABU', jk: '3', time: '08.40-09.20', codes: ['Nn','C','Xx','Gg','Vv','Pp','Uu','T','Rr','Ss','Oo','X','K','R','N','L','Qq','Ii','Z','Aa','F','Jj','G','Ff','Y','J','W','Mm','U','Vv'] },
-      { day: 'RABU', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'P' },
-      { day: 'RABU', jk: '4', time: '09.40-10.20', codes: ['H','Nn','Xx','Gg','Vv','Pp','S','Uu','Rr','Ss','Oo','P','X','R','N','L','Qq','Aa','Z','M','B','F','Jj','Ff','Y','J','W','Mm','U','Nn'] },
-      { day: 'RABU', jk: '5', time: '10.20-11.00', codes: ['H','Nn','Mm','E','Gg','Xx','S','Uu','Ww','Rr','Z','P','Yy','R','X','L','Ii','Aa','Q','M','B','F','Jj','N','Y','O','Tt','V','U','Hh'] },
-      { day: 'RABU', jk: '6', time: '11.00-11.40', codes: ['C','Nn','Pp','E','Gg','Xx','V','Uu','T','Rr','Z','K','Yy','X','I','R','Ii','Aa','Q','M','N','F','Jj','J','Ff','O','Qq','Tt','Mm','Ii'] },
-      { day: 'RABU', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
-      { day: 'RABU', jk: '7', time: '12.10-12.50', codes: ['C','Vv','H','Pp','Gg','S','V','Ww','W','T','P','K','O','X','I','Q','Ii','L','Aa','Rr','N','B','Tt','Jj','Ff','M','Qq','Hh','Mm'] },
-      { day: 'RABU', jk: '8', time: '12.50-13.30', codes: ['Gg','Vv','H','Xx','Oo','S','Pp','Ww','W','T','P','K','O','X','Z','Q','Ss','L','Aa','Rr','N','B','Tt','Jj','Ff','V','J','Hh','Mm'] },
-
-      // KAMIS
-      { day: 'KAMIS', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
-      { day: 'KAMIS', jk: '1', time: '07.20-08.00', codes: ['E','H','C','Mm','Pp','Gg','Rr','V','W','T','I','Oo','X','O','Q','R','Ss','Aa','Ii','Nn','G','Ff','Jj','F','Hh','M','J','U','Tt'], piket: 'Q' },
-      { day: 'KAMIS', jk: '2', time: '08.00-08.40', codes: ['E','H','C','Mm','Pp','Gg','Rr','V','W','T','I','Oo','X','O','Q','R','Ss','Aa','Ii','Nn','G','Y','Jj','F','Hh','M','J','U','Tt'], piket: 'R' },
-      { day: 'KAMIS', jk: '3', time: '08.40-09.20', codes: ['Pp','H','C','Mm','Xx','Gg','T','Rr','Yy','Ii','I','N','Oo','Z','R','P','X','Ss','M','Nn','Q','Y','Jj','Tt','Qq','V','O','J','U','T'] },
-      { day: 'KAMIS', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'Jj' },
-      { day: 'KAMIS', jk: '4', time: '09.40-10.20', codes: ['Gg','E','Pp','H','Xx','C','T','Rr','Yy','S','D','N','Oo','Z','R','P','X','Ss','Aa','Ii','Q','Jj','Y','M','Qq','V','O','J','U'], piket: 'Oo' },
-      { day: 'KAMIS', jk: '5', time: '10.20-11.00', codes: ['Gg','E','Pp','H','Rr','C','W','K','Yy','S','D','Z','Oo','R','L','X','P','Ss','Aa','Ii','Tt','Jj','B','Q','F','Y','Hh','J','O'], piket: 'Pp' },
-      { day: 'KAMIS', jk: '6', time: '11.00-11.40', codes: ['Oo','Gg','Nn','C','Pp','Ww','W','K','S','Ff','Z','I','Yy','R','L','X','P','Ii','Aa','Qq','M','Jj','B','Q','F','Y','Hh','V','O'] },
-      { day: 'KAMIS', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
-      { day: 'KAMIS', jk: '7', time: '12.10-12.50', codes: ['Xx','Gg','Nn','C','E','Ww','S','K','T','Ff','O','I','Yy','P','X','Vv','Aa','Ii','L','Qq','M','Tt','G','Jj','Q','Hh','U','V','W'] },
-      { day: 'KAMIS', jk: '8', time: '12.50-13.30', codes: ['Xx','Gg','Nn','C','E','Ww','S','Ss','T','Pp','O','I','N','P','X','Vv','Aa','Ii','L','Qq','M','Tt','G','Jj','Q','Hh','U','Mm','W'] },
-
-      // JUMAT
-      { day: 'JUMAT', jk: '', time: '07.00-09.00', isSpecial: true, specialText: 'J U M A \' T   B E R S I H   /   S E H A T ,   S H O L A T   D H U H A ,   I S T I G H O S A H' },
-      { day: 'JUMAT', jk: '1', time: '09.00-09.40', codes: ['Ww','H','Gg','Vv','C','K','W','Pp','S','Ss','R','Oo','I','Yy','N','Ii','Aa','Z','L','Q','Jj','Y','M','Ff','F','V','Mm','Qq','U'], piket: 'V,U' },
-      { day: 'JUMAT', jk: '2', time: '09.40-10.20', codes: ['Ww','H','Gg','E','C','K','W','Pp','S','Rr','R','P','I','Yy','Vv','Ss','T','Hh','L','Q','Y','Ff','M','N','F','V','Xx','U','O'], piket: 'O,Qq' },
-      { day: 'JUMAT', jk: '3', time: '10.20-11.00', codes: ['Ww','H','Gg','E','C','K','W','Pp','S','Rr','R','P','Z','Oo','Vv','L','T','Hh','Ss','Yy','Y','Ff','M','N','F','J','Xx','U','O'], piket: 'Mm,Rr' },
-
-      // SABTU
-      { day: 'SABTU', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
-      { day: 'SABTU', jk: '1', time: '07.20-08.00', codes: ['C','Ww','Mm','H','Vv','E','Rr','Xx','T','S','K','R','Yy','Oo','I','Z','Qq','Ii','Ss','Aa','Jj','N','Ff','Y','B','O','V','W','J'] },
-      { day: 'SABTU', jk: '2', time: '08.00-08.40', codes: ['Gg','Ww','Mm','H','Vv','E','Rr','Xx','Pp','S','K','R','Yy','Oo','I','Z','P','Q','Ss','Aa','Jj','Tt','Ff','Y','B','O','V','W','J'] },
-      { day: 'SABTU', jk: '3', time: '08.40-09.20', codes: ['Gg','Ww','H','Vv','Yy','C','T','Rr','Aa','Xx','K','R','I','N','Oo','Z','P','Q','Ii','Ss','Jj','M','Ff','Y','U','Qq','Tt','W','J'], piket: 'N' },
-      { day: 'SABTU', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'Z' },
-      { day: 'SABTU', jk: '4', time: '09.40-10.20', codes: ['Pp','Gg','H','Vv','Yy','C','T','Rr','S','Xx','O','D','N','Z','Oo','K','Q','L','Ii','Ss','J','M','Y','B','U','Qq','Tt','V','Hh'], piket: 'Ss' },
-      { day: 'SABTU', jk: '5', time: '10.20-11.00', codes: ['Pp','Gg','Ww','Vv','Mm','C','K','T','S','Aa','O','D','N','I','Oo','Ii','Q','L','Z','Ss','Ff','M','Y','B','Tt','Qq','W','V','Hh'], piket: 'Tt' },
-      { day: 'SABTU', jk: '', time: '11.00-11.15', isSpecial: true, specialText: '', piket: 'Xx' },
-      { day: 'SABTU', jk: '6', time: '11.15-11.55', codes: ['H','E','Ww','Xx','Mm','Vv','K','S','Rr','Aa','D','O','P','I','Z','R','L','Hh','T','Yy','Ff','Q','N','M','Tt','U','W','Qq','V'], piket: 'Yy' },
-      { day: 'SABTU', jk: '7', time: '11.55-12.35', codes: ['H','E','Ww','Xx','Mm','Vv','K','S','Rr','Aa','D','O','P','I','Z','R','L','Hh','T','Yy','Ff','Q','N','M','Tt','U','W','Qq','V'] },
+    // ============================================================
+    // STRUCTURE KOSONG - HANYA HEADER DAN WAKTU
+    // ============================================================
+    const dayData = [
+      { day: 'SENIN', slots: [
+        { jk: '1', time: '07.20-08.00' },
+        { jk: '2', time: '08.00-08.40' },
+        { jk: '3', time: '08.40-09.20' },
+        { jk: '', time: '09.20-09.40', isSpecial: true, text: 'ISTIRAHAT' },
+        { jk: '4', time: '09.40-10.20' },
+        { jk: '5', time: '10.20-11.00' },
+        { jk: '6', time: '11.00-11.40' },
+        { jk: '', time: '11.40-12.10', isSpecial: true, text: 'ISTIRAHAT / SHOLAT DHUHUR' },
+        { jk: '7', time: '12.10-12.50' },
+        { jk: '8', time: '12.50-13.30' },
+      ]},
+      { day: 'SELASA', slots: [
+        { jk: '', time: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' },
+        { jk: '1', time: '07.20-08.00' },
+        { jk: '2', time: '08.00-08.40' },
+        { jk: '3', time: '08.40-09.20' },
+        { jk: '', time: '09.20-09.40', isSpecial: true, text: 'ISTIRAHAT' },
+        { jk: '4', time: '09.40-10.20' },
+        { jk: '5', time: '10.20-11.00' },
+        { jk: '6', time: '11.00-11.40' },
+        { jk: '', time: '11.40-12.10', isSpecial: true, text: 'ISTIRAHAT / SHOLAT DHUHUR' },
+        { jk: '7', time: '12.10-12.50' },
+        { jk: '8', time: '12.50-13.30' },
+      ]},
+      { day: 'RABU', slots: [
+        { jk: '', time: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' },
+        { jk: '1', time: '07.20-08.00' },
+        { jk: '2', time: '08.00-08.40' },
+        { jk: '3', time: '08.40-09.20' },
+        { jk: '', time: '09.20-09.40', isSpecial: true, text: 'ISTIRAHAT' },
+        { jk: '4', time: '09.40-10.20' },
+        { jk: '5', time: '10.20-11.00' },
+        { jk: '6', time: '11.00-11.40' },
+        { jk: '', time: '11.40-12.10', isSpecial: true, text: 'ISTIRAHAT / SHOLAT DHUHUR' },
+        { jk: '7', time: '12.10-12.50' },
+        { jk: '8', time: '12.50-13.30' },
+      ]},
+      { day: 'KAMIS', slots: [
+        { jk: '', time: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' },
+        { jk: '1', time: '07.20-08.00' },
+        { jk: '2', time: '08.00-08.40' },
+        { jk: '3', time: '08.40-09.20' },
+        { jk: '', time: '09.20-09.40', isSpecial: true, text: 'ISTIRAHAT' },
+        { jk: '4', time: '09.40-10.20' },
+        { jk: '5', time: '10.20-11.00' },
+        { jk: '6', time: '11.00-11.40' },
+        { jk: '', time: '11.40-12.10', isSpecial: true, text: 'ISTIRAHAT / SHOLAT DHUHUR' },
+        { jk: '7', time: '12.10-12.50' },
+        { jk: '8', time: '12.50-13.30' },
+      ]},
+      { day: 'JUMAT', slots: [
+        { jk: '', time: '07.00-09.00', isSpecial: true, text: 'JUMAT BERSIH / SEHAT, SHOLAT DHUHA, ISTIGHOSAH' },
+        { jk: '1', time: '09.00-09.40' },
+        { jk: '2', time: '09.40-10.20' },
+        { jk: '3', time: '10.20-11.00' },
+      ]},
+      { day: 'SABTU', slots: [
+        { jk: '', time: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' },
+        { jk: '1', time: '07.20-08.00' },
+        { jk: '2', time: '08.00-08.40' },
+        { jk: '3', time: '08.40-09.20' },
+        { jk: '', time: '09.20-09.40', isSpecial: true, text: 'ISTIRAHAT' },
+        { jk: '4', time: '09.40-10.20' },
+        { jk: '5', time: '10.20-11.00' },
+        { jk: '', time: '11.00-11.15' },
+        { jk: '6', time: '11.15-11.55' },
+        { jk: '7', time: '11.55-12.35' },
+      ]},
     ];
 
-    let startRowIndex = 8;
-    let prevDay = '';
-    let dayStartRow = 8;
+    let rowIndex = 8;
 
-    scheduleRows.forEach((sr, idx) => {
-      const currentR = startRowIndex + idx;
-      const row = worksheet.getRow(currentR);
+    dayData.forEach((dayInfo) => {
+      dayInfo.slots.forEach((slot, idx) => {
+        const row = worksheet.getRow(rowIndex);
+        const isFirstRow = idx === 0;
 
-      // Hari
-      if (sr.day !== prevDay) {
-        if (prevDay && dayStartRow < currentR - 1) {
-          worksheet.mergeCells(`A${dayStartRow}:A${currentR - 1}`);
+        // Hari (kolom A)
+        if (isFirstRow) {
+          row.getCell(1).value = dayInfo.day;
         }
-        row.getCell(1).value = sr.day;
-        dayStartRow = currentR;
-        prevDay = sr.day;
-      }
 
-      row.getCell(2).value = sr.jk || '';
-      row.getCell(3).value = sr.time || '';
+        // JK (kolom B)
+        row.getCell(2).value = slot.jk || '';
 
-      if (sr.isSpecial) {
-        worksheet.mergeCells(`D${currentR}:AF${currentR}`);
-        const specCell = row.getCell(4);
-        specCell.value = sr.specialText;
-        specCell.font = { bold: true, size: 9, name: 'Times New Roman' };
-        specCell.alignment = { horizontal: 'center', vertical: 'middle' };
-        specCell.fill = headerFill;
-      } else if (sr.codes && Array.isArray(sr.codes)) {
-        sr.codes.forEach((code, cIdx) => {
-          const colNum = 4 + cIdx;
+        // WAKTU (kolom C)
+        row.getCell(3).value = slot.time || '';
+
+        if (slot.isSpecial) {
+          // Merge D sampai AF untuk special text
+          worksheet.mergeCells(`D${rowIndex}:AF${rowIndex}`);
+          const specCell = row.getCell(4);
+          specCell.value = slot.text;
+          specCell.font = { bold: true, size: 9, name: 'Times New Roman' };
+          specCell.alignment = { horizontal: 'center', vertical: 'middle' };
+          specCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+        } else {
+          // Kosongkan semua cell D sampai AF
+          for (let col = 4; col <= 31; col++) {
+            row.getCell(col).value = '';
+          }
+        }
+
+        // Style untuk kolom A, B, C
+        [1, 2, 3].forEach((colNum) => {
           const cell = row.getCell(colNum);
-          cell.value = code;
-          cell.font = { size: 9, name: 'Times New Roman' };
+          cell.font = { bold: colNum === 1, size: 9, name: 'Times New Roman' };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
         });
-      }
 
-      if (sr.piket) {
-        const piketCell = row.getCell(33); // Col AG
-        piketCell.value = sr.piket;
-        piketCell.font = { bold: true, size: 9, name: 'Times New Roman' };
-        piketCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      }
-
-      // Border and Font for A..C
-      [1, 2, 3].forEach((colNum) => {
-        const cell = row.getCell(colNum);
-        cell.font = { bold: colNum === 1, size: 9, name: 'Times New Roman' };
-        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        rowIndex++;
       });
+
+      // Tambahkan baris kosong antar hari
+      rowIndex++;
     });
 
-    if (dayStartRow < startRowIndex + scheduleRows.length - 1) {
-      worksheet.mergeCells(`A${dayStartRow}:A${startRowIndex + scheduleRows.length - 1}`);
+    // ============================================================
+    // LEGENDA KODE GURU - AMBIL DARI DATABASE
+    // ============================================================
+    const teacherLegendRow = rowIndex + 2;
+    worksheet.getCell(`A${teacherLegendRow}`).value = 'Keterangan Kode Guru (isi kode ini pada kolom jadwal):';
+    worksheet.getCell(`A${teacherLegendRow}`).font = { bold: true, size: 11, name: 'Times New Roman' };
+
+    // Ambil data guru dari database
+    const teachers = await getCollection('users_guru').find({ is_active: true }).toArray();
+    
+    // Format legend data: [Kode, Nama, Kode, Nama, ...] per baris (maks 5 pasang per baris)
+    const legendRows = [];
+    let currentRow = [];
+    
+    teachers.forEach((teacher, index) => {
+      const code = teacher.teacher_code || teacher.username || teacher.nip || `G${String(index + 1).padStart(2, '0')}`;
+      const name = teacher.full_name || teacher.username || '-';
+      
+      currentRow.push(code);
+      currentRow.push(name);
+      
+      // Setiap 5 pasang (10 kolom) pindah baris
+      if (currentRow.length >= 10) {
+        legendRows.push([...currentRow]);
+        currentRow = [];
+      }
+    });
+    
+    // Tambahkan sisa data
+    if (currentRow.length > 0) {
+      // Tambahkan placeholder kosong hingga genap 10 kolom
+      while (currentRow.length < 10) {
+        currentRow.push('');
+      }
+      legendRows.push([...currentRow]);
     }
 
-    // Add Teacher Legend at the Bottom
-    let legendRowIndex = startRowIndex + scheduleRows.length + 3;
-    worksheet.getCell(`A${legendRowIndex}`).value = 'Keterangan Kode Guru:';
-    worksheet.getCell(`A${legendRowIndex}`).font = { bold: true, size: 11, name: 'Times New Roman' };
-
-    const legendData = [
-      ['A', 'Suharto, S.Pd.,M.M.', 'O', 'Istiqomah, S.Pd', 'Cc', 'Melisa Rahmawati, S.Pd', 'Qq', 'Tri Toni Wulandari, S.Pd', 'Ww', 'Reza Lutfi Ananda, S.T'],
-      ['B', 'Dra. Titin Faridah, M.M.', 'P', 'Marukhi Yuliani, S.Pd', 'Dd', 'Alifia Nur Pramida, S.Pd', 'Rr', 'Mutiatul Zakiyah, S.Pd', 'Xx', 'Awening Wulan N.R.,S.Pd.,Gr.'],
-      ['C', 'Srikhatun, S.Pd', 'Q', 'Riski Pamedharsih, S.Pd', 'Ee', 'Herlambang Jatikusumo, S,Pd', 'Ss', 'Satrio Nanda Nugroho, S.Pd', '', ''],
-      ['D', 'Dra. Saijah SW', 'R', 'Nurul Arifiyah, S.Pd', 'Ff', 'Gilang Nefrizal Anggita, S.Pd.', 'Tt', 'Murniasih, S.Kom', '', ''],
-      ['E', 'Ita Puspitasari, S.Pd.,M.Pd', 'S', 'M. Sahyudin, S.Pd.', 'Gg', 'Wahyu Indrianto, S.Pd', 'Uu', 'Nurkhasanah, S.Ag', '', ''],
-      ['F', 'Atik Aflacha, S.Pd', 'T', 'Andy Handayani, S.Pd', 'Hh', 'Istifadah, S.Pd', 'Vv', 'Etik muzaenah, SE', '', ''],
-      ['G', 'Ali Mursyidi, S.Pd', 'U', 'Azizah Tri Lestari, S.Pd', 'Ii', 'Mohammad Teguh Arifiyanto, S.Pd', '', '', '', ''],
-      ['H', 'Dra. Etikarwati', 'V', 'Ade Agung Pangabekti, S.Pd.', 'Jj', 'Nila Isnantika Y, S.pd', '', '', '', ''],
-      ['I', 'Catur Budiningsih,S.Pd', 'W', 'Emi Fatriyah, S.Pd', 'Kk', 'Dara Amalia AW, S.Pd', '', '', '', ''],
-      ['J', 'Martikno, S.Pd', 'X', 'Takhuri, s.Pd', 'Ll', 'Novita Gigih Praharani, S.Pd', '', '', '', ''],
-      ['K', 'Rustinah, S.Ag', 'Y', 'Nokipah, S.Pd', 'Mm', 'Hikmah Putri Nofianti, S.Pd', '', '', '', ''],
-      ['L', 'Eni Nugraeni, S.Pd', 'Z', 'Susi Herlina, S.Kom', 'Nn', 'Wiwin Ernawati, S.Kom', '', '', '', ''],
-      ['M', 'Muzayin,S.Pd.I', 'Aa', 'Dwi Margaretna, S.Pd', 'Oo', 'Catur Aji Krismawan, S.Pd.', '', '', '', ''],
-      ['N', 'Sulistyo Apriliawati, S.Pd.', 'Bb', 'Asmawi, S.Pd', 'Pp', 'Moh. Takhril, S.Pd', '', '', '', '']
-    ];
-
-    legendData.forEach((rowVals, rIdx) => {
-      const row = worksheet.getRow(legendRowIndex + 1 + rIdx);
+    // Tulis legend ke worksheet
+    legendRows.forEach((rowVals, rIdx) => {
+      const row = worksheet.getRow(teacherLegendRow + 1 + rIdx);
       let colPos = 1;
       for (let i = 0; i < rowVals.length; i += 2) {
         const code = rowVals[i];
         const name = rowVals[i + 1];
         if (code) {
-          row.getCell(colPos).value = code;
-          row.getCell(colPos).font = { bold: true, size: 9, name: 'Times New Roman' };
-          row.getCell(colPos).alignment = { horizontal: 'center' };
+          const codeCell = row.getCell(colPos);
+          codeCell.value = code;
+          codeCell.font = { bold: true, size: 9, name: 'Times New Roman' };
+          codeCell.alignment = { horizontal: 'center' };
+          codeCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
 
-          row.getCell(colPos + 1).value = name;
-          row.getCell(colPos + 1).font = { size: 9, name: 'Times New Roman' };
+          const nameCell = row.getCell(colPos + 1);
+          nameCell.value = name || '-';
+          nameCell.font = { size: 9, name: 'Times New Roman' };
+          nameCell.alignment = { horizontal: 'left' };
           colPos += 4;
         }
       }
     });
 
-    await sendExcelFile(res, workbook, 'Jadwal KBM Januari 2026.xlsx');
+    // CATATAN PENTING
+    const noteRow = teacherLegendRow + legendRows.length + 2;
+    worksheet.mergeCells(`A${noteRow}:AG${noteRow}`);
+    const noteCell = worksheet.getCell(`A${noteRow}`);
+    noteCell.value = 'CATATAN: Gunakan KODE yang tertera di legenda untuk mengisi jadwal. Format: tulis kode pada kolom kelas yang sesuai. Untuk PIKET, tulis kode guru piket (bisa lebih dari 1 dipisah koma).';
+    noteCell.font = { italic: true, size: 9, name: 'Times New Roman', color: { argb: 'FFEF4444' } };
+    noteCell.alignment = { horizontal: 'center' };
+
+    await sendExcelFile(res, workbook, 'template_import_jadwal.xlsx');
   } catch (error) {
     console.error('Error generating schedule template:', error);
     res.status(500).json({ error: `Gagal membuat template: ${error.message}` });
@@ -1100,11 +1102,12 @@ exports.importSchedules = async (req, res) => {
 
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(req.file.buffer);
-    // Find the worksheet containing schedule data
+    
+    // Cari worksheet yang mengandung data jadwal
     let worksheet = workbook.getWorksheet(1);
     for (const ws of workbook.worksheets) {
       const sheetNameUpper = ws.name.toUpperCase();
-      if (sheetNameUpper.includes('JADWAL') || sheetNameUpper.includes('KBM') || sheetNameUpper.includes('GENAP') || sheetNameUpper.includes('GANJIL')) {
+      if (sheetNameUpper.includes('JADWAL') || sheetNameUpper.includes('KBM') || sheetNameUpper.includes('GENAP') || sheetNameUpper.includes('GANJIL') || sheetNameUpper.includes('TEMPLATE')) {
         worksheet = ws;
         break;
       }
@@ -1143,7 +1146,72 @@ exports.importSchedules = async (req, res) => {
       return String(val).trim();
     };
 
-    // DETEKSI FORMAT: Apakah Grid Sekolah (seperti screenshot) atau Template Kita?
+    // ============================================================
+    // FUNGSI PENCARIAN FLEKSIBEL
+    // ============================================================
+    const findTeacherByCode = (code) => {
+      if (!code) return null;
+      const cleanCode = code.toString().trim();
+      
+      // 1. Cari berdasarkan teacher_code (case insensitive)
+      let teacher = teachers.find(t => 
+        t.teacher_code && t.teacher_code.toLowerCase() === cleanCode.toLowerCase()
+      );
+      if (teacher) return teacher;
+
+      // 2. Cari berdasarkan username
+      teacher = teachers.find(t => 
+        t.username && t.username.toLowerCase() === cleanCode.toLowerCase()
+      );
+      if (teacher) return teacher;
+
+      // 3. Cari berdasarkan NIP
+      teacher = teachers.find(t => 
+        t.nip && t.nip.toString().trim() === cleanCode
+      );
+      if (teacher) return teacher;
+
+      // 4. Cari berdasarkan nama (jika code adalah nama)
+      const normalizedClean = normalize(cleanCode);
+      teacher = teachers.find(t => {
+        if (!t.full_name) return false;
+        const normalizedName = normalize(t.full_name);
+        return normalizedName === normalizedClean || 
+               normalizedName.includes(normalizedClean) ||
+               normalizedClean.includes(normalizedName);
+      });
+      if (teacher) return teacher;
+
+      return null;
+    };
+
+    const findSubjectByCode = (code) => {
+      if (!code) return null;
+      const cleanCode = code.toString().trim();
+      
+      // 1. Cari berdasarkan kode mapel
+      let subject = subjects.find(s => 
+        s.code && s.code.toLowerCase() === cleanCode.toLowerCase()
+      );
+      if (subject) return subject;
+
+      // 2. Cari berdasarkan nama
+      const normalizedClean = normalize(cleanCode);
+      subject = subjects.find(s => {
+        if (!s.name) return false;
+        const normalizedName = normalize(s.name);
+        return normalizedName === normalizedClean || 
+               normalizedName.includes(normalizedClean) ||
+               normalizedClean.includes(normalizedName);
+      });
+      if (subject) return subject;
+
+      return null;
+    };
+
+    // ============================================================
+    // DETEKSI FORMAT
+    // ============================================================
     let isGridFormat = false;
     let gridHeaderRow = 6;
 
@@ -1160,102 +1228,38 @@ exports.importSchedules = async (req, res) => {
       if (isGridFormat) break;
     }
 
-    const OFFICIAL_TEACHER_LEGEND = {
-      'A': 'Suharto',
-      'B': 'Titin Faridah',
-      'C': 'Srikhatun',
-      'D': 'Saijah',
-      'E': 'Ita Puspitasari',
-      'F': 'Atik Aflacha',
-      'G': 'Ali Mursyidi',
-      'H': 'Etikarwati',
-      'I': 'Catur Budiningsih',
-      'J': 'Martikno',
-      'K': 'Rustinah',
-      'L': 'Eni Nugraeni',
-      'M': 'Muzayin',
-      'N': 'Sulistyo Apriliawati',
-      'O': 'Istiqomah',
-      'P': 'Marukhi Yuliani',
-      'Q': 'Riski Pamedharsih',
-      'R': 'Nurul Arifiyah',
-      'S': 'Sahyudin',
-      'T': 'Andy Handayani',
-      'U': 'Azizah Tri Lestari',
-      'V': 'Ade Agung Pangabekti',
-      'W': 'Emi Fatriyah',
-      'X': 'Takhuri',
-      'Y': 'Nokipah',
-      'Z': 'Susi Herlina',
-      'Aa': 'Dwi Margaretna',
-      'Bb': 'Asmawi',
-      'Cc': 'Melisa Rahmawati',
-      'Dd': 'Alifia Nur Pramida',
-      'Ee': 'Herlambang Jatikusumo',
-      'Ff': 'Gilang Nefrizal Anggita',
-      'Gg': 'Wahyu Indrianto',
-      'Hh': 'Istifadah',
-      'Ii': 'Mohammad Teguh Arifiyanto',
-      'Jj': 'Nila Isnantika',
-      'Kk': 'Dara Amalia',
-      'Ll': 'Novita Gigih Praharani',
-      'Mm': 'Hikmah Putri Nofianti',
-      'Nn': 'Wiwin Ernawati',
-      'Oo': 'Catur Aji Krismawan',
-      'Pp': 'Moh. Takhril',
-      'Qq': 'Tri Toni Wulandari',
-      'Rr': 'Mutiatul Zakiyah',
-      'Ss': 'Satrio Nanda Nugroho',
-      'Tt': 'Murniasih',
-      'Uu': 'Nurkhasanah',
-      'Vv': 'Etik muzaenah',
-      'Ww': 'Reza Lutfi Ananda',
-      'Xx': 'Awening Wulan'
-    };
-
-    let success = 0, errors = [];
+    let success = 0;
+    let errors = [];
     const schedulesToInsert = [];
     const validDays = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
 
     if (isGridFormat) {
-      // -------------------------------------------------------------
-      // FORMAT GRID SEKOLAH (Deteksi Kolom Dinamis)
-      // -------------------------------------------------------------
+      // ============================================================
+      // FORMAT GRID (seperti file jadwal asli)
+      // ============================================================
       const colToClassMap = {};
       let currentGrade = '';
 
       const gradeRow = worksheet.getRow(gridHeaderRow);
       const classRow = worksheet.getRow(gridHeaderRow + 1);
 
-      // Pindai dari kolom 1 ke kolom 50
       for (let col = 1; col <= 50; col++) {
         let gradeVal = getCellValueStr(gradeRow.getCell(col)).toUpperCase();
 
         if (gradeVal) {
-          if (gradeVal.includes('VIII') || gradeVal.includes('8')) {
-            currentGrade = '8';
-          } else if (gradeVal.includes('VII') || gradeVal.includes('7')) {
-            currentGrade = '7';
-          } else if (gradeVal.includes('IX') || gradeVal.includes('9')) {
-            currentGrade = '9';
-          }
+          if (gradeVal.includes('VIII') || gradeVal.includes('8')) currentGrade = '8';
+          else if (gradeVal.includes('VII') || gradeVal.includes('7')) currentGrade = '7';
+          else if (gradeVal.includes('IX') || gradeVal.includes('9')) currentGrade = '9';
         }
 
         let classCellText = getCellValueStr(classRow.getCell(col)).toUpperCase();
-
-        if (classCellText) {
-          let className = classCellText;
-          if (/^[A-Z]$/.test(classCellText) && currentGrade) {
-            className = `${currentGrade}${classCellText}`;
-          }
+        if (classCellText && /^[A-Z]$/.test(classCellText) && currentGrade) {
+          const className = `${currentGrade}${classCellText}`;
           const foundClass = classes.find(c => {
             if (!c || !c.name) return false;
-            const normC = normalize(c.name);
-            const normTarget = normalize(className);
-            const normCell = normalize(classCellText);
-            return normC === normTarget || normC === normCell;
+            return normalize(c.name) === normalize(className) || 
+                   normalize(c.name) === normalize(classCellText);
           });
-
           if (foundClass) {
             colToClassMap[col] = foundClass._id;
           }
@@ -1271,27 +1275,15 @@ exports.importSchedules = async (req, res) => {
         if (u.includes('SELASA')) return 'SELASA';
         if (u.includes('RABU')) return 'RABU';
         if (u.includes('KAMIS')) return 'KAMIS';
-        if (u.includes('JUMAT') || u.includes('JUMAT')) return 'JUMAT';
+        if (u.includes('JUMAT')) return 'JUMAT';
         if (u.includes('SABTU')) return 'SABTU';
         return '';
-      };
-
-      const defaultTimeSlots = {
-        1: { start: '07:15', end: '07:55' },
-        2: { start: '07:55', end: '08:35' },
-        3: { start: '08:35', end: '09:15' },
-        4: { start: '09:35', end: '10:15' },
-        5: { start: '10:15', end: '10:55' },
-        6: { start: '10:55', end: '11:35' },
-        7: { start: '12:05', end: '12:45' },
-        8: { start: '12:45', end: '13:25' },
-        9: { start: '13:25', end: '14:05' }
       };
 
       for (let r = gridHeaderRow + 2; r <= worksheet.rowCount; r++) {
         const row = worksheet.getRow(r);
 
-        // Cek Kolom 1..6 untuk deteksi Hari
+        // Deteksi Hari
         for (let c = 1; c <= 6; c++) {
           const matchedDay = normalizeDayStr(getCellValueStr(row.getCell(c)));
           if (matchedDay) {
@@ -1302,13 +1294,12 @@ exports.importSchedules = async (req, res) => {
 
         if (!currentDay) continue;
 
-        // Cari Waktu (misal 07:20-08:00) dan Jam Ke (misal 1, 2) dari kolom 1..6
-        let timeVal = '';
+        // Deteksi Jam Ke
         let periodVal = '';
+        let timeVal = '';
 
         for (let c = 1; c <= 6; c++) {
           let cellStr = getCellValueStr(row.getCell(c));
-
           if (/^\d{1,2}$/.test(cellStr) && !periodVal) {
             periodVal = cellStr;
           } else if (/\d{1,2}[:.]\d{2}/.test(cellStr) && !timeVal) {
@@ -1317,12 +1308,15 @@ exports.importSchedules = async (req, res) => {
         }
 
         let timeSlotNum = Number(periodVal) || 1;
-        let startTime = '';
-        let endTime = '';
 
+        // Parse waktu
+        let startTime = '07:00';
+        let endTime = '07:40';
+        
         if (timeVal) {
           const cleanTimeVal = timeVal.toUpperCase();
-          if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
+          if (cleanTimeVal.includes('ISTIRAHAT') || cleanTimeVal.includes('TADARUS') || 
+              cleanTimeVal.includes('UPACARA') || cleanTimeVal.includes('SHOLAT')) {
             continue;
           }
           const timeParts = timeVal.split(/[-–]/).map(t => t.trim().replace('.', ':'));
@@ -1332,32 +1326,7 @@ exports.importSchedules = async (req, res) => {
           }
         }
 
-        if (!startTime || !endTime) {
-          if (defaultTimeSlots[timeSlotNum]) {
-            startTime = defaultTimeSlots[timeSlotNum].start;
-            endTime = defaultTimeSlots[timeSlotNum].end;
-          } else {
-            startTime = '07:15';
-            endTime = '08:00';
-          }
-        }
-
-        // Slot Number (1..8) berdasarkan waktu mulai
-        if (startTime) {
-          const timeDigits = startTime.split(':').map(Number);
-          if (timeDigits.length === 2) {
-            const minutes = timeDigits[0] * 60 + timeDigits[1];
-            if (minutes < 480) timeSlotNum = 1;      // < 08:00
-            else if (minutes < 520) timeSlotNum = 2; // 08:00 - 08:40
-            else if (minutes < 570) timeSlotNum = 3; // 08:40 - 09:30
-            else if (minutes < 610) timeSlotNum = 4; // 09:40 - 10:20
-            else if (minutes < 650) timeSlotNum = 5; // 10:20 - 11:00
-            else if (minutes < 700) timeSlotNum = 6; // 11:00 - 11:40
-            else if (minutes < 750) timeSlotNum = 7; // 12:10 - 12:50
-            else timeSlotNum = 8;                    // >= 12:50
-          }
-        }
-
+        // Baca data per kolom kelas
         for (const [colIndex, classId] of Object.entries(colToClassMap)) {
           let codeVal = getCellValueStr(row.getCell(Number(colIndex)));
 
@@ -1366,168 +1335,240 @@ exports.importSchedules = async (req, res) => {
           }
 
           const cleanCode = codeVal.toUpperCase();
-          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
+          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || 
+              cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || 
+              cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
             continue;
           }
 
-          let foundTeacher = teachers.find(t => t && t.teacher_code && String(t.teacher_code).toLowerCase().trim() === codeVal.toLowerCase());
+          // Cari guru dengan kode
+          let foundTeacher = findTeacherByCode(codeVal);
+          
           if (!foundTeacher) {
-            const teacherNameKey = OFFICIAL_TEACHER_LEGEND[codeVal] || OFFICIAL_TEACHER_LEGEND[codeVal.toUpperCase()];
-            if (teacherNameKey) {
-              foundTeacher = teachers.find(t => t && t.full_name && normalize(t.full_name).includes(normalize(teacherNameKey)));
-              if (foundTeacher) {
-                await getCollection('users_guru').updateOne(
-                  { _id: foundTeacher._id },
-                  { $set: { teacher_code: codeVal } }
-                );
-                foundTeacher.teacher_code = codeVal;
-              }
+            errors.push(`Baris ${r}, Kolom ${colIndex}: Guru dengan kode '${codeVal}' tidak ditemukan`);
+            continue;
+          }
+
+          // Cari mapel - dari kode atau dari guru
+          let foundSubject = findSubjectByCode(codeVal);
+          
+          if (!foundSubject) {
+            // Ambil mapel pertama dari guru
+            const subjectId = foundTeacher.subjects?.[0] || foundTeacher.subject_id || foundTeacher.subject;
+            if (subjectId) {
+              foundSubject = subjects.find(s => s._id.toString() === subjectId.toString());
             }
           }
 
-          if (!foundTeacher) {
-            errors.push(`Baris ${r}: Guru dengan kode '${codeVal}' tidak ditemukan`);
-            continue;
-          }
-
-          let subjectId = (foundTeacher.subjects && foundTeacher.subjects[0]) || foundTeacher.subject_id || foundTeacher.subject;
-          if (!subjectId && subjects.length > 0) {
-            subjectId = subjects[0]._id;
-          }
-
-          if (!subjectId) {
-            errors.push(`Baris ${r}: Guru '${foundTeacher.full_name}' tidak memiliki bidang studi`);
+          if (!foundSubject) {
+            errors.push(`Baris ${r}, Kolom ${colIndex}: Mapel tidak ditemukan untuk kode '${codeVal}'`);
             continue;
           }
 
           schedulesToInsert.push({
             academic_year_id: activeYear._id,
             class_id: classId,
-            subject_id: subjectId,
+            subject_id: foundSubject._id,
             teacher_id: foundTeacher._id,
             day: currentDay,
             time_slot: timeSlotNum,
             start_time: startTime,
             end_time: endTime,
             room: '',
-            generated_type: 'manual',
+            generated_type: 'import',
             is_active: true,
             created_at: new Date(),
             updated_at: new Date()
           });
 
           success++;
+        }
+
+        // Baca PIKET (Kolom AG = 33)
+        const piketCode = getCellValueStr(row.getCell(33));
+        if (piketCode && piketCode !== '-' && piketCode !== '') {
+          const piketCodes = piketCode.split(',').map(c => c.trim()).filter(Boolean);
+          for (const pc of piketCodes) {
+            const teacher = findTeacherByCode(pc);
+            if (teacher) {
+              // Update piket pada jadwal yang baru dibuat di slot ini
+              const slotSchedules = schedulesToInsert.filter(s => s.day === currentDay && s.time_slot === timeSlotNum);
+              for (const s of slotSchedules) {
+                s.piket_teacher_id = teacher._id;
+              }
+            }
+          }
         }
       }
 
     } else {
-      // -------------------------------------------------------------
-      // FORMAT TEMPLATE KITA
-      // -------------------------------------------------------------
+      // ============================================================
+      // FORMAT TEMPLATE (kolom: HARI, JK, WAKTU, KELAS, MAPEL, GURU, RUANG)
+      // ============================================================
       let headers = {};
-      worksheet.getRow(1).eachCell((cell, colNumber) => {
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell, colNumber) => {
         const val = getCellValueStr(cell);
-        if (val) headers[val.toLowerCase().trim()] = colNumber;
+        if (val) {
+          const key = val.toLowerCase().trim();
+          headers[key] = colNumber;
+        }
       });
 
-      const requiredHeaders = ['hari', 'jam_ke', 'waktu_mulai', 'waktu_selesai', 'kelas', 'mata_pelajaran', 'guru'];
-      for (const h of requiredHeaders) {
-        if (!headers[h]) {
-          return res.status(400).json({ error: `Kolom wajib "${h}" tidak ditemukan di file Excel` });
+      // Cek apakah ini format template kita
+      const isTemplateFormat = headers['hari'] && headers['jam_ke'] && headers['waktu_mulai'] && 
+                               headers['waktu_selesai'] && headers['kelas'] && headers['mata_pelajaran'] && headers['guru'];
+
+      if (isTemplateFormat) {
+        for (let i = 2; i <= worksheet.rowCount; i++) {
+          const row = worksheet.getRow(i);
+          if (!row.values || row.values.length === 0) continue;
+
+          try {
+            const hari = getCellValueStr(row.getCell(headers['hari'])).toUpperCase();
+            const jamKe = parseInt(getCellValueStr(row.getCell(headers['jam_ke']))) || 1;
+            const waktuMulai = getCellValueStr(row.getCell(headers['waktu_mulai']));
+            const waktuSelesai = getCellValueStr(row.getCell(headers['waktu_selesai']));
+            const kelasName = getCellValueStr(row.getCell(headers['kelas']));
+            const mapelName = getCellValueStr(row.getCell(headers['mata_pelajaran']));
+            const guruName = getCellValueStr(row.getCell(headers['guru']));
+            const ruang = headers['ruang'] ? getCellValueStr(row.getCell(headers['ruang'])) : '';
+
+            if (!hari || !kelasName || !mapelName || !guruName) {
+              continue;
+            }
+
+            if (!validDays.includes(hari)) {
+              errors.push(`Baris ${i}: Hari '${hari}' tidak valid`);
+              continue;
+            }
+
+            // Cari Kelas
+            const foundClass = classes.find(c => normalize(c.name) === normalize(kelasName));
+            if (!foundClass) {
+              errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
+              continue;
+            }
+
+            // Cari Mapel
+            const foundSubject = findSubjectByCode(mapelName);
+            if (!foundSubject) {
+              errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
+              continue;
+            }
+
+            // Cari Guru
+            const foundTeacher = findTeacherByCode(guruName);
+            if (!foundTeacher) {
+              errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
+              continue;
+            }
+
+            schedulesToInsert.push({
+              academic_year_id: activeYear._id,
+              class_id: foundClass._id,
+              subject_id: foundSubject._id,
+              teacher_id: foundTeacher._id,
+              day: hari,
+              time_slot: jamKe,
+              start_time: waktuMulai || '07:00',
+              end_time: waktuSelesai || '07:40',
+              room: ruang || '',
+              generated_type: 'import',
+              is_active: true,
+              created_at: new Date(),
+              updated_at: new Date()
+            });
+
+            success++;
+          } catch (e) {
+            errors.push(`Baris ${i}: ${e.message}`);
+          }
         }
-      }
+      } else {
+        // ============================================================
+        // FORMAT LAIN - Coba deteksi otomatis dari header
+        // ============================================================
+        // Cari kolom yang mengandung kata kunci
+        let dayCol = null, timeCol = null, classCol = null, subjectCol = null, teacherCol = null;
+        
+        for (const [key, colNum] of Object.entries(headers)) {
+          if (key.includes('hari') || key.includes('day')) dayCol = colNum;
+          if (key.includes('waktu') || key.includes('time') || key.includes('jam')) timeCol = colNum;
+          if (key.includes('kelas') || key.includes('class')) classCol = colNum;
+          if (key.includes('mapel') || key.includes('pelajaran') || key.includes('subject')) subjectCol = colNum;
+          if (key.includes('guru') || key.includes('teacher')) teacherCol = colNum;
+        }
 
-      const findClass = (name) => {
-        const normName = normalize(name);
-        return classes.find(c => normalize(c.name) === normName);
-      };
+        if (dayCol && classCol && subjectCol && teacherCol) {
+          for (let i = 2; i <= worksheet.rowCount; i++) {
+            const row = worksheet.getRow(i);
+            if (!row.values || row.values.length === 0) continue;
 
-      const findSubject = (name) => {
-        const normName = normalize(name);
-        return subjects.find(s => normalize(s.name) === normName);
-      };
-      
-      const findTeacher = (name) => {
-        const normName = normalize(name);
-        return teachers.find(t => normalize(t.full_name) === normName || normalize(t.username) === normName || (t.nip && normalize(t.nip) === normName));
-      };
+            try {
+              const hari = getCellValueStr(row.getCell(dayCol)).toUpperCase();
+              const kelasName = getCellValueStr(row.getCell(classCol));
+              const mapelName = getCellValueStr(row.getCell(subjectCol));
+              const guruName = getCellValueStr(row.getCell(teacherCol));
+              const jamKe = timeCol ? parseInt(getCellValueStr(row.getCell(timeCol))) || 1 : 1;
 
-      for (let i = 2; i <= worksheet.rowCount; i++) {
-        const row = worksheet.getRow(i);
-        if (!row.values || row.values.length === 0) continue;
+              if (!hari || !kelasName || !mapelName || !guruName) continue;
+              if (!validDays.includes(hari)) continue;
 
-        try {
-          const hari = row.getCell(headers['hari']).text?.trim()?.toUpperCase();
-          const jamKe = row.getCell(headers['jam_ke']).value;
-          const waktuMulai = row.getCell(headers['waktu_mulai']).text?.trim();
-          const waktuSelesai = row.getCell(headers['waktu_selesai']).text?.trim();
-          const kelasName = row.getCell(headers['kelas']).text?.trim();
-          const mapelName = row.getCell(headers['mata_pelajaran']).text?.trim();
-          const guruName = row.getCell(headers['guru']).text?.trim();
-          const ruang = headers['ruang'] ? row.getCell(headers['ruang']).text?.trim() : '';
+              const foundClass = classes.find(c => normalize(c.name) === normalize(kelasName));
+              if (!foundClass) {
+                errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
+                continue;
+              }
 
-          if (!hari || !jamKe || !waktuMulai || !waktuSelesai || !kelasName || !mapelName || !guruName) {
-            errors.push(`Baris ${i}: Kolom wajib ada yang kosong`);
-            continue;
+              const foundSubject = findSubjectByCode(mapelName);
+              if (!foundSubject) {
+                errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
+                continue;
+              }
+
+              const foundTeacher = findTeacherByCode(guruName);
+              if (!foundTeacher) {
+                errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
+                continue;
+              }
+
+              schedulesToInsert.push({
+                academic_year_id: activeYear._id,
+                class_id: foundClass._id,
+                subject_id: foundSubject._id,
+                teacher_id: foundTeacher._id,
+                day: hari,
+                time_slot: jamKe,
+                start_time: '07:00',
+                end_time: '07:40',
+                room: '',
+                generated_type: 'import',
+                is_active: true,
+                created_at: new Date(),
+                updated_at: new Date()
+              });
+
+              success++;
+            } catch (e) {
+              errors.push(`Baris ${i}: ${e.message}`);
+            }
           }
-
-          if (!validDays.includes(hari)) {
-            errors.push(`Baris ${i}: Hari '${hari}' tidak valid. Pilihan: ${validDays.join(', ')}`);
-            continue;
-          }
-
-          const foundClass = findClass(kelasName);
-          if (!foundClass) {
-            errors.push(`Baris ${i}: Kelas '${kelasName}' tidak ditemukan`);
-            continue;
-          }
-
-          const foundSubject = findSubject(mapelName);
-          if (!foundSubject) {
-            errors.push(`Baris ${i}: Mata Pelajaran '${mapelName}' tidak ditemukan`);
-            continue;
-          }
-
-          const foundTeacher = findTeacher(guruName);
-          if (!foundTeacher) {
-            errors.push(`Baris ${i}: Guru '${guruName}' tidak ditemukan`);
-            continue;
-          }
-
-          schedulesToInsert.push({
-            academic_year_id: activeYear._id,
-            class_id: foundClass._id,
-            subject_id: foundSubject._id,
-            teacher_id: foundTeacher._id,
-            day: hari,
-            time_slot: Number(jamKe) || 1,
-            start_time: waktuMulai,
-            end_time: waktuSelesai,
-            room: ruang || '',
-            generated_type: 'manual',
-            is_active: true,
-            created_at: new Date(),
-            updated_at: new Date()
+        } else {
+          return res.status(400).json({ 
+            error: 'Format file tidak dikenali. Gunakan template yang disediakan atau pastikan kolom: HARI, JK, WAKTU, KELAS, MAPEL, GURU ada.' 
           });
-
-          success++;
-        } catch (e) {
-          errors.push(`Baris ${i}: ${e.message}`);
         }
       }
     }
 
+    // ============================================================
+    // SIMPAN DATA
+    // ============================================================
     if (schedulesToInsert.length > 0) {
+      // Hapus jadwal lama untuk tahun ajaran ini
       await getCollection('schedules').deleteMany({ academic_year_id: activeYear._id });
       await getCollection('schedules').insertMany(schedulesToInsert);
-
-      // Auto-sync teachers' assigned classes and subjects
-      try {
-        const scheduleService = require('../services/scheduleService');
-        await scheduleService.syncAllTeachers();
-      } catch (syncErr) {
-        console.error('Failed to sync teachers after import:', syncErr);
-      }
 
       try {
         await logActivity(req, 'Import Jadwal', `Mengimport ${schedulesToInsert.length} jadwal pelajaran dari file Excel.`);
@@ -1540,9 +1581,11 @@ exports.importSchedules = async (req, res) => {
       message: 'Import jadwal pelajaran selesai',
       success_count: success,
       error_count: errors.length,
-      errors: errors.slice(0, 15)
+      errors: errors.slice(0, 20)
     });
+
   } catch (error) {
+    console.error('Import error:', error);
     res.status(500).json({ error: `Gagal import jadwal: ${error.message}` });
   }
 };
