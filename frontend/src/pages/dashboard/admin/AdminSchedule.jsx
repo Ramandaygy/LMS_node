@@ -22,7 +22,7 @@ const AdminSchedule = () => {
   const [piketData, setPiketData] = useState({});
 
   // ============================================================
-  // TIME SLOTS SESUAI JADWAL ASLI (format dengan titik)
+  // TIME SLOTS SESUAI JADWAL ASLI
   // ============================================================
   const [timeSlots, setTimeSlots] = useState([
     { slot: 1, start: '07:20', end: '08:00', label: '07.20-08.00' },
@@ -36,30 +36,17 @@ const AdminSchedule = () => {
   ]);
 
   // ============================================================
-  // SPECIAL TIME SLOTS (Tadarus, Upacara, Istirahat, Jum'at)
+  // SPECIAL TIME SLOTS
   // ============================================================
   const specialTimeSlots = {
-    'SENIN': [
-      { slot: 'upacara', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'UPACARA BENDERA' }
-    ],
-    'SELASA': [
-      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
-    ],
-    'RABU': [
-      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
-    ],
-    'KAMIS': [
-      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
-    ],
-    'JUMAT': [
-      { slot: 'jumat', start: '07:00', end: '09:00', label: '07.00-09.00', isSpecial: true, text: 'JUMAT BERSIH / SEHAT, SHOLAT DHUHA, ISTIGHOSAH' }
-    ],
-    'SABTU': [
-      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
-    ]
+    'SENIN': [{ slot: 'upacara', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'UPACARA BENDERA' }],
+    'SELASA': [{ slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }],
+    'RABU': [{ slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }],
+    'KAMIS': [{ slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }],
+    'JUMAT': [{ slot: 'jumat', start: '07:00', end: '09:00', label: '07.00-09.00', isSpecial: true, text: 'JUMAT BERSIH / SEHAT, SHOLAT DHUHA, ISTIGHOSAH' }],
+    'SABTU': [{ slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }]
   };
 
-  // Break slots
   const breakSlots = {
     'SENIN': [
       { slot: 'break1', start: '09:20', end: '09:40', label: '09.20-09.40', text: 'ISTIRAHAT' },
@@ -86,6 +73,9 @@ const AdminSchedule = () => {
 
   const [days] = useState(['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU']);
 
+  // ============================================================
+  // MODAL UNTUK EDIT JADWAL (lebih compact)
+  // ============================================================
   const [modal, setModal] = useState({
     open: false,
     day: '',
@@ -96,16 +86,22 @@ const AdminSchedule = () => {
     room: ''
   });
 
+  // ============================================================
+  // MODAL UNTUK EDIT WAKTU (lebih baik)
+  // ============================================================
+  const [timeEditModal, setTimeEditModal] = useState({
+    open: false,
+    slotIndex: null,
+    start: '',
+    end: ''
+  });
+
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
 
   const getMapelColor = (subjectId) => {
     if (!subjectId) return '#f1f5f9';
-    const colors = [
-      '#e8f4f8', '#fce4ec', '#e8f5e9', '#fff3e0', '#f3e5f5',
-      '#e0f7fa', '#ffebee', '#e0f2f1', '#f9fbe7', '#fde0dc',
-      '#e3f2fd', '#f3e5f5', '#e8f5e9', '#fff8e1', '#fbe9e7'
-    ];
+    const colors = ['#e8f4f8', '#fce4ec', '#e8f5e9', '#fff3e0', '#f3e5f5', '#e0f7fa', '#ffebee', '#e0f2f1', '#f9fbe7', '#fde0dc', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#fff8e1', '#fbe9e7'];
     let hash = 0;
     for (let i = 0; i < subjectId.length; i++) {
       hash = ((hash << 5) - hash) + subjectId.charCodeAt(i);
@@ -175,10 +171,7 @@ const AdminSchedule = () => {
       schedules.forEach(item => {
         let slot = item.time_slot;
         if (!slot && item.start_time) {
-          // Cocokkan dengan format yang ada di timeSlots
-          const slotIndex = timeSlots.findIndex(
-            t => t.start === item.start_time
-          );
+          const slotIndex = timeSlots.findIndex(t => t.start === item.start_time);
           slot = slotIndex + 1;
         }
         if (!slot) return;
@@ -195,7 +188,6 @@ const AdminSchedule = () => {
           room: item.room || ''
         };
 
-        // Simpan piket
         if (item.piket_teacher_id) {
           const piketKey = `${item.day}_${slot}`;
           if (!piketMap[piketKey]) piketMap[piketKey] = [];
@@ -223,6 +215,56 @@ const AdminSchedule = () => {
     if (a.grade_level !== b.grade_level) return a.grade_level - b.grade_level;
     return a.name.localeCompare(b.name);
   });
+
+  // ============================================================
+  // HANDLE HAPUS JADWAL (1 per 1)
+  // ============================================================
+  const handleDeleteSchedule = (day, timeSlot, classId, e) => {
+    e.stopPropagation(); // Mencegah trigger modal edit
+    
+    if (!window.confirm(`Hapus jadwal untuk ${day} - ${timeSlots.find(t => t.slot === timeSlot)?.label} - Kelas ${allClasses.find(c => c._id === classId)?.name}?`)) {
+      return;
+    }
+    
+    const key = `${day}_${timeSlot}_${classId}`;
+    setScheduleData(prev => {
+      const newData = { ...prev };
+      delete newData[key];
+      return newData;
+    });
+    
+    setMessage({ type: 'success', text: 'Jadwal berhasil dihapus (belum tersimpan ke database)' });
+  };
+
+  // ============================================================
+  // HANDLE EDIT WAKTU (dengan modal yang lebih baik)
+  // ============================================================
+  const handleOpenTimeEdit = (slotIndex) => {
+    setTimeEditModal({
+      open: true,
+      slotIndex: slotIndex,
+      start: timeSlots[slotIndex].start,
+      end: timeSlots[slotIndex].end
+    });
+  };
+
+  const handleTimeEditSave = () => {
+    const { slotIndex, start, end } = timeEditModal;
+    if (start < '07:00' || end > '15:00') {
+      alert('Waktu harus di rentang 07:00 - 15:00');
+      return;
+    }
+    if (start >= end) {
+      alert('Waktu mulai harus lebih awal dari waktu selesai');
+      return;
+    }
+    const updated = [...timeSlots];
+    updated[slotIndex].start = start;
+    updated[slotIndex].end = end;
+    updated[slotIndex].label = `${start}-${end}`;
+    setTimeSlots(updated);
+    setTimeEditModal({ open: false, slotIndex: null, start: '', end: '' });
+  };
 
   const handleCellClick = (day, timeSlot, classId, currentSubjectId, currentTeacherId, currentRoom) => {
     setModal({
@@ -289,6 +331,8 @@ const AdminSchedule = () => {
         return;
       }
 
+      // Hapus semua jadwal lama untuk tahun ajaran ini, lalu simpan yang baru
+      await api.delete(`/schedules?academic_year_id=${yearToSave}`);
       await api.post('/schedules/bulk', { schedules });
       setMessage({ type: 'success', text: 'Jadwal berhasil disimpan' });
       await fetchExistingSchedule();
@@ -340,15 +384,12 @@ const AdminSchedule = () => {
       if (success_count > 0 && error_count > 0) {
         setMessage({ 
           type: 'success', 
-          text: `Import selesai: ${success_count} berhasil dimasukkan, namun ${error_count} baris gagal. Kesalahan pertama: ${errors.slice(0, 2).join(', ')}` 
+          text: `Import selesai: ${success_count} berhasil, ${error_count} gagal. ${errors.slice(0, 2).join(', ')}` 
         });
       } else if (success_count > 0) {
-        setMessage({ type: 'success', text: `Berhasil mengimport ${success_count} jadwal pelajaran!` });
+        setMessage({ type: 'success', text: `Berhasil mengimport ${success_count} jadwal!` });
       } else {
-        setMessage({ 
-          type: 'error', 
-          text: `Gagal mengimport jadwal. Kesalahan: ${errors.slice(0, 5).join(', ')}` 
-        });
+        setMessage({ type: 'error', text: `Gagal import: ${errors.slice(0, 5).join(', ')}` });
       }
       await fetchExistingSchedule();
     } catch (error) {
@@ -360,26 +401,8 @@ const AdminSchedule = () => {
     }
   };
 
-  const handleTimeEdit = (slotIndex) => {
-    const newStart = prompt('Edit waktu mulai (format HH:MM):', timeSlots[slotIndex].start);
-    if (newStart) {
-      const newEnd = prompt('Edit waktu selesai (format HH:MM):', timeSlots[slotIndex].end);
-      if (newEnd) {
-        if (newStart < '07:00' || newEnd > '15:00') {
-          alert('Waktu harus di rentang 07:00 - 15:00');
-          return;
-        }
-        const updated = [...timeSlots];
-        updated[slotIndex].start = newStart;
-        updated[slotIndex].end = newEnd;
-        updated[slotIndex].label = `${newStart}-${newEnd}`;
-        setTimeSlots(updated);
-      }
-    }
-  };
-
   // ============================================================
-  // RENDER GRID VIEW (SATU-SATUNYA VIEW)
+  // RENDER GRID VIEW (COMPACT)
   // ============================================================
   const renderGridView = () => {
     return (
@@ -388,7 +411,7 @@ const AdminSchedule = () => {
           <tr>
             <th className="time-col">Hari / Jam</th>
             {sortedClasses.map(c => <th key={c._id} className="class-col">{c.name}</th>)}
-            <th className="piket-col" style={{ minWidth: '60px', backgroundColor: '#fef3c7' }}>PIKET</th>
+            <th className="piket-col">PIKET</th>
           </tr>
         </thead>
         <tbody>
@@ -413,10 +436,8 @@ const AdminSchedule = () => {
               const piketTeachers = piketData[piketKey] || [];
 
               return (
-                <tr key={`${day}_${slot.slot || idx}`} style={{ 
-                  backgroundColor: isBreak ? '#f8fafc' : 'transparent'
-                }}>
-                  <td className="time-cell" onClick={() => handleTimeEdit(idx)} title="Klik untuk edit waktu">
+                <tr key={`${day}_${slot.slot || idx}`} className={isBreak ? 'break-row' : ''}>
+                  <td className="time-cell" onClick={() => handleOpenTimeEdit(idx)} title="Klik untuk edit waktu">
                     <div className="day-name">{isFirstRow ? day : ''}</div>
                     <div className="time-range">{slot.label}</div>
                   </td>
@@ -427,19 +448,13 @@ const AdminSchedule = () => {
                     const subject = subjects.find(s => s._id === data.subjectId);
                     const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
                     
-                    // Tampilkan nama lengkap, bukan kode
                     const displaySubject = subject?.name || subject?.code || '—';
                     const displayTeacher = teacher?.full_name || teacher?.username || '-';
-                    
                     const bgColor = getMapelColor(data.subjectId);
 
                     if (isBreak) {
                       return (
-                        <td
-                          key={cls._id}
-                          className="assignment-cell break-cell"
-                          style={{ backgroundColor: '#f1f5f9', textAlign: 'center', fontSize: '10px', color: '#64748b' }}
-                        >
+                        <td key={cls._id} className="assignment-cell break-cell">
                           {slot.text}
                         </td>
                       );
@@ -447,11 +462,7 @@ const AdminSchedule = () => {
 
                     if (isSpecial) {
                       return (
-                        <td
-                          key={cls._id}
-                          className="assignment-cell special-cell"
-                          style={{ backgroundColor: '#fef3c7', textAlign: 'center', fontSize: '9px', color: '#92400e' }}
-                        >
+                        <td key={cls._id} className="assignment-cell special-cell">
                           {slot.text}
                         </td>
                       );
@@ -462,38 +473,41 @@ const AdminSchedule = () => {
                         key={cls._id}
                         className="assignment-cell"
                         style={{ backgroundColor: data.subjectId ? bgColor : '#fff' }}
-                        onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
                       >
-                        <div className="cell-subject" title={displaySubject}>{displaySubject}</div>
-                        <div className="cell-teacher" title={displayTeacher}>{displayTeacher}</div>
-                        {data.room && (
-                          <div className="cell-room" style={{ fontSize: '7px', color: '#94a3b8' }}>
-                            {data.room}
-                          </div>
+                        <div 
+                          className="cell-content"
+                          onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
+                          title="Klik untuk edit"
+                        >
+                          <div className="cell-subject" title={displaySubject}>{displaySubject}</div>
+                          <div className="cell-teacher" title={displayTeacher}>{displayTeacher}</div>
+                          {data.room && <div className="cell-room">{data.room}</div>}
+                        </div>
+                        {data.subjectId && (
+                          <button 
+                            className="cell-delete-btn"
+                            onClick={(e) => handleDeleteSchedule(day, slot.slot, cls._id, e)}
+                            title="Hapus jadwal"
+                          >
+                            ×
+                          </button>
                         )}
                       </td>
                     );
                   })}
 
-                  {/* Kolom PIKET */}
-                  <td className="piket-cell" style={{ 
-                    textAlign: 'center', 
-                    fontSize: '10px', 
-                    backgroundColor: '#fef3c7',
-                    padding: '4px',
-                    minWidth: '60px'
-                  }}>
+                  <td className="piket-cell">
                     {piketTeachers.length > 0 ? (
                       piketTeachers.map((pid, i) => {
                         const teacher = teachers.find(t => t._id === pid);
                         return (
-                          <div key={i} style={{ fontSize: '9px', color: '#92400e' }}>
+                          <div key={i} className="piket-name">
                             {teacher?.full_name || teacher?.username || teacher?.teacher_code || '-'}
                           </div>
                         );
                       })
                     ) : (
-                      <span style={{ color: '#d1d5db' }}>-</span>
+                      <span className="piket-empty">-</span>
                     )}
                   </td>
                 </tr>
@@ -502,6 +516,115 @@ const AdminSchedule = () => {
           })}
         </tbody>
       </table>
+    );
+  };
+
+  // ============================================================
+  // RENDER TIME EDIT MODAL (lebih baik)
+  // ============================================================
+  const renderTimeEditModal = () => {
+    if (!timeEditModal.open) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setTimeEditModal({ ...timeEditModal, open: false })}>
+        <div className="modal-content compact-modal time-edit-modal" onClick={e => e.stopPropagation()}>
+          <h3>Edit Waktu</h3>
+          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+            Ubah waktu untuk slot ini
+          </p>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>Mulai</label>
+              <input
+                type="time"
+                value={timeEditModal.start}
+                onChange={e => setTimeEditModal({ ...timeEditModal, start: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif'
+                }}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: '12px', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '4px' }}>Selesai</label>
+              <input
+                type="time"
+                value={timeEditModal.end}
+                onChange={e => setTimeEditModal({ ...timeEditModal, end: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '12px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif'
+                }}
+              />
+            </div>
+          </div>
+          <div className="modal-buttons" style={{ marginTop: '20px' }}>
+            <button onClick={() => setTimeEditModal({ ...timeEditModal, open: false })}>Batal</button>
+            <button onClick={handleTimeEditSave} style={{ background: '#3b82f6' }}>Simpan</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // RENDER ASSIGN MODAL (lebih compact)
+  // ============================================================
+  const renderAssignModal = () => {
+    if (!modal.open) return null;
+    
+    return (
+      <div className="modal-overlay" onClick={() => setModal({ ...modal, open: false })}>
+        <div className="modal-content compact-modal" onClick={e => e.stopPropagation()}>
+          <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>Assign Jadwal</h3>
+          <p style={{ fontSize: '13px', marginBottom: '16px', padding: '8px 12px' }}>
+            <strong>{modal.day}</strong> - {timeSlots.find(s => s.slot === modal.timeSlot)?.label}
+            {' '}| Kelas {allClasses.find(c => c._id && c._id.toString() === String(modal.classId))?.name}
+          </p>
+          <select 
+            value={modal.subjectId} 
+            onChange={e => handleModalChange('subjectId', e.target.value)}
+            style={{ marginBottom: '10px' }}
+          >
+            <option value="">Pilih Mata Pelajaran</option>
+            {subjects.map(s => <option key={s._id} value={s._id}>{s.code} - {s.name}</option>)}
+          </select>
+          <select
+            value={modal.teacherId}
+            onChange={e => handleModalChange('teacherId', e.target.value)}
+            disabled={!modal.subjectId}
+            style={{ marginBottom: '10px' }}
+          >
+            <option value="">Pilih Guru</option>
+            {getAvailableTeachers(modal.subjectId).map(t => {
+              const displayCode = t.teacher_code || t.nip || t.username || `G${t._id.slice(-4)}`;
+              return <option key={t._id} value={t._id}>{displayCode} - {t.full_name}</option>;
+            })}
+            {modal.subjectId && getAvailableTeachers(modal.subjectId).length === 0 && (
+              <option disabled>Tidak ada guru untuk mapel ini</option>
+            )}
+          </select>
+          <input
+            type="text"
+            placeholder="Ruang (opsional)"
+            value={modal.room}
+            onChange={e => handleModalChange('room', e.target.value)}
+            style={{ marginBottom: '10px' }}
+          />
+          <div className="modal-buttons" style={{ marginTop: '16px' }}>
+            <button onClick={() => setModal({ ...modal, open: false })}>Batal</button>
+            <button onClick={saveSchedule} disabled={!modal.subjectId || !modal.teacherId}>Simpan</button>
+          </div>
+        </div>
+      </div>
     );
   };
 
@@ -542,7 +665,7 @@ const AdminSchedule = () => {
           <select 
             value={selectedClass} 
             onChange={e => setSelectedClass(e.target.value)}
-            style={{ minWidth: '130px' }}
+            style={{ minWidth: '120px' }}
           >
             <option value="all">Semua Kelas</option>
             {sortedClasses.map(c => (
@@ -550,7 +673,7 @@ const AdminSchedule = () => {
             ))}
           </select>
 
-          <div className="dropdown" ref={actionsRef} style={{ marginLeft: '8px' }}>
+          <div className="dropdown" ref={actionsRef} style={{ marginLeft: '4px' }}>
             <button className="dropdown-btn" onClick={() => setActionsOpen(!actionsOpen)}>
               <span className="material-symbols-outlined">file_present</span> Data
               <span className="material-symbols-outlined dropdown-arrow">expand_more</span>
@@ -575,8 +698,8 @@ const AdminSchedule = () => {
               </div>
             )}
           </div>
-          <button className="admin-add-user-btn" onClick={handleSaveAll} disabled={saving} style={{ background: '#0284c7', color: '#fff', borderRadius: '12px' }}>
-            <span className="material-symbols-outlined">save</span> {saving ? 'Menyimpan...' : 'Simpan Jadwal'}
+          <button className="admin-add-user-btn" onClick={handleSaveAll} disabled={saving} style={{ background: '#0284c7', color: '#fff', borderRadius: '12px', padding: '10px 18px', fontSize: '13px' }}>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span> {saving ? 'Menyimpan...' : 'Simpan'}
           </button>
         </div>
       </div>
@@ -592,45 +715,8 @@ const AdminSchedule = () => {
         {renderGridView()}
       </div>
 
-      {modal.open && (
-        <div className="modal-overlay" onClick={() => setModal({ ...modal, open: false })}>
-          <div className="modal-content compact-modal" onClick={e => e.stopPropagation()}>
-            <h3>Assign Jadwal</h3>
-            <p>
-              <strong>{modal.day} - {timeSlots.find(s => s.slot === modal.timeSlot)?.label}</strong>
-              {' '}| Kelas {allClasses.find(c => c._id && c._id.toString() === String(modal.classId))?.name}
-            </p>
-            <select value={modal.subjectId} onChange={e => handleModalChange('subjectId', e.target.value)}>
-              <option value="">Pilih Mata Pelajaran</option>
-              {subjects.map(s => <option key={s._id} value={s._id}>{s.code} - {s.name}</option>)}
-            </select>
-            <select
-              value={modal.teacherId}
-              onChange={e => handleModalChange('teacherId', e.target.value)}
-              disabled={!modal.subjectId}
-            >
-              <option value="">Pilih Guru</option>
-              {getAvailableTeachers(modal.subjectId).map(t => {
-                const displayCode = t.teacher_code || t.nip || t.username || `G${t._id.slice(-4)}`;
-                return <option key={t._id} value={t._id}>{displayCode} - {t.full_name}</option>;
-              })}
-              {modal.subjectId && getAvailableTeachers(modal.subjectId).length === 0 && (
-                <option disabled>Tidak ada guru untuk mapel ini</option>
-              )}
-            </select>
-            <input
-              type="text"
-              placeholder="Ruang (opsional)"
-              value={modal.room}
-              onChange={e => handleModalChange('room', e.target.value)}
-            />
-            <div className="modal-buttons">
-              <button onClick={() => setModal({ ...modal, open: false })}>Batal</button>
-              <button onClick={saveSchedule} disabled={!modal.subjectId || !modal.teacherId}>Simpan</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderAssignModal()}
+      {renderTimeEditModal()}
     </div>
   );
 };

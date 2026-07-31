@@ -1,25 +1,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;700&display=swap');
 
+/* ============================================================
+   ROOT & BASE
+   ============================================================ */
 .schedule-compact {
-  padding: 32px;
+  padding: 20px 24px;
   background: #f4f7fa;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
   color: #1e293b;
 }
 
-/* Header */
+/* ============================================================
+   HEADER - LEBIH COMPACT
+   ============================================================ */
 .compact-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 20px;
-  margin-bottom: 32px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .compact-header h2 {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 800;
   font-family: 'Outfit', sans-serif;
   color: #0f172a;
@@ -29,27 +34,29 @@
 
 .compact-actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
-.compact-actions select, .compact-actions button {
-  padding: 12px 20px;
-  border-radius: 20px;
+.compact-actions select,
+.compact-actions button {
+  padding: 8px 14px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: white;
-  font-size: 14px;
+  font-size: 13px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(226, 232, 240, 0.4);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(226, 232, 240, 0.4);
 }
 
 .compact-actions select:hover {
   border-color: #cbd5e1;
-  box-shadow: 0 6px 12px rgba(226, 232, 240, 0.6);
+  box-shadow: 0 4px 8px rgba(226, 232, 240, 0.6);
 }
 
 .compact-actions select:focus {
@@ -62,13 +69,16 @@
   background: #3b82f6;
   color: white;
   border: none;
-  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.compact-actions button:hover {
+.compact-actions button:hover:not(:disabled) {
   background: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .compact-actions button:disabled {
@@ -78,18 +88,141 @@
   box-shadow: none;
 }
 
-/* Alerts */
-.compact-alert {
-  padding: 16px 24px;
+.compact-actions .admin-add-user-btn {
+  background: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.compact-actions .admin-add-user-btn:hover:not(:disabled) {
+  background: #0369a1;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+}
+
+/* ============================================================
+   DROPDOWN
+   ============================================================ */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 4px rgba(226, 232, 240, 0.4) !important;
+}
+
+.dropdown-btn:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  transform: none !important;
+  box-shadow: 0 4px 8px rgba(226, 232, 240, 0.6) !important;
+}
+
+.dropdown-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.dropdown-arrow {
+  font-size: 18px !important;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
   border-radius: 16px;
-  margin-bottom: 24px;
-  font-size: 14px;
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.2);
+  min-width: 220px;
+  padding: 8px 0;
+  z-index: 100;
+  border: 1px solid #f1f5f9;
+  animation: dropdownFade 0.2s ease;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-group {
+  padding: 4px 0;
+}
+
+.dropdown-group-title {
+  padding: 6px 16px 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-radius: 0;
+  box-shadow: none !important;
+}
+
+.dropdown-menu button:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+  transform: none !important;
+}
+
+.dropdown-menu button:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.dropdown-menu .material-symbols-outlined {
+  font-size: 20px;
+  color: #64748b;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 4px 16px;
+}
+
+/* ============================================================
+   ALERTS - COMPACT
+   ============================================================ */
+.compact-alert {
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
   font-weight: 500;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .compact-alert.error {
@@ -107,56 +240,59 @@
 .compact-alert button {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
   color: inherit;
-  opacity: 0.6;
+  opacity: 0.5;
   transition: opacity 0.2s;
-  padding: 0;
+  padding: 0 4px;
 }
 
 .compact-alert button:hover {
   opacity: 1;
 }
 
-/* Table Wrapper */
+/* ============================================================
+   TABLE WRAPPER - COMPACT
+   ============================================================ */
 .compact-table-wrapper {
   overflow-x: auto;
   background: white;
-  border-radius: 28px;
-  box-shadow: 0 10px 30px rgba(226, 232, 240, 0.6);
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(226, 232, 240, 0.5);
   border: 1px solid #f1f5f9;
-  padding: 24px;
+  padding: 8px 6px;
 }
 
+/* ============================================================
+   TABLE - SANGAT COMPACT
+   ============================================================ */
 .compact-schedule {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 4px;
+  border-spacing: 2px;
+  font-size: 11px;
 }
 
-/* Table Cells */
-.compact-schedule th, .compact-schedule td {
-  border-radius: 12px;
-  padding: 12px;
-  vertical-align: middle;
-  transition: all 0.2s ease;
-}
-
+/* ============================================================
+   TABLE HEADER
+   ============================================================ */
 .compact-schedule th {
   background: #f8fafc;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 10px;
   text-align: center;
   color: #475569;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 16px 12px;
+  letter-spacing: 0.3px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  white-space: nowrap;
 }
 
 .time-col {
-  width: 120px;
+  min-width: 80px;
   position: sticky;
   left: 0;
   z-index: 10;
@@ -164,16 +300,39 @@
 }
 
 .class-col {
-  min-width: 100px;
+  min-width: 60px;
   text-align: center;
+  font-size: 10px !important;
 }
 
-/* Time Cell */
+.piket-col {
+  min-width: 50px;
+  text-align: center;
+  background-color: #fef3c7 !important;
+  font-size: 9px !important;
+}
+
+/* ============================================================
+   TABLE CELLS
+   ============================================================ */
+.compact-schedule td {
+  padding: 3px 4px;
+  border-radius: 6px;
+  vertical-align: middle;
+  transition: all 0.15s ease;
+}
+
+/* ============================================================
+   TIME CELL
+   ============================================================ */
 .time-cell {
   text-align: center;
   background: #f8fafc;
   cursor: pointer;
   border: 1px solid #e2e8f0;
+  padding: 3px 4px !important;
+  min-width: 76px;
+  transition: all 0.15s ease;
 }
 
 .time-cell:hover {
@@ -183,124 +342,278 @@
 
 .day-name {
   font-weight: 800;
-  font-size: 13px;
+  font-size: 10px;
   color: #1e293b;
-  margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .time-range {
-  font-size: 11px;
+  font-size: 9px;
   color: #64748b;
   font-weight: 500;
+  line-height: 1.2;
 }
 
-/* Assignment Cell */
+/* ============================================================
+   ASSIGNMENT CELL
+   ============================================================ */
 .assignment-cell {
-  cursor: pointer;
   text-align: center;
-  min-width: 90px;
+  min-width: 56px;
   border: 1px solid transparent;
   position: relative;
-  overflow: hidden;
+  transition: all 0.15s ease;
+  padding: 2px 3px !important;
+  border-radius: 6px;
 }
 
 .assignment-cell:hover {
-  transform: scale(0.98);
-  box-shadow: inset 0 0 0 2px rgba(0,0,0,0.05);
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.cell-content {
+  cursor: pointer;
+  padding: 1px 2px;
+  border-radius: 4px;
+  min-height: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .cell-subject {
   font-weight: 700;
-  font-size: 12px;
+  font-size: 9px;
   color: #1e293b;
-  background: rgba(255,255,255,0.6);
-  padding: 4px 8px;
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 1px 4px;
+  border-radius: 4px;
   display: inline-block;
-  margin-bottom: 6px;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cell-teacher {
-  font-size: 11px;
+  font-size: 8px;
   color: #475569;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Modal */
+.cell-room {
+  font-size: 7px;
+  color: #94a3b8;
+  line-height: 1.1;
+}
+
+/* ============================================================
+   BREAK & SPECIAL CELLS
+   ============================================================ */
+.break-cell {
+  background-color: #f1f5f9 !important;
+  text-align: center;
+  font-size: 8px !important;
+  color: #64748b;
+  font-weight: 500;
+  padding: 4px 2px !important;
+  border-radius: 6px;
+}
+
+.special-cell {
+  background-color: #fef3c7 !important;
+  text-align: center;
+  font-size: 8px !important;
+  color: #92400e;
+  font-weight: 600;
+  padding: 4px 2px !important;
+  border-radius: 6px;
+}
+
+.break-row {
+  background-color: #fafcfc;
+}
+
+/* ============================================================
+   PIKET CELL
+   ============================================================ */
+.piket-cell {
+  text-align: center;
+  background-color: #fef3c7 !important;
+  padding: 2px 3px !important;
+  min-width: 44px;
+  border-radius: 6px;
+}
+
+.piket-name {
+  font-size: 8px;
+  color: #92400e;
+  font-weight: 500;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.piket-empty {
+  color: #d1d5db;
+  font-size: 9px;
+}
+
+/* ============================================================
+   DELETE BUTTON (hover muncul)
+   ============================================================ */
+.cell-delete-btn {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);
+  z-index: 5;
+}
+
+.assignment-cell:hover .cell-delete-btn {
+  opacity: 1;
+}
+
+.cell-delete-btn:hover {
+  background: #dc2626;
+  transform: scale(1.15);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+.admin-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* ============================================================
+   MODAL - COMPACT
+   ============================================================ */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
+  padding: 20px;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .compact-modal {
   background: white;
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 20px;
+  padding: 24px 28px;
   width: 400px;
-  max-width: 90%;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 95%;
+  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .compact-modal h3 {
-  margin: 0 0 16px 0;
+  margin: 0 0 10px 0;
   font-family: 'Outfit', sans-serif;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #0f172a;
 }
 
 .compact-modal p {
-  font-size: 14px;
+  font-size: 13px;
   color: #64748b;
-  margin-bottom: 24px;
-  padding: 12px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
   background: #f8fafc;
-  border-radius: 12px;
+  border-radius: 10px;
+  line-height: 1.4;
 }
 
 .compact-modal p strong {
   color: #1e293b;
 }
 
-.compact-modal select, .compact-modal input {
+.compact-modal select,
+.compact-modal input {
   width: 100%;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  border-radius: 16px;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   font-family: 'Inter', sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   color: #334155;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
-.compact-modal select:focus, .compact-modal input:focus {
+.compact-modal select:focus,
+.compact-modal input:focus {
   outline: none;
   border-color: #3b82f6;
   background: white;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .compact-modal select:disabled {
@@ -309,22 +622,52 @@
   cursor: not-allowed;
 }
 
+/* ============================================================
+   TIME EDIT MODAL - KHUSUS
+   ============================================================ */
+.time-edit-modal {
+  max-width: 340px;
+}
+
+.time-edit-modal input[type="time"] {
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 10px;
+  background: white;
+}
+
+.time-edit-modal input[type="time"]:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.time-edit-modal label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  display: block;
+  margin-bottom: 3px;
+}
+
+/* ============================================================
+   MODAL BUTTONS
+   ============================================================ */
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 16px;
 }
 
 .modal-buttons button {
-  padding: 12px 24px;
-  border-radius: 20px;
+  padding: 10px 20px;
+  border-radius: 14px;
   font-family: 'Inter', sans-serif;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .modal-buttons button:first-child {
@@ -345,7 +688,7 @@
 
 .modal-buttons button:last-child:hover:not(:disabled) {
   background: #059669;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
@@ -353,30 +696,323 @@
   background: #94a3b8;
   box-shadow: none;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* Responsive */
+/* ============================================================
+   SCROLLBAR STYLING
+   ============================================================ */
+.compact-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.compact-table-wrapper::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.compact-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.compact-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  .compact-schedule td,
+  .compact-schedule th {
+    font-size: 9px;
+  }
+
+  .class-col {
+    min-width: 44px;
+  }
+
+  .assignment-cell {
+    min-width: 44px;
+  }
+
+  .time-cell {
+    min-width: 60px;
+  }
+
+  .piket-cell {
+    min-width: 36px;
+  }
+
+  .cell-subject {
+    font-size: 8px;
+  }
+
+  .cell-teacher {
+    font-size: 7px;
+  }
+
+  .day-name {
+    font-size: 9px;
+  }
+
+  .time-range {
+    font-size: 8px;
+  }
+}
+
 @media (max-width: 768px) {
   .schedule-compact {
-    padding: 20px;
+    padding: 12px 16px;
   }
-  
+
   .compact-header {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
-  
+
+  .compact-header h2 {
+    font-size: 18px;
+  }
+
   .compact-actions {
     width: 100%;
+    gap: 6px;
   }
-  
-  .compact-actions select, .compact-actions button {
+
+  .compact-actions select,
+  .compact-actions button {
     flex: 1;
-    text-align: center;
+    min-width: 80px;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 10px;
   }
-  
+
   .compact-table-wrapper {
-    padding: 16px;
-    border-radius: 20px;
+    padding: 6px 4px;
+    border-radius: 14px;
+  }
+
+  .compact-schedule {
+    font-size: 8px;
+    border-spacing: 1px;
+  }
+
+  .compact-schedule th {
+    font-size: 7px;
+    padding: 4px 2px;
+  }
+
+  .compact-schedule td {
+    padding: 2px 2px;
+    border-radius: 4px;
+  }
+
+  .time-col {
+    min-width: 48px;
+  }
+
+  .class-col {
+    min-width: 32px;
+  }
+
+  .piket-col {
+    min-width: 30px;
+    font-size: 7px !important;
+  }
+
+  .time-cell {
+    min-width: 44px;
+    padding: 2px 2px !important;
+  }
+
+  .day-name {
+    font-size: 7px;
+  }
+
+  .time-range {
+    font-size: 6px;
+  }
+
+  .assignment-cell {
+    min-width: 32px;
+    padding: 1px 2px !important;
+  }
+
+  .cell-subject {
+    font-size: 7px;
+    padding: 1px 2px;
+  }
+
+  .cell-teacher {
+    font-size: 6px;
+  }
+
+  .cell-room {
+    font-size: 5px;
+  }
+
+  .break-cell,
+  .special-cell {
+    font-size: 6px !important;
+    padding: 2px 1px !important;
+  }
+
+  .piket-cell {
+    min-width: 28px;
+    padding: 1px 2px !important;
+  }
+
+  .piket-name {
+    font-size: 6px;
+  }
+
+  .cell-delete-btn {
+    width: 12px;
+    height: 12px;
+    font-size: 7px;
+    line-height: 12px;
+    top: -4px;
+    right: -4px;
+  }
+
+  .compact-modal {
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+
+  .compact-modal h3 {
+    font-size: 17px;
+  }
+
+  .compact-modal select,
+  .compact-modal input {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .modal-buttons button {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  .dropdown-menu {
+    min-width: 180px;
+    right: -10px;
+  }
+
+  .dropdown-menu button {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  .compact-alert {
+    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .schedule-compact {
+    padding: 8px 8px;
+  }
+
+  .compact-header h2 {
+    font-size: 16px;
+  }
+
+  .compact-actions select,
+  .compact-actions button {
+    font-size: 10px;
+    padding: 4px 8px;
+    min-width: 60px;
+  }
+
+  .compact-schedule {
+    font-size: 7px;
+    border-spacing: 1px;
+  }
+
+  .compact-schedule th {
+    font-size: 6px;
+    padding: 3px 1px;
+  }
+
+  .compact-schedule td {
+    padding: 1px 1px;
+    border-radius: 3px;
+  }
+
+  .time-col {
+    min-width: 36px;
+  }
+
+  .class-col {
+    min-width: 24px;
+  }
+
+  .piket-col {
+    min-width: 20px;
+    font-size: 6px !important;
+  }
+
+  .time-cell {
+    min-width: 34px;
+    padding: 1px 1px !important;
+  }
+
+  .day-name {
+    font-size: 6px;
+  }
+
+  .time-range {
+    font-size: 5px;
+  }
+
+  .assignment-cell {
+    min-width: 24px;
+    padding: 1px 1px !important;
+  }
+
+  .cell-subject {
+    font-size: 6px;
+    padding: 0px 2px;
+  }
+
+  .cell-teacher {
+    font-size: 5px;
+  }
+
+  .cell-room {
+    font-size: 4px;
+  }
+
+  .break-cell,
+  .special-cell {
+    font-size: 5px !important;
+    padding: 1px 1px !important;
+  }
+
+  .piket-cell {
+    min-width: 20px;
+    padding: 1px 1px !important;
+  }
+
+  .piket-name {
+    font-size: 5px;
+  }
+
+  .cell-delete-btn {
+    width: 10px;
+    height: 10px;
+    font-size: 6px;
+    line-height: 10px;
+    top: -3px;
+    right: -3px;
   }
 }
