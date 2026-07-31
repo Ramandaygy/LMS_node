@@ -939,6 +939,50 @@ exports.exportSchedulesTemplate = async (req, res) => {
       { day: 'SELASA', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
       { day: 'SELASA', jk: '7', time: '12.10-12.50', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Ss', 'Ww', 'S', 'Aa', 'Pp', 'X', 'D', 'R', 'N', 'P', 'K', 'Ii', 'Qq', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'M', 'Y', 'U', 'O', 'V'] },
       { day: 'SELASA', jk: '8', time: '12.50-13.30', codes: ['E', 'Xx', 'Vv', 'H', 'Rr', 'Pp', 'Ww', 'S', 'Aa', 'Ff', 'Oo', 'D', 'R', 'N', 'P', 'Ss', 'Ii', 'M', 'L', 'T', 'Tt', 'B', 'F', 'Jj', 'J', 'Y', 'U', 'O', 'V'] },
+
+      // RABU
+      { day: 'RABU', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
+      { day: 'RABU', jk: '1', time: '07.20-08.00', codes: ['Nn','C','Gg','Pp','Oo','E','Uu','W','Xx','Ww','D','X','K','Q','Vv','Ss','L','Z','Rr','T','F','Jj','N','Y','J','Hh','O','U','Qq'] },
+      { day: 'RABU', jk: '2', time: '08.00-08.40', codes: ['Nn','C','Gg','Pp','Oo','E','Uu','W','Xx','Ww','D','X','K','Q','Vv','Ss','L','Z','Rr','T','F','Jj','G','Y','J','Hh','O','U','Qq'], piket: 'Y' },
+      { day: 'RABU', jk: '3', time: '08.40-09.20', codes: ['Nn','C','Xx','Gg','Vv','Pp','Uu','T','Rr','Ss','Oo','X','K','R','N','L','Qq','Ii','Z','Aa','F','Jj','G','Ff','Y','J','W','Mm','U','Vv'] },
+      { day: 'RABU', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'P' },
+      { day: 'RABU', jk: '4', time: '09.40-10.20', codes: ['H','Nn','Xx','Gg','Vv','Pp','S','Uu','Rr','Ss','Oo','P','X','R','N','L','Qq','Aa','Z','M','B','F','Jj','Ff','Y','J','W','Mm','U','Nn'] },
+      { day: 'RABU', jk: '5', time: '10.20-11.00', codes: ['H','Nn','Mm','E','Gg','Xx','S','Uu','Ww','Rr','Z','P','Yy','R','X','L','Ii','Aa','Q','M','B','F','Jj','N','Y','O','Tt','V','U','Hh'] },
+      { day: 'RABU', jk: '6', time: '11.00-11.40', codes: ['C','Nn','Pp','E','Gg','Xx','V','Uu','T','Rr','Z','K','Yy','X','I','R','Ii','Aa','Q','M','N','F','Jj','J','Ff','O','Qq','Tt','Mm','Ii'] },
+      { day: 'RABU', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
+      { day: 'RABU', jk: '7', time: '12.10-12.50', codes: ['C','Vv','H','Pp','Gg','S','V','Ww','W','T','P','K','O','X','I','Q','Ii','L','Aa','Rr','N','B','Tt','Jj','Ff','M','Qq','Hh','Mm'] },
+      { day: 'RABU', jk: '8', time: '12.50-13.30', codes: ['Gg','Vv','H','Xx','Oo','S','Pp','Ww','W','T','P','K','O','X','Z','Q','Ss','L','Aa','Rr','N','B','Tt','Jj','Ff','V','J','Hh','Mm'] },
+
+      // KAMIS
+      { day: 'KAMIS', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
+      { day: 'KAMIS', jk: '1', time: '07.20-08.00', codes: ['E','H','C','Mm','Pp','Gg','Rr','V','W','T','I','Oo','X','O','Q','R','Ss','Aa','Ii','Nn','G','Ff','Jj','F','Hh','M','J','U','Tt'], piket: 'Q' },
+      { day: 'KAMIS', jk: '2', time: '08.00-08.40', codes: ['E','H','C','Mm','Pp','Gg','Rr','V','W','T','I','Oo','X','O','Q','R','Ss','Aa','Ii','Nn','G','Y','Jj','F','Hh','M','J','U','Tt'], piket: 'R' },
+      { day: 'KAMIS', jk: '3', time: '08.40-09.20', codes: ['Pp','H','C','Mm','Xx','Gg','T','Rr','Yy','Ii','I','N','Oo','Z','R','P','X','Ss','M','Nn','Q','Y','Jj','Tt','Qq','V','O','J','U','T'] },
+      { day: 'KAMIS', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'Jj' },
+      { day: 'KAMIS', jk: '4', time: '09.40-10.20', codes: ['Gg','E','Pp','H','Xx','C','T','Rr','Yy','S','D','N','Oo','Z','R','P','X','Ss','Aa','Ii','Q','Jj','Y','M','Qq','V','O','J','U'], piket: 'Oo' },
+      { day: 'KAMIS', jk: '5', time: '10.20-11.00', codes: ['Gg','E','Pp','H','Rr','C','W','K','Yy','S','D','Z','Oo','R','L','X','P','Ss','Aa','Ii','Tt','Jj','B','Q','F','Y','Hh','J','O'], piket: 'Pp' },
+      { day: 'KAMIS', jk: '6', time: '11.00-11.40', codes: ['Oo','Gg','Nn','C','Pp','Ww','W','K','S','Ff','Z','I','Yy','R','L','X','P','Ii','Aa','Qq','M','Jj','B','Q','F','Y','Hh','V','O'] },
+      { day: 'KAMIS', jk: '', time: '11.40-12.10', isSpecial: true, specialText: 'I S T I R A H A T   /   S H O L A T   D H U H U R' },
+      { day: 'KAMIS', jk: '7', time: '12.10-12.50', codes: ['Xx','Gg','Nn','C','E','Ww','S','K','T','Ff','O','I','Yy','P','X','Vv','Aa','Ii','L','Qq','M','Tt','G','Jj','Q','Hh','U','V','W'] },
+      { day: 'KAMIS', jk: '8', time: '12.50-13.30', codes: ['Xx','Gg','Nn','C','E','Ww','S','Ss','T','Pp','O','I','N','P','X','Vv','Aa','Ii','L','Qq','M','Tt','G','Jj','Q','Hh','U','Mm','W'] },
+
+      // JUMAT
+      { day: 'JUMAT', jk: '', time: '07.00-09.00', isSpecial: true, specialText: 'J U M A \' T   B E R S I H   /   S E H A T ,   S H O L A T   D H U H A ,   I S T I G H O S A H' },
+      { day: 'JUMAT', jk: '1', time: '09.00-09.40', codes: ['Ww','H','Gg','Vv','C','K','W','Pp','S','Ss','R','Oo','I','Yy','N','Ii','Aa','Z','L','Q','Jj','Y','M','Ff','F','V','Mm','Qq','U'], piket: 'V,U' },
+      { day: 'JUMAT', jk: '2', time: '09.40-10.20', codes: ['Ww','H','Gg','E','C','K','W','Pp','S','Rr','R','P','I','Yy','Vv','Ss','T','Hh','L','Q','Y','Ff','M','N','F','V','Xx','U','O'], piket: 'O,Qq' },
+      { day: 'JUMAT', jk: '3', time: '10.20-11.00', codes: ['Ww','H','Gg','E','C','K','W','Pp','S','Rr','R','P','Z','Oo','Vv','L','T','Hh','Ss','Yy','Y','Ff','M','N','F','J','Xx','U','O'], piket: 'Mm,Rr' },
+
+      // SABTU
+      { day: 'SABTU', jk: '', time: '07.00-07.20', isSpecial: true, specialText: 'T A D A R U S   A L Q U R \' A N' },
+      { day: 'SABTU', jk: '1', time: '07.20-08.00', codes: ['C','Ww','Mm','H','Vv','E','Rr','Xx','T','S','K','R','Yy','Oo','I','Z','Qq','Ii','Ss','Aa','Jj','N','Ff','Y','B','O','V','W','J'] },
+      { day: 'SABTU', jk: '2', time: '08.00-08.40', codes: ['Gg','Ww','Mm','H','Vv','E','Rr','Xx','Pp','S','K','R','Yy','Oo','I','Z','P','Q','Ss','Aa','Jj','Tt','Ff','Y','B','O','V','W','J'] },
+      { day: 'SABTU', jk: '3', time: '08.40-09.20', codes: ['Gg','Ww','H','Vv','Yy','C','T','Rr','Aa','Xx','K','R','I','N','Oo','Z','P','Q','Ii','Ss','Jj','M','Ff','Y','U','Qq','Tt','W','J'], piket: 'N' },
+      { day: 'SABTU', jk: '', time: '09.20-09.40', isSpecial: true, specialText: 'I S T I R A H A T', piket: 'Z' },
+      { day: 'SABTU', jk: '4', time: '09.40-10.20', codes: ['Pp','Gg','H','Vv','Yy','C','T','Rr','S','Xx','O','D','N','Z','Oo','K','Q','L','Ii','Ss','J','M','Y','B','U','Qq','Tt','V','Hh'], piket: 'Ss' },
+      { day: 'SABTU', jk: '5', time: '10.20-11.00', codes: ['Pp','Gg','Ww','Vv','Mm','C','K','T','S','Aa','O','D','N','I','Oo','Ii','Q','L','Z','Ss','Ff','M','Y','B','Tt','Qq','W','V','Hh'], piket: 'Tt' },
+      { day: 'SABTU', jk: '', time: '11.00-11.15', isSpecial: true, specialText: '', piket: 'Xx' },
+      { day: 'SABTU', jk: '6', time: '11.15-11.55', codes: ['H','E','Ww','Xx','Mm','Vv','K','S','Rr','Aa','D','O','P','I','Z','R','L','Hh','T','Yy','Ff','Q','N','M','Tt','U','W','Qq','V'], piket: 'Yy' },
+      { day: 'SABTU', jk: '7', time: '11.55-12.35', codes: ['H','E','Ww','Xx','Mm','Vv','K','S','Rr','Aa','D','O','P','I','Z','R','L','Hh','T','Yy','Ff','Q','N','M','Tt','U','W','Qq','V'] },
     ];
 
     let startRowIndex = 8;
