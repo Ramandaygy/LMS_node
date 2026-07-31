@@ -50,7 +50,7 @@ const scheduleSchema = new mongoose.Schema(
     },
     generated_type: {
       type: String,
-      enum: ['manual', 'ai'],
+      enum: ['manual', 'import', 'system'],
       default: 'manual',
     },
     generated_by: {

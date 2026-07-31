@@ -22,7 +22,7 @@ const AdminSchedule = () => {
   const [piketData, setPiketData] = useState({});
 
   // ============================================================
-  // TIME SLOTS SESUAI JADWAL ASLI
+  // TIME SLOTS SESUAI JADWAL ASLI (format dengan titik)
   // ============================================================
   const [timeSlots, setTimeSlots] = useState([
     { slot: 1, start: '07:20', end: '08:00', label: '07.20-08.00' },
@@ -40,26 +40,26 @@ const AdminSchedule = () => {
   // ============================================================
   const specialTimeSlots = {
     'SENIN': [
-      { slot: 0, start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'UPACARA BENDERA' }
+      { slot: 'upacara', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'UPACARA BENDERA' }
     ],
     'SELASA': [
-      { slot: 0, start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
+      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
     ],
     'RABU': [
-      { slot: 0, start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
+      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
     ],
     'KAMIS': [
-      { slot: 0, start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
+      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
     ],
     'JUMAT': [
-      { slot: 0, start: '07:00', end: '09:00', label: '07.00-09.00', isSpecial: true, text: 'JUMAT BERSIH / SEHAT, SHOLAT DHUHA, ISTIGHOSAH' }
+      { slot: 'jumat', start: '07:00', end: '09:00', label: '07.00-09.00', isSpecial: true, text: 'JUMAT BERSIH / SEHAT, SHOLAT DHUHA, ISTIGHOSAH' }
     ],
     'SABTU': [
-      { slot: 0, start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
+      { slot: 'tadarus', start: '07:00', end: '07:20', label: '07.00-07.20', isSpecial: true, text: 'TADARUS AL QUR\'AN' }
     ]
   };
 
-  // Istirahat slots
+  // Break slots
   const breakSlots = {
     'SENIN': [
       { slot: 'break1', start: '09:20', end: '09:40', label: '09.20-09.40', text: 'ISTIRAHAT' },
@@ -98,13 +98,13 @@ const AdminSchedule = () => {
 
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'detail'
 
   const getMapelColor = (subjectId) => {
     if (!subjectId) return '#f1f5f9';
     const colors = [
       '#e8f4f8', '#fce4ec', '#e8f5e9', '#fff3e0', '#f3e5f5',
-      '#e0f7fa', '#ffebee', '#e0f2f1', '#f9fbe7', '#fde0dc'
+      '#e0f7fa', '#ffebee', '#e0f2f1', '#f9fbe7', '#fde0dc',
+      '#e3f2fd', '#f3e5f5', '#e8f5e9', '#fff8e1', '#fbe9e7'
     ];
     let hash = 0;
     for (let i = 0; i < subjectId.length; i++) {
@@ -175,6 +175,7 @@ const AdminSchedule = () => {
       schedules.forEach(item => {
         let slot = item.time_slot;
         if (!slot && item.start_time) {
+          // Cocokkan dengan format yang ada di timeSlots
           const slotIndex = timeSlots.findIndex(
             t => t.start === item.start_time
           );
@@ -218,7 +219,6 @@ const AdminSchedule = () => {
     return String(cls.grade_level) === selectedGrade;
   });
 
-  // Sort classes by grade and name
   const sortedClasses = [...classes].sort((a, b) => {
     if (a.grade_level !== b.grade_level) return a.grade_level - b.grade_level;
     return a.name.localeCompare(b.name);
@@ -279,7 +279,8 @@ const AdminSchedule = () => {
           time_slot: Number(slot),
           start_time: time.start,
           end_time: time.end,
-          room: value.room || ''
+          room: value.room || '',
+          generated_type: 'manual'
         });
       });
 
@@ -378,7 +379,7 @@ const AdminSchedule = () => {
   };
 
   // ============================================================
-  // RENDER GRID VIEW
+  // RENDER GRID VIEW (SATU-SATUNYA VIEW)
   // ============================================================
   const renderGridView = () => {
     return (
@@ -425,11 +426,11 @@ const AdminSchedule = () => {
                     const data = scheduleData[key] || {};
                     const subject = subjects.find(s => s._id === data.subjectId);
                     const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
-                    const subjectCode = subject?.code || (subject?.name?.slice(0, 4) || '—');
-                    let teacherCode = '-';
-                    if (teacher) {
-                      teacherCode = teacher.teacher_code || teacher.code || teacher.username || '-';
-                    }
+                    
+                    // Tampilkan nama lengkap, bukan kode
+                    const displaySubject = subject?.name || subject?.code || '—';
+                    const displayTeacher = teacher?.full_name || teacher?.username || '-';
+                    
                     const bgColor = getMapelColor(data.subjectId);
 
                     if (isBreak) {
@@ -438,7 +439,6 @@ const AdminSchedule = () => {
                           key={cls._id}
                           className="assignment-cell break-cell"
                           style={{ backgroundColor: '#f1f5f9', textAlign: 'center', fontSize: '10px', color: '#64748b' }}
-                          colSpan="1"
                         >
                           {slot.text}
                         </td>
@@ -451,7 +451,6 @@ const AdminSchedule = () => {
                           key={cls._id}
                           className="assignment-cell special-cell"
                           style={{ backgroundColor: '#fef3c7', textAlign: 'center', fontSize: '9px', color: '#92400e' }}
-                          colSpan="1"
                         >
                           {slot.text}
                         </td>
@@ -465,8 +464,13 @@ const AdminSchedule = () => {
                         style={{ backgroundColor: data.subjectId ? bgColor : '#fff' }}
                         onClick={() => handleCellClick(day, slot.slot, cls._id, data.subjectId, data.teacherId, data.room)}
                       >
-                        <div className="cell-subject">{subjectCode}</div>
-                        <div className="cell-teacher">{teacherCode}</div>
+                        <div className="cell-subject" title={displaySubject}>{displaySubject}</div>
+                        <div className="cell-teacher" title={displayTeacher}>{displayTeacher}</div>
+                        {data.room && (
+                          <div className="cell-room" style={{ fontSize: '7px', color: '#94a3b8' }}>
+                            {data.room}
+                          </div>
+                        )}
                       </td>
                     );
                   })}
@@ -484,7 +488,7 @@ const AdminSchedule = () => {
                         const teacher = teachers.find(t => t._id === pid);
                         return (
                           <div key={i} style={{ fontSize: '9px', color: '#92400e' }}>
-                            {teacher?.teacher_code || teacher?.username || '-'}
+                            {teacher?.full_name || teacher?.username || teacher?.teacher_code || '-'}
                           </div>
                         );
                       })
@@ -498,152 +502,6 @@ const AdminSchedule = () => {
           })}
         </tbody>
       </table>
-    );
-  };
-
-  // ============================================================
-  // RENDER DETAIL VIEW PER KELAS
-  // ============================================================
-  const renderDetailView = () => {
-    const selectedClassObj = allClasses.find(c => c._id === selectedClass);
-    if (!selectedClassObj) return <div>Pilih kelas terlebih dahulu</div>;
-
-    const classId = selectedClass;
-    const className = selectedClassObj.name;
-
-    return (
-      <div className="detail-schedule-view" style={{ padding: '16px', background: '#fff', borderRadius: '12px' }}>
-        <h3 style={{ marginBottom: '16px', color: '#0f172a' }}>
-          Jadwal Kelas {className}
-        </h3>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f1f5f9' }}>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '80px' }}>Hari</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '50px' }}>Jam</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '100px' }}>Waktu</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '150px' }}>Mata Pelajaran</th>
-                <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '200px' }}>Guru</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '60px' }}>Kode</th>
-                <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600', color: '#475569', borderBottom: '2px solid #e2e8f0', minWidth: '80px' }}>Ruang</th>
-              </tr>
-            </thead>
-            <tbody>
-              {days.map(day => {
-                const specials = specialTimeSlots[day] || [];
-                const breaks = breakSlots[day] || [];
-                const allSlots = [
-                  ...specials.map(t => ({ ...t, isSpecial: true })),
-                  ...timeSlots.map(t => ({ ...t, isRegular: true })),
-                  ...breaks.map(t => ({ ...t, isBreak: true }))
-                ].sort((a, b) => {
-                  const aTime = a.start || '00:00';
-                  const bTime = b.start || '00:00';
-                  return aTime.localeCompare(bTime);
-                });
-
-                let rowCount = 0;
-
-                return allSlots.map((slot, idx) => {
-                  const isFirstRow = rowCount === 0;
-                  const isSpecial = slot.isSpecial;
-                  const isBreak = slot.isBreak;
-                  const piketKey = `${day}_${slot.slot}`;
-                  const piketTeachers = piketData[piketKey] || [];
-                  const key = `${day}_${slot.slot}_${classId}`;
-                  const data = scheduleData[key] || {};
-                  const subject = subjects.find(s => s._id === data.subjectId);
-                  const teacher = teachers.find(t => t._id === data.teacherId || t.id === data.teacherId);
-                  const teacherCode = teacher?.teacher_code || teacher?.username || '-';
-                  const isPiket = piketTeachers.some(pid => pid === data.teacherId);
-
-                  rowCount++;
-
-                  if (isBreak) {
-                    return (
-                      <tr key={`${day}_break_${idx}`} style={{ backgroundColor: '#f8fafc' }}>
-                        <td style={{ fontWeight: 'bold', padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>{isFirstRow ? day : ''}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>-</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>{slot.label}</td>
-                        <td colSpan="4" style={{ padding: '8px 12px', fontStyle: 'italic', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                          {slot.text}
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  if (isSpecial) {
-                    return (
-                      <tr key={`${day}_special_${idx}`} style={{ backgroundColor: '#fef3c7' }}>
-                        <td style={{ fontWeight: 'bold', padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>{isFirstRow ? day : ''}</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>-</td>
-                        <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>{slot.label}</td>
-                        <td colSpan="4" style={{ padding: '8px 12px', fontStyle: 'italic', fontWeight: '500', color: '#92400e', borderBottom: '1px solid #e2e8f0' }}>
-                          {slot.text}
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  return (
-                    <tr 
-                      key={`${day}_${slot.slot}`}
-                      style={{ 
-                        backgroundColor: data.subjectId ? getMapelColor(data.subjectId) : '#fff',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => handleCellClick(day, slot.slot, classId, data.subjectId, data.teacherId, data.room)}
-                      className="clickable-row"
-                    >
-                      <td style={{ fontWeight: 'bold', padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>{isFirstRow ? day : ''}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>{slot.slot}</td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '12px', borderBottom: '1px solid #e2e8f0' }}>{slot.label}</td>
-                      <td style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                        {data.subjectId ? (
-                          <span style={{ fontWeight: '500' }}>
-                            {subject?.name || subject?.code || '—'}
-                            {isPiket && (
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                fontSize: '10px', 
-                                backgroundColor: '#fef3c7', 
-                                color: '#92400e', 
-                                padding: '2px 6px', 
-                                borderRadius: '4px' 
-                              }}>
-                                PIKET
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>Kosong</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '8px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                        {data.teacherId ? (
-                          <span>{teacher?.full_name || teacher?.username || '-'}</span>
-                        ) : (
-                          <span style={{ color: '#cbd5e1', fontStyle: 'italic' }}>-</span>
-                        )}
-                      </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
-                        {teacherCode !== '-' ? teacherCode : '-'}
-                      </td>
-                      <td style={{ padding: '8px 12px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
-                        {data.room || <span style={{ color: '#cbd5e1' }}>-</span>}
-                      </td>
-                    </tr>
-                  );
-                });
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ marginTop: '12px', fontSize: '12px', color: '#94a3b8' }}>
-          * Klik pada baris untuk mengedit jadwal
-        </div>
-      </div>
     );
   };
 
@@ -692,48 +550,6 @@ const AdminSchedule = () => {
             ))}
           </select>
 
-          {/* Toggle View */}
-          <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
-            <button 
-              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-              onClick={() => setViewMode('grid')}
-              style={{ 
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: viewMode === 'grid' ? '#e2e8f0' : 'transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '12px'
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>grid_view</span>
-              Grid
-            </button>
-            <button 
-              className={`view-btn ${viewMode === 'detail' ? 'active' : ''}`}
-              onClick={() => setViewMode('detail')}
-              style={{ 
-                padding: '6px 12px',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                backgroundColor: viewMode === 'detail' ? '#e2e8f0' : 'transparent',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                fontSize: '12px',
-                opacity: selectedClass === 'all' ? 0.5 : 1
-              }}
-              disabled={selectedClass === 'all'}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>table_rows</span>
-              Detail
-            </button>
-          </div>
-
           <div className="dropdown" ref={actionsRef} style={{ marginLeft: '8px' }}>
             <button className="dropdown-btn" onClick={() => setActionsOpen(!actionsOpen)}>
               <span className="material-symbols-outlined">file_present</span> Data
@@ -773,7 +589,7 @@ const AdminSchedule = () => {
       )}
 
       <div className="compact-table-wrapper">
-        {viewMode === 'grid' ? renderGridView() : renderDetailView()}
+        {renderGridView()}
       </div>
 
       {modal.open && (
