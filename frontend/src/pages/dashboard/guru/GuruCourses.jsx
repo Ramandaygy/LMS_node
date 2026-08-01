@@ -370,13 +370,31 @@ const GuruCourses = () => {
         const sIdStr = (st._id || st.id || '').toString();
         const existingGrade = gradeMap[sIdStr] || {};
 
-        const t1 = existingGrade.t1 !== undefined ? existingGrade.t1 : (existingGrade.tugas || Math.min(100, Math.max(70, 75 + ((idx * 5) % 25))));
-        const t2 = existingGrade.t2 !== undefined ? existingGrade.t2 : Math.min(100, Math.max(70, t1 + (idx % 2 === 0 ? 4 : -3)));
-        const t3 = existingGrade.t3 !== undefined ? existingGrade.t3 : Math.min(100, Math.max(70, t1 + (idx % 3 === 0 ? -2 : 5)));
-        const avgTugas = Math.round((t1 + t2 + t3) / 3);
-        const uts = existingGrade.uts !== undefined ? existingGrade.uts : Math.min(100, Math.max(70, avgTugas + (idx % 2 === 0 ? 3 : -4)));
-        const uas = existingGrade.uas !== undefined ? existingGrade.uas : Math.min(100, Math.max(70, avgTugas + (idx % 3 === 0 ? 4 : -2)));
-        const nilaiAkhir = Math.round((avgTugas * 0.4) + (uts * 0.3) + (uas * 0.3));
+        const t1 = (existingGrade.t1 !== undefined && existingGrade.t1 !== null) ? existingGrade.t1 : '';
+        const t2 = (existingGrade.t2 !== undefined && existingGrade.t2 !== null) ? existingGrade.t2 : '';
+        const t3 = (existingGrade.t3 !== undefined && existingGrade.t3 !== null) ? existingGrade.t3 : '';
+
+        // Calculate average only if we have at least one valid grade
+        const validTugas = [t1, t2, t3].filter(v => v !== '');
+        const avgTugas = validTugas.length > 0 
+          ? Math.round(validTugas.reduce((a, b) => Number(a) + Number(b), 0) / validTugas.length) 
+          : '';
+
+        const uts = (existingGrade.uts !== undefined && existingGrade.uts !== null) ? existingGrade.uts : '';
+        const uas = (existingGrade.uas !== undefined && existingGrade.uas !== null) ? existingGrade.uas : '';
+
+        // Final score: (avgTugas * 0.4) + (uts * 0.3) + (uas * 0.3)
+        // If all are blank, final grade is also blank
+        let nilaiAkhir = '';
+        if (avgTugas !== '' || uts !== '' || uas !== '') {
+          const wAvg = avgTugas !== '' ? Number(avgTugas) * 0.4 : 0;
+          const wUts = uts !== '' ? Number(uts) * 0.3 : 0;
+          const wUas = uas !== '' ? Number(uas) * 0.3 : 0;
+          
+          // If some components are missing, we can either sum directly or normalize. 
+          // Let's sum directly as weight targets 100%.
+          nilaiAkhir = Math.round(wAvg + wUts + wUas);
+        }
 
         return {
           _id: st._id,
@@ -551,7 +569,7 @@ const GuruCourses = () => {
         ...item,
         pertemuan_ke: minP,
         pertemuan_display: labelP,
-        total_jp: `${item.jp_count * 2} Jam Pelajaran (JP)`
+        total_jp: `${item.jp_count} Jam Pelajaran (JP)`
       };
     });
   };
@@ -1115,13 +1133,13 @@ const GuruCourses = () => {
                   let csv = "No,Nama Siswa,T1,T2,T3,Rata-rata Tugas,Nilai UTS,Nilai UAS,Nilai Akhir\n";
                   listData.forEach((st, idx) => {
                     const name = `"${st.full_name || st.student_name || st.name || ('Siswa ' + (idx + 1))}"`;
-                    const t1 = st.t1 !== undefined ? st.t1 : 85;
-                    const t2 = st.t2 !== undefined ? st.t2 : 88;
-                    const t3 = st.t3 !== undefined ? st.t3 : 84;
-                    const avgTugas = Math.round((t1 + t2 + t3) / 3);
-                    const uts = st.uts || 88;
-                    const uas = st.uas || 90;
-                    const nilaiAkhir = st.nilai_akhir || Math.round((avgTugas * 0.4) + (uts * 0.3) + (uas * 0.3));
+                    const t1 = (st.t1 !== undefined && st.t1 !== null && st.t1 !== '') ? st.t1 : '';
+                    const t2 = (st.t2 !== undefined && st.t2 !== null && st.t2 !== '') ? st.t2 : '';
+                    const t3 = (st.t3 !== undefined && st.t3 !== null && st.t3 !== '') ? st.t3 : '';
+                    const avgTugas = (st.avgTugas !== undefined && st.avgTugas !== null && st.avgTugas !== '') ? st.avgTugas : '';
+                    const uts = (st.uts !== undefined && st.uts !== null && st.uts !== '') ? st.uts : '';
+                    const uas = (st.uas !== undefined && st.uas !== null && st.uas !== '') ? st.uas : '';
+                    const nilaiAkhir = (st.nilai_akhir !== undefined && st.nilai_akhir !== null && st.nilai_akhir !== '') ? st.nilai_akhir : '';
                     csv += `${idx + 1},${name},${t1},${t2},${t3},${avgTugas},${uts},${uas},${nilaiAkhir}\n`;
                   });
                   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1162,13 +1180,13 @@ const GuruCourses = () => {
                       <tr key={st._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '12px', fontWeight: '700', color: '#64748b' }}>{idx + 1}</td>
                         <td style={{ padding: '12px', color: '#0f172a', fontWeight: '800' }}>{st.full_name || st.student_name || st.name}</td>
-                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t1 !== undefined ? st.t1 : 85}</td>
-                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t2 !== undefined ? st.t2 : 88}</td>
-                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t3 !== undefined ? st.t3 : 84}</td>
-                        <td style={{ padding: '12px', color: '#0284c7', fontWeight: '800' }}>{st.avgTugas !== undefined ? st.avgTugas : 85.6}</td>
-                        <td style={{ padding: '12px', fontWeight: '700' }}>{st.uts !== undefined ? st.uts : 88}</td>
-                        <td style={{ padding: '12px', fontWeight: '700' }}>{st.uas !== undefined ? st.uas : 90}</td>
-                        <td style={{ padding: '12px', fontWeight: '800', color: '#16a34a' }}>{st.nilai_akhir !== undefined ? st.nilai_akhir : 87.5}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t1 !== undefined && st.t1 !== null && st.t1 !== '' ? st.t1 : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t2 !== undefined && st.t2 !== null && st.t2 !== '' ? st.t2 : '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'center', fontWeight: '700' }}>{st.t3 !== undefined && st.t3 !== null && st.t3 !== '' ? st.t3 : '-'}</td>
+                        <td style={{ padding: '12px', color: '#0284c7', fontWeight: '800' }}>{st.avgTugas !== undefined && st.avgTugas !== null && st.avgTugas !== '' ? st.avgTugas : '-'}</td>
+                        <td style={{ padding: '12px', fontWeight: '700' }}>{st.uts !== undefined && st.uts !== null && st.uts !== '' ? st.uts : '-'}</td>
+                        <td style={{ padding: '12px', fontWeight: '700' }}>{st.uas !== undefined && st.uas !== null && st.uas !== '' ? st.uas : '-'}</td>
+                        <td style={{ padding: '12px', fontWeight: '800', color: '#16a34a' }}>{st.nilai_akhir !== undefined && st.nilai_akhir !== null && st.nilai_akhir !== '' ? st.nilai_akhir : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1451,7 +1469,11 @@ const GuruCourses = () => {
               </div>
               <div>
                 <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Hai, {teacherProfile?.full_name || 'Susi Herlina, S.Kom.'}</h4>
-                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Beban: <strong>{activeClasses.length * 6} JP</strong></p>
+                <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                  Beban: <strong>{allDbSchedules.filter(s => 
+                    s && (s.teacher_id === teacherProfile?._id || s.teacher_id?._id === teacherProfile?._id)
+                  ).length} JP</strong>
+                </p>
               </div>
             </div>
 

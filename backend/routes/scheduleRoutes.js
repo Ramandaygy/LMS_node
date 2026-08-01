@@ -70,6 +70,20 @@ router.get(
   scheduleController.getOrtuChildSchedule
 );
 
+// PUT - Update seluruh jadwal pada slot waktu tertentu
+router.put(
+  '/update-time-slot',
+  authMiddleware,
+  scheduleController.updateTimeSlot
+);
+
+// POST - Salin jadwal dari satu tahun ajaran ke tahun ajaran lain
+router.post(
+  '/copy',
+  authMiddleware,
+  scheduleController.copySchedules
+);
+
 // PUT - Update 1 jadwal
 router.put(
   '/:id',

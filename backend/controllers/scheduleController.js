@@ -170,6 +170,52 @@ exports.deleteSchedule = async (req, res) => {
   }
 };
 
+exports.updateTimeSlot = async (req, res) => {
+  try {
+    const { academic_year_id, time_slot, start_time, end_time } = req.body;
+    if (!academic_year_id || !time_slot || !start_time || !end_time) {
+      return res.status(400).json({ success: false, message: 'Data tidak lengkap' });
+    }
+    const result = await scheduleService.updateTimeSlot({ academic_year_id, time_slot, start_time, end_time });
+    
+    // Log Activity
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req, 'Update Slot Waktu', `Memperbarui jam pelajaran slot ${time_slot} menjadi ${start_time} - ${end_time}`);
+    } catch (logErr) {
+      console.error('Failed to log updateTimeSlot activity:', logErr);
+    }
+
+    return res.json({ success: true, message: `Berhasil memperbarui ${result.modifiedCount} jadwal`, result });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+exports.copySchedules = async (req, res) => {
+  try {
+    const { from_academic_year_id, to_academic_year_id } = req.body;
+    if (!from_academic_year_id || !to_academic_year_id) {
+      return res.status(400).json({ success: false, message: 'ID Tahun Ajaran Asal dan Tujuan harus disediakan.' });
+    }
+    const result = await scheduleService.copySchedules({ from_academic_year_id, to_academic_year_id });
+    
+    // Log Activity
+    try {
+      const { logActivity } = require('../utils/activityLogger');
+      await logActivity(req, 'Salin Jadwal', `Menyalin jadwal dari tahun ajaran ${from_academic_year_id} ke ${to_academic_year_id}`);
+    } catch (logErr) {
+      console.error('Failed to log copySchedules activity:', logErr);
+    }
+
+    return res.json({ success: true, message: `Berhasil menyalin ${result.copiedCount} jadwal.`, result });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 exports.getStudentTodaySchedule = async (req, res) => {
   try {
     const studentId = req.user.id;

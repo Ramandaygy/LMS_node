@@ -25,6 +25,7 @@ const GuruMaterials = () => {
     file: null
   });
   const [editingId, setEditingId] = useState(null);
+  const [editorMode, setEditorMode] = useState('rendered'); // 'rendered' | 'code'
   const [generatingAI, setGeneratingAI] = useState(false);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
@@ -71,6 +72,18 @@ const GuruMaterials = () => {
     const replacement = `${startTag}${selectedText}${endTag}`;
     const newContent = form.content.substring(0, start) + replacement + form.content.substring(end);
     setForm(prev => ({ ...prev, content: newContent }));
+  };
+
+  const handleFormatClick = (command, tagStart, tagEnd, value = null) => {
+    if (editorMode === 'rendered') {
+      document.execCommand(command, false, value);
+      const el = document.getElementById('contentEditorRendered');
+      if (el) {
+        setForm(prev => ({ ...prev, content: el.innerHTML }));
+      }
+    } else {
+      insertFormatting(tagStart, tagEnd);
+    }
   };
 
   const handleFileChange = (e) => {
@@ -477,41 +490,101 @@ const GuruMaterials = () => {
             <div className="form-group">
               <label>Deskripsi</label>
               <textarea name="description" placeholder="Ringkasan singkat materi (atau klik Generate AI di bawah)" rows="2" value={form.description} onChange={handleChange} />
-            </div>
-
-            {/* RICH TEXT EDITOR TOOLBAR & CONTENT BOX (WORD / BLOGGER STYLE) */}
+            </div>            {/* RICH TEXT EDITOR TOOLBAR & CONTENT BOX (WORD / BLOGGER STYLE) */}
             <div className="form-group">
               <label style={{ fontWeight: '800', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                 <span>Isi / Konten Materi Pembelajaran</span>
-                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '700' }}>Editor Mode Word / Blogger</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('rendered')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      border: '1px solid #cbd5e1',
+                      background: editorMode === 'rendered' ? '#0284c7' : '#ffffff',
+                      color: editorMode === 'rendered' ? '#ffffff' : '#475569',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tampilan Rendered (Visual)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('code')}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      border: '1px solid #cbd5e1',
+                      background: editorMode === 'code' ? '#0284c7' : '#ffffff',
+                      color: editorMode === 'code' ? '#ffffff' : '#475569',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tampilan Code (HTML)
+                  </button>
+                </div>
               </label>
 
               <div className="rich-editor-toolbar" style={{ display: 'flex', gap: '4px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderBottom: 'none', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', padding: '6px 10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" onClick={() => insertFormatting('<b>', '</b>')} style={{ fontWeight: '900', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Tebal (Bold)">B</button>
-                <button type="button" onClick={() => insertFormatting('<i>', '</i>')} style={{ fontStyle: 'italic', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Miring (Italic)">I</button>
-                <button type="button" onClick={() => insertFormatting('<u>', '</u>')} style={{ textDecoration: 'underline', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Garis Bawah (Underline)">U</button>
-                <button type="button" onClick={() => insertFormatting('<s>', '</s>')} style={{ textDecoration: 'line-through', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Coret Teks">S</button>
+                <button type="button" onClick={() => handleFormatClick('bold', '<b>', '</b>')} style={{ fontWeight: '900', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Tebal (Bold)">B</button>
+                <button type="button" onClick={() => handleFormatClick('italic', '<i>', '</i>')} style={{ fontStyle: 'italic', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Miring (Italic)">I</button>
+                <button type="button" onClick={() => handleFormatClick('underline', '<u>', '</u>')} style={{ textDecoration: 'underline', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Garis Bawah (Underline)">U</button>
+                <button type="button" onClick={() => handleFormatClick('strikeThrough', '<s>', '</s>')} style={{ textDecoration: 'line-through', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Coret Teks">S</button>
                 <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
-                <button type="button" onClick={() => insertFormatting('<h1>', '</h1>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H1</button>
-                <button type="button" onClick={() => insertFormatting('<h2>', '</h2>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H2</button>
-                <button type="button" onClick={() => insertFormatting('<h3>', '</h3>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H3</button>
-                <button type="button" onClick={() => insertFormatting('<p>', '</p>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Paragraf</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h1>', '</h1>', '<h1>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H1</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h2>', '</h2>', '<h2>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H2</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h3>', '</h3>', '<h3>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H3</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<p>', '</p>', '<p>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Paragraf</button>
                 <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
-                <button type="button" onClick={() => insertFormatting('<ul>\n  <li>', '</li>\n</ul>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>• Poin Bullet</button>
-                <button type="button" onClick={() => insertFormatting('<ol>\n  <li>', '</li>\n</ol>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>1. Penomoran</button>
-                <button type="button" onClick={() => insertFormatting('<blockquote>', '</blockquote>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>“ Kutipan</button>
-                <button type="button" onClick={() => insertFormatting('<pre><code>', '</code></pre>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>&lt;/&gt; Kode</button>
+                <button type="button" onClick={() => handleFormatClick('insertUnorderedList', '<ul>\n  <li>', '</li>\n</ul>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>• Poin Bullet</button>
+                <button type="button" onClick={() => handleFormatClick('insertOrderedList', '<ol>\n  <li>', '</li>\n</ol>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>1. Penomoran</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<blockquote>', '</blockquote>', '<blockquote>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>“ Kutipan</button>
+                <button type="button" onClick={() => handleFormatClick('formatBlock', '<pre>', '</pre>', '<pre>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>&lt;/&gt; Kode</button>
               </div>
 
-              <textarea 
-                id="contentEditorTextarea"
-                name="content" 
-                placeholder="Tuliskan isi materi pembelajaran lengkap di sini... (Gunakan toolbar Word/Blogger di atas untuk format teks)" 
-                rows="7" 
-                value={form.content} 
-                onChange={handleChange}
-                style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none', fontFamily: "'Inter', sans-serif", fontSize: '13px', lineHeight: '1.6' }}
-              />
+              {editorMode === 'rendered' ? (
+                <div
+                  id="contentEditorRendered"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => {
+                    setForm(prev => ({ ...prev, content: e.currentTarget.innerHTML }));
+                  }}
+                  dangerouslySetInnerHTML={{ __html: form.content }}
+                  style={{
+                    minHeight: '220px',
+                    padding: '16px',
+                    border: '1px solid #cbd5e1',
+                    borderTop: 'none',
+                    borderBottomLeftRadius: '10px',
+                    borderBottomRightRadius: '10px',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    fontFamily: "'Inter', sans-serif",
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    outline: 'none',
+                    overflowY: 'auto',
+                    textAlign: 'left'
+                  }}
+                  placeholder="Tuliskan isi materi secara visual di sini..."
+                />
+              ) : (
+                <textarea 
+                  id="contentEditorTextarea"
+                  name="content" 
+                  placeholder="Tuliskan isi materi pembelajaran lengkap di sini... (Gunakan toolbar Word/Blogger di atas untuk format teks)" 
+                  rows="10" 
+                  value={form.content} 
+                  onChange={handleChange}
+                  style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none', fontFamily: "'Courier New', Courier, monospace", fontSize: '13px', lineHeight: '1.6' }}
+                />
+              )}
             </div>
 
             <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>

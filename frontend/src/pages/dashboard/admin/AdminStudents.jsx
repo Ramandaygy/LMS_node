@@ -26,6 +26,7 @@ const AdminStudents = () => {
     alamat: '',
     role: 'siswa',
     is_active: true,
+    jenis_kelamin: 'Laki-laki',
   });
 
   // Dropdown & modal states
@@ -109,6 +110,7 @@ const AdminStudents = () => {
           parent_id: formData.parent_id,
           alamat: formData.alamat,
           is_active: formData.is_active,
+          jenis_kelamin: formData.jenis_kelamin || 'Laki-laki',
         };
         if (formData.password) {
           updateData.password = formData.password;
@@ -135,6 +137,7 @@ const AdminStudents = () => {
         alamat: '',
         role: 'siswa',
         is_active: true,
+        jenis_kelamin: 'Laki-laki',
       });
       fetchStudents();
     } catch (error) {
@@ -156,6 +159,7 @@ const AdminStudents = () => {
       alamat: student.alamat || student.address || '',
       role: 'siswa',
       is_active: student.is_active !== undefined ? student.is_active : true,
+      jenis_kelamin: student.jenis_kelamin || student.gender || 'Laki-laki',
     });
     setShowModal(true);
   };
@@ -538,6 +542,13 @@ const AdminStudents = () => {
                 </div>
               </div>
               <div className="admin-students-form-row">
+                <div className="admin-students-form-group">
+                  <label className="admin-students-form-label">Jenis Kelamin</label>
+                  <select name="jenis_kelamin" className="admin-students-form-select" value={formData.jenis_kelamin || 'Laki-laki'} onChange={handleChange}>
+                    <option value="Laki-laki">Laki-laki</option>
+                    <option value="Perempuan">Perempuan</option>
+                  </select>
+                </div>
                 <div className="admin-students-form-group">
                   <label className="admin-students-form-label">Status</label>
                   <select name="is_active" className="admin-students-form-select" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>

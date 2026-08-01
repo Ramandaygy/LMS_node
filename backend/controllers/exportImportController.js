@@ -203,6 +203,13 @@ exports.importStudents = async (req, res) => {
           const academic_year_name = getVal('academic_year');
           const parent_nama = getVal('orang_tua_nama');
 
+          let jk = (getVal('jenis_kelamin') || getVal('gender') || 'Laki-laki').trim();
+          if (jk.toUpperCase() === 'P' || jk.toLowerCase().startsWith('perem') || jk.toLowerCase() === 'puan' || jk.toLowerCase() === 'perempuan') {
+            jk = 'Perempuan';
+          } else {
+            jk = 'Laki-laki';
+          }
+
           if (!nis || !full_name || !email) continue;
 
           if (studentNisSet.has(nis)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
@@ -339,6 +346,8 @@ exports.importStudents = async (req, res) => {
             _id: student_id,
             nis, full_name, email, username, password: hashed_default, role: 'siswa',
             class_id: class_doc._id, parent_id, academic_year_id: year_id,
+            jenis_kelamin: jk,
+            gender: jk,
             status: (status.toLowerCase().trim() === 'inactive' || status.toLowerCase().trim() === 'nonaktif' || status.toLowerCase().trim() === 'non-aktif') ? 'inactive' : 'active',
             profile: { avatar: null, bio: '', phone: '', address: '' }, created_at: new Date(), updated_at: new Date()
           });
@@ -742,6 +751,7 @@ exports.exportStudentsTemplate = async (req, res) => {
       { header: 'nis', key: 'nis', width: 15 },
       { header: 'full_name', key: 'full_name', width: 30 },
       { header: 'class_name', key: 'class_name', width: 15 },
+      { header: 'jenis_kelamin', key: 'jenis_kelamin', width: 15 },
       { header: 'status', key: 'status', width: 15 },
       { header: 'academic_year', key: 'academic_year', width: 15 },
       { header: 'orang_tua_nama', key: 'orang_tua_nama', width: 30 }

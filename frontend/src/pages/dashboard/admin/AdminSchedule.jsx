@@ -95,6 +95,8 @@ const AdminSchedule = () => {
     end: ''
   });
 
+  const [copyModalOpen, setCopyModalOpen] = useState(false);
+  const [sourceYearId, setSourceYearId] = useState('');
   const [message, setMessage] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
 
@@ -238,7 +240,7 @@ const AdminSchedule = () => {
     });
   };
 
-  const handleTimeEditSave = () => {
+  const handleTimeEditSave = async () => {
     const { slotIndex, start, end } = timeEditModal;
     if (start < '07:00' || end > '15:00') {
       alert('Waktu harus di rentang 07:00 - 15:00');
@@ -248,12 +250,55 @@ const AdminSchedule = () => {
       alert('Waktu mulai harus lebih awal dari waktu selesai');
       return;
     }
-    const updated = [...timeSlots];
-    updated[slotIndex].start = start;
-    updated[slotIndex].end = end;
-    updated[slotIndex].label = `${start}-${end}`;
-    setTimeSlots(updated);
-    setTimeEditModal({ open: false, slotIndex: null, start: '', end: '' });
+    try {
+      setSaving(true);
+      await api.put('/schedules/update-time-slot', {
+        academic_year_id: selectedYear,
+        time_slot: slotIndex + 1,
+        start_time: start,
+        end_time: end
+      });
+      const updated = [...timeSlots];
+      updated[slotIndex].start = start;
+      updated[slotIndex].end = end;
+      updated[slotIndex].label = `${start}-${end}`;
+      setTimeSlots(updated);
+      await fetchExistingSchedule();
+      setMessage({ type: 'success', text: 'Jam pelajaran berhasil diperbarui' });
+      setTimeEditModal({ open: false, slotIndex: null, start: '', end: '' });
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyimpan perubahan waktu ke server');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCopySchedules = async () => {
+    if (!sourceYearId) {
+      alert('Silakan pilih tahun ajaran asal terlebih dahulu.');
+      return;
+    }
+    if (sourceYearId === selectedYear) {
+      alert('Tahun ajaran asal dan tujuan tidak boleh sama.');
+      return;
+    }
+    if (!window.confirm('PERINGATAN: Tindakan ini akan menghapus semua jadwal yang ada pada tahun ajaran tujuan saat ini dan menyalin seluruh jadwal dari tahun ajaran asal. Lanjutkan?')) return;
+
+    try {
+      setSaving(true);
+      const res = await api.post('/schedules/copy', {
+        from_academic_year_id: sourceYearId,
+        to_academic_year_id: selectedYear
+      });
+      setMessage({ type: 'success', text: res.data.message || 'Jadwal berhasil disalin' });
+      setCopyModalOpen(false);
+      setSourceYearId('');
+      await fetchExistingSchedule();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Gagal menyalin jadwal dari server');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCellClick = (day, timeSlot, classId, currentSubjectId, currentTeacherId, currentRoom) => {
@@ -615,6 +660,48 @@ const AdminSchedule = () => {
   };
 
   // ============================================================
+  // RENDER COPY SCHEDULE MODAL
+  // ============================================================
+  const renderCopyModal = () => {
+    if (!copyModalOpen) return null;
+    return (
+      <div className="modal-overlay" onClick={() => { setCopyModalOpen(false); setSourceYearId(''); }}>
+        <div className="modal-content compact-modal" onClick={e => e.stopPropagation()} style={{ padding: '24px', maxWidth: '400px' }}>
+          <h3>Salin Jadwal dr. Semester Lain</h3>
+          <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px', lineHeight: '1.5' }}>
+            Pilih tahun ajaran/semester asal yang ingin Anda salin seluruh jadwalnya ke semester aktif saat ini.
+          </p>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '6px' }}>Tahun Ajaran Asal</label>
+            <select 
+              value={sourceYearId} 
+              onChange={e => setSourceYearId(e.target.value)}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13px', outline: 'none' }}
+            >
+              <option value="">Pilih Tahun Ajaran Asal</option>
+              {academicYears.map(y => (
+                <option key={y._id} value={y._id}>
+                  {y.year} - {y.semester} {y.is_active ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="modal-buttons">
+            <button onClick={() => { setCopyModalOpen(false); setSourceYearId(''); }}>Batal</button>
+            <button 
+              onClick={handleCopySchedules} 
+              disabled={saving || !sourceYearId} 
+              style={{ background: '#0284c7', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
+            >
+              {saving ? 'Menyalin...' : 'Mulai Salin'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
   // RENDER ASSIGN MODAL
   // ============================================================
   const renderAssignModal = () => {
@@ -784,6 +871,14 @@ const AdminSchedule = () => {
                     {templateLoading ? 'Memproses...' : 'Download Template Excel'}
                   </button>
                 </div>
+                <div className="dropdown-divider"></div>
+                <div className="dropdown-group">
+                  <div className="dropdown-group-title">SINKRONISASI</div>
+                  <button onClick={() => { setActionsOpen(false); setCopyModalOpen(true); }}>
+                    <span className="material-symbols-outlined">content_copy</span>
+                    Salin Jadwal dr. Semester Lain
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -806,6 +901,7 @@ const AdminSchedule = () => {
 
       {renderAssignModal()}
       {renderTimeEditModal()}
+      {renderCopyModal()}
     </div>
   );
 };

@@ -17,9 +17,8 @@ exports.create = async (
   if (data.end_date === '') data.end_date = null;
 
   if (data.is_active) {
-
     await AcademicYear.updateMany(
-      {},
+      { is_active: true },
       {
         $set: {
           is_active: false
@@ -41,9 +40,8 @@ exports.update = async (
   if (data.end_date === '') data.end_date = null;
 
   if (data.is_active) {
-
     await AcademicYear.updateMany(
-      {},
+      { is_active: true },
       {
         $set: {
           is_active: false

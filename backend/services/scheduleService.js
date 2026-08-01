@@ -225,6 +225,46 @@ exports.deleteSchedule = async (id) => {
   return deleted;
 };
 
+exports.updateTimeSlot = async ({ academic_year_id, time_slot, start_time, end_time }) => {
+  const query = {
+    academic_year_id: new mongoose.Types.ObjectId(academic_year_id),
+    time_slot: Number(time_slot)
+  };
+  return await Schedule.updateMany(query, { $set: { start_time, end_time } });
+};
+
+exports.copySchedules = async ({ from_academic_year_id, to_academic_year_id }) => {
+  const fromId = new mongoose.Types.ObjectId(from_academic_year_id);
+  const toId = new mongoose.Types.ObjectId(to_academic_year_id);
+
+  const sourceSchedules = await Schedule.find({ academic_year_id: fromId });
+  if (sourceSchedules.length === 0) {
+    throw new Error('Tidak ada jadwal ditemukan pada tahun ajaran asal.');
+  }
+
+  await Schedule.deleteMany({ academic_year_id: toId });
+
+  const clonedSchedules = sourceSchedules.map(sch => {
+    const obj = sch.toObject();
+    delete obj._id;
+    delete obj.created_at;
+    delete obj.updated_at;
+    obj.academic_year_id = toId;
+    return obj;
+  });
+
+  const result = await Schedule.insertMany(clonedSchedules);
+
+  const teacherIds = [...new Set(clonedSchedules.map(s => s.teacher_id.toString()))];
+  if (teacherIds.length > 0) {
+    await syncTeacherClassesAndSubjects(teacherIds);
+  }
+
+  return {
+    copiedCount: result.length
+  };
+};
+
 exports.deleteByAcademicYear = async (academicYearId) => {
   return await Schedule.deleteMany({ academic_year_id: academicYearId });
 };
