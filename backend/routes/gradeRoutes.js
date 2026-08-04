@@ -22,4 +22,10 @@ router.post(
   gradeController.createGrade
 );
 
+router.get(
+  '/rekap/class/:classId',
+  authMiddleware,
+  gradeController.getClassRekapGrades
+);
+
 module.exports = router;

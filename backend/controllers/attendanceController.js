@@ -100,6 +100,35 @@ exports.getClassStudents = async (req, res) => {
   }
 };
 
+exports.getClassAttendance = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    if (!classId) return res.status(400).json({ error: 'classId diperlukan' });
+
+    const mongoose = require('mongoose');
+    let filter = {};
+    if (mongoose.Types.ObjectId.isValid(classId)) {
+      filter.class_id = new mongoose.Types.ObjectId(classId);
+    } else {
+      const classCol = mongoose.connection.collection('classes');
+      const classDoc = await classCol.findOne({ name: classId });
+      if (classDoc) {
+        filter.class_id = classDoc._id;
+      } else {
+        filter.class_id = classId;
+      }
+    }
+
+    const attendance = await Attendance.find(filter)
+      .sort({ session_number: 1, student_id: 1, date: 1 });
+
+    return res.json({ attendance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getAttendance = async (req, res) => {
   try {
     const { schedule_id, date, session_number } = req.query;

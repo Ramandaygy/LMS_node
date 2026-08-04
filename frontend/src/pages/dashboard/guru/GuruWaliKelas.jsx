@@ -211,15 +211,16 @@ const GuruWaliKelas = () => {
                 <th style={{ width: '60px', textAlign: 'center' }}>No</th>
                 <th>Nama Siswa</th>
                 <th>NIS</th>
-                <th style={{ textAlign: 'center' }}>Kehadiran</th>
-                <th style={{ textAlign: 'center' }}>Rata-Rata Nilai</th>
+                <th style={{ textAlign: 'center' }}>Kehadiran (%)</th>
+                <th style={{ textAlign: 'center' }}>Progress Materi (%)</th>
+                <th style={{ textAlign: 'center' }}>Rata-Rata Nilai (%)</th>
                 <th style={{ textAlign: 'center' }}>Status Risiko Belajar</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
                     Tidak ada siswa binaan yang ditemukan.
                   </td>
                 </tr>
@@ -243,8 +244,20 @@ const GuruWaliKelas = () => {
                         {siswa.attendanceRate}%
                       </span>
                     </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        background: siswa.materialCompletionRate >= 75 ? '#e0f2fe' : '#fef3c7',
+                        color: siswa.materialCompletionRate >= 75 ? '#0284c7' : '#d97706'
+                      }}>
+                        {siswa.materialCompletionRate || 0}%
+                      </span>
+                    </td>
                     <td style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b' }}>
-                      {siswa.avgScore || 0}
+                      {siswa.avgScore || 0}%
                     </td>
                     <td style={{ textAlign: 'center' }}>
                       {siswa.risk === 'high' && (

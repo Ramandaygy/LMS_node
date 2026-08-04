@@ -10,6 +10,7 @@ router.post('/distribute-batch', auth, materialController.distributeMaterialsBat
 router.post('/generate-ai', auth, materialController.generateMaterial);
 router.post('/generate-quiz-ai', auth, materialController.generateQuiz);
 
+router.get('/session', auth, materialController.getMaterialBySession);
 router.get('/', auth, materialController.getAllMaterials);
 router.get('/guru/me', auth, materialController.getTeacherMaterials);
 router.get('/siswa/me', auth, materialController.getStudentMaterials);

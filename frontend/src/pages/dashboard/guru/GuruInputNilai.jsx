@@ -11,6 +11,8 @@ const GuruInputNilai = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [examType, setExamType] = useState('uts');
+  const [academicYears, setAcademicYears] = useState([]);
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState('');
 
   // Input Tab State
   const [students, setStudents] = useState([]);
@@ -28,27 +30,29 @@ const GuruInputNilai = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedClass && selectedSubject) {
+    if (selectedClass && selectedSubject && selectedAcademicYear) {
       if (activeTab === 'input') {
         fetchClassGrades();
       } else {
         fetchRekapGrades();
       }
     }
-  }, [selectedClass, selectedSubject, examType, activeTab]);
+  }, [selectedClass, selectedSubject, examType, activeTab, selectedAcademicYear]);
 
   const fetchClassesAndSubjects = async () => {
     try {
-      const [classesRes, subjectsRes, binaanRes] = await Promise.all([
+      const [classesRes, subjectsRes, binaanRes, yearsRes] = await Promise.all([
         api.get('/classes'),
         api.get('/subjects'),
         api.get('/guru/students'),
+        api.get('/academic-years'),
       ]);
 
       const allClassList = classesRes.data.data || [];
       const allSubjectList = subjectsRes.data.data || [];
       const teacherSub = binaanRes.data.teacher_subjects || [];
       const teacherCls = binaanRes.data.teacher_classes || [];
+      const yearsList = yearsRes.data.academic_years || yearsRes.data.data || [];
 
       const finalSubjects = teacherSub.length > 0 ? teacherSub : allSubjectList;
       const teacherClsIds = teacherCls.map((c) => c.id);
@@ -58,12 +62,20 @@ const GuruInputNilai = () => {
 
       setClasses(finalClasses);
       setSubjects(finalSubjects);
+      setAcademicYears(yearsList);
 
       if (finalClasses.length > 0) setSelectedClass(finalClasses[0]._id);
       if (finalSubjects.length > 0) setSelectedSubject(finalSubjects[0]._id);
+
+      const activeYear = yearsList.find(y => y.is_active);
+      if (activeYear) {
+        setSelectedAcademicYear(activeYear._id);
+      } else if (yearsList.length > 0) {
+        setSelectedAcademicYear(yearsList[0]._id);
+      }
     } catch (err) {
       console.error('Error fetching master classes/subjects:', err);
-      setMessage({ type: 'error', text: 'Gagal memuat daftar kelas dan mata pelajaran profil guru.' });
+      setMessage({ type: 'error', text: 'Gagal memuat daftar kelas, mata pelajaran, dan tahun ajaran.' });
     }
   };
 
@@ -78,6 +90,7 @@ const GuruInputNilai = () => {
           classId: selectedClass,
           subjectId: selectedSubject,
           type: examType,
+          academic_year_id: selectedAcademicYear
         },
       });
 
@@ -108,6 +121,7 @@ const GuruInputNilai = () => {
           classId: selectedClass,
           subjectId: selectedSubject,
           type: examType,
+          academic_year_id: selectedAcademicYear
         },
       });
       setRekapGrades(res.data.data || []);
@@ -149,6 +163,7 @@ const GuruInputNilai = () => {
         subjectId: selectedSubject,
         type: examType,
         grades: gradesPayload,
+        academic_year_id: selectedAcademicYear
       });
 
       setMessage({ type: 'success', text: 'Semua nilai berhasil disimpan!' });
@@ -224,6 +239,22 @@ const GuruInputNilai = () => {
       {/* Selector Controls */}
       <div style={{ background: '#fff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', marginBottom: '24px', display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
+          {/* Academic Year Select */}
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>TAHUN AJARAN</label>
+            <select
+              value={selectedAcademicYear}
+              onChange={(e) => setSelectedAcademicYear(e.target.value)}
+              style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '14px', fontWeight: '700', minWidth: '180px', outline: 'none' }}
+            >
+              {academicYears.map((y) => (
+                <option key={y._id} value={y._id}>
+                  {y.year} - {y.semester} {y.is_active ? '(Aktif)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Class Select */}
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>PILIH KELAS</label>

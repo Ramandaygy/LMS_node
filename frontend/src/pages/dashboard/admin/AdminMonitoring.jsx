@@ -23,6 +23,16 @@ const AdminMonitoring = () => {
   const [legerData, setLegerData] = useState(null);
   const [loadingLeger, setLoadingLeger] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
+  const [homeroomClassName, setHomeroomClassName] = useState('');
+
+  const isHomeroomClassSelected = classes.find(c => c._id === selectedLegerClass)?.name === homeroomClassName;
+
+  const displayedSubjects = (legerData && legerData.subjects)
+    ? ((isGuru && !isHomeroomClassSelected) 
+        ? legerData.subjects.filter(sub => teacherSubjects.some(ts => ts._id.toString() === sub._id.toString()))
+        : legerData.subjects)
+    : [];
 
   const [students, setStudents] = useState([]);
   const [studentStats, setStudentStats] = useState({
@@ -81,11 +91,39 @@ const AdminMonitoring = () => {
 
   const fetchClasses = async () => {
     try {
-      const res = await api.get('/classes');
-      const classList = res.data.data || [];
-      setClasses(classList);
-      if (classList.length > 0) {
-        setSelectedLegerClass(classList[0]._id);
+      if (isGuru) {
+        const res = await api.get('/guru/students');
+        const hrClassName = res.data.homeroom_class || null;
+        setHomeroomClassName(hrClassName);
+        const tCls = res.data.teacher_classes || [];
+        const tSub = res.data.teacher_subjects || res.data.subjects || [];
+        setTeacherSubjects(tSub);
+
+        // Normalize all tCls to have both _id and name
+        const normalizedClasses = tCls.map(c => ({
+          _id: c.id || c._id || '',
+          name: c.name || ''
+        }));
+
+        setClasses(normalizedClasses);
+        
+        if (hrClassName) {
+          const hrClassObj = normalizedClasses.find(c => c.name === hrClassName);
+          if (hrClassObj && hrClassObj._id) {
+            setSelectedLegerClass(hrClassObj._id);
+          } else if (normalizedClasses.length > 0) {
+            setSelectedLegerClass(normalizedClasses[0]._id);
+          }
+        } else if (normalizedClasses.length > 0) {
+          setSelectedLegerClass(normalizedClasses[0]._id);
+        }
+      } else {
+        const res = await api.get('/classes');
+        const classList = res.data.data || [];
+        setClasses(classList);
+        if (classList.length > 0) {
+          setSelectedLegerClass(classList[0]._id);
+        }
       }
     } catch (e) {
       console.error('Error fetching classes:', e);
@@ -265,8 +303,8 @@ const AdminMonitoring = () => {
         </div>
         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>
           {isGuru
-            ? 'Rekapitulasi Leger Nilai Akademik Seluruh Kelas (Formula 2:1:1) & Cetak Excel Leger.'
-            : 'Rekapitulasi Leger Nilai Akademik (Formula 2:1:1), Monitoring EWS, Pemetaan Guru, dan Audit Log Aktivitas.'}
+            ? 'Rekapitulasi Leger Nilai Akademik  & Cetak Excel Leger.'
+            : 'Rekapitulasi Leger Nilai Akademik , Monitoring EWS, Pemetaan Guru, dan Audit Log Aktivitas.'}
         </p>
       </div>
 
@@ -289,7 +327,7 @@ const AdminMonitoring = () => {
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>table_view</span>
-            Matriks Leger Nilai Kelas (2:1:1)
+            Matriks Leger Nilai Kelas
           </button>
 
           <button
@@ -537,7 +575,7 @@ const AdminMonitoring = () => {
                                 </tr>
                               </thead>
                               <tbody>
-                                {legerData.subjects.map((sub) => {
+                                {displayedSubjects.map((sub) => {
                                   const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
                                   return (
                                     <tr key={sub._id} style={{ borderBottom: '1px solid #f8fafc' }}>
@@ -566,7 +604,7 @@ const AdminMonitoring = () => {
                             <th style={{ padding: '12px 16px', borderRight: '1px solid #334155' }} rowSpan={2}>NIS</th>
                             <th style={{ padding: '12px 16px', borderRight: '1px solid #334155', textAlign: 'left' }} rowSpan={2}>Nama Siswa</th>
 
-                            {legerData.subjects.map((sub) => (
+                            {displayedSubjects.map((sub) => (
                               <th key={sub._id} colSpan={4} style={{ padding: '10px', borderRight: '1px solid #334155', borderBottom: '1px solid #334155' }}>
                                 {sub.name}
                               </th>
@@ -576,7 +614,7 @@ const AdminMonitoring = () => {
                             <th style={{ padding: '12px 16px' }} rowSpan={2}>Presensi (%)</th>
                           </tr>
                           <tr style={{ background: '#1e293b', color: '#94a3b8', fontSize: '11px', textAlign: 'center' }}>
-                            {legerData.subjects.map((sub) => (
+                            {displayedSubjects.map((sub) => (
                               <React.Fragment key={`sub-cols-${sub._id}`}>
                                 <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>NH</th>
                                 <th style={{ padding: '6px 8px', borderRight: '1px solid #334155' }}>PTS</th>
@@ -595,7 +633,7 @@ const AdminMonitoring = () => {
                               <td style={{ padding: '12px 16px', color: '#64748b' }}>{st.nis}</td>
                               <td style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '700', color: '#0f172a' }}>{st.full_name}</td>
 
-                              {legerData.subjects.map((sub) => {
+                              {((legerData && legerData.subjects) ? (isGuru ? legerData.subjects.filter(sub => teacherSubjects.some(ts => ts._id.toString() === sub._id.toString())) : legerData.subjects) : []).map((sub) => {
                                 const sg = st.subjectGrades[sub._id.toString()] || { NH: '-', PTS: '-', PAS: '-', NA: '-' };
                                 return (
                                   <React.Fragment key={`cell-${st._id}-${sub._id}`}>

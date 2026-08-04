@@ -161,9 +161,9 @@ const SiswaCbt = () => {
     if (now < start) {
       return {
         isAvailable: false,
-        label: `Mulai: ${start.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}`,
+        label: `Mulai: ${start.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'short', timeStyle: 'short' })}`,
         class: 'scheduled',
-        message: `Ujian dijadwalkan pada ${start.toLocaleString('id-ID')}`
+        message: `Ujian dijadwalkan pada ${start.toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}`
       };
     }
     if (now > end) {
@@ -176,7 +176,7 @@ const SiswaCbt = () => {
     }
     return {
       isAvailable: true,
-      label: `Aktif s/d ${end.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`,
+      label: `Aktif s/d ${end.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit' })}`,
       class: 'active'
     };
   };

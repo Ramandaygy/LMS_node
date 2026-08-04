@@ -29,6 +29,11 @@ const eventSchema = new mongoose.Schema(
       type: String,
       default: '#0040a1',
     },
+    visibility: {
+      type: String,
+      enum: ['public', 'private'],
+      default: 'public',
+    },
     created_by: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

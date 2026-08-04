@@ -78,6 +78,9 @@ const GuruCourses = () => {
   const [teacherTasks, setTeacherTasks] = useState([]);
   const [selectedTaskIds, setSelectedTaskIds] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [teacherMaterials, setTeacherMaterials] = useState([]);
+  const [loadingTeacherMaterials, setLoadingTeacherMaterials] = useState(false);
+  const [loadingTeacherTasks, setLoadingTeacherTasks] = useState(false);
 
   const [sessionMaterials, setSessionMaterials] = useState([]);
   const [sessionAssignments, setSessionAssignments] = useState([]);
@@ -116,19 +119,56 @@ const GuruCourses = () => {
     ];
   }, [teacherProfile]);
 
-  const handlePostSessionComment = (schId, sessionNum) => {
-    if (!newCommentText.trim()) return;
-    const forumKey = `${schId}_session_${sessionNum}`;
-    const newComment = {
-      author: teacherProfile?.full_name || 'Guru',
-      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB',
-      text: newCommentText.trim()
-    };
-    setSessionForums(prev => ({
-      ...prev,
-      [forumKey]: [newComment, ...(prev[forumKey] || [])]
-    }));
-    setNewCommentText('');
+  const fetchSessionComments = async (sch, sessionNum) => {
+    try {
+      const subjectId = sch.subject_id?._id || sch.subject_id;
+      const classId = sch.class_id?._id || sch.class_id;
+      const forumKey = `${sch._id || sch.id || sch.schedule_id}_session_${sessionNum}`;
+
+      const res = await api.get(`/forums/messages?subjectId=${subjectId}&classId=${classId}&sessionNumber=${sessionNum}`);
+      if (res.data.success) {
+        const messages = res.data.messages || [];
+        const formatted = messages.map(m => ({
+          author: m.user_name || m.author?.full_name || 'User',
+          time: m.created_at ? new Date(m.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '',
+          text: m.content || m.message || '',
+          isTeacher: m.isTeacher
+        }));
+
+        setSessionForums(prev => ({
+          ...prev,
+          [forumKey]: formatted
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch forum messages:', err);
+    }
+  };
+
+  const handlePostSessionComment = async (schId, sessionNum) => {
+    if (!newCommentText.trim() || !activeCourseDetail) return;
+    try {
+      const sch = activeCourseDetail.schedule;
+      const subjectId = sch.subject_id?._id || sch.subject_id;
+      const classId = sch.class_id?._id || sch.class_id;
+
+      const payload = {
+        subjectId,
+        classId,
+        materialId: null,
+        sessionNumber: sessionNum,
+        content: newCommentText.trim()
+      };
+
+      const res = await api.post('/forums/messages', payload);
+      if (res.data.success) {
+        setNewCommentText('');
+        fetchSessionComments(sch, sessionNum);
+      }
+    } catch (err) {
+      console.error('Failed to post comment:', err);
+      alert('Gagal mengirim tanggapan forum.');
+    }
   };
 
   const [createNewTaskModal, setCreateNewTaskModal] = useState(null);
@@ -136,7 +176,8 @@ const GuruCourses = () => {
     title: '',
     description: '',
     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    maxScore: 100
+    maxScore: 100,
+    kkm: 75
   });
   const [creatingTask, setCreatingTask] = useState(false);
   const [previewMaterialModal, setPreviewMaterialModal] = useState(null);
@@ -154,19 +195,21 @@ const GuruCourses = () => {
       
       const attendanceMap = {};
       attendanceData.forEach(a => {
-        const sid = a.student_id?._id || a.student_id || a.student;
-        if (!attendanceMap[sid]) {
-          attendanceMap[sid] = [];
+        const sid = (a.student_id?._id || a.student_id || a.student || '').toString();
+        if (sid) {
+          if (!attendanceMap[sid]) {
+            attendanceMap[sid] = [];
+          }
+          attendanceMap[sid].push(a);
         }
-        attendanceMap[sid].push(a);
       });
       setStudentAttendance(attendanceMap);
       
       const totalStudents = Object.keys(attendanceMap).length;
       const present = attendanceData.filter(a => a.status === 'hadir' || a.status === 'present').length;
-      const absent = attendanceData.filter(a => a.status === 'tidak_hadir' || a.status === 'absent').length;
+      const absent = attendanceData.filter(a => a.status === 'tidak_hadir' || a.status === 'absent' || a.status === 'alfa').length;
       const sick = attendanceData.filter(a => a.status === 'sakit' || a.status === 'sick').length;
-      const permission = attendanceData.filter(a => a.status === 'izin' || a.status === 'permission').length;
+      const permission = attendanceData.filter(a => a.status === 'izin' || a.status === 'permission' || a.status === 'permit').length;
       
       setAttendanceSummary({
         total: totalStudents,
@@ -281,6 +324,32 @@ const GuruCourses = () => {
     }
   };
 
+  const fetchTeacherMaterials = async () => {
+    if (teacherMaterials.length > 0) return;
+    setLoadingTeacherMaterials(true);
+    try {
+      const res = await api.get('/materials/guru/me');
+      setTeacherMaterials(res.data.data || []);
+    } catch (err) {
+      console.error('Gagal ambil bank materi guru', err);
+    } finally {
+      setLoadingTeacherMaterials(false);
+    }
+  };
+
+  const fetchTeacherTasks = async () => {
+    if (teacherTasks.length > 0) return;
+    setLoadingTeacherTasks(true);
+    try {
+      const res = await api.get('/assignments/guru/me');
+      setTeacherTasks(res.data.data || []);
+    } catch (err) {
+      console.error('Gagal ambil tugas guru', err);
+    } finally {
+      setLoadingTeacherTasks(false);
+    }
+  };
+
   const handleSaveNewTaskSubmit = async (e) => {
     e.preventDefault();
     if (!newTaskForm.title.trim() || !createNewTaskModal) return;
@@ -288,6 +357,7 @@ const GuruCourses = () => {
     try {
       const sch = createNewTaskModal.targetSchedule;
       const classId = sch.class_id?._id || sch.class_id || sch.id;
+      const subjectId = sch.subject_id?._id || sch.subject_id;
       const sessionNum = createNewTaskModal.targetSessionNum || 1;
 
       await api.post('/assignments', {
@@ -295,9 +365,12 @@ const GuruCourses = () => {
         description: newTaskForm.description,
         due_date: newTaskForm.dueDate,
         deadline: newTaskForm.dueDate,
-        max_score: newTaskForm.maxScore,
+        max_score: Number(newTaskForm.maxScore) || 100,
+        kkm: Number(newTaskForm.kkm) || 75,
         class_id: classId,
         class: classId,
+        subject_id: subjectId,
+        subject: subjectId,
         session_number: sessionNum
       });
 
@@ -307,7 +380,8 @@ const GuruCourses = () => {
         title: '',
         description: '',
         dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        maxScore: 100
+        maxScore: 100,
+        kkm: 75
       });
 
       if (activeCourseDetail) {
@@ -328,17 +402,21 @@ const GuruCourses = () => {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      const [courseRes, profileRes, dbSchedRes, attendanceSchedRes] = await Promise.allSettled([
+      const [courseRes, profileRes, dbSchedRes, attendanceSchedRes, materialsRes, tasksRes] = await Promise.allSettled([
         api.get('/courses'),
         api.get('/profile'),
         api.get('/schedules'),
-        api.get('/attendance/schedules')
+        api.get('/attendance/schedules'),
+        api.get('/materials/guru/me'),
+        api.get('/assignments/guru/me')
       ]);
 
       if (courseRes.status === 'fulfilled') setCourses(courseRes.value.data.courses || []);
       if (profileRes.status === 'fulfilled') setTeacherProfile(profileRes.value.data);
       if (dbSchedRes.status === 'fulfilled') setAllDbSchedules(dbSchedRes.value.data.data || []);
       if (attendanceSchedRes.status === 'fulfilled') setSchedules(attendanceSchedRes.value.data.schedules || []);
+      if (materialsRes.status === 'fulfilled') setTeacherMaterials(materialsRes.value.data.data || []);
+      if (tasksRes.status === 'fulfilled') setTeacherTasks(tasksRes.value.data.data || []);
 
     } catch (error) {
       console.error('Error loading Modul Guru data:', error);
@@ -352,8 +430,9 @@ const GuruCourses = () => {
       const sch = activeCourseDetail.schedule;
       const sessionNum = (activeCourseDetail.activeSessionIdx || 0) + 1;
       fetchRealSessionData(sch, sessionNum);
+      fetchSessionComments(sch, sessionNum);
       if (activeCourseDetail.activeTab === 'peserta') {
-        const classId = sch.class_id?._id || sch.class_id || sch.id;
+        const classId = sch.class_id?._id || (typeof sch.class_id === 'string' ? sch.class_id : null) || sch.class || sch.id;
         fetchStudentAttendance(classId);
       }
     }
@@ -382,7 +461,6 @@ const GuruCourses = () => {
     setLoadingSessionData(true);
     try {
       const targetClassId = (sch.class_id?._id || sch.class_id || sch.id || '').toString();
-      const targetClassName = (sch.class_name || sch.class || '').toString().toLowerCase().trim();
 
       const [matRes, taskRes] = await Promise.allSettled([
         api.get('/materials'),
@@ -393,11 +471,14 @@ const GuruCourses = () => {
         const allMats = matRes.value.data.data || matRes.value.data.materials || [];
         const filteredMats = allMats.filter(m => {
           const mClassId = (m.class_id?._id || m.class_id || '').toString();
-          const mClassName = (m.class_name || m.class_id?.name || m.grade_level || '').toString().toLowerCase().trim();
-          const isForThisClass = mClassId 
-            ? (mClassId === targetClassId) 
-            : (mClassName ? (mClassName === targetClassName || mClassName.includes(targetClassName) || targetClassName.includes(mClassName)) : true);
-          return isForThisClass;
+          const mSubjectId = (m.subject_id?._id || m.subject_id || '').toString();
+          const targetSubjectId = (sch.subject_id?._id || sch.subject_id || '').toString();
+          
+          const isClassMatch = mClassId === targetClassId || m.class_name === sch.class_name;
+          const isSubjectMatch = mSubjectId === targetSubjectId || (m.title && sch.subject && m.title.toLowerCase().includes(sch.subject.toLowerCase()));
+          const isSessionMatch = parseInt(m.session_number) === sessionNum;
+          
+          return isClassMatch && isSubjectMatch && isSessionMatch;
         });
         setSessionMaterials(filteredMats);
       } else {
@@ -408,8 +489,14 @@ const GuruCourses = () => {
         const allTasks = taskRes.value.data.data || [];
         const filteredTasks = allTasks.filter(t => {
           const tClassId = (t.class_id?._id || t.class_id || t.class || '').toString();
-          const matchClass = tClassId ? (tClassId === targetClassId) : true;
-          return matchClass;
+          const tSubjectId = (t.subject_id?._id || t.subject_id || '').toString();
+          const targetSubjectId = (sch.subject_id?._id || sch.subject_id || '').toString();
+          
+          const isClassMatch = tClassId === targetClassId || t.class_name === sch.class_name;
+          const isSubjectMatch = tSubjectId === targetSubjectId || (t.title && sch.subject && t.title.toLowerCase().includes(sch.subject.toLowerCase()));
+          const isSessionMatch = parseInt(t.session_number) === sessionNum;
+          
+          return isClassMatch && isSubjectMatch && isSessionMatch;
         });
         setSessionAssignments(filteredTasks);
       } else {
@@ -581,10 +668,15 @@ const GuruCourses = () => {
   const handleOpenBankMaterialModal = async (sch, sessionNum = 1) => {
     setBankMaterialModal({ targetSchedule: sch, targetSessionNum: sessionNum });
     setSelectedMaterialIds([]);
+    if (teacherMaterials.length > 0) {
+      setBankMaterials(teacherMaterials);
+      return;
+    }
     setLoadingBankMaterials(true);
     try {
       const res = await api.get('/materials/guru/me');
       const items = res.data.data || res.data.materials || [];
+      setTeacherMaterials(items);
       setBankMaterials(items);
     } catch (err) {
       console.error('Error fetching bank materials:', err);
@@ -645,6 +737,9 @@ const GuruCourses = () => {
   const handleOpenTaskModal = async (sch, sessionNum = 1) => {
     setTaskModal({ targetSchedule: sch, targetSessionNum: sessionNum });
     setSelectedTaskIds([]);
+    if (teacherTasks.length > 0) {
+      return;
+    }
     setLoadingTasks(true);
     try {
       const res = await api.get('/assignments/guru/me');
@@ -735,25 +830,20 @@ const GuruCourses = () => {
 
   if (loading) return <div className="loading" style={{ padding: '30px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>Memuat Modul Guru (KBM)...</div>;
 
-  const filteredDbSchedules = allDbSchedules.filter(s => {
-    const scheduleTeacherId = s.teacher_id?._id?.toString() || s.teacher_id?.toString() || '';
-    const profileTeacherId = teacherProfile?._id?.toString() || '';
-    const isMatch = scheduleTeacherId === profileTeacherId;
-    return isMatch && (s.day || '').toUpperCase() === selectedDay.toUpperCase();
-  });
+  const filteredDaySchedules = schedules.filter(s => (s.day || '').toUpperCase() === selectedDay.toUpperCase());
 
-  const rawSchedules = filteredDbSchedules.map((s, idx) => ({
-    id: s._id,
+  const rawSchedules = filteredDaySchedules.map((s, idx) => ({
+    id: s.id || s._id,
     class_id: s.class_id?._id || s.class_id,
-    class_name: s.class_id?.name || 'Kelas',
-    subject: s.subject_id?.name || 'Informatika',
+    class_name: s.class_name || s.class_id?.name || 'Kelas',
+    subject: s.subject || s.subject_id?.name || 'Informatika',
     day: s.day,
     start_time: s.start_time || '07:30',
     end_time: s.end_time || '09:30',
-    room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
-    pertemuan_ke: 9 + idx,
-    presensi_count: 11 + idx,
-    total_pertemuan: 16
+    room: s.room || ('Ruang Kelas ' + (s.class_name || s.class_id?.name || '')),
+    pertemuan_ke: s.pertemuan_ke || 1,
+    presensi_count: s.presensi_count || 0,
+    total_pertemuan: s.total_pertemuan || 16
   }));
 
   const mergeSchedules = (list) => {
@@ -872,7 +962,7 @@ const GuruCourses = () => {
                 onClick={() => {
                   setActiveCourseDetail({ ...activeCourseDetail, activeTab: tab.id });
                   if (tab.id === 'peserta') {
-                    const classId = sch.class_id?._id || sch.class_id || sch.id;
+                    const classId = sch.class_id?._id || (typeof sch.class_id === 'string' ? sch.class_id : null) || sch.class || sch.id;
                     fetchStudentAttendance(classId);
                   }
                 }}
@@ -1313,7 +1403,9 @@ const GuruCourses = () => {
                   <tbody>
                     {classStudents.map((st, idx) => {
                       const attendanceMap = {};
-                      (st.attendance || []).forEach(a => {
+                      const stId = st._id || st.id || '';
+                      const studentRecords = studentAttendance[stId.toString()] || [];
+                      studentRecords.forEach(a => {
                         const sessionNum = a.session_number || 1;
                         attendanceMap[sessionNum] = a.status;
                       });
@@ -1323,7 +1415,7 @@ const GuruCourses = () => {
                         const status = attendanceMap[i] || '';
                         if (status === 'hadir' || status === 'present') hadir++;
                         else if (status === 'sakit' || status === 'sick') sakit++;
-                        else if (status === 'izin' || status === 'permission') izin++;
+                        else if (status === 'izin' || status === 'permission' || status === 'permit') izin++;
                         else if (status === 'tidak_hadir' || status === 'absent' || status === 'alfa') alfa++;
                       }
                       const total = hadir + sakit + izin + alfa;
@@ -1352,7 +1444,7 @@ const GuruCourses = () => {
                               bgColor = '#fef3c7';
                               label = 'S';
                               textColor = '#d97706';
-                            } else if (status === 'izin' || status === 'permission') {
+                            } else if (status === 'izin' || status === 'permission' || status === 'permit') {
                               bgColor = '#dbeafe';
                               label = 'I';
                               textColor = '#2563eb';
@@ -1614,9 +1706,20 @@ const GuruCourses = () => {
                   <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>assignment</span>
                   Pilih Tugas untuk Kelas {taskModal.targetSchedule.class_name}
                 </h3>
-                <button onClick={() => setTaskModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <span className="material-symbols-outlined">close</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
+                      setTaskModal(null);
+                    }}
+                    style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span> + Buat Tugas Baru
+                  </button>
+                  <button onClick={() => setTaskModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
               </div>
               <div>
                 <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>
@@ -1701,7 +1804,7 @@ const GuruCourses = () => {
             <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '540px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>
-                  Edit Rencana Materi (Sesi ke-{editingPlanModal.sessionNum})
+                  Edit Materi Sesi ke-{editingPlanModal.sessionNum}
                 </h3>
                 <button onClick={() => setEditingPlanModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                   <span className="material-symbols-outlined">close</span>
@@ -1709,7 +1812,7 @@ const GuruCourses = () => {
               </div>
               <form onSubmit={handleSavePlanForm}>
                 <div style={{ marginBottom: '14px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Rencana Materi Sesi:</label>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Judul Materi Sesi:</label>
                   <input
                     type="text"
                     placeholder="Contoh: Pengenalan Konsep Dasar KBM & Silabus Kurikulum"
@@ -1719,7 +1822,7 @@ const GuruCourses = () => {
                   />
                 </div>
                 <div style={{ marginBottom: '20px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Realisasi Materi Sesi:</label>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Detail / Uraian Materi:</label>
                   <textarea
                     placeholder="Contoh: Penjelasan modul dan evaluasi KBM pertemuan ke-1"
                     rows="3"
@@ -2057,13 +2160,7 @@ const GuruCourses = () => {
               <div>
                 <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Hai, {teacherProfile?.full_name || 'Guru'}</h4>
                 <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
-                  Beban: <strong>
-                    {allDbSchedules.filter(s => {
-                      const scheduleTeacherId = s.teacher_id?._id?.toString() || s.teacher_id?.toString() || '';
-                      const profileTeacherId = teacherProfile?._id?.toString() || '';
-                      return scheduleTeacherId === profileTeacherId;
-                    }).length} JP
-                  </strong>
+                  Beban: <strong>{schedules.length} JP</strong>
                 </p>
               </div>
             </div>
@@ -2245,7 +2342,7 @@ const GuruCourses = () => {
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Deskripsi</label>
                 <textarea rows="3" placeholder="Tuliskan instruksi tugas..." value={newTaskForm.description} onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '20px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Tenggat *</label>
                   <input type="date" required value={newTaskForm.dueDate} onChange={(e) => setNewTaskForm({ ...newTaskForm, dueDate: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }} />
@@ -2253,6 +2350,10 @@ const GuruCourses = () => {
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Skor Maksimal</label>
                   <input type="number" value={newTaskForm.maxScore} onChange={(e) => setNewTaskForm({ ...newTaskForm, maxScore: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>KKM</label>
+                  <input type="number" value={newTaskForm.kkm} onChange={(e) => setNewTaskForm({ ...newTaskForm, kkm: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }} />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
@@ -2262,6 +2363,201 @@ const GuruCourses = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DUPLICATE RENDERING OF SELECTION MODALS FOR MAIN LIST VIEW ACCESSIBILITY */}
+      {bankMaterialModal && (
+        <div className="modal-backdrop" onClick={() => setBankMaterialModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '640px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>library_books</span>
+                Pilih Materi dari Bank Materi
+              </h3>
+              <button onClick={() => setBankMaterialModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>
+                Pilih materi dari Bank Materi untuk <strong>Kelas {bankMaterialModal.targetSchedule.class_name}</strong> (Sesi ke-{bankMaterialModal.targetSessionNum || 1})
+              </p>
+              {loadingBankMaterials ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat koleksi Bank Materi...</div>
+              ) : bankMaterials.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '700', color: '#0284c7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedMaterialIds.length === bankMaterials.length && bankMaterials.length > 0}
+                        onChange={handleSelectAllMaterials}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      {selectedMaterialIds.length === bankMaterials.length ? 'Batalkan Semua' : 'Pilih Semua'} ({bankMaterials.length} materi)
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                    {bankMaterials.map((mat) => (
+                      <label
+                        key={mat._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: selectedMaterialIds.includes(mat._id) ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                          background: selectedMaterialIds.includes(mat._id) ? '#f0f9ff' : '#ffffff',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedMaterialIds.includes(mat._id)}
+                          onChange={() => handleToggleMaterialSelect(mat._id)}
+                          style={{ marginTop: '4px', width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>{mat.title}</strong>
+                            <span style={{ fontSize: '10px', fontWeight: '800', background: mat.source_type === 'ai' ? '#f0fdf4' : '#eff6ff', color: mat.source_type === 'ai' ? '#166534' : '#1e40af', padding: '2px 6px', borderRadius: '4px' }}>
+                              {mat.source_type === 'ai' ? '🤖 AI' : '📄 Manual'}
+                            </span>
+                          </div>
+                          <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {mat.description || 'Tanpa deskripsi'}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
+                  Belum ada materi di Bank Materi.
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <button onClick={() => setBankMaterialModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+              <button
+                onClick={handlePublishMaterialsToClassSession}
+                disabled={publishingMaterial || selectedMaterialIds.length === 0}
+                style={{
+                  background: publishingMaterial || selectedMaterialIds.length === 0 ? '#94a3b8' : '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  cursor: publishingMaterial || selectedMaterialIds.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {publishingMaterial ? 'Mengunggah...' : `Upload ${selectedMaterialIds.length} Materi`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {taskModal && (
+        <div className="modal-backdrop" onClick={() => setTaskModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '640px', width: '90%', borderRadius: '20px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>assignment</span>
+                Pilih Tugas untuk Kelas {taskModal.targetSchedule.class_name}
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
+                    setTaskModal(null);
+                  }}
+                  style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '6px 14px', borderRadius: '10px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span> + Buat Tugas Baru
+                </button>
+                <button onClick={() => setTaskModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <span className="material-symbols-outlined">close</span>
+                </button>
+              </div>
+            </div>
+            <div>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>
+                Pilih tugas untuk <strong>Kelas {taskModal.targetSchedule.class_name}</strong> (Sesi ke-{taskModal.targetSessionNum || 1})
+              </p>
+              {loadingTasks ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: '#0284c7' }}>Memuat daftar tugas...</div>
+              ) : teacherTasks.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '700', color: '#0284c7', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedTaskIds.length === teacherTasks.length && teacherTasks.length > 0}
+                        onChange={handleSelectAllTasks}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      {selectedTaskIds.length === teacherTasks.length ? 'Batalkan Semua' : 'Pilih Semua'} ({teacherTasks.length} tugas)
+                    </label>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                    {teacherTasks.map((task) => (
+                      <label
+                        key={task._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '12px',
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: selectedTaskIds.includes(task._id) ? '2px solid #0284c7' : '1px solid #e2e8f0',
+                          background: selectedTaskIds.includes(task._id) ? '#f0f9ff' : '#ffffff',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTaskIds.includes(task._id)}
+                          onChange={() => handleToggleTaskSelect(task._id)}
+                          style={{ marginTop: '4px', width: '16px', height: '16px', cursor: 'pointer' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{task.title}</strong>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(task.due_date).toLocaleDateString('id-ID')}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div style={{ padding: '20px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#64748b' }}>
+                  Belum ada tugas yang dibuat.
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <button onClick={() => setTaskModal(null)} style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Batal</button>
+              <button
+                onClick={handlePublishTasksToClassSession}
+                disabled={publishingMaterial || selectedTaskIds.length === 0}
+                style={{
+                  background: publishingMaterial || selectedTaskIds.length === 0 ? '#94a3b8' : '#0284c7',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '10px',
+                  fontWeight: '700',
+                  cursor: publishingMaterial || selectedTaskIds.length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {publishingMaterial ? 'Menyematkan...' : `Sematkan ${selectedTaskIds.length} Tugas`}
+              </button>
+            </div>
           </div>
         </div>
       )}

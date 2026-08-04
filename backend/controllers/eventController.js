@@ -3,7 +3,11 @@ const Event = require('../models/Event');
 // Get all events
 exports.getEvents = async (req, res) => {
   try {
-    const events = await Event.find().sort({ start_date: 1 });
+    const filter = {};
+    if (req.user && (req.user.role === 'siswa' || req.user.role === 'ortu')) {
+      filter.visibility = 'public';
+    }
+    const events = await Event.find(filter).sort({ start_date: 1 });
     res.json(events);
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -14,7 +18,7 @@ exports.getEvents = async (req, res) => {
 // Create a new event
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, start_date, end_date, type, color } = req.body;
+    const { title, description, start_date, end_date, type, color, visibility } = req.body;
 
     const newEvent = new Event({
       title,
@@ -23,6 +27,7 @@ exports.createEvent = async (req, res) => {
       end_date,
       type,
       color,
+      visibility: visibility || 'public',
       created_by: req.user.id
     });
 
@@ -37,7 +42,7 @@ exports.createEvent = async (req, res) => {
 // Update an event
 exports.updateEvent = async (req, res) => {
   try {
-    const { title, description, start_date, end_date, type, color } = req.body;
+    const { title, description, start_date, end_date, type, color, visibility } = req.body;
     
     const event = await Event.findById(req.params.id);
     if (!event) {
@@ -50,6 +55,7 @@ exports.updateEvent = async (req, res) => {
     event.end_date = end_date || event.end_date;
     event.type = type || event.type;
     event.color = color || event.color;
+    if (visibility !== undefined) event.visibility = visibility;
 
     const updatedEvent = await event.save();
     res.json(updatedEvent);

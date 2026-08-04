@@ -231,11 +231,12 @@ const GuruCbt = () => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return '';
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const wibTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    const year = wibTime.getUTCFullYear();
+    const month = String(wibTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(wibTime.getUTCDate()).padStart(2, '0');
+    const hours = String(wibTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(wibTime.getUTCMinutes()).padStart(2, '0');
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -548,8 +549,8 @@ const GuruCbt = () => {
                   <td style={{ fontSize: '11px', color: '#334155' }}>
                     {exam.start_time && exam.end_time ? (
                       <div>
-                        <div>📅 {new Date(exam.start_time).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div>
-                        <div>s/d {new Date(exam.end_time).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                        <div>📅 {new Date(exam.start_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'short', timeStyle: 'short' })}</div>
+                        <div>s/d {new Date(exam.end_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'short', timeStyle: 'short' })}</div>
                       </div>
                     ) : (
                       <span style={{ color: '#94a3b8' }}>Selalu Aktif</span>
@@ -863,7 +864,7 @@ const GuruCbt = () => {
                             </span>
                           </td>
                           <td className="text-center" style={{ fontSize: '12px', color: '#64748b' }}>
-                            {new Date(resItem.submitted_at).toLocaleString('id-ID')}
+                            {new Date(resItem.submitted_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}
                           </td>
                         </tr>
                       ))

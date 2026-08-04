@@ -277,3 +277,35 @@ exports.checkAndNotifyEWS = async (studentId) => {
     console.error('[EWS] Error checking and notifying EWS:', err);
   }
 };
+
+exports.getStudentsProgressByClass = async (classId) => {
+  const mongoose = require('mongoose');
+  const siswaCol = mongoose.connection.collection('users_siswa');
+  const classIdStr = classId.toString();
+
+  const students = await siswaCol.find({
+    is_active: { $ne: false },
+    $or: [
+      { class_id: classId },
+      { class_id: classIdStr }
+    ]
+  }).sort({ full_name: 1 }).toArray();
+
+  const progressData = [];
+  for (const student of students) {
+    const data = await getStudentData(student._id);
+    const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate, data.avgQuizScore);
+    progressData.push({
+      studentId: student._id,
+      studentName: student.full_name,
+      nis: student.nis || student.username || '-',
+      attendanceRate: Math.round(data.attendanceRate),
+      avgScore: Math.round(data.avgScore),
+      materialCompletionRate: Math.round(data.materialCompletionRate),
+      avgQuizScore: Math.round(data.avgQuizScore),
+      risk: prediction.risk,
+      reasons: prediction.reasons
+    });
+  }
+  return progressData;
+};

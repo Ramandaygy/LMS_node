@@ -629,11 +629,22 @@ async function computeLegerData(classId, semester = 'Genap', academicYearId = nu
 exports.getLegerByClass = async (req, res) => {
   try {
     const { class_id, semester, academic_year_id } = req.query;
-    if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
-      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
+    if (!class_id) {
+      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi.' });
     }
 
-    const legerData = await computeLegerData(class_id, semester, academic_year_id);
+    let targetClassId = class_id;
+    if (!mongoose.Types.ObjectId.isValid(class_id)) {
+      const classCol = mongoose.connection.collection('classes');
+      const classDoc = await classCol.findOne({ name: class_id });
+      if (classDoc) {
+        targetClassId = classDoc._id;
+      } else {
+        return res.status(400).json({ success: false, message: 'ID/Nama Kelas tidak valid atau tidak ditemukan.' });
+      }
+    }
+
+    const legerData = await computeLegerData(targetClassId, semester, academic_year_id);
     return res.status(200).json({ success: true, ...legerData });
   } catch (error) {
     console.error('[AdminMonitoring] Error in getLegerByClass:', error);
@@ -647,11 +658,22 @@ exports.getLegerByClass = async (req, res) => {
 exports.exportLegerExcel = async (req, res) => {
   try {
     const { class_id, semester, academic_year_id } = req.query;
-    if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
-      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
+    if (!class_id) {
+      return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi.' });
     }
 
-    const legerData = await computeLegerData(class_id, semester, academic_year_id);
+    let targetClassId = class_id;
+    if (!mongoose.Types.ObjectId.isValid(class_id)) {
+      const classCol = mongoose.connection.collection('classes');
+      const classDoc = await classCol.findOne({ name: class_id });
+      if (classDoc) {
+        targetClassId = classDoc._id;
+      } else {
+        return res.status(400).json({ success: false, message: 'ID/Nama Kelas tidak valid atau tidak ditemukan.' });
+      }
+    }
+
+    const legerData = await computeLegerData(targetClassId, semester, academic_year_id);
     const ExcelJS = require('exceljs');
 
     const workbook = new ExcelJS.Workbook();

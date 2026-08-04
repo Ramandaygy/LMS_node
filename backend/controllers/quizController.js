@@ -2,10 +2,22 @@ const QuizBank = require('../models/QuizBank');
 const mongoose = require('mongoose');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// GET ALL QUIZZES (For Guru or Siswa)
+// ============================================================
+// GET ALL QUIZZES - FILTER BY TEACHER
+// ============================================================
 exports.getQuizzes = async (req, res) => {
   try {
-    const quizzes = await QuizBank.find().sort({ createdAt: -1 });
+    const teacherId = req.user.id || req.user._id;
+    const mongoose = require('mongoose');
+    const teacherConditions = [teacherId.toString()];
+    if (mongoose.Types.ObjectId.isValid(teacherId.toString())) {
+      teacherConditions.push(new mongoose.Types.ObjectId(teacherId.toString()));
+    }
+    
+    const quizzes = await QuizBank.find({ 
+      teacher: { $in: teacherConditions }
+    }).sort({ createdAt: -1 });
+    
     return res.json({ success: true, quizzes });
   } catch (err) {
     console.error('Error fetching quizzes:', err);
@@ -13,10 +25,23 @@ exports.getQuizzes = async (req, res) => {
   }
 };
 
-// GET MASTER QUIZZES (Bank Quiz Guru)
+// ============================================================
+// GET MASTER QUIZZES - FILTER BY TEACHER
+// ============================================================
 exports.getMasterQuizzes = async (req, res) => {
   try {
-    const quizzes = await QuizBank.find({ is_master: true }).sort({ createdAt: -1 });
+    const teacherId = req.user.id || req.user._id;
+    const mongoose = require('mongoose');
+    const teacherConditions = [teacherId.toString()];
+    if (mongoose.Types.ObjectId.isValid(teacherId.toString())) {
+      teacherConditions.push(new mongoose.Types.ObjectId(teacherId.toString()));
+    }
+    
+    const quizzes = await QuizBank.find({ 
+      is_master: true,
+      teacher: { $in: teacherConditions }
+    }).sort({ createdAt: -1 });
+    
     return res.json({ success: true, quizzes });
   } catch (err) {
     console.error('Error fetching master quizzes:', err);
@@ -24,7 +49,61 @@ exports.getMasterQuizzes = async (req, res) => {
   }
 };
 
-// CREATE QUIZ (Master / Session)
+// ============================================================
+// GET QUIZZES FOR SISWA - FILTER BY CLASS & ACTIVE
+// ============================================================
+exports.getQuizzesForSiswa = async (req, res) => {
+  try {
+    const studentId = req.user.id || req.user._id;
+    
+    const User = require('../models/User');
+    let student = await User.findById(studentId).lean();
+    
+    if (!student) {
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId.toString()) });
+    }
+    
+    const studentClass = student?.class_name || student?.class_id?.name || '';
+    const studentClassId = student?.class_id || '';
+    
+    const quizzes = await QuizBank.find({
+      is_master: false,
+      is_active: true,
+      $or: [
+        { class_name: { $regex: new RegExp(studentClass, 'i') } },
+        { class_id: studentClassId }
+      ]
+    }).sort({ createdAt: -1 });
+    
+    const QuizSubmission = require('../models/QuizSubmission');
+    const mongoose = require('mongoose');
+    const studentConditions = [studentId.toString()];
+    if (mongoose.Types.ObjectId.isValid(studentId.toString())) {
+      studentConditions.push(new mongoose.Types.ObjectId(studentId.toString()));
+    }
+
+    const submittedQuizIds = await QuizSubmission.distinct('quiz_id', {
+      student_id: { $in: studentConditions }
+    });
+    
+    const submittedSet = new Set(submittedQuizIds.map(id => id.toString()));
+    
+    const quizzesWithStatus = quizzes.map(q => ({
+      ...q.toObject(),
+      is_submitted: submittedSet.has(q._id.toString())
+    }));
+    
+    return res.json({ success: true, quizzes: quizzesWithStatus });
+  } catch (err) {
+    console.error('Error fetching quizzes for siswa:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memuat data kuis.' });
+  }
+};
+
+// ============================================================
+// CREATE QUIZ
+// ============================================================
 exports.createQuiz = async (req, res) => {
   try {
     const { title, description, subject_name, grade_level, questions, class_id, class_name, session_number, is_master } = req.body;
@@ -51,7 +130,9 @@ exports.createQuiz = async (req, res) => {
   }
 };
 
-// DISTRIBUTE / PUBLISH QUIZ TO CLASS & SESSION
+// ============================================================
+// DISTRIBUTE QUIZ
+// ============================================================
 exports.distributeQuiz = async (req, res) => {
   try {
     const { master_quiz_id, class_id, session_number } = req.body;
@@ -59,11 +140,14 @@ exports.distributeQuiz = async (req, res) => {
 
     let masterQuiz = null;
     if (master_quiz_id) {
-      masterQuiz = await QuizBank.findById(master_quiz_id);
+      masterQuiz = await QuizBank.findOne({ 
+        _id: master_quiz_id,
+        teacher: teacherId
+      });
     }
 
     if (!masterQuiz) {
-      return res.status(404).json({ success: false, message: 'Paket Master Quiz tidak ditemukan.' });
+      return res.status(404).json({ success: false, message: 'Paket Master Quiz tidak ditemukan atau bukan milik Anda.' });
     }
 
     const classCol = mongoose.connection.collection('classes');
@@ -104,9 +188,22 @@ exports.distributeQuiz = async (req, res) => {
   }
 };
 
+// ============================================================
 // UPDATE QUIZ
+// ============================================================
 exports.updateQuiz = async (req, res) => {
   try {
+    const teacherId = req.user.id || req.user._id;
+    
+    const existingQuiz = await QuizBank.findOne({
+      _id: req.params.id,
+      teacher: teacherId
+    });
+    
+    if (!existingQuiz) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke quiz ini.' });
+    }
+    
     const quiz = await QuizBank.findByIdAndUpdate(req.params.id, req.body, { new: true });
     return res.json({ success: true, message: 'Berhasil memperbarui Quiz.', quiz });
   } catch (err) {
@@ -114,9 +211,22 @@ exports.updateQuiz = async (req, res) => {
   }
 };
 
+// ============================================================
 // DELETE QUIZ
+// ============================================================
 exports.deleteQuiz = async (req, res) => {
   try {
+    const teacherId = req.user.id || req.user._id;
+    
+    const existingQuiz = await QuizBank.findOne({
+      _id: req.params.id,
+      teacher: teacherId
+    });
+    
+    if (!existingQuiz) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke quiz ini.' });
+    }
+    
     await QuizBank.findByIdAndDelete(req.params.id);
     return res.json({ success: true, message: 'Berhasil menghapus Paket Quiz.' });
   } catch (err) {
@@ -124,7 +234,85 @@ exports.deleteQuiz = async (req, res) => {
   }
 };
 
-// AI GENERATE QUIZ WITH VARIETY & UNIQUE QUESTIONS
+// ============================================================
+// GET QUIZ SUBMISSIONS
+// ============================================================
+exports.getQuizSubmissions = async (req, res) => {
+  try {
+    const QuizSubmission = require('../models/QuizSubmission');
+    const User = require('../models/User');
+    const { quiz_id } = req.params;
+    const teacherId = req.user.id || req.user._id;
+
+    const quiz = await QuizBank.findOne({
+      _id: quiz_id,
+      teacher: teacherId
+    });
+    
+    if (!quiz) {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki akses ke quiz ini.' });
+    }
+
+    let quizIdsToSearch = [quiz_id];
+
+    if (quiz.is_master) {
+      const childQuizzes = await QuizBank.find({
+        title: quiz.title,
+        is_master: false,
+        teacher: teacherId
+      }).select('_id');
+      quizIdsToSearch = childQuizzes.map(q => q._id);
+      quizIdsToSearch.push(quiz_id);
+    }
+
+    const rawSubmissions = await QuizSubmission.find({ quiz_id: { $in: quizIdsToSearch } })
+      .sort({ star_rating: -1, total_score: -1, createdAt: -1 })
+      .lean();
+
+    const studentIds = rawSubmissions.map(s => s.student_id).filter(Boolean);
+    const objIds = studentIds.map(id => {
+      try { return new mongoose.Types.ObjectId(id.toString()); } catch(e) { return id; }
+    });
+
+    const [mainUsers, siswaUsers] = await Promise.all([
+      User.find({ _id: { $in: objIds } }).lean(),
+      mongoose.connection.collection('users_siswa').find({ _id: { $in: objIds } }).toArray()
+    ]);
+
+    const studentMap = {};
+    mainUsers.forEach(u => { studentMap[u._id.toString()] = u; });
+    siswaUsers.forEach(s => { studentMap[s._id.toString()] = s; });
+
+    const submissions = rawSubmissions.map(sub => {
+      const sId = sub.student_id ? sub.student_id.toString() : '';
+      const sInfo = studentMap[sId];
+      let realName = sub.student_name;
+      let realNis = sub.nisn;
+
+      if ((!realName || realName === 'Siswa') && sInfo) {
+        realName = sInfo.full_name || sInfo.name;
+      }
+      if ((!realNis || realNis === '-') && sInfo) {
+        realNis = sInfo.nisn || sInfo.nis || sInfo.username || '';
+      }
+
+      return {
+        ...sub,
+        student_name: realName || 'Siswa',
+        nisn: realNis || '-'
+      };
+    });
+
+    return res.json({ success: true, submissions });
+  } catch (err) {
+    console.error('Error fetching quiz submissions:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memuat hasil kuis siswa.' });
+  }
+};
+
+// ============================================================
+// AI GENERATE QUIZ
+// ============================================================
 exports.generateQuizAI = async (req, res) => {
   try {
     const { topic, subject_name, num_questions, material_id } = req.body;
@@ -143,7 +331,6 @@ exports.generateQuizAI = async (req, res) => {
     const randomSeed = Math.floor(Math.random() * 10000);
 
     if (!apiKey) {
-      // Varied Fallback Questions Generator
       const fallbackQuestions = [
         {
           question_text: `Apa konsep utama yang dipelajari pada ${topic || 'materi ini'}?`,
@@ -186,7 +373,6 @@ exports.generateQuizAI = async (req, res) => {
           time_limit_seconds: 30
         }
       ];
-
       return res.json({ success: true, questions: fallbackQuestions.slice(0, count) });
     }
 
@@ -246,7 +432,9 @@ Output Wajib murni JSON array tanpa format markdown apapun:
   }
 };
 
+// ============================================================
 // SUBMIT QUIZ (SISWA)
+// ============================================================
 exports.submitQuiz = async (req, res) => {
   try {
     const QuizSubmission = require('../models/QuizSubmission');
@@ -258,7 +446,25 @@ exports.submitQuiz = async (req, res) => {
     const quiz = await QuizBank.findById(quiz_id);
     if (!quiz) return res.status(404).json({ success: false, message: 'Kuis tidak ditemukan.' });
 
-    // Resolve Student Full Name & NISN
+    // Cek apakah siswa sudah submit quiz ini
+    const mongoose = require('mongoose');
+    const studentConditions = [studentId.toString()];
+    if (mongoose.Types.ObjectId.isValid(studentId.toString())) {
+      studentConditions.push(new mongoose.Types.ObjectId(studentId.toString()));
+    }
+
+    const existingSubmission = await QuizSubmission.findOne({
+      quiz_id: quiz_id,
+      student_id: { $in: studentConditions }
+    });
+    
+    if (existingSubmission) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Anda sudah mengerjakan kuis ini sebelumnya.' 
+      });
+    }
+
     let studentName = req.user.full_name || req.user.name;
     let studentNis = req.user.nisn || req.user.nis || '';
 
@@ -317,7 +523,6 @@ exports.submitQuiz = async (req, res) => {
 
     await submission.save();
 
-    // Auto save to Grade ledger
     await Grade.create({
       student: studentId,
       score: Math.round(percentage),
@@ -337,71 +542,3 @@ exports.submitQuiz = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal mengumpulkan jawaban kuis.' });
   }
 };
-
-// GET QUIZ SUBMISSIONS (For Teacher or Class Leaderboard)
-exports.getQuizSubmissions = async (req, res) => {
-  try {
-    const QuizSubmission = require('../models/QuizSubmission');
-    const User = require('../models/User');
-    const { quiz_id } = req.params;
-
-    const quiz = await QuizBank.findById(quiz_id);
-    let quizIdsToSearch = [quiz_id];
-
-    if (quiz && quiz.is_master) {
-      // Find all published quizzes derived from this master quiz or matching title
-      const childQuizzes = await QuizBank.find({
-        $or: [
-          { title: quiz.title, is_master: false },
-          { _id: quiz_id }
-        ]
-      }).select('_id');
-      quizIdsToSearch = childQuizzes.map(q => q._id);
-    }
-
-    const rawSubmissions = await QuizSubmission.find({ quiz_id: { $in: quizIdsToSearch } })
-      .sort({ star_rating: -1, total_score: -1, createdAt: -1 })
-      .lean();
-
-    // Enrich student names and NISN from User & users_siswa collections
-    const studentIds = rawSubmissions.map(s => s.student_id).filter(Boolean);
-    const objIds = studentIds.map(id => {
-      try { return new mongoose.Types.ObjectId(id.toString()); } catch(e) { return id; }
-    });
-
-    const [mainUsers, siswaUsers] = await Promise.all([
-      User.find({ _id: { $in: objIds } }).lean(),
-      mongoose.connection.collection('users_siswa').find({ _id: { $in: objIds } }).toArray()
-    ]);
-
-    const studentMap = {};
-    mainUsers.forEach(u => { studentMap[u._id.toString()] = u; });
-    siswaUsers.forEach(s => { studentMap[s._id.toString()] = s; });
-
-    const submissions = rawSubmissions.map(sub => {
-      const sId = sub.student_id ? sub.student_id.toString() : '';
-      const sInfo = studentMap[sId];
-      let realName = sub.student_name;
-      let realNis = sub.nisn;
-
-      if ((!realName || realName === 'Siswa') && sInfo) {
-        realName = sInfo.full_name || sInfo.name;
-      }
-      if ((!realNis || realNis === '-') && sInfo) {
-        realNis = sInfo.nisn || sInfo.nis || sInfo.username || '';
-      }
-
-      return {
-        ...sub,
-        student_name: realName || 'Siswa',
-        nisn: realNis || '-'
-      };
-    });
-
-    return res.json({ success: true, submissions });
-  } catch (err) {
-    console.error('Error fetching quiz submissions:', err);
-    return res.status(500).json({ success: false, message: 'Gagal memuat hasil kuis siswa.' });
-  }
-};
-

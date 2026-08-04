@@ -13,6 +13,7 @@ const SiswaSchedule = () => {
   const [loadingModalData, setLoadingModalData] = useState(false);
   const [newForumMessage, setNewForumMessage] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(1);
 
   const [timeSlots] = useState([
     { slot: 1, label: '07:20-08:00' },
@@ -48,8 +49,9 @@ const SiswaSchedule = () => {
     }
   };
 
-  const handleOpenScheduleModal = async (sch) => {
+  const handleOpenScheduleModal = async (sch, sessionNum = 1) => {
     setSelectedScheduleModal(sch);
+    setSelectedSession(sessionNum);
     setLoadingModalData(true);
     setModalMaterials([]);
     setModalTasks([]);
@@ -57,11 +59,12 @@ const SiswaSchedule = () => {
     setNewForumMessage('');
     try {
       const subjectId = sch.subject_id?._id || sch.subject_id;
+      const classId = sch.class_id?._id || sch.class_id;
 
       const [mRes, tRes, fRes] = await Promise.allSettled([
         api.get('/materials'),
         api.get('/assignments/student/my-assignments'),
-        api.get(`/forums/messages?subjectId=${subjectId}`) // <-- PAKAI subjectId (camelCase)
+        api.get(`/forums/messages?subjectId=${subjectId}&sessionNumber=${sessionNum}`)
       ]);
 
       if (mRes.status === 'fulfilled') {
@@ -69,7 +72,11 @@ const SiswaSchedule = () => {
         setModalMaterials(allMats.filter(m => {
           const mSub = (m.subject_id?._id || m.subject_id || '').toString();
           const targetSub = (subjectId || '').toString();
-          return mSub === targetSub || (m.title && sch.subject_id?.name && m.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()));
+          const mClass = (m.class_id?._id || m.class_id || '').toString();
+          const targetClass = (classId || '').toString();
+          const isSessionMatch = parseInt(m.session_number) === sessionNum;
+          return (mSub === targetSub || (m.title && sch.subject_id?.name && m.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()))) &&
+                 (mClass === targetClass || m.class_name === sch.class_name) && isSessionMatch;
         }));
       }
 
@@ -78,12 +85,12 @@ const SiswaSchedule = () => {
         setModalTasks(allTasks.filter(t => {
           const tSub = (t.subject_id?._id || t.subject_id || '').toString();
           const targetSub = (subjectId || '').toString();
-          return tSub === targetSub || (t.title && sch.subject_id?.name && t.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()));
+          const isSessionMatch = parseInt(t.session_number) === sessionNum;
+          return tSub === targetSub && isSessionMatch;
         }));
       }
 
       if (fRes.status === 'fulfilled') {
-        // Data dari controller menggunakan field 'messages'
         const allForums = fRes.value.data.messages || fRes.value.data.data || [];
         setModalForums(allForums);
       }
@@ -95,9 +102,6 @@ const SiswaSchedule = () => {
     }
   };
 
-  // ============================================================
-  // HANDLE SEND FORUM MESSAGE - SESUAI CONTROLLER
-  // ============================================================
   const handleSendForumMessage = async () => {
     if (!newForumMessage.trim() || !selectedScheduleModal) return;
     
@@ -106,38 +110,29 @@ const SiswaSchedule = () => {
       const subjectId = selectedScheduleModal.subject_id?._id || selectedScheduleModal.subject_id;
       const classId = selectedScheduleModal.class_id?._id || selectedScheduleModal.class_id;
       
-      // PAYLOAD SESUAI CONTROLLER
       const payload = {
-        subjectId: subjectId,                    // camelCase
-        classId: classId,                        // camelCase
-        materialId: null,                        // opsional
-        sessionNumber: null,                     // opsional
-        content: newForumMessage.trim()          // pakai content, bukan message!
+        subjectId: subjectId,
+        classId: classId,
+        materialId: null,
+        sessionNumber: selectedSession,
+        content: newForumMessage.trim()
       };
-
-      console.log('📤 Mengirim pesan ke /forums/messages');
-      console.log('Payload:', payload);
 
       const res = await api.post('/forums/messages', payload);
       
-      console.log('✅ Response:', res.data);
-
       if (res.data && res.data.success) {
         setNewForumMessage('');
-        // Refresh daftar pesan
-        const fRes = await api.get(`/forums/messages?subjectId=${subjectId}`);
+        const fRes = await api.get(`/forums/messages?subjectId=${subjectId}&sessionNumber=${selectedSession}`);
         if (fRes.data.success) {
-          setModalForums(fRes.data.messages || []);
+          setModalForums(fRes.data.messages || fRes.data.data || []);
         }
-        alert('✅ Pesan berhasil dikirim!');
       } else {
         throw new Error(res.data?.message || 'Gagal mengirim pesan');
       }
 
     } catch (err) {
       console.error('❌ Gagal kirim pesan:', err);
-      console.error('Response error:', err.response?.data);
-      alert(`❌ Gagal mengirim pesan: ${err.response?.data?.message || err.message || 'Silakan coba lagi'}`);
+      alert(`❌ Gagal mengirim pesan: ${err.message}`);
     } finally {
       setSendingMessage(false);
     }
@@ -275,39 +270,12 @@ const SiswaSchedule = () => {
         </table>
       </div>
 
-      {/* MODAL */}
       {selectedScheduleModal && (
-        <div className="modal-overlay" onClick={() => setSelectedScheduleModal(null)} style={{ 
-          background: 'rgba(15, 23, 42, 0.65)', 
-          backdropFilter: 'blur(4px)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 9999,
-          padding: '20px'
-        }}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ 
-            width: '100%', 
-            maxWidth: '700px', 
-            background: '#ffffff', 
-            borderRadius: '24px', 
-            padding: '0', 
-            overflow: 'hidden', 
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', 
-            maxHeight: '90vh', 
-            display: 'flex', 
-            flexDirection: 'column' 
-          }}>
-            
-            {/* Modal Header */}
+        <div onClick={() => setSelectedScheduleModal(null)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', width: '90%', maxWidth: '960px', borderRadius: '24px', display: 'flex', flexDirection: 'column', maxHeight: '90vh', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ 
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)', 
               padding: '20px 24px', 
+              background: '#0f172a',
               color: '#ffffff', 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -324,6 +292,26 @@ const SiswaSchedule = () => {
                       📚 {selectedScheduleModal.class_id.name}
                     </span>
                   )}
+                  {/* Sesi Dropdown */}
+                  <select 
+                    value={selectedSession} 
+                    onChange={(e) => handleOpenScheduleModal(selectedScheduleModal, Number(e.target.value))}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      color: '#ffffff',
+                      borderRadius: '20px',
+                      padding: '4px 10px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {[...Array(16)].map((_, i) => (
+                      <option key={i + 1} value={i + 1} style={{ color: '#0f172a' }}>Pertemuan Sesi ke-{i + 1}</option>
+                    ))}
+                  </select>
                 </div>
                 <h3 style={{ margin: '6px 0 0 0', fontSize: '20px', fontWeight: '800', fontFamily: 'Outfit, sans-serif' }}>
                   {selectedScheduleModal.subject_id?.name || 'Mata Pelajaran'}
@@ -352,119 +340,180 @@ const SiswaSchedule = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div style={{ padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+            {/* Modal Body in Grid (2 columns) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', padding: '24px', overflowY: 'auto', flex: 1 }}>
               
-              {/* Info Pengajar */}
-              <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', flexShrink: 0 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>person</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Guru Pengajar</div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
-                    {selectedScheduleModal.teacher_id?.full_name || 'Guru Mata Pelajaran'}
+              {/* Column 1: Sesi Detail, Materi, Tugas */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* Info Pengajar */}
+                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', flexShrink: 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>person</span>
                   </div>
-                </div>
-              </div>
-
-              {/* 1. MATERI */}
-              <div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#0284c7', fontSize: '20px' }}>folder</span>
-                  Materi Pembelajaran Sesi Ini
-                </h4>
-                {loadingModalData ? (
-                  <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat materi...</div>
-                ) : modalMaterials.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {modalMaterials.map((mat, idx) => (
-                      <div key={mat._id || idx} style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mat.title}</strong>
-                          <span style={{ fontSize: '11px', color: '#94a3b8' }}>{mat.file_name || 'Dokumen Ajar'} • {mat.createdAt ? new Date(mat.createdAt).toLocaleDateString('id-ID') : 'Terbaru'}</span>
-                        </div>
-                        {mat.file_url ? (
-                          <a href={mat.file_url} target="_blank" rel="noreferrer" style={{ background: '#0284c7', color: '#fff', textDecoration: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span> Buka
-                          </a>
-                        ) : (
-                          <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/materials'; }} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                            Buka Materi
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Belum ada materi untuk mapel ini.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* 2. TUGAS */}
-              <div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '20px' }}>assignment</span>
-                  Penugasan Kelas Sesi Ini
-                </h4>
-                {loadingModalData ? (
-                  <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat tugas...</div>
-                ) : modalTasks.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {modalTasks.map((t, idx) => (
-                      <div key={t._id || idx} style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</strong>
-                          <span style={{ fontSize: '11px', color: '#e11d48', fontWeight: '600' }}>⏰ {t.due_date ? new Date(t.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Segera'}</span>
-                        </div>
-                        <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/assignments'; }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit_document</span> Kerjakan
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Tidak ada tugas aktif untuk mapel ini.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. FORUM DISKUSI */}
-              <div style={{ background: '#f8fafc', borderRadius: '14px', padding: '16px', border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '22px' }}>💬</span>
                   <div>
-                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
-                      Forum Diskusi & Tanya Jawab
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase' }}>Guru Pengajar</div>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
+                      {selectedScheduleModal.teacher_id?.full_name || 'Guru Mata Pelajaran'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Materi */}
+                <div>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#0284c7', fontSize: '20px' }}>folder</span>
+                    Materi Pembelajaran Sesi ke-{selectedSession}
+                  </h4>
+                  {loadingModalData ? (
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat materi...</div>
+                  ) : modalMaterials.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {modalMaterials.map((mat, idx) => (
+                        <div key={mat._id || idx} style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mat.title}</strong>
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>{mat.file_name || 'Dokumen Ajar'} • {mat.createdAt ? new Date(mat.createdAt).toLocaleDateString('id-ID') : 'Terbaru'}</span>
+                          </div>
+                          {mat.file_url ? (
+                            <a href={mat.file_url} target="_blank" rel="noreferrer" style={{ background: '#0284c7', color: '#fff', textDecoration: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>open_in_new</span> Buka
+                            </a>
+                          ) : (
+                            <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/materials'; }} style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              Buka Materi
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Belum ada materi untuk pertemuan sesi ini.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tugas */}
+                <div>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <span className="material-symbols-outlined" style={{ color: '#16a34a', fontSize: '20px' }}>assignment</span>
+                    Penugasan Sesi ke-{selectedSession}
+                  </h4>
+                  {loadingModalData ? (
+                    <div style={{ padding: '12px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat tugas...</div>
+                  ) : modalTasks.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {modalTasks.map((t, idx) => (
+                        <div key={t._id || idx} style={{ padding: '12px 14px', borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fafafa', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</strong>
+                            <span style={{ fontSize: '11px', color: '#e11d48', fontWeight: '600' }}>⏰ {t.due_date ? new Date(t.due_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Segera'}</span>
+                          </div>
+                          <button onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/assignments'; }} style={{ background: '#16a34a', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>edit_document</span> Kerjakan
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px dashed #cbd5e1', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8' }}>Tidak ada tugas aktif untuk pertemuan sesi ini.</p>
+                    </div>
+                  )}
+                  {/* 4. CBT */}
+                  <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '12px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '22px' }}>laptop_mac</span>
+                      <div>
+                        <strong style={{ fontSize: '13px', color: '#92400e' }}>Ruang Ujian CBT / Quiz</strong>
+                        <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Cek jadwal ujian online & kuis interaktif</span>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/cbt'; }} 
+                      style={{ 
+                        background: '#d97706', 
+                        color: '#fff', 
+                        border: 'none', 
+                        padding: '6px 14px', 
+                        borderRadius: '8px', 
+                        fontSize: '11px', 
+                        fontWeight: '700', 
+                        cursor: 'pointer' 
+                      }}
+                    >
+                      Buka CBT
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Forum Chat Room */}
+              <div style={{ background: '#f8fafc', borderRadius: '18px', padding: '20px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', height: '100%', minHeight: '380px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', borderBottom: '1px solid #cbd5e1', paddingBottom: '10px' }}>
+                  <span style={{ fontSize: '24px' }}>💬</span>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
+                      Forum Diskusi Sesi ke-{selectedSession}
                     </h4>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748b' }}>
-                      Kirim pertanyaan atau diskusikan materi pelajaran
+                    <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>
+                      Ruang tanya jawab aktif kelas
                     </p>
                   </div>
                 </div>
 
+                {/* Daftar Diskusi */}
+                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px', paddingRight: '4px', minHeight: '200px' }}>
+                  {loadingModalData ? (
+                    <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat diskusi...</div>
+                  ) : modalForums.length > 0 ? (
+                    modalForums.map((forum, idx) => (
+                      <div
+                        key={forum._id || idx}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: '12px',
+                          background: '#ffffff',
+                          border: '1px solid #e2e8f0',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12px', fontWeight: '800', color: forum.isTeacher ? '#0284c7' : '#0f172a' }}>
+                            {forum.user_name || forum.author?.full_name || 'Siswa'} {forum.isTeacher && '👨‍🏫'}
+                          </span>
+                          <span style={{ fontSize: '10px', color: '#94a3b8' }}>
+                            {forum.created_at ? new Date(forum.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#334155', lineHeight: 1.4 }}>
+                          {forum.content || forum.message || 'Pesan'}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '24px 12px', textAlign: 'center', color: '#94a3b8', fontSize: '12px', border: '1px dashed #cbd5e1', borderRadius: '12px', background: '#ffffff' }}>
+                      Belum ada diskusi untuk sesi ini. Mulailah bertanya!
+                    </div>
+                  )}
+                </div>
+
                 {/* Form Kirim Pesan */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="text"
                     value={newForumMessage}
                     onChange={(e) => setNewForumMessage(e.target.value)}
-                    placeholder="Tulis pertanyaan atau pesan diskusi..."
+                    placeholder="Tulis pertanyaan..."
                     style={{
                       flex: 1,
-                      padding: '10px 14px',
-                      borderRadius: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
                       border: '1px solid #cbd5e1',
                       fontSize: '13px',
                       outline: 'none',
-                      background: '#ffffff',
-                      transition: 'border-color 0.2s'
+                      background: '#ffffff'
                     }}
-                    onFocus={(e) => e.currentTarget.style.borderColor = '#0284c7'}
-                    onBlur={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                     onKeyPress={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -476,113 +525,21 @@ const SiswaSchedule = () => {
                     onClick={handleSendForumMessage}
                     disabled={!newForumMessage.trim() || sendingMessage}
                     style={{
-                      padding: '10px 18px',
-                      borderRadius: '10px',
+                      padding: '8px 14px',
+                      borderRadius: '8px',
                       border: 'none',
                       background: newForumMessage.trim() && !sendingMessage ? '#0284c7' : '#94a3b8',
                       color: '#ffffff',
                       fontWeight: '700',
-                      fontSize: '13px',
+                      fontSize: '12px',
                       cursor: newForumMessage.trim() && !sendingMessage ? 'pointer' : 'default',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
                       whiteSpace: 'nowrap'
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span>
-                    {sendingMessage ? 'Mengirim...' : 'Kirim'}
+                    Kirim
                   </button>
                 </div>
-
-                {/* Daftar Diskusi */}
-                {loadingModalData ? (
-                  <div style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>Memuat diskusi...</div>
-                ) : modalForums.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflowY: 'auto' }}>
-                    {modalForums.slice(0, 5).map((forum, idx) => (
-                      <div
-                        key={forum._id || idx}
-                        style={{
-                          padding: '12px 14px',
-                          borderRadius: '10px',
-                          background: '#ffffff',
-                          border: '1px solid #e2e8f0'
-                        }}
-                      >
-                        <div>
-                          <strong style={{ fontSize: '13px', color: '#0f172a' }}>
-                            {forum.user_name || forum.author?.full_name || 'Siswa'}:
-                          </strong>
-                          <span style={{ fontSize: '13px', color: '#475569', marginLeft: '4px' }}>
-                            {forum.content || forum.message || 'Pesan'}
-                          </span>
-                          {forum.isTeacher && (
-                            <span style={{ 
-                              background: '#dbeafe', 
-                              color: '#2563eb', 
-                              fontSize: '10px', 
-                              padding: '1px 8px', 
-                              borderRadius: '10px',
-                              marginLeft: '6px',
-                              fontWeight: '600'
-                            }}>
-                              Guru
-                            </span>
-                          )}
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                            {forum.created_at ? new Date(forum.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {modalForums.length > 5 && (
-                      <div style={{ textAlign: 'center', fontSize: '12px', color: '#64748b' }}>
-                        +{modalForums.length - 5} pesan lainnya
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{
-                    padding: '20px',
-                    textAlign: 'center',
-                    background: '#ffffff',
-                    borderRadius: '10px',
-                    border: '2px dashed #cbd5e1'
-                  }}>
-                    <div style={{ fontSize: '32px', marginBottom: '4px' }}>💭</div>
-                    <h5 style={{ margin: '0 0 2px 0', fontSize: '14px', color: '#0f172a' }}>Belum Ada Diskusi</h5>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>Kirim pertanyaan pertama di kolom di atas</p>
-                  </div>
-                )}
               </div>
-
-              {/* 4. CBT */}
-              <div style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '12px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span className="material-symbols-outlined" style={{ color: '#d97706', fontSize: '22px' }}>laptop_mac</span>
-                  <div>
-                    <strong style={{ fontSize: '13px', color: '#92400e' }}>Ruang Ujian CBT / Quiz</strong>
-                    <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Cek jadwal ujian online & kuis interaktif</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { setSelectedScheduleModal(null); window.location.href = '/dashboard/siswa/cbt'; }} 
-                  style={{ 
-                    background: '#d97706', 
-                    color: '#fff', 
-                    border: 'none', 
-                    padding: '6px 14px', 
-                    borderRadius: '8px', 
-                    fontSize: '11px', 
-                    fontWeight: '700', 
-                    cursor: 'pointer' 
-                  }}
-                >
-                  Buka CBT
-                </button>
-              </div>
-
             </div>
 
             {/* Footer */}

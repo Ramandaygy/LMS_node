@@ -56,9 +56,10 @@ const GuruStudents = () => {
 
   const fetchMyStudents = async () => {
     try {
-      const [response, ayRes] = await Promise.all([
+      const [response, ayRes, settingsRes] = await Promise.all([
         api.get('/guru/students'),
-        api.get('/academic-years').catch(() => ({ data: [] }))
+        api.get('/academic-years').catch(() => ({ data: [] })),
+        api.get('/settings').catch(() => ({ data: { data: {} } }))
       ]);
 
       const studentsData = response.data.students || [];
@@ -80,6 +81,13 @@ const GuruStudents = () => {
         setRaporAcademicYear(activeAy.name || '2025/2026');
         setRaporSemester(activeAy.semester ? `${activeAy.semester}` : '2 (Genap)');
       }
+
+      const settings = settingsRes.data?.data || {};
+      if (settings.school_name) setRaporSchoolName(settings.school_name);
+      if (settings.school_address) setRaporSchoolAddress(settings.school_address);
+      if (settings.headmaster_name) setHeadmasterName(settings.headmaster_name);
+      if (settings.headmaster_nip) setHeadmasterNip(settings.headmaster_nip);
+      if (settings.signature_date) setPlaceDate(`Tegal, ${settings.signature_date}`);
 
       if (tSub.length > 0) {
         setSelectedSubjectFilter(tSub[0]._id);
@@ -125,7 +133,7 @@ const GuruStudents = () => {
     return `Belum ada nilai akhir yang diinputkan untuk mata pelajaran ${subjectName}.`;
   };
 
-  const handleDetailClick = (student) => {
+  const handleDetailClick = async (student) => {
     setSelectedStudent(student);
 
     // Initialize custom competencies & predikats for each subject based on auto-calculation
@@ -139,7 +147,57 @@ const GuruStudents = () => {
 
     setCustomCompetencies(initialComp);
     setCustomPredikats(initialPred);
+    
+    // Fetch persistent Rapor from backend
+    try {
+      const res = await api.get(`/rapor/student/${student._id}`);
+      if (res.data.success && res.data.data) {
+        const rData = res.data.data;
+        if (rData.school_name) setRaporSchoolName(rData.school_name);
+        if (rData.school_address) setRaporSchoolAddress(rData.school_address);
+        if (rData.semester) setRaporSemester(rData.semester);
+        if (rData.academic_year_id) setRaporAcademicYear(rData.academic_year_id);
+        setRaporPhase(rData.phase || 'D');
+        if (rData.extracurriculars && rData.extracurriculars.length > 0) {
+          setEkstraList(rData.extracurriculars);
+        }
+        if (rData.note) setHomeroomNote(rData.note);
+        if (rData.headmaster_name) setHeadmasterName(rData.headmaster_name);
+        if (rData.headmaster_nip) setHeadmasterNip(rData.headmaster_nip);
+        if (rData.teacher_name) setTeacherName(rData.teacher_name);
+        if (rData.teacher_nip) setTeacherNip(rData.teacher_nip);
+        if (rData.place_date) setPlaceDate(rData.place_date);
+      }
+    } catch (e) {
+      console.warn('No persistent Rapor data found, using defaults:', e);
+    }
+    
     setShowDetailModal(true);
+  };
+
+  const handleSaveRapor = async () => {
+    if (!selectedStudent) return;
+    try {
+      const payload = {
+        school_name: raporSchoolName,
+        school_address: raporSchoolAddress,
+        semester: raporSemester,
+        extracurriculars: ekstraList,
+        note: homeroomNote,
+        headmaster_name: headmasterName,
+        headmaster_nip: headmasterNip,
+        teacher_name: teacherName,
+        teacher_nip: teacherNip,
+        place_date: placeDate
+      };
+      const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
+      if (res.data.success) {
+        alert('Rapor siswa berhasil disimpan ke database!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyimpan rapor siswa.');
+    }
   };
 
   const handleCompetencyChange = (subId, value) => {
@@ -350,7 +408,7 @@ const GuruStudents = () => {
                       <span className={`rank-pill rank-no-${rank}`}>{rank}</span>
                     </td>
                     <td className="text-center att-cell sick-color">{student.attendance?.sick || 0}</td>
-                    <td className="text-center att-cell late-color">{student.attendance?.late || 0}</td>
+                    <td className="text-center att-cell late-color">{student.attendance?.permit || student.attendance?.late || 0}</td>
                     <td className="text-center att-cell absent-color">{student.attendance?.absent || 0}</td>
                     <td className="text-center att-cell font-semibold total-att-color">{student.attendance?.total || 0}</td>
                     <td className="text-center th-actions-sticky">
@@ -490,6 +548,13 @@ const GuruStudents = () => {
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_note</span>
                   {showKopEditForm ? 'Tutup Edit Kop' : 'Edit Kop & Identitas'}
+                </button>
+                <button
+                  onClick={handleSaveRapor}
+                  style={{ padding: '8px 18px', borderRadius: '10px', background: '#0284c7', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
+                  Simpan Rapor
                 </button>
                 <button
                   onClick={handlePrintRapor}
@@ -704,7 +769,7 @@ const GuruStudents = () => {
                       </tr>
                       <tr style={{ borderBottom: '1px solid #000' }}>
                         <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Izin</td>
-                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{selectedStudent.attendance?.late || 0} hari</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{selectedStudent.attendance?.permit || selectedStudent.attendance?.late || 0} hari</td>
                       </tr>
                       <tr>
                         <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Tanpa Keterangan</td>

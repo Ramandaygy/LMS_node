@@ -3,14 +3,12 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/guru/guru-quiz.css';
 
 const GuruQuiz = () => {
-  const [activeTab, setActiveTab] = useState('master'); // 'master' | 'published' | 'live'
-
+  const [activeTab, setActiveTab] = useState('master');
   const [masterQuizzes, setMasterQuizzes] = useState([]);
   const [allQuizzes, setAllQuizzes] = useState([]);
   const [students, setStudents] = useState([]);
   const [teacherMaterials, setTeacherMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [selectedSubject, setSelectedSubject] = useState('');
@@ -26,17 +24,21 @@ const GuruQuiz = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [savingQuiz, setSavingQuiz] = useState(false);
 
+  // State untuk preview materi
+  const [previewMaterialModal, setPreviewMaterialModal] = useState(null);
+
   // Distribute Modal State
   const [distributeModal, setDistributeModal] = useState(null);
-  const [targetClassForDistribute, setTargetClassForDistribute] = useState('8B');
+  const [targetClassForDistribute, setTargetClassForDistribute] = useState('');
   const [distributing, setDistributing] = useState(false);
 
   // Submissions Modal State
   const [viewSubmissionModal, setViewSubmissionModal] = useState(null);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [selectedQuizDetail, setSelectedQuizDetail] = useState(null);
 
   // Live Quiz & Scoring State
-  const [selectedClass, setSelectedClass] = useState('8B');
+  const [selectedClass, setSelectedClass] = useState('');
   const [selectedQuizId, setSelectedQuizId] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [studentScores, setStudentScores] = useState({});
@@ -51,6 +53,7 @@ const GuruQuiz = () => {
     fetchTeacherMaterials();
   }, []);
 
+  // 🔥 FETCH MASTER QUIZZES - sudah difilter di backend
   const fetchMasterQuizzes = async () => {
     try {
       setLoading(true);
@@ -63,6 +66,7 @@ const GuruQuiz = () => {
     }
   };
 
+  // 🔥 FETCH ALL QUIZZES - sudah difilter di backend
   const fetchAllQuizzes = async () => {
     try {
       const res = await api.get('/quiz');
@@ -118,6 +122,7 @@ const GuruQuiz = () => {
         setClasses(allMasterClasses);
         const firstClassName = allMasterClasses[0]?.name || allMasterClasses[0]?.class_name;
         if (firstClassName) setSelectedClass(firstClassName);
+        if (firstClassName) setTargetClassForDistribute(firstClassName);
       }
     } catch (err) {
       console.error('Failed to fetch teacher profile/subjects', err);
@@ -139,6 +144,7 @@ const GuruQuiz = () => {
       if (classList.length > 0 && classes.length === 0) {
         setClasses(classList.map(c => ({ name: c, id: c })));
         if (!selectedClass) setSelectedClass(classList[0]);
+        if (!targetClassForDistribute) setTargetClassForDistribute(classList[0]);
       }
     } catch (err) {
       console.error('Failed to fetch students', err);
@@ -317,10 +323,14 @@ const GuruQuiz = () => {
     return stars;
   };
 
-  // ONLY PUBLISHED (DIRECTED) QUIZZES!
+  // Preview Material Handler
+  const handlePreviewMaterial = (material) => {
+    setPreviewMaterialModal(material);
+  };
+
+  // 🔥 Filter published quizzes - sudah difilter di backend, tapi filter tambahan untuk kelas
   const publishedQuizzes = allQuizzes.filter(q => !q.is_master);
 
-  // Filter published quizzes for currently selected class
   const publishedQuizzesForClass = publishedQuizzes.filter(q => {
     if (!selectedClass) return true;
     const targetNorm = selectedClass.toLowerCase().replace(/kelas\s*/gi, '').trim();
@@ -332,15 +342,25 @@ const GuruQuiz = () => {
 
   const filteredStudentsList = getFilteredStudentsForClass();
 
+  // 🔥 Jika loading, tampilkan indikator
+  if (loading && masterQuizzes.length === 0) {
+    return (
+      <div style={{ padding: '60px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>
+        <div className="loading-spinner" style={{ margin: '0 auto 16px', width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+        Memuat data quiz guru...
+      </div>
+    );
+  }
+
   return (
-    <div className="guru-quiz-container">
+    <div className="guru-quiz-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header Bar */}
-      <div className="guru-quiz-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 className="page-title" style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
+          <h1 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: 0 }}>
             Manajemen Bank Live Quiz & Master Quiz
           </h1>
-          <p className="page-subtitle" style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
             Buat kuis dari materi yang pernah dibuat, sematkan ke sesi kelas, dan lihat jawaban siswa serta bintang yang diperoleh.
           </p>
         </div>
@@ -413,12 +433,12 @@ const GuruQuiz = () => {
         </button>
       </div>
 
-      {/* TAB 1: BANK MASTER QUIZ */}
+      {/* ============================================================
+          TAB 1: BANK MASTER QUIZ
+          ============================================================ */}
       {activeTab === 'master' && (
         <div>
-          {loading ? (
-            <div style={{ padding: '30px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>Memuat Bank Master Quiz...</div>
-          ) : masterQuizzes.length > 0 ? (
+          {masterQuizzes.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
               {masterQuizzes.map((qz) => (
                 <div key={qz._id} style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '18px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
@@ -431,7 +451,13 @@ const GuruQuiz = () => {
                         {qz.questions?.length || 0} Pertanyaan
                       </span>
                     </div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px 0' }}>{qz.title}</h3>
+                    <h3 
+                      onClick={() => setSelectedQuizDetail(qz)}
+                      style={{ fontSize: '15px', fontWeight: '800', color: '#0284c7', margin: '0 0 6px 0', cursor: 'pointer', textDecoration: 'underline' }}
+                      title="Klik untuk melihat isi soal"
+                    >
+                      {qz.title}
+                    </h3>
                     {qz.description && (
                       <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 12px 0', lineHeight: '1.4' }}>{qz.description}</p>
                     )}
@@ -470,7 +496,9 @@ const GuruQuiz = () => {
         </div>
       )}
 
-      {/* TAB 2: KUIS TERBIT & JAWABAN SISWA */}
+      {/* ============================================================
+          TAB 2: KUIS TERBIT & JAWABAN SISWA
+          ============================================================ */}
       {activeTab === 'published' && (
         <div>
           {publishedQuizzes.length > 0 ? (
@@ -519,10 +547,11 @@ const GuruQuiz = () => {
         </div>
       )}
 
-      {/* TAB 3: MODE LIVE QUIZ & INPUT NILAI */}
+      {/* ============================================================
+          TAB 3: MODE LIVE QUIZ & INPUT NILAI
+          ============================================================ */}
       {activeTab === 'live' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* CONTROL FILTERS */}
           <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div>
@@ -576,7 +605,6 @@ const GuruQuiz = () => {
             </button>
           </div>
 
-          {/* TWO COLUMNS OR EMPTY PUBLISHED STATE */}
           {publishedQuizzesForClass.length === 0 ? (
             <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '40px 20px', textAlign: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>quiz</span>
@@ -596,7 +624,7 @@ const GuruQuiz = () => {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 1fr) minmax(400px, 1.5fr)', gap: '20px' }}>
               
-              {/* LEFT COLUMN: SOAL KUIS (WITH HIDDEN KEY BY DEFAULT) */}
+              {/* LEFT COLUMN: SOAL KUIS */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span className="material-symbols-outlined" style={{ color: '#0284c7' }}>format_list_bulleted</span>
@@ -616,7 +644,6 @@ const GuruQuiz = () => {
                       {q.question_text || q.text}
                     </p>
 
-                    {/* TOGGLE HIDDEN ANSWER KEY */}
                     {q.answer && (
                       <div style={{ marginTop: '8px' }}>
                         <button
@@ -641,7 +668,7 @@ const GuruQuiz = () => {
                 ))}
               </div>
 
-              {/* RIGHT COLUMN: TABEL SISWA & INPUT BINTANG / NILAI */}
+              {/* RIGHT COLUMN: TABEL SISWA */}
               <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '800', color: '#0f172a', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -709,13 +736,86 @@ const GuruQuiz = () => {
                   </table>
                 </div>
               </div>
-
             </div>
           )}
         </div>
       )}
 
-      {/* CREATE MASTER QUIZ MODAL */}
+      {/* ============================================================
+          PREVIEW MATERI MODAL
+          ============================================================ */}
+      {previewMaterialModal && (
+        <div className="modal-overlay" onClick={() => setPreviewMaterialModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '750px', width: '92%', maxHeight: '88vh', borderRadius: '20px', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="material-symbols-outlined" style={{ color: '#0284c7', fontSize: '24px' }}>description</span>
+                Preview Materi: {previewMaterialModal.title}
+              </h3>
+              <button onClick={() => setPreviewMaterialModal(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px', paddingRight: '4px' }}>
+              {previewMaterialModal.description && (
+                <div style={{ fontSize: '13px', color: '#334155', marginBottom: '16px', background: '#f8fafc', padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', lineHeight: '1.6' }}>
+                  <strong style={{ display: 'block', color: '#0f172a', marginBottom: '4px' }}>Deskripsi & Petunjuk:</strong>
+                  {previewMaterialModal.description}
+                </div>
+              )}
+
+              {previewMaterialModal.content && (
+                <div style={{ fontSize: '13px', color: '#1e293b', lineHeight: '1.7', marginBottom: '16px', background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1' }} dangerouslySetInnerHTML={{ __html: previewMaterialModal.content }} />
+              )}
+
+              {previewMaterialModal.file_url ? (
+                <div style={{ border: '1px solid #cbd5e1', borderRadius: '14px', overflow: 'hidden', minHeight: '300px', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+                  {previewMaterialModal.file_url.endsWith('.pdf') ? (
+                    <iframe src={previewMaterialModal.file_url} title="Preview File PDF" style={{ width: '100%', height: '450px', border: 'none' }} />
+                  ) : previewMaterialModal.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                    <img src={previewMaterialModal.file_url} alt="Preview Materi" style={{ maxWidth: '100%', maxHeight: '420px', borderRadius: '10px' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '64px', color: '#0284c7' }}>file_present</span>
+                      <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '10px 0 4px 0' }}>
+                        {previewMaterialModal.file_name || 'Dokumen Materi'}
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 16px 0' }}>Berkas ini siap diakses atau diunduh.</p>
+                      <a href={previewMaterialModal.file_url} target="_blank" rel="noreferrer" style={{ background: '#0284c7', color: '#ffffff', textDecoration: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '13px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>download</span> Unduh / Buka
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ) : previewMaterialModal.external_link ? (
+                <div style={{ padding: '16px', background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '12px' }}>
+                  <strong style={{ fontSize: '13px', color: '#0369a1', display: 'block', marginBottom: '6px' }}>Tautan Eksternal:</strong>
+                  <a href={previewMaterialModal.external_link} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontSize: '13px', fontWeight: '700', wordBreak: 'break-all' }}>{previewMaterialModal.external_link}</a>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '30px 10px', color: '#64748b' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1' }}>menu_book</span>
+                  <p style={{ fontSize: '14px', fontWeight: '700', margin: '8px 0 0 0' }}>Materi ini berisi ringkasan judul & petunjuk.</p>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
+              {previewMaterialModal.file_url && (
+                <a href={previewMaterialModal.file_url} target="_blank" rel="noreferrer" style={{ background: '#0284c7', color: '#ffffff', textDecoration: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>open_in_new</span> Buka di Tab Baru
+                </a>
+              )}
+              <button onClick={() => setPreviewMaterialModal(null)} style={{ padding: '10px 18px', borderRadius: '10px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px', fontWeight: '700' }}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================
+          CREATE MASTER QUIZ MODAL
+          ============================================================ */}
       {showCreateModal && (
         <div className="modal-overlay" onClick={() => setShowCreateModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
           <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '650px', width: '92%', maxHeight: '88vh', borderRadius: '20px', padding: '24px', overflowY: 'auto' }}>
@@ -742,23 +842,39 @@ const GuruQuiz = () => {
                 />
               </div>
 
-              {/* MATERIAL SOURCE SELECTOR */}
+              {/* MATERIAL SOURCE SELECTOR - dengan tombol Preview */}
               <div style={{ marginBottom: '14px', background: '#f0f9ff', border: '1px solid #bae6fd', padding: '12px', borderRadius: '12px' }}>
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>library_books</span>
                   Sumber Dari Materi yang Pernah Guru Buat (Opsional)
                 </label>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <select
                     value={selectedMaterialId}
                     onChange={(e) => setSelectedMaterialId(e.target.value)}
-                    style={{ flex: 1, padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', background: '#ffffff' }}
+                    style={{ flex: 1, minWidth: '150px', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', background: '#ffffff' }}
                   >
                     <option value="">-- Tanpa Sumber Materi (Manual) --</option>
                     {teacherMaterials.map(m => (
                       <option key={m._id} value={m._id}>{m.title} ({m.file_name || 'Dokumen Materi'})</option>
                     ))}
                   </select>
+
+                  {/* Tombol Preview Materi */}
+                  {selectedMaterialId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const selected = teacherMaterials.find(m => m._id === selectedMaterialId);
+                        if (selected) handlePreviewMaterial(selected);
+                      }}
+                      style={{ background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span>
+                      Lihat Materi
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleGenerateAI}
@@ -769,6 +885,13 @@ const GuruQuiz = () => {
                     {isGenerating ? 'AI Generasi...' : 'Generate Quiz AI'}
                   </button>
                 </div>
+
+                {/* Info materi yang dipilih */}
+                {selectedMaterialId && (
+                  <div style={{ marginTop: '8px', fontSize: '11px', color: '#0369a1' }}>
+                    📄 Materi terpilih: <strong>{teacherMaterials.find(m => m._id === selectedMaterialId)?.title}</strong>
+                  </div>
+                )}
               </div>
 
               <div style={{ marginBottom: '14px' }}>
@@ -854,7 +977,9 @@ const GuruQuiz = () => {
         </div>
       )}
 
-      {/* POPUP DISTRIBUTE QUIZ TO CLASS & SESSION */}
+      {/* ============================================================
+          POPUP DISTRIBUTE QUIZ
+          ============================================================ */}
       {distributeModal && (
         <div className="modal-overlay" onClick={() => setDistributeModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
           <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '520px', width: '90%', borderRadius: '20px', padding: '24px' }}>
@@ -907,7 +1032,9 @@ const GuruQuiz = () => {
         </div>
       )}
 
-      {/* VIEW SUBMISSIONS & STAR RATINGS MODAL */}
+      {/* ============================================================
+          VIEW SUBMISSIONS MODAL
+          ============================================================ */}
       {viewSubmissionModal && (
         <div className="modal-overlay" onClick={() => setViewSubmissionModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
           <div className="modal-content-cbt-form" onClick={(e) => e.stopPropagation()} style={{ background: '#ffffff', maxWidth: '720px', width: '92%', maxHeight: '88vh', borderRadius: '20px', padding: '24px', overflowY: 'auto' }}>
@@ -925,7 +1052,6 @@ const GuruQuiz = () => {
               </button>
             </div>
 
-            {/* DAFTAR SOAL KUIS */}
             <div style={{ background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '14px', marginBottom: '18px' }}>
               <strong style={{ fontSize: '13px', color: '#0284c7', display: 'block', marginBottom: '8px' }}>
                 Daftar Pertanyaan Kuis ({viewSubmissionModal.quiz?.questions?.length || 0} Soal):
@@ -937,7 +1063,6 @@ const GuruQuiz = () => {
               ))}
             </div>
 
-            {/* TABEL HASIL SISWA */}
             <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>
               Rekap Siswa yang Sudah Menjawab ({viewSubmissionModal.submissions?.length || 0} Siswa):
             </strong>
@@ -980,6 +1105,92 @@ const GuruQuiz = () => {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
               <button onClick={() => setViewSubmissionModal(null)} style={{ padding: '8px 18px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontWeight: '700' }}>Tutup</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL PREVIEW DETAIL KUIS */}
+      {selectedQuizDetail && (
+        <div className="modal-overlay" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', zIndex: 9999, padding: '20px' }}>
+          <div className="modal-content" style={{ background: '#ffffff', borderRadius: '24px', width: '100%', maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto', padding: '28px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#0f172a' }}>{selectedQuizDetail.title}</h3>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+                  Mapel: <strong style={{ color: '#0284c7' }}>{selectedQuizDetail.subject_name || 'Informatika'}</strong> | Tingkat Kelas: <strong>{selectedQuizDetail.grade_level || '8'}</strong>
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedQuizDetail(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>close</span>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {selectedQuizDetail.questions && selectedQuizDetail.questions.length > 0 ? (
+                selectedQuizDetail.questions.map((q, qIdx) => (
+                  <div key={q._id || qIdx} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '18px' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                      <span style={{ background: '#e0f2fe', color: '#0284c7', width: '28px', height: '28px', borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '800', flexShrink: 0 }}>
+                        {qIdx + 1}
+                      </span>
+                      <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#0f172a', lineHeight: '1.5' }}>{q.question_text}</p>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px', paddingLeft: '36px' }}>
+                      {q.options && q.options.map((opt, oIdx) => {
+                        const isCorrect = oIdx === q.correct_option;
+                        return (
+                          <div 
+                            key={oIdx} 
+                            style={{ 
+                              padding: '10px 14px', 
+                              borderRadius: '10px', 
+                              border: isCorrect ? '2px solid #10b981' : '1px solid #cbd5e1', 
+                              background: isCorrect ? '#ecfdf5' : '#ffffff',
+                              fontSize: '13px',
+                              color: isCorrect ? '#065f46' : '#1e293b',
+                              fontWeight: isCorrect ? '700' : '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <span style={{ 
+                              background: isCorrect ? '#10b981' : '#f1f5f9', 
+                              color: isCorrect ? '#ffffff' : '#64748b',
+                              width: '20px', 
+                              height: '20px', 
+                              borderRadius: '50%', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              fontSize: '11px',
+                              fontWeight: '800'
+                            }}>
+                              {String.fromCharCode(65 + oIdx)}
+                            </span>
+                            {opt}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', color: '#94a3b8', padding: '20px' }}>Tidak ada soal di dalam kuis ini.</div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid #e2e8f0', paddingTop: '16px' }}>
+              <button 
+                onClick={() => setSelectedQuizDetail(null)}
+                style={{ padding: '10px 24px', borderRadius: '10px', background: '#f1f5f9', border: 'none', color: '#475569', fontWeight: '700', cursor: 'pointer' }}
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

@@ -1,29 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
-import '../../../styles/dashboard/siswa/siswa-cbt.css'; // Reuse CBT style for quizzes
+import '../../../styles/dashboard/siswa/siswa-cbt.css';
 
 const SiswaQuiz = () => {
   const [studentQuizzes, setStudentQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Active Quiz State
-  const [activeQuiz, setActiveQuiz] = useState(null); // Full quiz object for attempting
-  const [quizAnswers, setQuizAnswers] = useState({}); // { 0: 1, 1: 0 }
+  const [activeQuiz, setActiveQuiz] = useState(null);
+  const [quizAnswers, setQuizAnswers] = useState({});
   const [quizSubmitting, setQuizSubmitting] = useState(false);
-  const [quizResult, setQuizResult] = useState(null); // { score, star_rating }
-  const [quizLeaderboardModal, setQuizLeaderboardModal] = useState(null); // { quiz, submissions: [] }
+  const [quizResult, setQuizResult] = useState(null);
+  const [quizLeaderboardModal, setQuizLeaderboardModal] = useState(null);
+
+  // State untuk track quiz yang sudah dijawab
+  const [submittedQuizzes, setSubmittedQuizzes] = useState({});
 
   useEffect(() => {
     fetchStudentQuizzes(true);
   }, []);
 
+  // 🔥 FETCH QUIZZES FOR SISWA - menggunakan endpoint /quiz/siswa
   const fetchStudentQuizzes = async (showFullLoader = false) => {
     try {
       if (showFullLoader) setLoading(true);
-      const res = await api.get('/quiz');
+      const res = await api.get('/quiz/siswa');
       const all = res.data.quizzes || [];
-      setStudentQuizzes(all.filter(q => !q.is_master));
+      
+      // Filter kuis yang belum dijawab (is_submitted sudah dari backend)
+      const availableQuizzes = all.filter(q => !q.is_submitted);
+      const submitted = all.filter(q => q.is_submitted);
+      
+      setStudentQuizzes(availableQuizzes);
+      
+      // Track quiz yang sudah dijawab
+      const submittedMap = {};
+      submitted.forEach(q => {
+        submittedMap[q._id] = true;
+      });
+      setSubmittedQuizzes(submittedMap);
     } catch (err) {
       console.error('Error fetching student quizzes:', err);
       setError('Gagal memuat kuis live.');
@@ -32,7 +47,17 @@ const SiswaQuiz = () => {
     }
   };
 
+  // Cek apakah quiz sudah dijawab
+  const isQuizSubmitted = (quizId) => {
+    return submittedQuizzes[quizId] === true;
+  };
+
   const handleStartQuiz = (qz) => {
+    // Cegah jika sudah dijawab
+    if (isQuizSubmitted(qz._id)) {
+      alert('Anda sudah mengerjakan kuis ini sebelumnya!');
+      return;
+    }
     setActiveQuiz(qz);
     setQuizAnswers({});
     setQuizResult(null);
@@ -44,6 +69,14 @@ const SiswaQuiz = () => {
 
   const handleSubmitQuiz = async () => {
     if (!activeQuiz) return;
+    
+    // Cegah submit ulang
+    if (isQuizSubmitted(activeQuiz._id)) {
+      alert('Anda sudah mengerjakan kuis ini sebelumnya!');
+      setActiveQuiz(null);
+      return;
+    }
+    
     setQuizSubmitting(true);
     try {
       const res = await api.post('/quiz/submit', {
@@ -56,7 +89,15 @@ const SiswaQuiz = () => {
           score: res.data.score,
           star_rating: res.data.star_rating
         });
-        fetchStudentQuizzes(false);
+        
+        // Tandai quiz sebagai sudah dijawab di state lokal
+        setSubmittedQuizzes(prev => ({ ...prev, [activeQuiz._id]: true }));
+        
+        // Hapus quiz dari daftar yang tersedia
+        setStudentQuizzes(prev => prev.filter(q => q._id !== activeQuiz._id));
+        
+        // Refresh dari server untuk memastikan konsistensi
+        await fetchStudentQuizzes(false);
       }
     } catch (err) {
       console.error('Error submitting quiz:', err);
@@ -90,7 +131,12 @@ const SiswaQuiz = () => {
   };
 
   if (loading && !activeQuiz) {
-    return <div className="cbt-loading">Memuat Kuis Live Sesi...</div>;
+    return (
+      <div className="cbt-loading" style={{ padding: '60px', textAlign: 'center', color: '#0284c7', fontWeight: '800' }}>
+        <div className="loading-spinner" style={{ margin: '0 auto 16px', width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+        Memuat Kuis Live Sesi...
+      </div>
+    );
   }
 
   if (activeQuiz) {
@@ -175,7 +221,6 @@ const SiswaQuiz = () => {
             </div>
           </div>
         ) : (
-          /* QUIZ RESULT BANNER & STAR RATING */
           <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #cbd5e1', padding: '32px', textAlign: 'center', boxShadow: '0 4px 14px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '80px', height: '80px', borderRadius: '50%', background: '#e0f2fe', color: '#0284c7', marginBottom: '16px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '44px' }}>workspace_premium</span>
@@ -206,20 +251,22 @@ const SiswaQuiz = () => {
   }
 
   return (
-    <div className="cbt-container">
-      <div className="cbt-page-header">
+    <div className="cbt-container" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="cbt-page-header" style={{ marginBottom: '24px' }}>
         <div>
-          <h1 className="page-title">Live Quiz Sesi Kelas</h1>
-          <p className="page-subtitle">Kerjakan Kuis Live interaktif di kelas Anda untuk mengumpulkan Bintang ⭐ dan Nilai.</p>
+          <h1 className="page-title" style={{ fontSize: '24px', fontWeight: '800', color: '#0f172a', margin: 0 }}>Live Quiz Sesi Kelas</h1>
+          <p className="page-subtitle" style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>
+            Kerjakan Kuis Live interaktif di kelas Anda untuk mengumpulkan Bintang ⭐ dan Nilai.
+          </p>
         </div>
       </div>
 
-      {error && <div className="cbt-alert-error">{error}</div>}
+      {error && <div className="cbt-alert-error" style={{ background: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>{error}</div>}
 
       {studentQuizzes.length > 0 ? (
-        <div className="cbt-exams-grid">
+        <div className="cbt-exams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
           {studentQuizzes.map((qz) => (
-            <div key={qz._id} className="cbt-exam-card" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
+            <div key={qz._id} className="cbt-exam-card" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
               <div className="exam-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', background: '#0284c7', color: '#ffffff', padding: '3px 8px', borderRadius: '6px' }}>
                   Kelas {qz.class_name || '8B'}
@@ -237,7 +284,21 @@ const SiswaQuiz = () => {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => handleStartQuiz(qz)}
-                  style={{ flex: 1, background: '#0284c7', color: '#ffffff', border: 'none', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+                  style={{
+                    flex: 1,
+                    background: '#0284c7',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Kerjakan Kuis
                 </button>
@@ -252,10 +313,10 @@ const SiswaQuiz = () => {
           ))}
         </div>
       ) : (
-        <div className="cbt-empty-state">
-          <span className="material-symbols-outlined empty-icon">star</span>
-          <h3>Belum Ada Kuis Sesi Aktif</h3>
-          <p>Belum ada kuis interaktif yang sedang berlangsung di kelas Anda.</p>
+        <div className="cbt-empty-state" style={{ background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '60px 20px', textAlign: 'center' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>star</span>
+          <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '12px 0 4px 0' }}>Belum Ada Kuis Sesi Aktif</h3>
+          <p style={{ fontSize: '14px', color: '#64748b', margin: '0' }}>Belum ada kuis interaktif yang sedang berlangsung di kelas Anda, atau semua kuis sudah Anda kerjakan.</p>
         </div>
       )}
 

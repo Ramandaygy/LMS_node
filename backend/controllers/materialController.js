@@ -376,3 +376,59 @@ exports.updateMaterialProgress = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// ======================================
+// GET MATERIAL BY SESSION
+// ======================================
+exports.getMaterialBySession = async (req, res) => {
+  try {
+    const { schedule_id, session_number } = req.query;
+    if (!schedule_id || !session_number) {
+      return res.status(400).json({ success: false, message: 'schedule_id and session_number are required' });
+    }
+
+    const mongoose = require('mongoose');
+    const Schedule = require('../models/Schedule');
+    const Material = require('../models/Material');
+
+    // 1. Find the schedule
+    const schedule = await Schedule.findById(schedule_id);
+    if (!schedule) {
+      return res.status(404).json({ success: false, message: 'Schedule tidak ditemukan' });
+    }
+
+    // 2. Find material matching class, subject, and session
+    const classIdStr = schedule.class_id ? schedule.class_id.toString() : '';
+    const subjectIdStr = schedule.subject_id ? schedule.subject_id.toString() : '';
+
+    const material = await Material.findOne({
+      $or: [
+        { class_id: schedule.class_id },
+        { class_id: classIdStr }
+      ],
+      $or: [
+        { subject_id: schedule.subject_id },
+        { subject_id: subjectIdStr },
+        { subject: schedule.subject_id },
+        { subject: subjectIdStr }
+      ],
+      session_number: parseInt(session_number)
+    });
+
+    if (!material) {
+      return res.json({ success: true, data: {} });
+    }
+
+    return res.json({
+      success: true,
+      data: {
+        materi: material.title,
+        subMateri: material.description || '',
+        ruang: schedule.room || 'Kelas'
+      }
+    });
+  } catch (err) {
+    console.error('Error getting material by session:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memuat materi sesi' });
+  }
+};

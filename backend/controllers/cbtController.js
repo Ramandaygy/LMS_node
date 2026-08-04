@@ -142,7 +142,7 @@ exports.getExams = async (req, res) => {
     if (userRole === 'siswa') {
       const examIds = exams.map(e => e._id);
       const results = await CbtResult.find({
-        student: userObjId,
+        student: { $in: [userObjId, userId.toString()] },
         exam: { $in: examIds }
       });
 

@@ -348,8 +348,7 @@ const AdminReports = () => {
       { id: 'students', label: '👨‍🎓 Kesiswaan', icon: 'school' },
       { id: 'attendance', label: '📋 Presensi', icon: 'how_to_reg' },
       { id: 'learning', label: '📝 Pembelajaran', icon: 'menu_book' },
-      { id: 'facilities', label: '🏫 Sarana & Fasilitas', icon: 'meeting_room' },
-      { id: 'audit', label: '🔒 Audit & Sistem', icon: 'admin_panel_settings' }
+      { id: 'facilities', label: '🏫 Sarana & Fasilitas', icon: 'meeting_room' }
     ];
 
     return (
@@ -374,44 +373,22 @@ const AdminReports = () => {
   const renderReportCards = () => {
     const reports = {
       academic: [
-        { id: 'leger', label: 'Leger Nilai Siswa', desc: 'Rekap nilai akhir semua siswa per kelas (rata-rata, KKM, ketuntasan)' },
-        { id: 'subject-scores', label: 'Rekap Nilai per Mata Pelajaran', desc: 'Statistik nilai per mapel (tertinggi, terendah, rata-rata, KKM)' },
-        { id: 'mastery', label: 'Rekap Ketuntasan Belajar', desc: 'Persentase siswa tuntas/tidak tuntas per kelas & per mapel' },
-        { id: 'exam-scores', label: 'Rekap Nilai Ujian (UTS/UAS)', desc: 'Rekap nilai ujian tengah & akhir semester' }
+        { id: 'leger', label: 'Leger Nilai', desc: 'Rekapitulasi lengkap nilai akhir siswa, ketuntasan, KKM, rata-rata, dan nilai ujian' }
       ],
       teachers: [
-        { id: 'teacher-load', label: 'Data Guru & Beban Mengajar', desc: 'Data guru, mapel yang diampu, kelas, dan jumlah JP per minggu' },
-        { id: 'teacher-schedule', label: 'Rekap Jadwal Mengajar Guru', desc: 'Jadwal mengajar semua guru per hari' },
-        { id: 'teacher-by-subject', label: 'Rekap Guru berdasarkan Mapel', desc: 'Pengelompokan guru berdasarkan mata pelajaran' },
-        { id: 'homeroom-teacher', label: 'Rekap Guru Wali Kelas', desc: 'Data wali kelas per rombel' }
+        { id: 'teacher-load', label: 'Beban Mengajar', desc: 'Laporan data guru, rombel wali kelas, beban mengajar JP, dan jadwal mengajar' }
       ],
       students: [
-        { id: 'student-per-class', label: 'Data Siswa per Kelas', desc: 'Daftar siswa lengkap per kelas (NIS, NISN, nama, JK)' },
-        { id: 'student-stats', label: 'Rekap Jumlah Siswa', desc: 'Statistik jumlah siswa per kelas, per jenis kelamin' },
-        { id: 'alumni', label: 'Data Alumni', desc: 'Daftar lulusan per tahun ajaran' },
-        { id: 'student-achievement', label: 'Rekap Prestasi Siswa', desc: 'Data prestasi akademik & non-akademik siswa' }
+        { id: 'student-per-class', label: 'Data & Statistik Siswa', desc: 'Daftar data siswa aktif lengkap per kelas, rombel, jenis kelamin, prestasi, dan alumni' }
       ],
       attendance: [
-        { id: 'attendance-student', label: 'Rekap Presensi Siswa', desc: 'Rekap kehadiran siswa per kelas (Hadir, Sakit, Izin, Alpa)' },
-        { id: 'attendance-teacher', label: 'Rekap Presensi Guru', desc: 'Rekap kehadiran guru mengajar' },
-        { id: 'red-flag', label: 'Siswa Bermasalah (Red Flag)', desc: 'Deteksi siswa dengan alpa tinggi (perlu perhatian BK)' },
-        { id: 'attendance-monthly', label: 'Rekap Presensi per Bulan', desc: 'Statistik kehadiran per bulan' }
+        { id: 'attendance-student', label: 'Presensi Kehadiran', desc: 'Rekapitulasi kehadiran harian/bulanan siswa dan guru, serta deteksi siswa berisiko' }
       ],
       learning: [
-        { id: 'task-submission', label: 'Rekap Tugas & Pengumpulan', desc: 'Rekap tugas yang diberikan & pengumpulan siswa' },
-        { id: 'cbt-exam', label: 'Rekap Ujian CBT', desc: 'Partisipasi & nilai ujian berbasis komputer' },
-        { id: 'material-distribution', label: 'Rekap Materi Pembelajaran', desc: 'Data materi yang sudah & belum didistribusikan' },
-        { id: 'student-progress', label: 'Rekap Progress Materi Siswa', desc: 'Progress belajar siswa per mapel' }
+        { id: 'task-submission', label: 'KBM & Ujian CBT', desc: 'Rekapitulasi tugas kelas, ujian CBT, progres materi, dan aktivitas kelas' }
       ],
       facilities: [
-        { id: 'rooms', label: 'Rekap Ruang Kelas', desc: 'Data ruang kelas & kapasitas' },
-        { id: 'facilities', label: 'Rekap Penggunaan Fasilitas', desc: 'Penggunaan lab, perpustakaan, dan fasilitas lainnya' },
-        { id: 'master-book', label: 'Buku Induk Siswa', desc: 'Rekap data lengkap semua siswa' }
-      ],
-      audit: [
-        { id: 'audit-trail', label: 'Aktivitas Pengguna (Audit Trail)', desc: 'Log aktivitas semua pengguna sistem' },
-        { id: 'login-stats', label: 'Rekap Login Pengguna', desc: 'Statistik login siswa, guru, admin, orang tua' },
-        { id: 'backup-log', label: 'Rekap Backup Data', desc: 'Log backup database' }
+        { id: 'facilities', label: 'Sarana & Prasarana', desc: 'Rekapitulasi penggunaan fasilitas sekolah, kelas, kapasitas, dan buku induk' }
       ]
     };
 
@@ -524,46 +501,7 @@ const AdminReports = () => {
       {/* Report Cards */}
       {renderReportCards()}
 
-      {/* Recent Activity */}
-      <div className="recent-activity-section">
-        <div className="activity-section-header">
-          <div>
-            <h3>🔍 Riwayat Aktivitas Audit Trail Terkini</h3>
-            <p>8 aksi terakhir yang dilakukan di dalam sistem</p>
-          </div>
-          <button className="btn-view-all" onClick={() => handleOpenPreview('audit-trail', '🔒 Seluruh Log Audit Trail')}>
-            Lihat Semua <span className="material-symbols-outlined">arrow_forward</span>
-          </button>
-        </div>
-        <div className="activity-table-wrapper">
-          <table className="activity-table">
-            <thead>
-              <tr>
-                <th style={{ width: '180px' }}>Waktu</th>
-                <th style={{ width: '150px' }}>Pengguna</th>
-                <th style={{ width: '150px' }}>Aktivitas</th>
-                <th>Detail Rincian</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentActivities.length > 0 ? (
-                recentActivities.map((act, i) => (
-                  <tr key={i}>
-                    <td><span className="time-badge">{act.time}</span></td>
-                    <td><strong>{act.user}</strong></td>
-                    <td><span className="action-tag">{act.action}</span></td>
-                    <td className="detail-cell">{act.detail}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="empty-cell">Belum ada catatan aktivitas log audit.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+
 
       {/* ============================================================
           PREVIEW MODAL
