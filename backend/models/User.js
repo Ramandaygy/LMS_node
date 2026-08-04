@@ -33,6 +33,20 @@ const userSchema = new mongoose.Schema(
       default: ''
     },
 
+    // 🔥 TAMBAHKAN FIELD GENDER
+    gender: {
+      type: String,
+      enum: ['Laki-laki', 'Perempuan', 'L', 'P'],
+      default: ''
+    },
+
+    // atau jika pakai bahasa Indonesia
+    jenis_kelamin: {
+      type: String,
+      enum: ['Laki-laki', 'Perempuan', 'L', 'P'],
+      default: ''
+    },
+
     teacher_code: {
       type: String,
       default: ''

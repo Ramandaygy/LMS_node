@@ -63,6 +63,8 @@ import AdminAcademicYear from './pages/dashboard/admin/AdminAcademic';
 import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
 import AdminDataMaster from './pages/dashboard/admin/AdminDataMaster';
 import AdminMonitoring from './pages/dashboard/admin/AdminMonitoring';
+import AdminStudentDetail from './pages/dashboard/admin/AdminStudentDetail';
+
 
 // ============================================
 // SHARED SUB PAGES
@@ -743,6 +745,17 @@ function App() {
             <ProtectedRoute allowedRole="admin">
               <DashboardLayout role="admin">
                 <AdminDataMaster />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/students/:studentId"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <AdminStudentDetail />
               </DashboardLayout>
             </ProtectedRoute>
           }

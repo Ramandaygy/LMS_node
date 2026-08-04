@@ -1,12 +1,7 @@
 const express = require('express');
-
 const router = express.Router();
-
-const userController =
-  require('../controllers/userController');
-
-const authMiddleware =
-  require('../middleware/authMiddleware');
+const userController = require('../controllers/userController');
+const authMiddleware = require('../middleware/authMiddleware');
 
 // ======================================
 // GET STUDENTS
@@ -15,6 +10,15 @@ router.get(
   '/students/all',
   authMiddleware,
   userController.getStudents
+);
+
+// ======================================
+// GET STUDENT DETAIL WITH PARENT & CLASS
+// ======================================
+router.get(
+  '/students/:id/detail',
+  authMiddleware,
+  userController.getStudentDetail
 );
 
 // ======================================
@@ -94,7 +98,5 @@ router.delete(
   authMiddleware,
   userController.deleteUser
 );
-
-
 
 module.exports = router;

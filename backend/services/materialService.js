@@ -175,10 +175,21 @@ if (nilaiKeterampilan >= batasTuntas) {
 
   const fallbackContent = [slide1, slide2, slide3, slide4, slide5].join('\n<!-- slide-break -->\n');
 
+  // Simpan slides array untuk digunakan jika AI gagal
+  const fallbackSlides = [
+    { title: 'Slide 1: Pengenalan Pembelajaran', body: slide1 },
+    { title: 'Slide 2: Konsep Utama', body: slide2 },
+    { title: 'Slide 3: Contoh & Pembahasan', body: slide3 },
+    { title: 'Slide 4: Penerapan Praktis', body: slide4 },
+    { title: 'Slide 5: Rangkuman & Evaluasi', body: slide5 }
+  ];
+
   const defaultRichFallback = {
     title: targetTitle,
     description: description || `Materi pembelajaran slide interaktif paragraf panjang mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} kelas ${targetClass}.`,
-    content: fallbackContent
+    content: fallbackContent,
+    slides: fallbackSlides,  // ← TAMBAHKAN INI
+    slide_count: 5
   };
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -230,17 +241,87 @@ Format output JSON murni tanpa markdown codeblock fence:
       rawText = jsonMatch[0];
     }
 
-    const aiContent = JSON.parse(rawText);
-
-    return {
-      title: aiContent.title || targetTitle,
-      description: aiContent.description || defaultRichFallback.description,
-      content: aiContent.content || defaultRichFallback.content
-    };
+     if (aiContent && aiContent.content) {
+      // Parse content menjadi slides
+      const slides = exports.parseContentToSlides(aiContent.content);
+      
+      return {
+        title: aiContent.title || targetTitle,
+        description: aiContent.description || defaultRichFallback.description,
+        content: aiContent.content || defaultRichFallback.content,
+        slides: slides,  // ← TAMBAHKAN INI
+        slide_count: slides.length
+      };
+    }
   } catch (err) {
     console.error('[Gemini AI Material Gen Error]:', err.message);
     return defaultRichFallback;
   }
+
+  return defaultRichFallback;
+
+};
+
+// Parse content menjadi array slides
+exports.parseContentToSlides = (contentHtml) => {
+  if (!contentHtml) {
+    return [{ title: 'Slide 1', body: '<p>Tuliskan isi materi slide di sini...</p>' }];
+  }
+  
+  // Coba split berdasarkan <!-- slide-break -->
+  let slideBlocks = contentHtml.split(/<!--\s*slide-break\s*-->/i)
+    .map(s => s.trim())
+    .filter(Boolean);
+  
+  // Jika tidak ada slide-break, coba cari .material-slide
+  if (slideBlocks.length <= 1) {
+    const matchSlideDivs = contentHtml.match(/<div[^>]*class="material-slide"[^>]*>[\s\S]*?<\/div>/gi);
+    if (matchSlideDivs && matchSlideDivs.length > 1) {
+      slideBlocks = matchSlideDivs;
+    }
+  }
+  
+  // Jika masih hanya 1, coba cari .ppt-slide
+  if (slideBlocks.length <= 1) {
+    const matchPptSlides = contentHtml.match(/<div[^>]*class="ppt-slide"[^>]*>[\s\S]*?<\/div>/gi);
+    if (matchPptSlides && matchPptSlides.length > 1) {
+      slideBlocks = matchPptSlides;
+    }
+  }
+  
+  // Jika masih 1 atau 0, buat 1 slide dari semua konten
+  if (slideBlocks.length <= 1) {
+    return [{ title: 'Slide 1', body: contentHtml }];
+  }
+  
+  // Parse setiap slide
+  return slideBlocks.map((block, idx) => {
+    // Cari judul dari <h3> atau <h2>
+    let title = `Slide ${idx + 1}`;
+    const titleMatch = block.match(/<h[23][^>]*>(.*?)<\/h[23]>/i);
+    if (titleMatch) {
+      title = titleMatch[1].trim();
+    }
+    
+    return { title, body: block };
+  });
+};
+
+// Compile slides menjadi content HTML
+exports.compileSlidesToContent = (slides) => {
+  if (!slides || !Array.isArray(slides) || slides.length === 0) {
+    return '<p>Konten kosong</p>';
+  }
+  
+  return slides.map((slide, idx) => {
+    const title = slide.title || `Slide ${idx + 1}`;
+    const body = slide.body || '<p>Konten slide kosong</p>';
+    
+    return `<div class="material-slide" data-slide="${idx + 1}">
+<h3>${title}</h3>
+${body}
+</div>`;
+  }).join('\n<!-- slide-break -->\n');
 };
 
 // GENERATE QUIZ DENGAN AI (Gemini)

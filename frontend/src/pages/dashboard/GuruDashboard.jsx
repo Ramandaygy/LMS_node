@@ -53,7 +53,7 @@ const GuruDashboard = () => {
       const [profileRes, studentsRes, schedulesRes, assignmentsRes, dbSchedRes] = await Promise.allSettled([
         api.get('/profile'),
         api.get('/users/students/all'),
-        api.get('/attendance/guru/schedules'),
+        api.get('/attendance/schedules'),
         api.get('/assignments/guru/me'),
         api.get('/schedules')
       ]);

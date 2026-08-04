@@ -392,7 +392,7 @@ exports.getTeacherActivities = async (req, res) => {
 // ============================================================
 
 // Helper function to build Leger matrix (OPTIMIZED IN-MEMORY PRE-FETCHING)
-async function computeLegerData(classId, semester = 'Genap') {
+async function computeLegerData(classId, semester = 'Genap', academicYearId = null) {
   const siswaCol = mongoose.connection.collection('users_siswa');
   const classCol = mongoose.connection.collection('classes');
   const subjectCol = mongoose.connection.collection('subjects');
@@ -404,12 +404,23 @@ async function computeLegerData(classId, semester = 'Genap') {
 
   const objClassId = new mongoose.Types.ObjectId(classId);
 
+  let dateQuery = {};
+  if (academicYearId && mongoose.Types.ObjectId.isValid(academicYearId)) {
+    const ay = await mongoose.connection.collection('academic_years').findOne({ _id: new mongoose.Types.ObjectId(academicYearId) });
+    if (ay && ay.start_date && ay.end_date) {
+      dateQuery = {
+        $gte: new Date(ay.start_date),
+        $lte: new Date(ay.end_date)
+      };
+    }
+  }
+
   // Parallel pre-fetch classDoc, subjects, students, allAssignments
   const [classDoc, subjects, students, allAssignments] = await Promise.all([
     classCol.findOne({ _id: objClassId }),
     subjectCol.find({ is_active: { $ne: false } }).toArray(),
     siswaCol.find({ class_id: objClassId }).sort({ full_name: 1 }).toArray(),
-    assignmentsCol.find({}).toArray()
+    assignmentsCol.find(dateQuery.$gte ? { createdAt: dateQuery } : {}).toArray()
   ]);
 
   if (!classDoc) throw new Error('Kelas tidak ditemukan');
@@ -442,9 +453,9 @@ async function computeLegerData(classId, semester = 'Genap') {
 
   // Pre-fetch ALL attendances, submissions, and grades in PARALLEL in ONE GO!
   const [allAttendances, allSubmissions, allGrades] = await Promise.all([
-    attendancesCol.find({ student_id: { $in: allStudentIdKeys } }).toArray(),
-    submissionsCol.find({ student_id: { $in: allStudentIdKeys }, score: { $ne: null } }).toArray(),
-    gradesCol.find({ student: { $in: allStudentIdKeys } }).toArray()
+    attendancesCol.find({ student_id: { $in: allStudentIdKeys }, ...(dateQuery.$gte ? { date: dateQuery } : {}) }).toArray(),
+    submissionsCol.find({ student_id: { $in: allStudentIdKeys }, score: { $ne: null }, ...(dateQuery.$gte ? { createdAt: dateQuery } : {}) }).toArray(),
+    gradesCol.find({ student: { $in: allStudentIdKeys }, ...(dateQuery.$gte ? { createdAt: dateQuery } : {}) }).toArray()
   ]);
 
   // Index allAssignments by ID
@@ -617,12 +628,12 @@ async function computeLegerData(classId, semester = 'Genap') {
 
 exports.getLegerByClass = async (req, res) => {
   try {
-    const { class_id, semester } = req.query;
+    const { class_id, semester, academic_year_id } = req.query;
     if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
       return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
     }
 
-    const legerData = await computeLegerData(class_id, semester);
+    const legerData = await computeLegerData(class_id, semester, academic_year_id);
     return res.status(200).json({ success: true, ...legerData });
   } catch (error) {
     console.error('[AdminMonitoring] Error in getLegerByClass:', error);
@@ -635,12 +646,12 @@ exports.getLegerByClass = async (req, res) => {
 
 exports.exportLegerExcel = async (req, res) => {
   try {
-    const { class_id, semester } = req.query;
+    const { class_id, semester, academic_year_id } = req.query;
     if (!class_id || !mongoose.Types.ObjectId.isValid(class_id)) {
       return res.status(400).json({ success: false, message: 'ID Kelas wajib diisi dan valid.' });
     }
 
-    const legerData = await computeLegerData(class_id, semester);
+    const legerData = await computeLegerData(class_id, semester, academic_year_id);
     const ExcelJS = require('exceljs');
 
     const workbook = new ExcelJS.Workbook();

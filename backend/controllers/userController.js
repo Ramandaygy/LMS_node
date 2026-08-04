@@ -1,24 +1,19 @@
 const userService = require('../services/userService');
 const { logActivity } = require('../utils/activityLogger');
+const mongoose = require('mongoose');
 
 // ======================================
 // GET ALL USERS
 // ======================================
 exports.getAllUsers = async (req, res) => {
   try {
-
-    const users =
-      await userService.getAllUsers();
-
+    const users = await userService.getAllUsers();
     return res.status(200).json({
       success: true,
       data: users,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch users',
@@ -31,28 +26,19 @@ exports.getAllUsers = async (req, res) => {
 // ======================================
 exports.getUserById = async (req, res) => {
   try {
-
-    const user =
-      await userService.getUserById(
-        req.params.id
-      );
-
+    const user = await userService.getUserById(req.params.id);
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
-
     return res.status(200).json({
       success: true,
       data: user,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch user',
@@ -61,32 +47,56 @@ exports.getUserById = async (req, res) => {
 };
 
 // ======================================
+// GET STUDENT DETAIL WITH PARENT & CLASS
+// ======================================
+exports.getStudentDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID tidak valid'
+      });
+    }
+
+    const student = await userService.getStudentByIdWithParent(id);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Siswa tidak ditemukan'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: student
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data siswa'
+    });
+  }
+};
+
+// ======================================
 // GET STUDENTS
 // ======================================
-exports.getStudents = async (
-  req,
-  res
-) => {
+exports.getStudents = async (req, res) => {
   try {
-
-    const students =
-      await userService.getUsersByRole(
-        'siswa'
-      );
-
+    const students = await userService.getUsersByRole('siswa');
     return res.status(200).json({
       success: true,
       data: students,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(500).json({
       success: false,
-      message:
-        'Failed to fetch students',
+      message: 'Failed to fetch students',
     });
   }
 };
@@ -94,34 +104,21 @@ exports.getStudents = async (
 // ======================================
 // GET TEACHERS
 // ======================================
-exports.getTeachers = async (
-  req,
-  res
-) => {
+exports.getTeachers = async (req, res) => {
   try {
-
-    const teachers =
-      await userService.getUsersByRole(
-        'guru'
-      );
-
+    const teachers = await userService.getUsersByRole('guru');
     return res.status(200).json({
       success: true,
       data: teachers,
     });
-
   } catch (err) {
-
     console.error(err);
-
     return res.status(500).json({
       success: false,
-      message:
-        'Failed to fetch teachers',
+      message: 'Failed to fetch teachers',
     });
   }
 };
-
 
 // ======================================
 // CREATE USER
@@ -130,7 +127,6 @@ exports.createUser = async (req, res) => {
   try {
     const user = await userService.createUser(req.body);
     
-    // Log Activity
     const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
     const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
     await logActivity(req, `Registrasi ${cleanRole}`, `Menambahkan ${user.role} ${user.full_name} (${user.nis || user.nip || user.username || '-'})`);
@@ -156,7 +152,6 @@ exports.updateUser = async (req, res) => {
   try {
     const user = await userService.updateUser(req.params.id, req.body);
     
-    // Log Activity
     const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
     const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
     await logActivity(req, `Update ${cleanRole}`, `Mengubah data ${user.role} ${user.full_name}`);
@@ -180,11 +175,9 @@ exports.updateUser = async (req, res) => {
 // ======================================
 exports.deleteUser = async (req, res) => {
   try {
-    // Get user details first before deleting so we can write their name in the logs
     const user = await userService.getUserById(req.params.id);
     await userService.deleteUser(req.params.id);
     
-    // Log Activity
     if (user) {
       const roleCapitalized = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
       const cleanRole = roleCapitalized === 'Siswa' ? 'Siswa' : roleCapitalized === 'Guru' ? 'Guru' : roleCapitalized === 'Ortu' ? 'Orang Tua/Wali' : roleCapitalized;
@@ -263,7 +256,6 @@ exports.deleteParent = async (req, res) => {
 exports.getAllStudents = async (req, res) => {
   try {
     const students = await userService.getUsersByRole('siswa');
-    // Hanya kirim data yang diperlukan
     const simplified = students.map(s => ({
       _id: s._id,
       full_name: s.full_name,

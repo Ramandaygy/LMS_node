@@ -582,3 +582,41 @@
   margin: 0;
   line-height: 1.4;
 }
+
+/* ============================================================
+   MINI CALENDAR STYLES
+   ============================================================ */
+
+.mini-calendar-card {
+  transition: all 0.2s ease;
+}
+
+.mini-calendar-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.mini-calendar-card .calendar-day {
+  transition: all 0.2s ease;
+}
+
+.mini-calendar-card .calendar-day:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
+}
+
+/* Responsive Calendar */
+@media (max-width: 1024px) {
+  .modul-side-column {
+    flex: 0 0 280px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .modul-side-column {
+    flex: 0 0 100% !important;
+  }
+  
+  .mini-calendar-card {
+    margin-top: 12px;
+  }
+}

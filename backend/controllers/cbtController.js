@@ -6,6 +6,14 @@ const Subject = require('../models/Subject');
 
 const mongoose = require('mongoose');
 
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null;
+  if (typeof dateStr === 'string' && !dateStr.includes('Z') && !/[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    return new Date(dateStr + '+07:00');
+  }
+  return new Date(dateStr);
+};
+
 // Helper to enrich exam docs with populated Subject & Teacher info reliably
 async function enrichExamsWithDetails(examsArray) {
   if (!Array.isArray(examsArray) || examsArray.length === 0) return [];
@@ -300,8 +308,8 @@ exports.createExam = async (req, res) => {
       pass_score: Number(pass_score) || 75,
       is_active: is_active !== undefined ? is_active : true,
       is_master: req.body.is_master !== undefined ? req.body.is_master : true,
-      start_time: start_time || null,
-      end_time: end_time || null,
+      start_time: start_time ? parseLocalDate(start_time) : null,
+      end_time: end_time ? parseLocalDate(end_time) : null,
       hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : true,
       questions: cleanedQuestions
     });
@@ -338,8 +346,8 @@ exports.updateExam = async (req, res) => {
     if (pass_score !== undefined) exam.pass_score = pass_score;
     if (is_active !== undefined) exam.is_active = is_active;
     if (questions !== undefined) exam.questions = questions;
-    if (start_time !== undefined) exam.start_time = start_time;
-    if (end_time !== undefined) exam.end_time = end_time;
+    if (start_time !== undefined) exam.start_time = start_time ? parseLocalDate(start_time) : null;
+    if (end_time !== undefined) exam.end_time = end_time ? parseLocalDate(end_time) : null;
     if (hide_correct_answers !== undefined) exam.hide_correct_answers = hide_correct_answers;
 
     await exam.save();
@@ -831,8 +839,8 @@ exports.distributeExam = async (req, res) => {
       is_master: false,
       is_active: true,
       session_number: parseInt(session_number) || 1,
-      start_time: start_time !== undefined ? start_time : masterExam.start_time,
-      end_time: end_time !== undefined ? end_time : masterExam.end_time,
+      start_time: start_time !== undefined ? (start_time ? parseLocalDate(start_time) : null) : masterExam.start_time,
+      end_time: end_time !== undefined ? (end_time ? parseLocalDate(end_time) : null) : masterExam.end_time,
       hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : (masterExam.hide_correct_answers !== undefined ? masterExam.hide_correct_answers : true),
       questions: masterExam.questions || []
     });

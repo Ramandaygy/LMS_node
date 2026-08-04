@@ -9,7 +9,6 @@ const getCollection = (name) => mongoose.connection.collection(name);
 // ======================================
 // GET ALL USERS
 // ======================================
-
 exports.getAllUsers = async () => {
   const [siswa, guru, admin, ortu] = await Promise.all([
     getCollection('users_siswa').find({}).toArray(),
@@ -29,7 +28,6 @@ exports.getAllUsers = async () => {
 // ======================================
 // GET USER BY ID
 // ======================================
-
 exports.getUserById = async (id) => {
   const objectId = new mongoose.Types.ObjectId(id);
 
@@ -42,9 +40,55 @@ exports.getUserById = async (id) => {
 };
 
 // ======================================
+// GET STUDENT BY ID WITH PARENT & CLASS
+// ======================================
+exports.getStudentByIdWithParent = async (id) => {
+  const objectId = new mongoose.Types.ObjectId(id);
+  
+  // Ambil data siswa
+  const student = await getCollection('users_siswa').findOne({ _id: objectId });
+  if (!student) return null;
+
+  // Ambil data kelas
+  let classData = null;
+  if (student.class_id) {
+    try {
+      classData = await getCollection('classes').findOne({ 
+        _id: new mongoose.Types.ObjectId(student.class_id) 
+      });
+    } catch (e) {
+      console.error('Error fetching class:', e);
+    }
+  }
+
+  // Ambil data orang tua jika ada parent_id
+  let parentData = null;
+  if (student.parent_id) {
+    try {
+      parentData = await getCollection('users_ortu').findOne({ 
+        _id: new mongoose.Types.ObjectId(student.parent_id) 
+      });
+    } catch (e) {
+      console.error('Error fetching parent:', e);
+    }
+  }
+
+  // Gabungkan data
+  return {
+    ...student,
+    class_name: classData?.name || student.class_name || 'Belum Diatur',
+    class: classData || null,
+    parent: parentData || null,
+    parent_name: parentData?.full_name || student.parent_name || 'Belum dihubungkan',
+    parent_phone: parentData?.phone || student.parent_phone || 'Belum ada',
+    parent_job: parentData?.pekerjaan || student.pekerjaan_ortu || '-',
+    parent_email: parentData?.email || '-'
+  };
+};
+
+// ======================================
 // GET USERS BY ROLE
 // ======================================
-
 exports.getUsersByRole = async (role) => {
   let users = [];
 
@@ -120,25 +164,11 @@ exports.getUsersByRole = async (role) => {
       return [];
   }
 
-  // ======================================
-  // GET MASTER DATA
-  // ======================================
-
   const subjects = await getCollection('subjects').find({}).toArray();
   const classes = await getCollection('classes').find({}).toArray();
 
-  // ======================================
-  // FORMAT DATA
-  // ======================================
-
   return users.map(user => {
-
-    // ======================================
-    // MAP SUBJECTS (GURU)
-    // ======================================
-
     let subjectNames = [];
-
     if (Array.isArray(user.subjects)) {
       subjectNames = user.subjects.map(id => {
         if (!id) return '-';
@@ -153,12 +183,7 @@ exports.getUsersByRole = async (role) => {
       });
     }
 
-    // ======================================
-    // MAP CLASSES (GURU)
-    // ======================================
-
     let classNames = [];
-
     if (Array.isArray(user.classes)) {
       classNames = user.classes.map(id => {
         if (!id) return '-';
@@ -173,12 +198,7 @@ exports.getUsersByRole = async (role) => {
       });
     }
 
-    // ======================================
-    // MAP CLASS (SISWA)
-    // ======================================
-
     let className = '-';
-
     if (user.class_id) {
       try {
         const kelas = classes.find(
@@ -191,41 +211,13 @@ exports.getUsersByRole = async (role) => {
     }
 
     return {
-
       ...user,
-
-      // ======================================
-      // GURU
-      // ======================================
-
       subjects: subjectNames,
       classes: classNames,
-
-      // id asli untuk edit form
-      subject_ids:
-        Array.isArray(user.subjects)
-          ? user.subjects
-          : [],
-
-      class_ids:
-        Array.isArray(user.classes)
-          ? user.classes
-          : [],
-
-      // ======================================
-      // SISWA
-      // ======================================
-
+      subject_ids: Array.isArray(user.subjects) ? user.subjects : [],
+      class_ids: Array.isArray(user.classes) ? user.classes : [],
       class_name: className,
-
-      // ======================================
-      // STATUS
-      // ======================================
-
-      is_active:
-        user.is_active !== undefined
-          ? user.is_active
-          : true,
+      is_active: user.is_active !== undefined ? user.is_active : true,
     };
   });
 };
@@ -233,7 +225,6 @@ exports.getUsersByRole = async (role) => {
 // ======================================
 // CREATE USER
 // ======================================
-
 exports.createUser = async (userData) => {
   let collection;
 
@@ -291,7 +282,6 @@ exports.createUser = async (userData) => {
 // ======================================
 // UPDATE USER
 // ======================================
-
 exports.updateUser = async (id, updateData) => {
   const objectId = new mongoose.Types.ObjectId(id);
   const collections = [
@@ -304,7 +294,6 @@ exports.updateUser = async (id, updateData) => {
   if (updateData.password) {
     updateData.password = await bcrypt.hash(updateData.password, 10);
   } else if (updateData.password === '') {
-    // Jika dikirim string kosong, tidak perlu di-update
     delete updateData.password;
   }
 
@@ -331,21 +320,12 @@ exports.updateUser = async (id, updateData) => {
   }
 
   for (const collection of collections) {
-
-    const user =
-      await collection.findOne({
-        _id: objectId
-      });
-
+    const user = await collection.findOne({ _id: objectId });
     if (user) {
-
       await collection.updateOne(
         { _id: objectId },
-        {
-          $set: updateData
-        }
+        { $set: updateData }
       );
-
       return true;
     }
   }
@@ -356,7 +336,6 @@ exports.updateUser = async (id, updateData) => {
 // ======================================
 // DELETE USER
 // ======================================
-
 exports.deleteUser = async (id) => {
   const objectId = new mongoose.Types.ObjectId(id);
   const collections = [
@@ -367,18 +346,9 @@ exports.deleteUser = async (id) => {
   ];
 
   for (const collection of collections) {
-
-    const user =
-      await collection.findOne({
-        _id: objectId
-      });
-
+    const user = await collection.findOne({ _id: objectId });
     if (user) {
-
-      await collection.deleteOne({
-        _id: objectId
-      });
-
+      await collection.deleteOne({ _id: objectId });
       return true;
     }
   }

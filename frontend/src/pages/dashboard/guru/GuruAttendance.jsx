@@ -253,12 +253,12 @@ const GuruAttendance = () => {
     setTimeout(() => setSuccess(''), 3000);
   };
 
-  // Generate 16 Meetings Schedule matching SIAKAD / EdLink reference photo using real saved DB data
+  // Generate 16 Meetings Schedule
   const generate16SessionsList = () => {
     const baseSubject = selectedScheduleInfo?.subject || 'INFORMATIKA';
     const baseRoom = selectedScheduleInfo?.room || ('KM.D4.' + (selectedScheduleInfo?.class_name || '8A'));
     const dayName = selectedScheduleInfo?.day || 'Senin';
-    const timeStr = (selectedScheduleInfo?.start_time || '07:30') + ' - ' + (selectedScheduleInfo?.end_time || '09:30');
+    const timeStr = (selectedScheduleInfo?.start_time || '07:20') + ' - ' + (selectedScheduleInfo?.end_time || '08:00');
 
     const defaultTopics = [
       "Pengenalan Konsep Dasar KBM & Silabus Kurikulum",
@@ -288,7 +288,7 @@ const GuruAttendance = () => {
       const hasRealData = realSummary && realSummary.total > 0;
 
       const hadirCount = hasRealData ? realSummary.present : '-';
-      const pctVal = hasRealData ? ((realSummary.present / realSummary.total) * 100).toFixed(2) + '%' : '-';
+      const pctVal = hasRealData ? ((realSummary.present / realSummary.total) * 100).toFixed(1) + '%' : '-';
 
       const customData = customTopics[sessNum];
 
@@ -315,7 +315,9 @@ const GuruAttendance = () => {
   return (
     <div className="siakad-attendance-container">
       
-      {/* HEADER BAR (SIAKAD STYLE) */}
+      {/* ============================================================
+          HEADER BAR - TETAP SAMA
+          ============================================================ */}
       <div className="siakad-top-header">
         <div>
           <h1 className="siakad-page-title">Presensi & Pertemuan KBM Kelas</h1>
@@ -340,7 +342,9 @@ const GuruAttendance = () => {
       {error && <div className="alert error">{error}</div>}
       {success && <div className="alert success">{success}</div>}
 
-      {/* META INFO BOX (MATCHING ADVISOR SCREENSHOT EXACTLY) */}
+      {/* ============================================================
+          META INFO CARD - TETAP SAMA
+          ============================================================ */}
       <div className="siakad-meta-info-card">
         <div className="meta-grid">
           <div className="meta-col">
@@ -350,7 +354,7 @@ const GuruAttendance = () => {
             </div>
             <div className="meta-item">
               <span className="meta-label">Mata Pelajaran:</span>
-              <span className="meta-val">{selectedScheduleInfo?.subject || 'INFORMATIKA'} - 2 Jam Pelajaran (JP)</span>
+              <span className="meta-val">{selectedScheduleInfo?.subject || 'INFORMATIKA'}</span>
             </div>
             <div className="meta-item">
               <span className="meta-label">Kurikulum:</span>
@@ -383,7 +387,9 @@ const GuruAttendance = () => {
         </div>
       </div>
 
-      {/* PERSENTASE REKAPITULASI PRESENSI SISWA (HADIR, SAKIT, IZIN, ALPA) */}
+      {/* ============================================================
+          PERSENTASE REKAPITULASI PRESENSI - TETAP SAMA
+          ============================================================ */}
       <div style={{ background: '#ffffff', borderRadius: '16px', padding: '16px 20px', border: '1px solid #cbd5e1', marginBottom: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <strong style={{ fontSize: '13px', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -396,7 +402,6 @@ const GuruAttendance = () => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
-          {/* HADIR */}
           <div style={{ background: '#e0f2fe', border: '1px solid #93c5fd', padding: '10px 14px', borderRadius: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span> Hadir
@@ -406,7 +411,6 @@ const GuruAttendance = () => {
             </div>
           </div>
 
-          {/* SAKIT */}
           <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', padding: '10px 14px', borderRadius: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>medical_services</span> Sakit
@@ -416,7 +420,6 @@ const GuruAttendance = () => {
             </div>
           </div>
 
-          {/* IZIN */}
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '10px 14px', borderRadius: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#1d4ed8', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>assignment_late</span> Izin
@@ -426,7 +429,6 @@ const GuruAttendance = () => {
             </div>
           </div>
 
-          {/* ALPA */}
           <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '10px 14px', borderRadius: '12px' }}>
             <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>cancel</span> Alpa
@@ -438,10 +440,13 @@ const GuruAttendance = () => {
         </div>
       </div>
 
-      {/* VIEW MODE 1: RIWAYAT KBM & PRESENSI KELAS (TABLE 16 PERTEMUAN - SIAKAD STYLE) */}
+      {/* ============================================================
+          VIEW MODE 1: RIWAYAT KBM & PRESENSI KELAS - CARD VERSION
+          ============================================================ */}
       {activeViewMode === 'history' && (
-        <div className="siakad-table-wrapper">
+        <div className="siakad-card-wrapper">
           
+          {/* FILTER BAR - TETAP SAMA */}
           <div className="table-controls-row">
             <div className="schedule-select-inline">
               <label>Pilih Kelas / Jadwal:</label>
@@ -467,60 +472,93 @@ const GuruAttendance = () => {
 
             <button className="btn-save-primary" onClick={() => handleOpenInputForm(9)}>
               <span className="material-symbols-outlined">edit_calendar</span>
-              Perbaharui Presensi Pertemuan Hari Ini
+              Perbarui Presensi Pertemuan Hari Ini
             </button>
           </div>
 
-          <table className="siakad-attendance-table">
-            <thead>
-              <tr>
-                <th style={{ width: '80px' }}>Pertemuan</th>
-                <th style={{ width: '180px' }}>Waktu</th>
-                <th>Rencana & Realisasi Materi</th>
-                <th style={{ width: '150px' }}>Pengajar</th>
-                <th style={{ width: '90px' }}>Ruang</th>
-                <th style={{ width: '70px', textAlign: 'center' }}>Hadir</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>%</th>
-                <th style={{ width: '80px', textAlign: 'center' }}>Absen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions16List.map((row) => (
-                <tr key={row.sesi} className={row.sesi === 9 ? 'current-active-session-row' : ''}>
-                  <td className="text-center font-bold">Ke-{row.sesi}</td>
-                  <td className="waktu-cell">{row.waktu}</td>
-                  <td className="materi-cell">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
-                      <div>
-                        <p className="materi-title">{row.materi}</p>
-                        <p className="materi-sub">{row.subMateri}</p>
-                      </div>
-                      <button
-                        onClick={() => setEditingSessionModal(row)}
-                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#0284c7', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}
-                        title="Edit Rencana & Realisasi Materi Pertemuan Ini"
-                      >
-                        <span className="material-symbols-outlined" style={{ fontSize: '13px' }}>edit</span> Edit
-                      </button>
-                    </div>
-                  </td>
-                  <td>{row.pengajar}</td>
-                  <td className="text-center">{row.ruang}</td>
-                  <td className="text-center font-bold">{row.hadir}</td>
-                  <td className="text-center font-bold">{row.pct}</td>
-                  <td className="text-center">
+          {/* ============================================================
+              CARD LIST - PENGGANTI TABLE YANG JELEK
+          ============================================================ */}
+          <div className="meeting-cards-container">
+            {sessions16List.map((row) => (
+              <div 
+                key={row.sesi} 
+                className={`meeting-card ${row.sesi === 9 ? 'active-card' : ''}`}
+              >
+                {/* CARD HEADER */}
+                <div className="meeting-card-header">
+                  <div className="meeting-number">
+                    <span className="meeting-badge">Pertemuan Ke-{row.sesi}</span>
+                    <span className="meeting-status">
+                      {row.isCompleted ? (
+                        <span className="status-completed">Selesai</span>
+                      ) : (
+                        <span className="status-pending"> Belum</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="meeting-actions">
                     <button
-                      className={`btn-absen-icon ${row.isCompleted ? 'completed' : 'pending'}`}
+                      className="btn-edit-material"
+                      onClick={() => setEditingSessionModal(row)}
+                      title="Edit Rencana & Realisasi Materi"
+                    >
+                      <span className="material-symbols-outlined">edit</span>
+                    </button>
+                    <button
+                      className="btn-attendance"
                       onClick={() => handleOpenInputForm(row.sesi)}
                       title={`Isi Presensi Pertemuan ke-${row.sesi}`}
                     >
                       <span className="material-symbols-outlined">fact_check</span>
+                      Presensi
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+
+                {/* CARD BODY */}
+                <div className="meeting-card-body">
+                  {/* Waktu */}
+                  <div className="meeting-info-row">
+                    <span className="info-label"> Waktu</span>
+                    <span className="info-value">{row.waktu}</span>
+                  </div>
+                  
+                  {/* Materi */}
+                  <div className="meeting-info-row">
+                    <span className="info-label"> Materi</span>
+                    <span className="info-value mater-title">{row.materi}</span>
+                  </div>
+                  
+                  {/* Sub Materi */}
+                  <div className="meeting-info-row">
+                    <span className="info-label"> Sub Materi</span>
+                    <span className="info-value sub-materi">{row.subMateri}</span>
+                  </div>
+                  
+                  {/* GRID INFO: Pengajar, Ruang, Hadir, % */}
+                  <div className="meeting-info-grid">
+                    <div className="info-grid-item">
+                      <span className="info-label">Pengajar</span>
+                      <span className="info-value">{row.pengajar}</span>
+                    </div>
+                    <div className="info-grid-item">
+                      <span className="info-label">Ruang</span>
+                      <span className="info-value">{row.ruang}</span>
+                    </div>
+                    <div className="info-grid-item">
+                      <span className="info-label">Hadir</span>
+                      <span className="info-value hadir-count">{row.hadir}</span>
+                    </div>
+                    <div className="info-grid-item">
+                      <span className="info-label">Persentase</span>
+                      <span className="info-value pct-value">{row.pct}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
 
           {/* MODAL EDIT RENCANA & REALISASI MATERI SESI */}
           {editingSessionModal && (
@@ -581,7 +619,9 @@ const GuruAttendance = () => {
         </div>
       )}
 
-      {/* VIEW MODE 2: FORM INPUT PRESENSI SISWA PER SESI (H / A / I / S) */}
+      {/* ============================================================
+          VIEW MODE 2: FORM INPUT PRESENSI SISWA - TETAP SAMA
+          ============================================================ */}
       {activeViewMode === 'input' && (
         <div className="attendance-input-card">
           

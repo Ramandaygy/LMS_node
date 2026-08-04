@@ -137,12 +137,14 @@ exports.generateMaterial = async (req, res) => {
       });
     }
 
+    // Panggil AI dengan prompt yang menghasilkan multi-slide
     const aiData = await materialService.generateMaterialAI({
       title,
       prompt,
       subject_name,
       class_name,
-      description
+      description,
+      multiSlide: true // ← TAMBAHKAN FLAG INI
     });
 
     return res.status(200).json({
@@ -303,13 +305,35 @@ exports.getStudentMaterials = async (req, res) => {
     if (!student) return res.status(404).json({ success: false, message: 'Siswa tidak ditemukan' });
     const classId = student.class_id;
     if (!classId) return res.json({ success: true, data: [] });
+
+    // Get all schedules for the student's class to find subject-teacher mappings
+    const schedulesCol = mongoose.connection.collection('schedules');
+    const schedules = await schedulesCol.find({ class_id: classId }).toArray();
+    
+    // Map subject_id string to teacher_id string
+    const subjectTeacherMap = {};
+    schedules.forEach(sch => {
+      if (sch.subject_id && sch.teacher_id) {
+        subjectTeacherMap[sch.subject_id.toString()] = sch.teacher_id.toString();
+      }
+    });
+
     const materials = await materialService.getMaterialsForStudent(classId.toString());
+
+    // Filter materials based on schedule (matching subject-teacher mapping)
+    const filteredMaterials = materials.filter(m => {
+      if (!m.subject_id || !m.uploaded_by) return true;
+      const expectedTeacherId = subjectTeacherMap[m.subject_id.toString()];
+      if (!expectedTeacherId) return true;
+      return m.uploaded_by.toString() === expectedTeacherId;
+    });
+
     const progressMap = await materialProgressService.getProgressMap(
       studentId,
-      materials.map(m => m._id)
+      filteredMaterials.map(m => m._id)
     );
 
-    const enriched = materials.map(m => ({
+    const enriched = filteredMaterials.map(m => ({
       ...m,
       progress: progressMap[m._id.toString()] || {
         progress_percent: 0,

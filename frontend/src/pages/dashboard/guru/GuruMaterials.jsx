@@ -26,6 +26,7 @@ const GuruMaterials = () => {
   });
   const [editingId, setEditingId] = useState(null);
   const [editorMode, setEditorMode] = useState('rendered'); // 'rendered' | 'code'
+  const [slides, setSlides] = useState([{ title: 'Slide 1', body: '<p>Tuliskan isi materi slide di sini...</p>' }]);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [teacherClasses, setTeacherClasses] = useState([]);
@@ -74,16 +75,126 @@ const GuruMaterials = () => {
     setForm(prev => ({ ...prev, content: newContent }));
   };
 
-  const handleFormatClick = (command, tagStart, tagEnd, value = null) => {
-    if (editorMode === 'rendered') {
-      document.execCommand(command, false, value);
-      const el = document.getElementById('contentEditorRendered');
-      if (el) {
-        setForm(prev => ({ ...prev, content: el.innerHTML }));
-      }
-    } else {
-      insertFormatting(tagStart, tagEnd);
+  // ============================================================
+  // 🔥 PERBAIKAN: PARSE CONTENT TO SLIDES - Support semua format
+  // ============================================================
+  const parseContentToSlides = (contentHtml) => {
+    if (!contentHtml) {
+      return [{ title: 'Slide 1', body: '<p>Tuliskan isi materi slide di sini...</p>' }];
     }
+
+    let slideBlocks = [];
+
+    // 🔥 1. Cari <div class="material-slide"> (format dari AI)
+    const materialSlideMatches = contentHtml.match(/<div[^>]*class="material-slide"[^>]*>[\s\S]*?<\/div>/gi);
+    if (materialSlideMatches && materialSlideMatches.length > 1) {
+      slideBlocks = materialSlideMatches;
+    }
+
+    // 🔥 2. Jika tidak ada, coba <!-- slide-break -->
+    if (slideBlocks.length <= 1) {
+      const breakMatches = contentHtml.split(/<!--\s*slide-break\s*-->/i)
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (breakMatches.length > 1) {
+        slideBlocks = breakMatches;
+      }
+    }
+
+    // 🔥 3. Jika tidak ada, coba .ppt-slide (format lama)
+    if (slideBlocks.length <= 1) {
+      const pptMatches = contentHtml.match(/<div[^>]*class="ppt-slide"[^>]*>[\s\S]*?<\/div>/gi);
+      if (pptMatches && pptMatches.length > 1) {
+        slideBlocks = pptMatches;
+      }
+    }
+
+    // 🔥 4. Jika masih 1, coba split berdasarkan <h3> atau <h2>
+    if (slideBlocks.length <= 1) {
+      const headingMatches = contentHtml.match(/<h[23][^>]*>.*?<\/h[23]>/gi);
+      if (headingMatches && headingMatches.length > 1) {
+        const parts = contentHtml.split(/<h[23][^>]*>/i).filter(s => s.trim());
+        if (parts.length > 1) {
+          slideBlocks = parts.map((part, idx) => {
+            const title = headingMatches[idx] ? headingMatches[idx].replace(/<[^>]*>/g, '').trim() : `Slide ${idx + 1}`;
+            return `<h3>${title}</h3>${part}`;
+          });
+        }
+      }
+    }
+
+    // 🔥 5. Jika masih 1, coba split berdasarkan <hr>
+    if (slideBlocks.length <= 1) {
+      const hrParts = contentHtml.split(/<hr[^>]*>/i).filter(s => s.trim());
+      if (hrParts.length > 1) {
+        slideBlocks = hrParts.map((part, idx) => {
+          const titleMatch = part.match(/<h[23][^>]*>(.*?)<\/h[23]>/i);
+          const title = titleMatch ? titleMatch[1].trim() : `Slide ${idx + 1}`;
+          return `<h3>${title}</h3>${part}`;
+        });
+      }
+    }
+
+    // 🔥 6. Jika masih 1, buat 1 slide dari semua konten
+    if (slideBlocks.length <= 1) {
+      return [{ title: 'Slide 1', body: contentHtml }];
+    }
+
+    // 🔥 Parse setiap slide block
+    return slideBlocks.map((block, idx) => {
+      let title = `Slide ${idx + 1}`;
+      
+      // Cari judul dari <h3> atau <h2>
+      const titleMatch = block.match(/<h[23][^>]*>(.*?)<\/h[23]>/i);
+      if (titleMatch) {
+        title = titleMatch[1].trim();
+        // Hapus prefix "Slide X:" atau "Slide X." dari judul
+        title = title.replace(/slide\s*\d+\s*[:.]\s*/i, '').trim();
+      }
+      
+      return { title, body: block };
+    });
+  };
+
+  const compileSlidesToContent = (slidesArray) => {
+    return slidesArray.map((slide, idx) => {
+      return `<div class="ppt-slide" data-slide="${idx + 1}" style="background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; padding:24px; margin-bottom:20px; box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+  <h2 class="slide-title" style="color:#1e3a8a; border-bottom:2px solid #3b82f6; padding-bottom:8px; margin-top:0;">${slide.title}</h2>
+  <div class="slide-body" style="font-size:14px; color:#334155; line-height:1.6; margin-top:16px;">${slide.body}</div>
+</div>`;
+    }).join('\n');
+  };
+
+  const handleFormatClick = (command, tagStart, tagEnd, value = null) => {
+    document.execCommand(command, false, value);
+    const el = document.getElementById('slideContentEditor');
+    if (el) {
+      const updated = [...slides];
+      updated[activeSlideIdx].body = el.innerHTML;
+      setSlides(updated);
+      setForm(prev => ({ ...prev, content: compileSlidesToContent(updated) }));
+    } else {
+      const elRendered = document.getElementById('contentEditorRendered');
+      if (elRendered) {
+        setForm(prev => ({ ...prev, content: elRendered.innerHTML }));
+      } else {
+        insertFormatting(tagStart, tagEnd);
+      }
+    }
+  };
+
+  const handleSlideTitleChange = (val) => {
+    const updated = [...slides];
+    updated[activeSlideIdx].title = val;
+    setSlides(updated);
+    setForm(prev => ({ ...prev, content: compileSlidesToContent(updated) }));
+  };
+
+  const handleSlideBodyInput = (e) => {
+    const updated = [...slides];
+    updated[activeSlideIdx].body = e.currentTarget.innerHTML;
+    setSlides(updated);
+    setForm(prev => ({ ...prev, content: compileSlidesToContent(updated) }));
   };
 
   const handleFileChange = (e) => {
@@ -104,7 +215,6 @@ const GuruMaterials = () => {
     data.append('subject_id', form.subject_id || (teacherSubjects[0]?._id || ''));
     data.append('external_link', form.external_link || '');
     data.append('session_number', form.session_number || '1');
-    // Materi baru disimpan ke Bank Materi terlebih dahulu (Draft), tidak langsung terdistribusi ke siswa
     data.append('is_published', 'false');
     if (form.file) data.append('file', form.file);
 
@@ -117,6 +227,8 @@ const GuruMaterials = () => {
         alert('Materi berhasil disimpan');
       }
       setForm({ title: '', description: '', content: '', grade_level: 'all', class_id: '', subject_id: teacherSubjects[0]?._id || '', external_link: '', file: null });
+      setSlides([{ title: 'Slide 1', body: '<p>Tuliskan isi materi slide di sini...</p>' }]);
+      setActiveSlideIdx(0);
       setEditingId(null);
       fetchMaterials();
     } catch (err) {
@@ -125,15 +237,19 @@ const GuruMaterials = () => {
   };
 
   const handleEdit = (m) => {
+    const rawContent = m.content || '';
     setForm({
       title: m.title || '',
       description: m.description || '',
-      content: m.content || '',
+      content: rawContent,
       class_id: m.class_id || '',
       subject_id: m.subject_id || '',
       external_link: m.external_link || '',
       file: null
     });
+    const parsed = parseContentToSlides(rawContent);
+    setSlides(parsed);
+    setActiveSlideIdx(0);
     setEditingId(m._id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -150,7 +266,9 @@ const GuruMaterials = () => {
     }
   };
 
-  // Generate AI Content Flow
+  // ============================================================
+  // 🔥 PERBAIKAN: GENERATE AI CONTENT - Multi Slide
+  // ============================================================
   const handleGenerateAIContent = async () => {
     if (!form.title) {
       alert('Silakan isi Judul Materi terlebih dahulu.');
@@ -173,25 +291,92 @@ const GuruMaterials = () => {
       const aiData = res.data?.data || res.data;
 
       if (aiData) {
-        const generatedDesc = aiData.description || `Ringkasan materi pembelajaran ${form.title}.`;
-        const generatedContent = aiData.content || `<h3>${form.title}</h3><p>Materi pembelajaran mengenai ${form.title}.</p>`;
+        let generatedSlides = [];
+        let generatedContent = '';
+        
+        //  CEK 1: Apakah backend mengirim slides array?
+        if (aiData.slides && Array.isArray(aiData.slides) && aiData.slides.length > 0) {
+          generatedSlides = aiData.slides;
+          generatedContent = compileSlidesToContent(generatedSlides);
+        } 
+        //  CEK 2: Apakah ada content dengan marker slide?
+        else if (aiData.content) {
+          const parsed = parseContentToSlides(aiData.content);
+          if (parsed.length > 1) {
+            generatedSlides = parsed;
+          } else {
+            // 🔥 Jika masih 1 slide, coba split berdasarkan <div class="material-slide">
+            const materialSlides = aiData.content.match(/<div[^>]*class="material-slide"[^>]*>[\s\S]*?<\/div>/gi);
+            if (materialSlides && materialSlides.length > 1) {
+              generatedSlides = materialSlides.map((block, idx) => {
+                let title = `Slide ${idx + 1}`;
+                const titleMatch = block.match(/<h[23][^>]*>(.*?)<\/h[23]>/i);
+                if (titleMatch) {
+                  title = titleMatch[1].trim();
+                  title = title.replace(/slide\s*\d+\s*[:.]\s*/i, '').trim();
+                }
+                return { title, body: block };
+              });
+            } else {
+              // Fallback: buat 3 slide dari konten
+              const paragraphs = aiData.content.split(/<\/p>\s*<p>/i).filter(s => s.trim());
+              if (paragraphs.length > 2) {
+                const perSlide = Math.ceil(paragraphs.length / 3);
+                generatedSlides = [];
+                for (let i = 0; i < paragraphs.length; i += perSlide) {
+                  const chunk = paragraphs.slice(i, i + perSlide);
+                  const body = chunk.map(p => `<p>${p}</p>`).join('');
+                  generatedSlides.push({
+                    title: `Slide ${generatedSlides.length + 1}`,
+                    body: body
+                  });
+                }
+              } else {
+                generatedSlides = [{ title: 'Slide 1', body: aiData.content }];
+              }
+            }
+          }
+          generatedContent = compileSlidesToContent(generatedSlides);
+        } 
+        // 🔥 CEK 3: Fallback dari title
+        else {
+          generatedSlides = [
+            { title: `Slide 1: Pengenalan ${form.title}`, body: `<p>Materi pembelajaran mengenai ${form.title}.</p>` },
+            { title: `Slide 2: Konsep Dasar ${form.title}`, body: `<p>Penjelasan mendalam tentang ${form.title}.</p>` },
+            { title: `Slide 3: Aplikasi ${form.title}`, body: `<p>Contoh penerapan ${form.title}.</p>` }
+          ];
+          generatedContent = compileSlidesToContent(generatedSlides);
+        }
 
         setForm(prev => ({
           ...prev,
-          description: generatedDesc,
+          description: aiData.description || `Ringkasan materi pembelajaran ${form.title}.`,
           content: generatedContent,
           subject_id: prev.subject_id || (selectedSubject?._id || '')
         }));
-        alert('Konten dan Deskripsi materi berhasil dihasilkan oleh AI! Silakan periksa dan simpan.');
+        
+        setSlides(generatedSlides);
+        setActiveSlideIdx(0);
+        alert(` Berhasil menghasilkan ${generatedSlides.length} slide materi!`);
       }
     } catch (err) {
       console.error('Error generate AI material content:', err);
-      alert('Gagal generate materi dengan AI. Menggunakan template AI default...');
+      alert('Gagal generate materi dengan AI. Menggunakan template default...');
+      
+      const defaultSlides = [
+        { title: `Slide 1: Pendahuluan ${form.title}`, body: `<p>Materi pembelajaran mengenai <strong>${form.title}</strong>.</p>` },
+        { title: `Slide 2: Konsep Utama ${form.title}`, body: `<p>Penjelasan terstruktur mengenai <strong>${form.title}</strong>.</p>` },
+        { title: `Slide 3: Kesimpulan ${form.title}`, body: `<p>Ringkasan dan evaluasi <strong>${form.title}</strong>.</p>` }
+      ];
+      
+      const defaultContent = compileSlidesToContent(defaultSlides);
       setForm(prev => ({
         ...prev,
         description: prev.description || `Ringkasan materi pembelajaran ${form.title}.`,
-        content: prev.content || `<h3>Pembahasan ${form.title}</h3><p>Materi pembelajaran terstruktur untuk topik ${form.title}.</p>`
+        content: defaultContent
       }));
+      setSlides(defaultSlides);
+      setActiveSlideIdx(0);
     } finally {
       setGeneratingAI(false);
     }
@@ -228,7 +413,20 @@ const GuruMaterials = () => {
     if (slides.length <= 1) {
       return (
         <div 
-          style={{ background: '#ffffff', padding: '18px', borderRadius: '14px', border: '1px solid #cbd5e1', fontSize: '14px', lineHeight: '1.6', maxWidth: '100%', overflowX: 'auto', overflowWrap: 'break-word', wordBreak: 'break-word' }}
+          style={{ 
+            background: '#ffffff', 
+            padding: '16px', 
+            borderRadius: '12px', 
+            border: '1px solid #e2e8f0', 
+            fontSize: '14px', 
+            lineHeight: '1.6', 
+            maxWidth: '100%', 
+            overflowX: 'auto', 
+            overflowWrap: 'break-word', 
+            wordBreak: 'break-word',
+            maxHeight: '400px',
+            overflowY: 'auto'
+          }}
           dangerouslySetInnerHTML={{ __html: content }}
         />
       );
@@ -237,8 +435,27 @@ const GuruMaterials = () => {
     const currentSlideHtml = slides[activeSlideIdx] || slides[0];
 
     return (
-      <div style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '18px', boxShadow: '0 4px 12px rgba(0,0,0,0.03)', maxWidth: '100%', boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', paddingBottom: '10px', borderBottom: '1px solid #e2e8f0' }}>
+      <div style={{ 
+        background: '#ffffff', 
+        border: '1px solid #e2e8f0', 
+        borderRadius: '12px', 
+        padding: '16px',
+        maxWidth: '100%', 
+        boxSizing: 'border-box',
+        maxHeight: '400px',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Slide Navigation - Fixed */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '12px', 
+          paddingBottom: '10px', 
+          borderBottom: '1px solid #e2e8f0',
+          flexShrink: 0
+        }}>
           <span style={{ fontSize: '12px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>slideshow</span>
             Presentasi Slide ({activeSlideIdx + 1} dari {slides.length})
@@ -249,14 +466,14 @@ const GuruMaterials = () => {
                 key={idx}
                 onClick={() => setActiveSlideIdx(idx)}
                 style={{
-                  width: '26px',
-                  height: '26px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   border: 'none',
-                  background: activeSlideIdx === idx ? '#0284c7' : '#cbd5e1',
-                  color: activeSlideIdx === idx ? '#ffffff' : '#475569',
+                  background: activeSlideIdx === idx ? '#0284c7' : '#e2e8f0',
+                  color: activeSlideIdx === idx ? '#ffffff' : '#64748b',
                   fontWeight: '800',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   cursor: 'pointer'
                 }}
               >
@@ -266,34 +483,51 @@ const GuruMaterials = () => {
           </div>
         </div>
 
+        {/* Slide Content - Scrollable */}
         <div 
-          style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', minHeight: '220px', fontSize: '14px', lineHeight: '1.6', maxWidth: '100%', overflowX: 'auto', overflowWrap: 'break-word', wordBreak: 'break-word' }}
+          style={{ 
+            flex: 1,
+            overflowY: 'auto',
+            padding: '4px',
+            fontSize: '14px', 
+            lineHeight: '1.6',
+            maxHeight: '280px'
+          }}
           dangerouslySetInnerHTML={{ __html: currentSlideHtml }}
         />
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+        {/* Slide Navigation Buttons - Fixed */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginTop: '12px',
+          paddingTop: '10px',
+          borderTop: '1px solid #e2e8f0',
+          flexShrink: 0
+        }}>
           <button
             onClick={() => setActiveSlideIdx(prev => Math.max(0, prev - 1))}
             disabled={activeSlideIdx === 0}
             style={{
               background: activeSlideIdx === 0 ? '#f1f5f9' : '#ffffff',
               color: activeSlideIdx === 0 ? '#94a3b8' : '#0284c7',
-              border: '1px solid #cbd5e1',
-              padding: '8px 16px',
-              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              padding: '6px 14px',
+              borderRadius: '8px',
               fontWeight: '700',
-              fontSize: '12px',
+              fontSize: '11px',
               cursor: activeSlideIdx === 0 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px'
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_left</span>
-            Slide Sebelumnya
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_left</span>
+            Sebelumnya
           </button>
 
-          <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b' }}>
             Slide {activeSlideIdx + 1} / {slides.length}
           </span>
 
@@ -304,18 +538,18 @@ const GuruMaterials = () => {
               background: activeSlideIdx === slides.length - 1 ? '#f1f5f9' : '#0284c7',
               color: activeSlideIdx === slides.length - 1 ? '#94a3b8' : '#ffffff',
               border: 'none',
-              padding: '8px 16px',
-              borderRadius: '10px',
+              padding: '6px 14px',
+              borderRadius: '8px',
               fontWeight: '700',
-              fontSize: '12px',
+              fontSize: '11px',
               cursor: activeSlideIdx === slides.length - 1 ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '4px'
             }}
           >
-            Slide Selanjutnya
-            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>chevron_right</span>
+            Selanjutnya
+            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>chevron_right</span>
           </button>
         </div>
       </div>
@@ -359,7 +593,6 @@ const GuruMaterials = () => {
               style={{ width: '100%', height: '420px', border: '1px solid #cbd5e1', borderRadius: '10px', background: '#ffffff' }}
             />
           ) : (
-            /* NON-PDF / ODT / DOC FILES: Render info box without iframe to prevent Chrome auto-download */
             <div style={{ padding: '20px', background: '#ffffff', borderRadius: '10px', border: '1px solid #cbd5e1', textAlign: 'center' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '42px', color: '#0284c7' }}>description</span>
               <p style={{ margin: '8px 0 4px 0', fontWeight: '800', fontSize: '14px', color: '#0f172a' }}>{m.file_name || 'Dokumen Materi'}</p>
@@ -490,101 +723,175 @@ const GuruMaterials = () => {
             <div className="form-group">
               <label>Deskripsi</label>
               <textarea name="description" placeholder="Ringkasan singkat materi (atau klik Generate AI di bawah)" rows="2" value={form.description} onChange={handleChange} />
-            </div>            {/* RICH TEXT EDITOR TOOLBAR & CONTENT BOX (WORD / BLOGGER STYLE) */}
+            </div>
+            
+            {/* POWERPOINT STYLE SLIDE EDITOR */}
             <div className="form-group">
               <label style={{ fontWeight: '800', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span>Isi / Konten Materi Pembelajaran</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setEditorMode('rendered')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      border: '1px solid #cbd5e1',
-                      background: editorMode === 'rendered' ? '#0284c7' : '#ffffff',
-                      color: editorMode === 'rendered' ? '#ffffff' : '#475569',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Tampilan Rendered (Visual)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditorMode('code')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      border: '1px solid #cbd5e1',
-                      background: editorMode === 'code' ? '#0284c7' : '#ffffff',
-                      color: editorMode === 'code' ? '#ffffff' : '#475569',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Tampilan Code (HTML)
-                  </button>
-                </div>
+                <span>Isi / Konten Materi Pembelajaran (Mode PPT Slide)</span>
+                <span style={{ fontSize: '11px', color: '#0284c7', fontWeight: '700' }}>Klik teks pada slide untuk edit langsung</span>
               </label>
 
-              <div className="rich-editor-toolbar" style={{ display: 'flex', gap: '4px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderBottom: 'none', borderTopLeftRadius: '10px', borderTopRightRadius: '10px', padding: '6px 10px', flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" onClick={() => handleFormatClick('bold', '<b>', '</b>')} style={{ fontWeight: '900', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Tebal (Bold)">B</button>
-                <button type="button" onClick={() => handleFormatClick('italic', '<i>', '</i>')} style={{ fontStyle: 'italic', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Miring (Italic)">I</button>
-                <button type="button" onClick={() => handleFormatClick('underline', '<u>', '</u>')} style={{ textDecoration: 'underline', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Garis Bawah (Underline)">U</button>
-                <button type="button" onClick={() => handleFormatClick('strikeThrough', '<s>', '</s>')} style={{ textDecoration: 'line-through', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Coret Teks">S</button>
-                <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h1>', '</h1>', '<h1>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H1</button>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h2>', '</h2>', '<h2>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H2</button>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<h3>', '</h3>', '<h3>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H3</button>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<p>', '</p>', '<p>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Paragraf</button>
-                <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
-                <button type="button" onClick={() => handleFormatClick('insertUnorderedList', '<ul>\n  <li>', '</li>\n</ul>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>• Poin Bullet</button>
-                <button type="button" onClick={() => handleFormatClick('insertOrderedList', '<ol>\n  <li>', '</li>\n</ol>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>1. Penomoran</button>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<blockquote>', '</blockquote>', '<blockquote>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>“ Kutipan</button>
-                <button type="button" onClick={() => handleFormatClick('formatBlock', '<pre>', '</pre>', '<pre>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>&lt;/&gt; Kode</button>
-              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '16px', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '16px', background: '#f8fafc' }}>
+                
+                {/* 1. SLIDE LIST SIDEBAR (LEFT) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Daftar Slide</div>
+                  {slides.map((s, idx) => (
+                    <div 
+                      key={idx}
+                      onClick={() => setActiveSlideIdx(idx)}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        background: activeSlideIdx === idx ? '#eff6ff' : '#ffffff',
+                        border: activeSlideIdx === idx ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '6px',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', fontWeight: '900', color: '#3b82f6', background: '#e0f2fe', width: '20px', height: '20px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {idx + 1}
+                        </span>
+                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.title || `Slide ${idx + 1}`}
+                        </span>
+                      </div>
+                      
+                      {slides.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Hapus slide ${idx + 1}?`)) {
+                              const updated = slides.filter((_, i) => i !== idx);
+                              setSlides(updated);
+                              const newActiveIdx = Math.max(0, idx - 1);
+                              setActiveSlideIdx(newActiveIdx);
+                              setForm(prev => ({ ...prev, content: compileSlidesToContent(updated) }));
+                            }
+                          }}
+                          style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                          title="Hapus Slide"
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>delete</span>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...slides, { title: `Slide ${slides.length + 1}`, body: '<p>Tuliskan isi materi slide di sini...</p>' }];
+                      setSlides(updated);
+                      setActiveSlideIdx(slides.length);
+                      setForm(prev => ({ ...prev, content: compileSlidesToContent(updated) }));
+                    }}
+                    style={{
+                      marginTop: '8px',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      border: '1px dashed #3b82f6',
+                      background: '#ffffff',
+                      color: '#3b82f6',
+                      fontWeight: '800',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add</span>
+                    Tambah Slide Baru
+                  </button>
+                </div>
 
-              {editorMode === 'rendered' ? (
-                <div
-                  id="contentEditorRendered"
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => {
-                    setForm(prev => ({ ...prev, content: e.currentTarget.innerHTML }));
-                  }}
-                  dangerouslySetInnerHTML={{ __html: form.content }}
-                  style={{
-                    minHeight: '220px',
-                    padding: '16px',
-                    border: '1px solid #cbd5e1',
-                    borderTop: 'none',
-                    borderBottomLeftRadius: '10px',
-                    borderBottomRightRadius: '10px',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    outline: 'none',
-                    overflowY: 'auto',
-                    textAlign: 'left'
-                  }}
-                  placeholder="Tuliskan isi materi secara visual di sini..."
-                />
-              ) : (
-                <textarea 
-                  id="contentEditorTextarea"
-                  name="content" 
-                  placeholder="Tuliskan isi materi pembelajaran lengkap di sini... (Gunakan toolbar Word/Blogger di atas untuk format teks)" 
-                  rows="10" 
-                  value={form.content} 
-                  onChange={handleChange}
-                  style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 'none', fontFamily: "'Courier New', Courier, monospace", fontSize: '13px', lineHeight: '1.6' }}
-                />
-              )}
+                {/* 2. PPT ACTIVE SLIDE WRAPPER (RIGHT) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  
+                  {/* SLIDE TOOLBAR */}
+                  <div className="rich-editor-toolbar" style={{ display: 'flex', gap: '4px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '6px 10px', flexWrap: 'wrap', alignItems: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.02)' }}>
+                    <button type="button" onClick={() => handleFormatClick('bold', '<b>', '</b>')} style={{ fontWeight: '900', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Tebal (Bold)">B</button>
+                    <button type="button" onClick={() => handleFormatClick('italic', '<i>', '</i>')} style={{ fontStyle: 'italic', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Cetak Miring (Italic)">I</button>
+                    <button type="button" onClick={() => handleFormatClick('underline', '<u>', '</u>')} style={{ textDecoration: 'underline', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Garis Bawah (Underline)">U</button>
+                    <button type="button" onClick={() => handleFormatClick('strikeThrough', '<s>', '</s>')} style={{ textDecoration: 'line-through', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontSize: '12px' }} title="Coret Teks">S</button>
+                    <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
+                    <button type="button" onClick={() => handleFormatClick('formatBlock', '<h1>', '</h1>', '<h1>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H1</button>
+                    <button type="button" onClick={() => handleFormatClick('formatBlock', '<h2>', '</h2>', '<h2>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H2</button>
+                    <button type="button" onClick={() => handleFormatClick('formatBlock', '<h3>', '</h3>', '<h3>')} style={{ fontWeight: '800', fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>H3</button>
+                    <button type="button" onClick={() => handleFormatClick('formatBlock', '<p>', '</p>', '<p>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>Paragraf</button>
+                    <div style={{ width: '1px', height: '18px', background: '#cbd5e1', margin: '0 4px' }}></div>
+                    <button type="button" onClick={() => handleFormatClick('insertUnorderedList', '<ul>\n  <li>', '</li>\n</ul>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>• Bullet</button>
+                    <button type="button" onClick={() => handleFormatClick('insertOrderedList', '<ol>\n  <li>', '</li>\n</ol>')} style={{ fontSize: '11px', padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer' }}>1. Angka</button>
+                  </div>
+
+                  {/* ACTIVE SLIDE EDITOR */}
+                  <div 
+                    style={{
+                      background: '#ffffff',
+                      border: '2px solid #cbd5e1',
+                      borderRadius: '16px',
+                      padding: '30px',
+                      minHeight: '320px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                      position: 'relative'
+                    }}
+                  >
+                    <input 
+                      type="text"
+                      placeholder="Ketik Judul Slide di sini..."
+                      value={slides[activeSlideIdx]?.title || ''}
+                      onChange={(e) => handleSlideTitleChange(e.target.value)}
+                      style={{
+                        fontSize: '22px',
+                        fontWeight: '900',
+                        color: '#1e3a8a',
+                        border: 'none',
+                        borderBottom: '2px solid #3b82f6',
+                        paddingBottom: '8px',
+                        marginBottom: '20px',
+                        width: '100%',
+                        outline: 'none',
+                        background: 'transparent'
+                      }}
+                    />
+
+                    <div
+                      id="slideContentEditor"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={handleSlideBodyInput}
+                      dangerouslySetInnerHTML={{ __html: slides[activeSlideIdx]?.body || '' }}
+                      style={{
+                        flex: 1,
+                        fontSize: '15px',
+                        color: '#334155',
+                        lineHeight: '1.6',
+                        outline: 'none',
+                        minHeight: '180px',
+                        textAlign: 'left',
+                        fontFamily: "'Inter', sans-serif"
+                      }}
+                      placeholder="Ketikkan konten isi materi slide pembelajaran di sini..."
+                    />
+
+                    <div style={{ position: 'absolute', bottom: '12px', right: '20px', fontSize: '11px', fontWeight: '800', color: '#94a3b8' }}>
+                      Slide {activeSlideIdx + 1} dari {slides.length}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
             </div>
 
             <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr' }}>
@@ -684,7 +991,7 @@ const GuruMaterials = () => {
         </div>
       </div>
 
-      {/* BATCH ACTION STRIP DENGAN CEKLIS TANPA EMOJI */}
+      {/* BATCH ACTION STRIP */}
       <div className="batch-action-bar" style={{ background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '16px', padding: '14px 20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', color: '#0f172a' }}>
@@ -763,7 +1070,6 @@ const GuruMaterials = () => {
                 >
                   <div className="card-header" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
                     
-                    {/* CHECKBOX SELECTION */}
                     <div onClick={(e) => e.stopPropagation()} style={{ paddingTop: '2px' }}>
                       <input 
                         type="checkbox" 
@@ -890,31 +1196,86 @@ const GuruMaterials = () => {
         </div>
       )}
 
-      {/* MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI */}
+      {/* ============================================================
+          🔥 MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI - DIPERBAIKI
+          ============================================================ */}
       {selectedMaterialModal && (
         <div className="modal-backdrop" onClick={() => setSelectedMaterialModal(null)}>
-          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px', borderRadius: '20px' }}>
-            <div className="modal-header" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
+          <div 
+            className="modal-content-box" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '900px', 
+              width: '92%', 
+              maxHeight: '90vh',
+              borderRadius: '20px',
+              display: 'flex',
+              flexDirection: 'column',
+              background: '#ffffff',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.35)',
+              overflow: 'hidden'
+            }}
+          >
+            {/* MODAL HEADER - FIXED */}
+            <div style={{ 
+              flexShrink: 0,
+              borderBottom: '1px solid #e2e8f0', 
+              padding: '16px 24px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#ffffff'
+            }}>
               <div>
                 <span style={{ fontSize: '11px', fontWeight: '800', color: '#0284c7', textTransform: 'uppercase' }}>
                   {selectedMaterialModal.subject_name} • {selectedMaterialModal.class_name || 'Bank Materi'}
                 </span>
-                <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', margin: '4px 0 0 0' }}>
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '2px 0 0 0' }}>
                   {selectedMaterialModal.title}
                 </h3>
               </div>
-              <button className="btn-close-modal" onClick={() => setSelectedMaterialModal(null)}>
-                <span className="material-symbols-outlined">close</span>
+              <button 
+                className="btn-close-modal" 
+                onClick={() => setSelectedMaterialModal(null)}
+                style={{
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  flexShrink: 0
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
               </button>
             </div>
 
-            <div className="modal-body">
+            {/* MODAL BODY - SCROLLABLE */}
+            <div style={{ 
+              flex: 1,
+              overflowY: 'auto',
+              padding: '20px 24px',
+              background: '#f8fafc'
+            }}>
               <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px', display: 'flex', gap: '16px' }}>
-                <span><span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle' }}>calendar_today</span> Diupload: {selectedMaterialModal.createdAt ? new Date(selectedMaterialModal.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'Terbaru'}</span>
+                <span>
+                  <span className="material-symbols-outlined" style={{ fontSize: '16px', verticalAlign: 'middle' }}>calendar_today</span> 
+                  Diupload: {selectedMaterialModal.createdAt ? new Date(selectedMaterialModal.createdAt).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' }) : 'Terbaru'}
+                </span>
               </div>
 
               {selectedMaterialModal.description && (
-                <div style={{ background: '#f8fafc', padding: '12px 16px', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                <div style={{ 
+                  background: '#ffffff', 
+                  padding: '12px 16px', 
+                  borderRadius: '10px', 
+                  border: '1px solid #e2e8f0', 
+                  marginBottom: '16px' 
+                }}>
                   <strong style={{ fontSize: '12px', color: '#475569', display: 'block', marginBottom: '4px' }}>Deskripsi Ringkas:</strong>
                   <p style={{ margin: 0, fontSize: '13px', color: '#334155' }}>{selectedMaterialModal.description}</p>
                 </div>
@@ -924,15 +1285,47 @@ const GuruMaterials = () => {
                 <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block', marginBottom: '8px' }}>
                   Isi / Konten Materi Pembelajaran Interaktif (Slide Presentation):
                 </strong>
-                {renderMultiSlideContent(selectedMaterialModal.content)}
+                {/* 🔥 Konten slide dibungkus dengan container yang membatasi ukuran */}
+                <div style={{ 
+                  maxHeight: '420px',
+                  overflowY: 'auto',
+                  background: '#ffffff',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  {renderMultiSlideContent(selectedMaterialModal.content)}
+                </div>
               </div>
 
-              {/* SAFE INLINE PREVIEWER THAT NEVER AUTO-DOWNLOADS */}
               {renderFilePreview(selectedMaterialModal)}
             </div>
 
-            <div className="modal-footer" style={{ marginTop: '24px', textAlign: 'right' }}>
-              <button className="btn-cancel" onClick={() => setSelectedMaterialModal(null)} style={{ padding: '8px 20px', borderRadius: '10px' }}>Tutup</button>
+            {/* MODAL FOOTER - FIXED */}
+            <div style={{ 
+              flexShrink: 0,
+              borderTop: '1px solid #e2e8f0', 
+              padding: '12px 24px',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              background: '#ffffff'
+            }}>
+              <button 
+                className="btn-cancel" 
+                onClick={() => setSelectedMaterialModal(null)} 
+                style={{ 
+                  padding: '8px 20px', 
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#334155'
+                }}
+              >
+                Tutup
+              </button>
             </div>
           </div>
         </div>

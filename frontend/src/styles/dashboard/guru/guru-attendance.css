@@ -196,13 +196,12 @@
 }
 
 .siakad-attendance-table th {
-  padding: 12px 14px;
+  padding: 6px 12px;
   font-weight: 800;
-  font-size: 12px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-right: 1px solid rgba(255,255,255,0.1);
-
 }
 
 .siakad-attendance-table th:last-child {
@@ -224,7 +223,7 @@
 }
 
 .siakad-attendance-table td {
-  padding: 12px 14px;
+  padding: 6px 12px;
   color: #334155;
   vertical-align: middle;
 }
@@ -496,4 +495,265 @@
 
 .btn-mark-all:hover {
   background: #e0f2fe;
+}
+
+/* ============================================================
+   MEETING CARDS - PENGGANTI TABLE
+   ============================================================ */
+
+.siakad-card-wrapper {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  padding: 16px 20px 20px;
+}
+
+.meeting-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Scrollbar */
+.meeting-cards-container::-webkit-scrollbar {
+  width: 4px;
+}
+.meeting-cards-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.meeting-cards-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* CARD ITEM */
+.meeting-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.meeting-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.meeting-card.active-card {
+  border-left: 4px solid #0284c7;
+  background: #f8faff;
+}
+
+/* CARD HEADER */
+.meeting-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.meeting-number {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meeting-badge {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.meeting-status .status-completed {
+  font-size: 11px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.meeting-status .status-pending {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f59e0b;
+  background: #fef3c7;
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.meeting-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-edit-material,
+.btn-attendance {
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
+  transition: all 0.2s ease;
+}
+
+.btn-edit-material:hover {
+  background: #e2e8f0;
+  color: #0284c7;
+}
+
+.btn-attendance:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.btn-edit-material .material-symbols-outlined,
+.btn-attendance .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* CARD BODY */
+.meeting-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meeting-info-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.meeting-info-row .info-label {
+  font-weight: 700;
+  color: #64748b;
+  min-width: 72px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.meeting-info-row .info-value {
+  color: #1e293b;
+  word-break: break-word;
+}
+
+.meeting-info-row .mater-title {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.meeting-info-row .sub-materi {
+  color: #475569;
+  font-size: 12px;
+}
+
+/* INFO GRID */
+.meeting-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.info-grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-grid-item .info-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.info-grid-item .info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.info-grid-item .hadir-count {
+  color: #16a34a;
+  font-size: 15px;
+}
+
+.info-grid-item .pct-value {
+  color: #0284c7;
+  font-size: 15px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .siakad-card-wrapper {
+    padding: 12px 14px;
+  }
+  
+  .meeting-card {
+    padding: 12px 14px;
+  }
+  
+  .meeting-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .meeting-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .meeting-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  
+  .meeting-info-row {
+    font-size: 12px;
+  }
+  
+  .meeting-info-row .info-label {
+    min-width: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .meeting-info-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .meeting-badge {
+    font-size: 12px;
+  }
+  
+  .btn-edit-material,
+  .btn-attendance {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
 }
