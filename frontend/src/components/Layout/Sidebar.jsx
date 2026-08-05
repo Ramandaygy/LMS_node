@@ -9,6 +9,16 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const [user, setUser] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const localUserObj = (() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch (e) {
+      return null;
+    }
+  })();
+  const userRole = user?.role || localUserObj?.role || role;
+
   const [homeroomStatus, setHomeroomStatus] = useState(() => {
     try {
       const cached = localStorage.getItem('homeroomStatus');
@@ -35,7 +45,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   useEffect(() => {
     fetchUserProfile();
-    if (role === 'guru') {
+    if (userRole === 'guru') {
       const checkHomeroom = async () => {
         try {
           const api = (await import('../../services/api')).default;
@@ -53,7 +63,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       };
       checkHomeroom();
     }
-  }, [role]);
+  }, [userRole]);
 
   // Refresh user data when profile is updated
   useEffect(() => {
@@ -94,7 +104,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/guru/calendar' },
   ];
 
-  const activeGuruMenuList = (role === 'guru' && guruMode === 'walikelas')
+  const activeGuruMenuList = (userRole === 'guru' && guruMode === 'walikelas')
     ? waliKelasMenuList
     : guruMapelMenuList;
 
@@ -106,6 +116,26 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
+    ],
+    super_admin: [
+      { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
+      { key: 'data-master', label: 'Data Master', icon: 'database', path: '/dashboard/admin/data-master' },
+      { key: 'monitoring', label: 'Pusat Monitoring', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
+      { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
+      { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
+      { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
+    ],
+    wakil_kurikulum: [
+      { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
+      { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
+      { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
+      { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
+    ],
+    bk: [
+      { key: 'dashboard', label: 'Absensi Harian (Rapor)', icon: 'event_available', path: '/dashboard/bk' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     guru: activeGuruMenuList,
@@ -130,14 +160,37 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     ]
   };
 
-  const currentMenus = menus[role] || menus.siswa;
-  const roleNames = { admin: 'ADMINISTRATOR', guru: 'GURU MAPEL', siswa: 'SISWA', ortu: 'ORANG TUA' };
+  // Resolve current menus based on role and active teaching/admin mode
+  let currentMenus = menus[userRole] || menus.siswa;
+  if (userRole === 'wakil_kurikulum') {
+    currentMenus = (guruMode === 'wakil_kurikulum') ? menus.wakil_kurikulum : guruMapelMenuList;
+  } else if (userRole === 'bk') {
+    currentMenus = (guruMode === 'bk') ? menus.bk : guruMapelMenuList;
+  } else if (userRole === 'guru') {
+    currentMenus = (guruMode === 'walikelas' && homeroomStatus) ? waliKelasMenuList : guruMapelMenuList;
+  }
+
+  const roleNames = {
+    admin: 'ADMINISTRATOR',
+    super_admin: 'SUPER ADMIN',
+    wakil_kurikulum: 'WAKIL KURIKULUM',
+    guru: 'GURU MAPEL',
+    bk: 'GURU BK',
+    siswa: 'SISWA',
+    ortu: 'ORANG TUA'
+  };
 
   const getDisplayRole = () => {
-    if (role === 'guru' && guruMode === 'walikelas' && homeroomStatus) {
+    if (userRole === 'guru' && guruMode === 'walikelas' && homeroomStatus) {
       return `WALI KELAS (${homeroomStatus.name})`;
     }
-    return roleNames[role] || role?.toUpperCase() || 'User';
+    if (userRole === 'wakil_kurikulum') {
+      return (guruMode === 'guru') ? 'GURU MAPEL (WAKA)' : 'WAKIL KURIKULUM';
+    }
+    if (userRole === 'bk') {
+      return (guruMode === 'guru') ? 'GURU MAPEL (BK)' : 'GURU BK';
+    }
+    return roleNames[userRole] || userRole?.toUpperCase() || 'User';
   };
 
 
@@ -249,7 +302,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
               Profil Saya
             </div>
 
-            {role === 'guru' && homeroomStatus && (
+            {((userRole === 'guru' && homeroomStatus) || userRole === 'wakil_kurikulum' || userRole === 'bk') && (
               <div style={{ padding: '6px 12px 6px 12px', width: '100%', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', margin: '4px 0' }}>
                 <label style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: '800', display: 'block', marginBottom: '3px' }}>
                   Switch Mode Dashboard:
@@ -260,8 +313,13 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
                     const val = e.target.value;
                     setGuruMode(val);
                     localStorage.setItem('guruMode', val);
+                    
                     if (val === 'walikelas') {
                       navigate('/dashboard/guru/walikelas');
+                    } else if (val === 'wakil_kurikulum') {
+                      navigate('/dashboard/admin');
+                    } else if (val === 'bk') {
+                      navigate('/dashboard/bk');
                     } else {
                       navigate('/dashboard/guru');
                     }
@@ -281,7 +339,15 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
                   }}
                 >
                   <option value="guru">📘 Mode Guru Mapel (KBM)</option>
-                  <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
+                  {userRole === 'guru' && homeroomStatus && (
+                    <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
+                  )}
+                  {userRole === 'wakil_kurikulum' && (
+                    <option value="wakil_kurikulum">⚙️ Mode Wakil Kurikulum</option>
+                  )}
+                  {userRole === 'bk' && (
+                    <option value="bk">💼 Mode Guru BK</option>
+                  )}
                 </select>
               </div>
             )}

@@ -2,8 +2,10 @@ const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
   question_text: { type: String, required: true },
-  options: [{ type: String, required: true }], // Array of 4 options: [A, B, C, D]
-  correct_option: { type: Number, required: true }, // Index 0, 1, 2, or 3
+  type: { type: String, enum: ['pg', 'essay'], default: 'pg' }, // 'pg' (Pilihan Ganda) or 'essay'
+  options: [{ type: String }], // Array of 4 options: [A, B, C, D] (only for PG)
+  correct_option: { type: Number }, // Index 0, 1, 2, or 3 (only for PG)
+  correct_answer_text: { type: String, default: '' }, // Jawaban ideal / kunci jawaban essay
   explanation: { type: String, default: '' } // Pembahasan soal
 });
 

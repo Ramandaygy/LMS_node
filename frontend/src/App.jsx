@@ -49,6 +49,7 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import GuruDashboard from './pages/dashboard/GuruDashboard';
 import SiswaDashboard from './pages/dashboard/SiswaDashboard';
 import OrtuDashboard from './pages/dashboard/OrtuDashboard';
+import BkDashboard from './pages/dashboard/bk/BkDashboard';
 
 // ============================================
 // ADMIN SUB PAGES
@@ -506,7 +507,7 @@ function App() {
         <Route
           path="/dashboard/guru"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruDashboard />
               </DashboardLayout>
@@ -517,7 +518,7 @@ function App() {
         <Route
           path="/dashboard/guru/courses"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruCourses />
               </DashboardLayout>
@@ -528,7 +529,7 @@ function App() {
         <Route
           path="/dashboard/guru/walikelas"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruWaliKelas />
               </DashboardLayout>
@@ -539,7 +540,7 @@ function App() {
         <Route
           path="/dashboard/guru/assignments"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruAssignments />
               </DashboardLayout>
@@ -550,7 +551,7 @@ function App() {
         <Route
           path="/dashboard/guru/materials"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruMaterials />
               </DashboardLayout>
@@ -561,7 +562,7 @@ function App() {
         <Route
           path="/dashboard/guru/attendance"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruAttendance />
               </DashboardLayout>
@@ -572,7 +573,7 @@ function App() {
         <Route
           path="/dashboard/guru/input-nilai"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruInputNilai />
               </DashboardLayout>
@@ -594,7 +595,7 @@ function App() {
         <Route
           path="/dashboard/guru/progress"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruProgress />
               </DashboardLayout>
@@ -605,7 +606,7 @@ function App() {
         <Route
           path="/dashboard/guru/students"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruStudents />
               </DashboardLayout>
@@ -616,7 +617,7 @@ function App() {
         <Route
           path="/dashboard/guru/quiz"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruQuiz />
               </DashboardLayout>
@@ -627,7 +628,7 @@ function App() {
         <Route
           path="/dashboard/guru/cbt"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <GuruCbt />
               </DashboardLayout>
@@ -638,9 +639,23 @@ function App() {
         <Route
           path="/dashboard/guru/calendar"
           element={
-            <ProtectedRoute allowedRole="guru">
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="guru">
                 <CalendarInfo />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ============================================ */}
+        {/* BK DASHBOARD */}
+        {/* ============================================ */}
+        <Route
+          path="/dashboard/bk"
+          element={
+            <ProtectedRoute allowedRole="bk">
+              <DashboardLayout role="bk">
+                <BkDashboard />
               </DashboardLayout>
             </ProtectedRoute>
           }
@@ -653,7 +668,7 @@ function App() {
         <Route
           path="/dashboard/admin"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminDashboard />
               </DashboardLayout>
@@ -687,7 +702,7 @@ function App() {
         <Route
           path="/dashboard/admin/reports"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminReports />
               </DashboardLayout>
@@ -698,7 +713,7 @@ function App() {
         <Route
           path="/dashboard/admin/classes"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminClasses />
               </DashboardLayout>
@@ -720,7 +735,7 @@ function App() {
         <Route
           path="/dashboard/admin/academic-year"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminAcademicYear />
               </DashboardLayout>
@@ -731,7 +746,7 @@ function App() {
         <Route
           path="/dashboard/admin/schedule"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminSchedule />
               </DashboardLayout>

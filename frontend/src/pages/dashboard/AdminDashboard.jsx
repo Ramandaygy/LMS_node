@@ -117,32 +117,50 @@ const AdminDashboard = () => {
           Pusat Kendali Admin
         </h3>
         <div className="commands-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-          {commandCards.map(cmd => (
-            <div 
-              key={cmd.id} 
-              className="command-card-premium"
-              onClick={() => navigate(cmd.path)}
-              style={{ 
-                cursor: 'pointer', 
-                background: '#fff',
-                border: '1px solid #e2e8f0', 
-                borderLeft: `5px solid ${cmd.borderLeft}`,
-                borderRadius: '16px', 
-                padding: '24px', 
-                transition: 'all 0.2s ease-in-out',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
-              }}
-            >
-              <div className="command-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div className="command-icon" style={{ background: cmd.iconBg, padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span className="material-symbols-outlined" style={{ color: cmd.iconColor, fontSize: '24px' }}>{cmd.icon}</span>
+          {(() => {
+            const userRole = (() => {
+              try {
+                const u = localStorage.getItem('user');
+                return u ? JSON.parse(u)?.role : null;
+              } catch (e) {
+                return null;
+              }
+            })();
+
+            const filteredCards = commandCards.filter(cmd => {
+              if (userRole === 'wakil_kurikulum') {
+                return cmd.title !== 'Data Master';
+              }
+              return true;
+            });
+
+            return filteredCards.map(cmd => (
+              <div 
+                key={cmd.id} 
+                className="command-card-premium"
+                onClick={() => navigate(cmd.path)}
+                style={{ 
+                  cursor: 'pointer', 
+                  background: '#fff',
+                  border: '1px solid #e2e8f0', 
+                  borderLeft: `5px solid ${cmd.borderLeft}`,
+                  borderRadius: '16px', 
+                  padding: '24px', 
+                  transition: 'all 0.2s ease-in-out',
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.01)'
+                }}
+              >
+                <div className="command-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <div className="command-icon" style={{ background: cmd.iconBg, padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span className="material-symbols-outlined" style={{ color: cmd.iconColor, fontSize: '24px' }}>{cmd.icon}</span>
+                  </div>
+                  <span className="command-arrow material-symbols-outlined" style={{ color: '#cbd5e1', fontSize: '20px' }}>arrow_forward</span>
                 </div>
-                <span className="command-arrow material-symbols-outlined" style={{ color: '#cbd5e1', fontSize: '20px' }}>arrow_forward</span>
+                <h4 className="command-title" style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 8px 0', color: '#1e293b' }}>{cmd.title}</h4>
+                <p className="command-description" style={{ margin: 0, fontSize: '14px', color: '#64748b', lineHeight: 1.5, fontWeight: '500' }}>{cmd.description}</p>
               </div>
-              <h4 className="command-title" style={{ fontSize: '18px', fontWeight: '800', margin: '0 0 8px 0', color: '#1e293b' }}>{cmd.title}</h4>
-              <p className="command-description" style={{ margin: 0, fontSize: '14px', color: '#64748b', lineHeight: 1.5, fontWeight: '500' }}>{cmd.description}</p>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
       </div>
     </div>

@@ -82,8 +82,8 @@ async function enrichAssignments(assignments) {
   if (!assignments.length) return [];
 
   const teacherIds = [...new Set(assignments.map(a => a.teacher?.toString()).filter(Boolean))];
-  const classIds = [...new Set(assignments.map(a => a.class?.toString()).filter(Boolean))];
-  const subjectIds = [...new Set(assignments.map(a => a.subject?.toString()).filter(Boolean))];
+  const classIds = [...new Set(assignments.map(a => (a.class || a.class_id)?.toString()).filter(Boolean))];
+  const subjectIds = [...new Set(assignments.map(a => (a.subject || a.subject_id)?.toString()).filter(Boolean))];
 
   const guruCollection = mongoose.connection.collection('users_guru');
   const classCollection = mongoose.connection.collection('classes');
@@ -100,7 +100,7 @@ async function enrichAssignments(assignments) {
   return assignments.map(a => ({
     ...a.toObject(),
     teacher_name: teacherMap[a.teacher?.toString()] || 'Tidak diketahui',
-    class_name: classMap[a.class?.toString()] || 'Tidak diketahui',
-    subject_name: subjectMap[a.subject?.toString()] || 'Tidak diketahui',
+    class_name: classMap[(a.class || a.class_id)?.toString()] || 'Tidak diketahui',
+    subject_name: subjectMap[(a.subject || a.subject_id)?.toString()] || 'Tidak diketahui',
   }));
 }

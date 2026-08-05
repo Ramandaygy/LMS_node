@@ -63,7 +63,7 @@ const SiswaSchedule = () => {
 
       const [mRes, tRes, fRes] = await Promise.allSettled([
         api.get('/materials'),
-        api.get('/assignments/student/my-assignments'),
+        api.get('/assignments/siswa/me'),
         api.get(`/forums/messages?subjectId=${subjectId}&sessionNumber=${sessionNum}`)
       ]);
 
@@ -85,7 +85,8 @@ const SiswaSchedule = () => {
         setModalTasks(allTasks.filter(t => {
           const tSub = (t.subject_id?._id || t.subject_id || '').toString();
           const targetSub = (subjectId || '').toString();
-          const isSessionMatch = parseInt(t.session_number) === sessionNum;
+          const tSession = t.session_number ? parseInt(t.session_number) : 1;
+          const isSessionMatch = tSession === sessionNum;
           return tSub === targetSub && isSessionMatch;
         }));
       }

@@ -32,6 +32,8 @@ exports.getRaporByStudent = async (req, res) => {
         ],
         attendance: { sick: 0, permit: 0, absent: 0 },
         note: 'Ananda memiliki perkembangan akademik yang baik. Pertahankan prestasimu dan tetap tekun belajar.',
+        kokurikuler_note: 'Mempunyai antusiasme tinggi, mandiri, kreatif, serta mampu bekerja sama secara aktif dalam projek kelompok profil pelajar Pancasila.',
+        parent_feedback: '',
         physical_condition: { height: 155, weight: 45 },
         school_name: settings.school_name || 'SMP N 1 SURADADI',
         school_address: settings.school_address || 'Jl. Raya Purwahamba No. 76, Suradadi, Kab. Tegal 52182',
@@ -68,6 +70,8 @@ exports.saveRapor = async (req, res) => {
       extracurriculars,
       attendance,
       note,
+      kokurikuler_note,
+      parent_feedback,
       physical_condition,
       school_name,
       school_address,
@@ -88,6 +92,8 @@ exports.saveRapor = async (req, res) => {
         extracurriculars,
         attendance,
         note,
+        kokurikuler_note,
+        parent_feedback,
         physical_condition,
         school_name,
         school_address,
@@ -101,6 +107,8 @@ exports.saveRapor = async (req, res) => {
       if (extracurriculars !== undefined) rapor.extracurriculars = extracurriculars;
       if (attendance !== undefined) rapor.attendance = attendance;
       if (note !== undefined) rapor.note = note;
+      if (kokurikuler_note !== undefined) rapor.kokurikuler_note = kokurikuler_note;
+      if (parent_feedback !== undefined) rapor.parent_feedback = parent_feedback;
       if (physical_condition !== undefined) rapor.physical_condition = physical_condition;
       if (school_name !== undefined) rapor.school_name = school_name;
       if (school_address !== undefined) rapor.school_address = school_address;

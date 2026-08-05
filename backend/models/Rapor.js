@@ -68,6 +68,14 @@ const raporSchema = new mongoose.Schema(
     place_date: {
       type: String,
       default: ''
+    },
+    kokurikuler_note: {
+      type: String,
+      default: ''
+    },
+    parent_feedback: {
+      type: String,
+      default: ''
     }
   },
   {

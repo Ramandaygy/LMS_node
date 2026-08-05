@@ -7,10 +7,12 @@ const { uploadSubmission } = require('../middleware/uploadMiddleware');
 //
 // Assignment routes
 router.get('/', authMiddleware, assignmentController.getAllAssignments);
+router.post('/distribute-batch', authMiddleware, assignmentController.distributeAssignmentsBatch);
 router.post('/', authMiddleware, uploadSubmission.array('attachments'), assignmentController.createAssignment);
 router.get('/:id', authMiddleware, assignmentController.getAssignmentById);
 router.put('/:id', authMiddleware, uploadSubmission.array('attachments'), assignmentController.updateAssignment);
 router.delete('/:id', authMiddleware, assignmentController.deleteAssignment);
+
 
 // Guru: tugas yang dibuat
 router.get('/guru/me', authMiddleware, assignmentController.getTeacherAssignments);

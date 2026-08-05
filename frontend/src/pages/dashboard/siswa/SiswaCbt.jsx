@@ -99,6 +99,17 @@ const SiswaCbt = () => {
     }));
   };
 
+  const handleEssayAnswerChange = (qIdx, text) => {
+    setUserAnswers((prev) => ({
+      ...prev,
+      [qIdx]: {
+        selected: -1,
+        essay_answer: text,
+        flagged: prev[qIdx]?.flagged || false,
+      },
+    }));
+  };
+
   const handleToggleFlag = (qIdx) => {
     setUserAnswers((prev) => ({
       ...prev,
@@ -119,7 +130,8 @@ const SiswaCbt = () => {
     try {
       const formattedAnswers = Object.entries(userAnswers).map(([qIdx, val]) => ({
         question_index: parseInt(qIdx),
-        selected_option: val.selected,
+        selected_option: val.selected !== undefined ? val.selected : -1,
+        essay_answer: val.essay_answer || '',
         is_flagged: val.flagged
       }));
 
@@ -185,6 +197,7 @@ const SiswaCbt = () => {
     const ans = userAnswers[idx];
     if (ans?.flagged) return 'flagged'; // Ragu-ragu (Yellow)
     if (ans?.selected !== undefined && ans?.selected !== null && ans?.selected !== -1) return 'answered'; // Green
+    if (ans?.essay_answer && ans.essay_answer.trim().length > 0) return 'answered'; // Green
     return 'unanswered';
   };
 
@@ -361,34 +374,56 @@ const SiswaCbt = () => {
 
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: '0 0 16px 0' }}>{currentQ?.question_text}</p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-              {currentQ?.options?.map((opt, oIdx) => (
-                <button
-                  key={oIdx}
-                  onClick={() => handleSelectOption(currentQuestionIdx, oIdx)}
+            {currentQ?.type === 'essay' ? (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#475569', marginBottom: '8px' }}>Jawaban Anda:</label>
+                <textarea
+                  rows={6}
+                  placeholder="Ketikkan jawaban uraian/essay Anda di sini..."
+                  value={currentAns.essay_answer || ''}
+                  onChange={(e) => handleEssayAnswerChange(currentQuestionIdx, e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '12px 16px',
+                    padding: '12px',
                     borderRadius: '10px',
-                    border: currentAns.selected === oIdx ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                    background: currentAns.selected === oIdx ? '#f0f9ff' : '#ffffff',
-                    color: currentAns.selected === oIdx ? '#0284c7' : '#0f172a',
-                    fontWeight: currentAns.selected === oIdx ? '800' : '500',
+                    border: '1px solid #cbd5e1',
                     fontSize: '13px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    boxSizing: 'border-box'
                   }}
-                >
-                  <span style={{ background: currentAns.selected === oIdx ? '#0284c7' : '#f1f5f9', color: currentAns.selected === oIdx ? '#ffffff' : '#475569', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800' }}>
-                    {String.fromCharCode(65 + oIdx)}
-                  </span>
-                  <span>{opt}</span>
-                </button>
-              ))}
-            </div>
+                />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                {currentQ?.options?.map((opt, oIdx) => (
+                  <button
+                    key={oIdx}
+                    onClick={() => handleSelectOption(currentQuestionIdx, oIdx)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: currentAns.selected === oIdx ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                      background: currentAns.selected === oIdx ? '#f0f9ff' : '#ffffff',
+                      color: currentAns.selected === oIdx ? '#0284c7' : '#0f172a',
+                      fontWeight: currentAns.selected === oIdx ? '800' : '500',
+                      fontSize: '13px',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px'
+                    }}
+                  >
+                    <span style={{ background: currentAns.selected === oIdx ? '#0284c7' : '#f1f5f9', color: currentAns.selected === oIdx ? '#ffffff' : '#475569', borderRadius: '50%', width: '22px', height: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800' }}>
+                      {String.fromCharCode(65 + oIdx)}
+                    </span>
+                    <span>{opt}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #e2e8f0', paddingTop: '14px' }}>
               <button

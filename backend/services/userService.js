@@ -123,11 +123,23 @@ exports.getUsersByRole = async (role) => {
       break;
 
     case 'guru':
-      users = await getCollection('users_guru').find({}).toArray();
+      users = await getCollection('users_guru').find({ role: { $in: ['guru', 'bk'] } }).toArray();
+      break;
+
+    case 'bk':
+      users = await getCollection('users_guru').find({ role: 'bk' }).toArray();
       break;
 
     case 'admin':
       users = await getCollection('users_admin').find({}).toArray();
+      break;
+
+    case 'super_admin':
+      users = await getCollection('users_admin').find({ role: 'super_admin' }).toArray();
+      break;
+
+    case 'wakil_kurikulum':
+      users = await getCollection('users_admin').find({ role: 'wakil_kurikulum' }).toArray();
       break;
 
     case 'ortu':
@@ -176,9 +188,9 @@ exports.getUsersByRole = async (role) => {
           const subject = subjects.find(
             s => s && s._id && s._id.toString() === id.toString()
           );
-          return subject?.name || '-';
+          return subject?.name || id;
         } catch (e) {
-          return '-';
+          return id;
         }
       });
     }
@@ -191,9 +203,9 @@ exports.getUsersByRole = async (role) => {
           const kelas = classes.find(
             c => c && c._id && c._id.toString() === id.toString()
           );
-          return kelas?.name || '-';
+          return kelas?.name || id;
         } catch (e) {
-          return '-';
+          return id;
         }
       });
     }
@@ -231,6 +243,9 @@ exports.createUser = async (userData) => {
   switch (userData.role) {
     case 'siswa':
       collection = getCollection('users_siswa');
+      if (!userData.nis || !/^\d{4,10}$/.test(userData.nis)) {
+        throw new Error('NIS harus berupa angka sepanjang 4 sampai 10 digit');
+      }
       break;
     case 'guru':
       collection = getCollection('users_guru');
@@ -290,6 +305,14 @@ exports.updateUser = async (id, updateData) => {
     getCollection('users_admin'),
     getCollection('users_ortu')
   ];
+
+  if (updateData.nis !== undefined) {
+    // Check if user is siswa
+    const isSiswa = await getCollection('users_siswa').findOne({ _id: objectId });
+    if (isSiswa && (!updateData.nis || !/^\d{4,10}$/.test(updateData.nis))) {
+      throw new Error('NIS harus berupa angka sepanjang 4 sampai 10 digit');
+    }
+  }
 
   if (updateData.password) {
     updateData.password = await bcrypt.hash(updateData.password, 10);

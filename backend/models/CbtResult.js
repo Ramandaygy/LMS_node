@@ -6,6 +6,7 @@ const cbtResultSchema = new mongoose.Schema({
   answers: [{
     question_index: { type: Number },
     selected_option: { type: Number, default: -1 }, // -1 if unanswered, or 0, 1, 2, 3
+    essay_answer: { type: String, default: '' }, // Student's text answer for essay questions
     is_flagged: { type: Boolean, default: false },
     is_correct: { type: Boolean, default: false }
   }],

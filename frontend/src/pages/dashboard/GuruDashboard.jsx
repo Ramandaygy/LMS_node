@@ -64,7 +64,7 @@ const GuruDashboard = () => {
       const profileData = profileRes.status === 'fulfilled' ? (profileRes.value.data || {}) : {};
       setProfile(profileData);
 
-      const allStudents = studentsRes.status === 'fulfilled' ? (studentsRes.value.data?.data || []) : [];
+      const allStudents = studentsRes.status === 'fulfilled' ? (studentsRes.value.data?.students || studentsRes.value.data?.data || []) : [];
       setTotalStudentsCount(allStudents.length);
 
       const mappedClasses = (profileData.classes || []).map(c => {
@@ -228,7 +228,7 @@ const GuruDashboard = () => {
             <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>group</span>
           </div>
           <div>
-            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700', display: 'block' }}>Total Siswa Binaan</span>
+            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700', display: 'block' }}>Siswa yang Diajar</span>
             <strong style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>{totalStudentsCount || 32} Siswa</strong>
           </div>
         </div>

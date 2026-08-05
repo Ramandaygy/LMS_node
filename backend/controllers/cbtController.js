@@ -3,6 +3,7 @@ const CbtResult = require('../models/CbtResult');
 const Grade = require('../models/Grade');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
+const mammoth = require('mammoth');
 
 const mongoose = require('mongoose');
 
@@ -287,14 +288,27 @@ exports.createExam = async (req, res) => {
 
     // Clean up questions array to ensure options are array of 4 strings
     const cleanedQuestions = questions.map((q, idx) => {
-      let opts = Array.isArray(q.options) ? q.options.map(o => String(o || '').trim()) : ['', '', '', ''];
-      while (opts.length < 4) opts.push('');
-      return {
-        question_text: String(q.question_text || '').trim(),
-        options: opts,
-        correct_option: Number(q.correct_option) || 0,
-        explanation: String(q.explanation || '').trim()
-      };
+      const qType = q.type || 'pg';
+      if (qType === 'essay') {
+        return {
+          question_text: String(q.question_text || '').trim(),
+          type: 'essay',
+          options: [],
+          correct_option: 0,
+          correct_answer_text: String(q.correct_answer_text || '').trim(),
+          explanation: String(q.explanation || '').trim()
+        };
+      } else {
+        let opts = Array.isArray(q.options) ? q.options.map(o => String(o || '').trim()) : ['', '', '', ''];
+        while (opts.length < 4) opts.push('');
+        return {
+          question_text: String(q.question_text || '').trim(),
+          type: 'pg',
+          options: opts,
+          correct_option: Number(q.correct_option) || 0,
+          explanation: String(q.explanation || '').trim()
+        };
+      }
     });
 
     const newExam = new CbtExam({
@@ -423,25 +437,43 @@ exports.submitExam = async (req, res) => {
 
     const evaluatedAnswers = (exam.questions || []).map((q, idx) => {
       const studentAns = (userAnswers || []).find(a => Number(a.question_index) === idx);
-      const selected = studentAns && studentAns.selected_option !== undefined && studentAns.selected_option !== null ? Number(studentAns.selected_option) : -1;
       const isFlagged = studentAns ? !!studentAns.is_flagged : false;
 
-      let isCorrect = false;
-      if (selected === -1 || isNaN(selected)) {
-        unansweredCount++;
-      } else if (selected === Number(q.correct_option)) {
-        isCorrect = true;
-        correctCount++;
+      if (q.type === 'essay') {
+        const essayAns = studentAns && studentAns.essay_answer ? String(studentAns.essay_answer).trim() : '';
+        let isCorrect = false;
+        if (!essayAns) {
+          unansweredCount++;
+        } else {
+          isCorrect = true; // Auto-pass/correct if answered, or simple match
+          correctCount++;
+        }
+        return {
+          question_index: idx,
+          selected_option: -1,
+          essay_answer: essayAns,
+          is_flagged: isFlagged,
+          is_correct: isCorrect
+        };
       } else {
-        wrongCount++;
+        const selected = studentAns && studentAns.selected_option !== undefined && studentAns.selected_option !== null ? Number(studentAns.selected_option) : -1;
+        let isCorrect = false;
+        if (selected === -1 || isNaN(selected)) {
+          unansweredCount++;
+        } else if (selected === Number(q.correct_option)) {
+          isCorrect = true;
+          correctCount++;
+        } else {
+          wrongCount++;
+        }
+        return {
+          question_index: idx,
+          selected_option: selected,
+          essay_answer: '',
+          is_flagged: isFlagged,
+          is_correct: isCorrect
+        };
       }
-
-      return {
-        question_index: idx,
-        selected_option: selected,
-        is_flagged: isFlagged,
-        is_correct: isCorrect
-      };
     });
 
     const finalScore = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
@@ -855,5 +887,116 @@ exports.distributeExam = async (req, res) => {
   } catch (err) {
     console.error('Error distributing CBT exam:', err);
     return res.status(500).json({ success: false, message: 'Gagal menerbitkan Ujian CBT ke kelas.' });
+  }
+};
+
+// Import Questions from Uploaded Word Document (.docx)
+exports.importQuestionsWord = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'File Word (.docx) wajib diunggah.' });
+    }
+
+    const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+    const text = result.value || '';
+    
+    // Split questions by ==== or ---- or double newlines
+    const blocks = text.split(/(====+|----+|\r?\n\r?\n\r?\n+)/);
+    const questions = [];
+    const errors = [];
+
+    blocks.forEach((block, idx) => {
+      const cleanBlock = block.trim();
+      if (!cleanBlock || cleanBlock.match(/^(====+|----+)$/)) return;
+
+      const lines = cleanBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      let qText = '';
+      let optA = '';
+      let optB = '';
+      let optC = '';
+      let optD = '';
+      let correctStr = '';
+      let explanation = '';
+      let type = 'pg';
+
+      lines.forEach(line => {
+        const lowerLine = line.toLowerCase();
+        if (lowerLine.startsWith('pertanyaan:') || lowerLine.startsWith('soal:')) {
+          qText = line.replace(/^(pertanyaan:|soal:)/i, '').trim();
+        } else if (lowerLine.startsWith('tipe:') || lowerLine.startsWith('type:')) {
+          const t = line.replace(/^(tipe:|type:)/i, '').trim().toLowerCase();
+          if (t.includes('essay') || t.includes('esai')) type = 'essay';
+        } else if (line.startsWith('A.') || line.startsWith('A:') || line.startsWith('a.')) {
+          optA = line.substring(2).trim();
+        } else if (line.startsWith('B.') || line.startsWith('B:') || line.startsWith('b.')) {
+          optB = line.substring(2).trim();
+        } else if (line.startsWith('C.') || line.startsWith('C:') || line.startsWith('c.')) {
+          optC = line.substring(2).trim();
+        } else if (line.startsWith('D.') || line.startsWith('D:') || line.startsWith('d.')) {
+          optD = line.substring(2).trim();
+        } else if (lowerLine.startsWith('kunci:') || lowerLine.startsWith('kunci jawaban:')) {
+          correctStr = line.replace(/^(kunci:|kunci jawaban:)/i, '').trim();
+        } else if (lowerLine.startsWith('pembahasan:')) {
+          explanation = line.replace(/^pembahasan:/i, '').trim();
+        } else {
+          if (!qText) {
+            qText = line;
+          }
+        }
+      });
+
+      // Auto detect essay type if options A/B are missing and it's not explicitly set
+      if (type === 'pg' && (!optA || !optB)) {
+        type = 'essay';
+      }
+
+      if (!qText) {
+        errors.push(`Blok ${idx + 1}: Teks pertanyaan tidak ditemukan.`);
+        return;
+      }
+
+      if (type === 'pg') {
+        let correctOption = 0;
+        const correctUpper = correctStr.toUpperCase();
+        if (correctUpper === 'B' || correctUpper === '2') correctOption = 1;
+        else if (correctUpper === 'C' || correctUpper === '3') correctOption = 2;
+        else if (correctUpper === 'D' || correctUpper === '4') correctOption = 3;
+
+        questions.push({
+          type: 'pg',
+          question_text: qText,
+          options: [optA || 'Pilihan A', optB || 'Pilihan B', optC || 'Pilihan C', optD || 'Pilihan D'],
+          correct_option: correctOption,
+          explanation: explanation || ''
+        });
+      } else {
+        questions.push({
+          type: 'essay',
+          question_text: qText,
+          options: [],
+          correct_option: 0,
+          correct_answer_text: correctStr || '',
+          explanation: explanation || ''
+        });
+      }
+    });
+
+    if (questions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tidak ada soal valid yang ditemukan dalam file Word.',
+        errors
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Berhasil mengekstrak ${questions.length} soal dari file Word.`,
+      questions,
+      errors
+    });
+  } catch (err) {
+    console.error('Error importing questions Word:', err);
+    return res.status(500).json({ success: false, message: 'Gagal memproses file Word (.docx).' });
   }
 };

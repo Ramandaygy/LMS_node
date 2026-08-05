@@ -7,7 +7,11 @@ exports.getBinaanStudents = async (req, res) => {
 
     const classCol = mongoose.connection.collection('classes');
     const guruCol = mongoose.connection.collection('users_guru');
-    const guru = await guruCol.findOne({ _id: objTeacherId });
+    let guru = await guruCol.findOne({ _id: objTeacherId });
+    if (!guru) {
+      const adminCol = mongoose.connection.collection('users_admin');
+      guru = await adminCol.findOne({ _id: objTeacherId });
+    }
 
     // 1. Find Homeroom Class (for Wali Kelas Rapor view)
     const homeroomClasses = await classCol.find({ homeroom_teacher: objTeacherId }).toArray();

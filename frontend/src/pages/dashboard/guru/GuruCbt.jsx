@@ -18,6 +18,8 @@ const GuruCbt = () => {
   const dropdownRef = useRef(null);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
+  const wordFileInputRef = useRef(null);
+  const modalWordFileInputRef = useRef(null);
 
   const [importLoading, setImportLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
@@ -172,6 +174,52 @@ const GuruCbt = () => {
     }
   };
 
+  const handleImportWordClick = () => {
+    setDropdownOpen(false);
+    if (wordFileInputRef.current) wordFileInputRef.current.click();
+  };
+
+  const handleModalImportWordClick = () => {
+    if (modalWordFileInputRef.current) modalWordFileInputRef.current.click();
+  };
+
+  const handleWordFileChange = async (e, isModal = false) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setImportLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await api.post('/cbt/import-questions-word', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      if (response.data.success) {
+        const importedQuestions = response.data.questions || [];
+
+        if (isModal || showCreateModal) {
+          setQuestions((prev) => [...prev.filter(q => q.question_text.trim() !== ''), ...importedQuestions]);
+          setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Word (.docx) ke form kuis.`);
+        } else {
+          setQuestions(importedQuestions);
+          handleOpenCreate();
+          setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Word (.docx). Silakan lengkapi Judul Ujian & Simpan.`);
+        }
+      }
+    } catch (err) {
+      console.error('Error importing Word:', err);
+      setError(err.response?.data?.message || 'Gagal mengimpor file Word.');
+    } finally {
+      setImportLoading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleExportExamResultsExcel = async (examId, examTitle) => {
     try {
       const response = await api.get(`/cbt/exams/${examId}/export-excel`, { responseType: 'blob' });
@@ -227,17 +275,52 @@ const GuruCbt = () => {
     setQuestions(updated);
   };
 
+  const handleQuestionTypeChange = (qIdx, typeValue) => {
+    const updated = [...questions];
+    updated[qIdx].type = typeValue;
+    if (typeValue === 'essay') {
+      updated[qIdx].options = [];
+      updated[qIdx].correct_option = 0;
+      updated[qIdx].correct_answer_text = updated[qIdx].correct_answer_text || '';
+    } else {
+      updated[qIdx].options = ['', '', '', ''];
+      updated[qIdx].correct_option = 0;
+    }
+    setQuestions(updated);
+  };
+
+  const handleCorrectAnswerTextChange = (qIdx, value) => {
+    const updated = [...questions];
+    updated[qIdx].correct_answer_text = value;
+    setQuestions(updated);
+  };
+
   const formatToLocalDatetimeInput = (dateStr) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return '';
-    const wibTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
-    const year = wibTime.getUTCFullYear();
-    const month = String(wibTime.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(wibTime.getUTCDate()).padStart(2, '0');
-    const hours = String(wibTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(wibTime.getUTCMinutes()).padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+    // Format to Asia/Jakarta timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const parts = formatter.formatToParts(d);
+    const getVal = (type) => parts.find(p => p.type === type)?.value || '';
+    
+    const year = getVal('year');
+    const month = getVal('month');
+    const day = getVal('day');
+    const hour = getVal('hour');
+    const minute = getVal('minute');
+    
+    return `${year}-${month}-${day}T${hour}:${minute}`;
   };
 
   const handleOpenCreate = () => {
@@ -286,10 +369,12 @@ const GuruCbt = () => {
         setError(`Teks soal nomor ${i + 1} belum diisi.`);
         return;
       }
-      for (let j = 0; j < 4; j++) {
-        if (!q.options[j] || !q.options[j].trim()) {
-          setError(`Pilihan jawaban ${String.fromCharCode(65 + j)} pada soal nomor ${i + 1} belum diisi.`);
-          return;
+      if (q.type !== 'essay') {
+        for (let j = 0; j < 4; j++) {
+          if (!q.options || !q.options[j] || !q.options[j].trim()) {
+            setError(`Pilihan jawaban ${String.fromCharCode(65 + j)} pada soal nomor ${i + 1} belum diisi.`);
+            return;
+          }
         }
       }
     }
@@ -426,6 +511,21 @@ const GuruCbt = () => {
         accept=".xlsx, .xls"
         style={{ display: 'none' }}
       />
+      {/* Hidden File Inputs for Word Import */}
+      <input
+        type="file"
+        ref={wordFileInputRef}
+        onChange={(e) => handleWordFileChange(e, false)}
+        accept=".docx"
+        style={{ display: 'none' }}
+      />
+      <input
+        type="file"
+        ref={modalWordFileInputRef}
+        onChange={(e) => handleWordFileChange(e, true)}
+        accept=".docx"
+        style={{ display: 'none' }}
+      />
 
       {/* Header Bar */}
       <div className="guru-cbt-header">
@@ -447,7 +547,11 @@ const GuruCbt = () => {
                   <div className="dropdown-group-title">IMPORT SOAL</div>
                   <button onClick={handleImportExcelClick} disabled={importLoading}>
                     <span className="material-symbols-outlined">upload_file</span>
-                    {importLoading ? 'Memproses...' : 'Import Soal dari Excel'}
+                    {importLoading ? 'Memproses...' : 'Import Soal dari Excel (.xlsx)'}
+                  </button>
+                  <button onClick={handleImportWordClick} disabled={importLoading} style={{ marginTop: '4px' }}>
+                    <span className="material-symbols-outlined">description</span>
+                    {importLoading ? 'Memproses...' : 'Import Soal dari Word (.docx)'}
                   </button>
                 </div>
                 <div className="dropdown-divider"></div>
@@ -717,10 +821,13 @@ const GuruCbt = () => {
               {/* Soal Ujian */}
               <div className="form-questions-section" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '14px', marginTop: '14px' }}>
                 <div className="questions-section-header">
-                  <h3>Soal Pilihan Ganda ({questions.length})</h3>
-                  <div className="q-header-buttons">
+                  <h3>Daftar Soal Ujian ({questions.length})</h3>
+                  <div className="q-header-buttons" style={{ display: 'flex', gap: '6px' }}>
                     <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick}>
-                      <span className="material-symbols-outlined">upload_file</span> Import Excel
+                      <span className="material-symbols-outlined">upload_file</span> Excel
+                    </button>
+                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportWordClick} style={{ background: '#2b579a' }}>
+                      <span className="material-symbols-outlined">description</span> Word (.docx)
                     </button>
                     <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
                       + Tambah Soal
@@ -733,48 +840,75 @@ const GuruCbt = () => {
                     <div key={qIdx} className="question-item-card" style={{ marginBottom: '14px' }}>
                       <div className="q-card-header">
                         <span className="q-number">Nomor Soal #{qIdx + 1}</span>
-                        {questions.length > 1 && (
+                  {questions.length > 1 && (
                           <button type="button" className="btn-delete-q" onClick={() => handleRemoveQuestion(qIdx)} title="Hapus Soal">
                             <span className="material-symbols-outlined">delete</span>
                           </button>
                         )}
                       </div>
 
-                      <div className="form-group">
-                        <label>Pertanyaan *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ketik pertanyaan kuis..."
-                          value={q.question_text}
-                          onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
-                          className="form-input"
-                        />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                        <div className="form-group">
+                          <label>Tipe Pertanyaan</label>
+                          <select
+                            value={q.type || 'pg'}
+                            onChange={(e) => handleQuestionTypeChange(qIdx, e.target.value)}
+                            className="form-select"
+                          >
+                            <option value="pg">Pilihan Ganda (PG)</option>
+                            <option value="essay">Essay / Uraian</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Pertanyaan *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Ketik pertanyaan kuis..."
+                            value={q.question_text}
+                            onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
+                            className="form-input"
+                          />
+                        </div>
                       </div>
 
-                      <div className="options-input-grid">
-                        {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
-                          <div key={oIdx} className="option-input-item">
-                            <label className="radio-label">
+                      {q.type === 'essay' ? (
+                        <div className="form-group" style={{ marginBottom: '12px' }}>
+                          <label>Kunci Jawaban Ideal / Alternatif Jawaban Essay (Opsional)</label>
+                          <textarea
+                            rows={2}
+                            placeholder="Tuliskan kata kunci atau contoh jawaban yang benar..."
+                            value={q.correct_answer_text || ''}
+                            onChange={(e) => handleCorrectAnswerTextChange(qIdx, e.target.value)}
+                            className="form-input"
+                            style={{ fontFamily: 'inherit', padding: '8px' }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="options-input-grid">
+                          {['A', 'B', 'C', 'D'].map((letter, oIdx) => (
+                            <div key={oIdx} className="option-input-item">
+                              <label className="radio-label">
+                                <input
+                                  type="radio"
+                                  name={`correct_${qIdx}`}
+                                  checked={q.correct_option === oIdx}
+                                  onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
+                                />
+                                <strong>{letter}</strong> (Kunci)
+                              </label>
                               <input
-                                type="radio"
-                                name={`correct_${qIdx}`}
-                                checked={q.correct_option === oIdx}
-                                onChange={() => handleCorrectOptionChange(qIdx, oIdx)}
+                                type="text"
+                                required
+                                placeholder={`Pilihan ${letter}...`}
+                                value={q.options && q.options[oIdx] !== undefined ? q.options[oIdx] : ''}
+                                onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
+                                className="form-input opt-input"
                               />
-                              <strong>{letter}</strong> (Kunci)
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              placeholder={`Pilihan ${letter}...`}
-                              value={q.options[oIdx]}
-                              onChange={(e) => handleOptionTextChange(qIdx, oIdx, e.target.value)}
-                              className="form-input opt-input"
-                            />
-                          </div>
-                        ))}
-                      </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
 
                       <div className="form-group" style={{ marginTop: '12px' }}>
                         <label>Pembahasan / Penjelasan Kunci (Opsional)</label>

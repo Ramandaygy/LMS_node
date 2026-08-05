@@ -36,7 +36,17 @@ exports.createAssignment = async (req, res) => {
       });
     }
 
-    const assignmentData = { ...req.body, teacher: teacherId, attachments };
+    const classIdVal = req.body.class_id || req.body.class;
+    const subjectIdVal = req.body.subject_id || req.body.subject;
+    const assignmentData = {
+      ...req.body,
+      class: classIdVal,
+      class_id: classIdVal,
+      subject: subjectIdVal,
+      subject_id: subjectIdVal,
+      teacher: teacherId,
+      attachments
+    };
     const newAssignment = await assignmentService.createAssignment(assignmentData);
 
     // Kirim push notification ke siswa dan ortu
@@ -152,8 +162,16 @@ exports.updateAssignment = async (req, res) => {
       });
     }
 
-    const updateData = { ...req.body };
-    updateData.attachments = attachments;
+    const classIdVal = req.body.class_id || req.body.class;
+    const subjectIdVal = req.body.subject_id || req.body.subject;
+    const updateData = {
+      ...req.body,
+      class: classIdVal,
+      class_id: classIdVal,
+      subject: subjectIdVal,
+      subject_id: subjectIdVal,
+      attachments
+    };
 
     const updated = await assignmentService.updateAssignment(req.params.id, updateData);
     return res.json({ success: true, data: updated });
@@ -224,3 +242,72 @@ exports.getOrtuAssignments = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// BATCH DISTRIBUSI TUGAS DARI BANK KE KELAS TARGET
+exports.distributeAssignmentsBatch = async (req, res) => {
+  try {
+    const { assignment_ids, class_id, session_number } = req.body;
+
+    if (!assignment_ids || !Array.isArray(assignment_ids) || assignment_ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'Pilih minimal 1 tugas untuk didistribusikan' });
+    }
+    if (!class_id) {
+      return res.status(400).json({ success: false, message: 'Pilih kelas target distribusi' });
+    }
+
+    const AssignmentModel = require('../models/Assignment');
+    let classIdObj;
+    try {
+      classIdObj = new mongoose.Types.ObjectId(class_id.toString());
+    } catch (e) {
+      classIdObj = class_id;
+    }
+
+    const updatePayload = {
+      class: classIdObj,
+      class_id: classIdObj,
+      is_active: true
+    };
+    if (session_number) {
+      updatePayload.session_number = parseInt(session_number);
+    }
+
+    await AssignmentModel.updateMany(
+      { _id: { $in: assignment_ids.map(id => new mongoose.Types.ObjectId(id.toString())) } },
+      {
+        $set: updatePayload
+      }
+    );
+
+    // Kirim push notification ke siswa di kelas tersebut
+    try {
+      const notificationController = require('./notificationController');
+      const siswaCol = mongoose.connection.collection('users_siswa');
+      const classIdStr = class_id.toString();
+      const students = await siswaCol.find({
+        $or: [
+          { class_id: classIdStr },
+          ...(classIdObj ? [{ class_id: classIdObj }] : [])
+        ]
+      }).toArray();
+
+      for (const student of students) {
+        if (student._id) {
+          notificationController.sendPushNotification(
+            student._id.toString(),
+            'Tugas Baru Didistribusikan!',
+            `${assignment_ids.length} tugas baru telah disematkan untuk kelas Anda.`,
+            '/dashboard/siswa/assignments'
+          ).catch(e => console.error(e));
+        }
+      }
+    } catch (notifErr) {
+      console.error('Failed to send push notification for batch assignment distribution:', notifErr);
+    }
+
+    return res.json({ success: true, message: 'Tugas berhasil didistribusikan ke kelas target' });
+  } catch (err) {
+    console.error('[DistributeAssignmentsBatch Err]:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

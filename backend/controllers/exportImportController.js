@@ -212,6 +212,11 @@ exports.importStudents = async (req, res) => {
 
           if (!nis || !full_name || !email) continue;
 
+          if (!/^\d{4,10}$/.test(nis)) {
+            errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS '${nis}' tidak valid (harus berupa angka 4-10 digit)`);
+            continue;
+          }
+
           if (studentNisSet.has(nis)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: NIS ${nis} sudah ada`); continue; }
           if (studentEmailSet.has(email)) { errors.push(`Sheet ${worksheet.name} Baris ${i}: Email ${email} sudah ada`); continue; }
 
@@ -435,7 +440,6 @@ exports.importTeachers = async (req, res) => {
     const all_subjects = await getCollection('subjects').find({}).toArray();
     const subjectMap = {};
     all_subjects.forEach(s => subjectMap[s.name.trim().toLowerCase()] = s._id);
-
     for (let i = 2; i <= worksheet.rowCount; i++) {
       const row = worksheet.getRow(i);
       if (!row.values.length) continue;
@@ -449,10 +453,25 @@ exports.importTeachers = async (req, res) => {
         const subjects_str = headers['subjects'] ? row.getCell(headers['subjects']).text?.trim() : '';
         const classes_str = headers['classes'] ? row.getCell(headers['classes']).text?.trim() : '';
         const phone = headers['phone'] ? row.getCell(headers['phone']).text?.trim() : '';
+        
+        // Parse role from Excel
+        const role_header = headers['role'] || headers['jabatan'] || headers['peran'];
+        const role_str = role_header ? row.getCell(role_header).text?.trim()?.toLowerCase() : 'guru';
+        let final_role = 'guru';
+        if (role_str === 'bk' || role_str === 'guru bk' || role_str === 'bimbingan konseling' || role_str === 'bimbingan dan konseling') {
+          final_role = 'bk';
+        } else if (role_str === 'wakil_kurikulum' || role_str === 'waka kurikulum' || role_str === 'kurikulum' || role_str === 'wakil kurikulum') {
+          final_role = 'wakil_kurikulum';
+        }
 
         if (!nip || !full_name || !email || !username) continue;
-        if (await getCollection('users_guru').findOne({ nip })) { errors.push(`Baris ${i}: NIP ${nip} sudah ada`); continue; }
-        if (await getCollection('users_guru').findOne({ email })) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
+
+        // Check duplicate in both collections
+        const duplicateNip = await getCollection('users_guru').findOne({ nip }) || await getCollection('users_admin').findOne({ nip });
+        if (duplicateNip) { errors.push(`Baris ${i}: NIP ${nip} sudah ada`); continue; }
+
+        const duplicateEmail = await getCollection('users_guru').findOne({ email }) || await getCollection('users_admin').findOne({ email });
+        if (duplicateEmail) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
 
         let subject_ids = [];
         if (subjects_str) {
@@ -472,8 +491,10 @@ exports.importTeachers = async (req, res) => {
           }
         }
 
-        await getCollection('users_guru').insertOne({
-          nip, full_name, email, username, teacher_code, password: hashed_default, role: 'guru',
+        const targetCollection = (final_role === 'wakil_kurikulum') ? getCollection('users_admin') : getCollection('users_guru');
+
+        await targetCollection.insertOne({
+          nip, full_name, email, username, teacher_code, password: hashed_default, role: final_role,
           subjects: subject_ids, classes: class_ids, phone, is_active: true,
           profile: { avatar: null, bio: '', address: '' }, created_at: new Date(), updated_at: new Date()
         });

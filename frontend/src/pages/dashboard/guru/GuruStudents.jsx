@@ -42,6 +42,8 @@ const GuruStudents = () => {
   const [raporAcademicYear, setRaporAcademicYear] = useState('2025/2026');
   const [raporNisn, setRaporNisn] = useState('0081293810');
   const [showKopEditForm, setShowKopEditForm] = useState(false);
+  const [kokurikulerNote, setKokurikulerNote] = useState('Pada semester ini, ananda menunjukkan capaian yang cukup baik dalam pelaksanaan projek kokurikuler Penguatan Profil Pelajar Pancasila.');
+  const [parentFeedback, setParentFeedback] = useState('');
 
   useEffect(() => {
     fetchMyStudents();
@@ -100,6 +102,11 @@ const GuruStudents = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const isMulokSubject = (name) => {
+    const n = (name || '').toLowerCase();
+    return n.includes('muatan lokal') || n.includes('mulok') || n.includes('bahasa jawa') || n.includes('bahasa daerah');
   };
 
   const calculatePredikat = (na) => {
@@ -162,6 +169,8 @@ const GuruStudents = () => {
           setEkstraList(rData.extracurriculars);
         }
         if (rData.note) setHomeroomNote(rData.note);
+        setKokurikulerNote(rData.kokurikuler_note || 'Pada semester ini, ananda menunjukkan capaian yang cukup baik dalam pelaksanaan projek kokurikuler Penguatan Profil Pelajar Pancasila.');
+        setParentFeedback(rData.parent_feedback || '');
         if (rData.headmaster_name) setHeadmasterName(rData.headmaster_name);
         if (rData.headmaster_nip) setHeadmasterNip(rData.headmaster_nip);
         if (rData.teacher_name) setTeacherName(rData.teacher_name);
@@ -184,6 +193,7 @@ const GuruStudents = () => {
         semester: raporSemester,
         extracurriculars: ekstraList,
         note: homeroomNote,
+        kokurikuler_note: kokurikulerNote,
         headmaster_name: headmasterName,
         headmaster_nip: headmasterNip,
         teacher_name: teacherName,
@@ -645,69 +655,132 @@ const GuruStudents = () => {
               LAPORAN HASIL BELAJAR
             </h3>
 
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '28px', border: '1px solid #000' }}>
+            {/* Mata Pelajaran Wajib Table */}
+            <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>MATA PELAJARAN WAJIB</h4>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '20px', border: '1px solid #000' }}>
               <thead>
                 <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '35px' }}>No</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '180px', textAlign: 'left' }}>Mata Pelajaran</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '85px' }}>Nilai Akhir (NA)</th>
-                  <th style={{ padding: '10px', borderRight: '1px solid #000', width: '75px', textAlign: 'center' }}>Predikat / Range</th>
-                  <th style={{ padding: '10px', textAlign: 'left' }}>Capaian Kompetensi</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '100px' }}>Nilai Akhir (NA)</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
                 </tr>
               </thead>
               <tbody>
-                {subjects.map((sub, idx) => {
-                  const na = selectedStudent.na_grades?.[sub._id.toString()];
-                  const displayNA = na !== undefined && na !== null ? na : '-';
-                  const pred = customPredikats[sub._id] || calculatePredikat(na);
-
-                  return (
-                    <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
-                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
-                      <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
-                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800', fontSize: '13px' }}>
-                        {displayNA}
-                      </td>
-                      <td style={{ padding: '4px 6px', borderRight: '1px solid #000', textAlign: 'center' }}>
-                        <input
-                          type="text"
-                          value={pred}
-                          onChange={(e) => handlePredikatChange(sub._id, e.target.value)}
-                          style={{
-                            width: '100%',
-                            textAlign: 'center',
-                            fontWeight: '900',
-                            fontSize: '13px',
-                            border: '1px dashed #cbd5e1',
-                            borderRadius: '4px',
-                            padding: '3px 0',
-                            color: pred.startsWith('A') ? '#047857' : pred.startsWith('B') ? '#1d4ed8' : pred.startsWith('C') ? '#a16207' : pred.startsWith('D') ? '#b91c1c' : '#0f172a',
-                            background: pred.startsWith('A') ? '#ecfdf5' : pred.startsWith('B') ? '#eff6ff' : pred.startsWith('C') ? '#fefce8' : pred.startsWith('D') ? '#fef2f2' : '#ffffff'
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: '6px 8px' }}>
-                        <textarea
-                          rows={2}
-                          value={customCompetencies[sub._id] || ''}
-                          onChange={(e) => handleCompetencyChange(sub._id, e.target.value)}
-                          style={{
-                            width: '100%',
-                            fontSize: '12px',
-                            lineHeight: '1.4',
-                            border: '1px dashed #cbd5e1',
-                            borderRadius: '4px',
-                            padding: '4px 6px',
-                            fontFamily: 'inherit',
-                            outline: 'none',
-                          }}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
+                {subjects.filter(sub => !isMulokSubject(sub.name)).length > 0 ? (
+                  subjects.filter(sub => !isMulokSubject(sub.name)).map((sub, idx) => {
+                    const na = selectedStudent.na_grades?.[sub._id.toString()];
+                    const displayNA = na !== undefined && na !== null ? na : '-';
+                    return (
+                      <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800' }}>{displayNA}</td>
+                        <td style={{ padding: '6px 8px' }}>
+                          <textarea
+                            rows={2}
+                            value={customCompetencies[sub._id] || ''}
+                            onChange={(e) => handleCompetencyChange(sub._id, e.target.value)}
+                            style={{
+                              width: '100%',
+                              fontSize: '11px',
+                              lineHeight: '1.4',
+                              border: '1px dashed #cbd5e1',
+                              borderRadius: '4px',
+                              padding: '4px 6px',
+                              fontFamily: 'inherit',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>Belum ada data mata pelajaran wajib</td>
+                  </tr>
+                )}
               </tbody>
             </table>
+
+            {/* Muatan Lokal Table */}
+            <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>MUATAN LOKAL</h4>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', marginBottom: '24px', border: '1px solid #000' }}>
+              <thead>
+                <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
+                  <th style={{ padding: '8px', borderRight: '1px solid #000', width: '100px' }}>Nilai Akhir (NA)</th>
+                  <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {subjects.filter(sub => isMulokSubject(sub.name)).length > 0 ? (
+                  subjects.filter(sub => isMulokSubject(sub.name)).map((sub, idx) => {
+                    const na = selectedStudent.na_grades?.[sub._id.toString()];
+                    const displayNA = na !== undefined && na !== null ? na : '-';
+                    return (
+                      <tr key={sub._id} style={{ borderBottom: '1px solid #000' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sub.name}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800' }}>{displayNA}</td>
+                        <td style={{ padding: '6px 8px' }}>
+                          <textarea
+                            rows={2}
+                            value={customCompetencies[sub._id] || ''}
+                            onChange={(e) => handleCompetencyChange(sub._id, e.target.value)}
+                            style={{
+                              width: '100%',
+                              fontSize: '11px',
+                              lineHeight: '1.4',
+                              border: '1px dashed #cbd5e1',
+                              borderRadius: '4px',
+                              padding: '4px 6px',
+                              fontFamily: 'inherit',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr style={{ borderBottom: '1px solid #000' }}>
+                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>Muatan Lokal Bahasa Daerah</td>
+                    <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: '800' }}>80</td>
+                    <td style={{ padding: '8px', fontStyle: 'italic', color: '#475569' }}>
+                      Mencapai Kompetensi dengan sangat baik dalam hal Memahami isi teks narasi tentang peristiwa atau kejadian.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {/* SECTION: KOKURIKULER (P5 PROJEK) */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>KOKURIKULER (PROJEK P5)</h4>
+              <textarea
+                rows={2}
+                value={kokurikulerNote}
+                onChange={(e) => setKokurikulerNote(e.target.value)}
+                style={{
+                  width: '100%',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  fontSize: '11px',
+                  lineHeight: '1.5',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  background: '#fafafa'
+                }}
+              />
+            </div>
 
             <div className="page-break" style={{ height: '1px' }}></div>
 
@@ -719,8 +792,7 @@ const GuruStudents = () => {
                 <thead>
                   <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000' }}>
                     <th style={{ padding: '8px', borderRight: '1px solid #000', width: '40px', textAlign: 'center' }}>No</th>
-                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '200px', textAlign: 'left' }}>Kegiatan Ekstrakurikuler</th>
-                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px', textAlign: 'center' }}>Predikat</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Kegiatan Ekstrakurikuler</th>
                     <th style={{ padding: '8px', textAlign: 'left' }}>Keterangan</th>
                   </tr>
                 </thead>
@@ -734,14 +806,6 @@ const GuruStudents = () => {
                           value={ek.name}
                           onChange={(e) => handleEkstraChange(idx, 'name', e.target.value)}
                           style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '2px 4px', fontSize: '12px' }}
-                        />
-                      </td>
-                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>
-                        <input
-                          type="text"
-                          value={ek.predikat}
-                          onChange={(e) => handleEkstraChange(idx, 'predikat', e.target.value)}
-                          style={{ width: '100%', border: '1px dashed #cbd5e1', padding: '2px 4px', textAlign: 'center', fontSize: '12px', fontWeight: '700' }}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
@@ -758,13 +822,19 @@ const GuruStudents = () => {
               </table>
 
               {/* Table Kehadiran & Catatan Wali Kelas */}
-              <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
                 <div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>KETIDAKHADIRAN</h4>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', border: '1px solid #000' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
+                        <th style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'left' }}>Keadaan</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>Lamanya</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       <tr style={{ borderBottom: '1px solid #000' }}>
-                        <td style={{ padding: '8px', borderRight: '1px solid #000', width: '140px' }}>Sakit</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Sakit</td>
                         <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{selectedStudent.attendance?.sick || 0} hari</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #000' }}>
@@ -782,7 +852,7 @@ const GuruStudents = () => {
                 <div>
                   <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px' }}>CATATAN WALI KELAS</h4>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={homeroomNote}
                     onChange={(e) => setHomeroomNote(e.target.value)}
                     style={{
@@ -799,6 +869,19 @@ const GuruStudents = () => {
                   />
                 </div>
               </div>
+
+              {/* Tanggapan Orang Tua (Preview for Guru) */}
+              {parentFeedback && (
+                <div style={{ marginBottom: '24px', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px', borderRadius: '8px' }}>
+                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '6px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>forum</span>
+                    Tanggapan dari Orang Tua / Wali Murid:
+                  </h4>
+                  <p style={{ margin: 0, fontSize: '12px', fontStyle: 'italic', color: '#14532d' }}>
+                    "{parentFeedback}"
+                  </p>
+                </div>
+              )}
 
               {/* SIGNATURE BLOCK */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center', fontSize: '12px', marginTop: '36px' }}>

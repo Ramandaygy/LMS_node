@@ -19,6 +19,7 @@ const AdminTeachers = () => {
     subjects: [],      // ID mapel (untuk dikirim ke backend)
     classes: [],       // ID kelas
     phone: '',
+    role: 'guru',
     is_active: true,
   });
 
@@ -191,7 +192,7 @@ const AdminTeachers = () => {
         classes: formData.classes,
         phone: formData.phone,
         is_active: formData.is_active,
-        role: 'guru',
+        role: formData.role || 'guru',
         username: formData.teacher_code,
       };
       if (formData.password) payload.password = formData.password;
@@ -206,7 +207,7 @@ const AdminTeachers = () => {
       setShowModal(false);
       setEditingTeacher(null);
       setFormData({
-        full_name: '', email: '', password: '', nip: '', teacher_code: '', subjects: [], classes: [], phone: '', is_active: true,
+        full_name: '', email: '', password: '', nip: '', teacher_code: '', subjects: [], classes: [], phone: '', role: 'guru', is_active: true,
       });
       fetchTeachers();
       fetchStats();
@@ -226,6 +227,7 @@ const AdminTeachers = () => {
       subjects: teacher.subject_ids || [],
       classes: teacher.class_ids || [],
       phone: teacher.phone || '',
+      role: teacher.role || 'guru',
       is_active: teacher.is_active !== undefined ? teacher.is_active : true,
     });
     setShowModal(true);
@@ -440,7 +442,32 @@ const AdminTeachers = () => {
               {currentItems.length === 0 ? <tr><td colSpan="7" className="admin-table-empty">Tidak ada data guru</td></tr> :
                 currentItems.map((teacher) => (
                   <tr key={teacher.id}>
-                    <td className="admin-user-info-cell"><div className="admin-user-info"><div className="admin-user-avatar"><span className="material-symbols-outlined">account_circle</span></div><div><p className="admin-user-name">{teacher.full_name || '-'}</p><p className="admin-user-email">{teacher.email || '-'}</p></div></div></td>
+                    <td className="admin-user-info-cell">
+                      <div className="admin-user-info">
+                        <div className="admin-user-avatar">
+                          <span className="material-symbols-outlined">account_circle</span>
+                        </div>
+                        <div>
+                          <p className="admin-user-name">{teacher.full_name || '-'}</p>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span className="admin-user-email">{teacher.email || '-'}</span>
+                            {teacher.role && teacher.role !== 'guru' && (
+                              <span style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                background: teacher.role === 'bk' ? '#fef3c7' : '#dbeafe',
+                                color: teacher.role === 'bk' ? '#d97706' : '#2563eb',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                textTransform: 'uppercase'
+                              }}>
+                                {teacher.role === 'bk' ? 'BK' : 'Kurikulum'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
                     <td className="admin-user-id">{teacher.teacher_code || '-'}</td>
                     <td className="admin-user-id">{teacher.nip || '-'}</td>
                     <td className="admin-class-cell">{teacher.subjects?.join(', ') || '-'}</td>
@@ -538,6 +565,14 @@ const AdminTeachers = () => {
                   <select name="is_active" value={formData.is_active ? 'active' : 'inactive'} onChange={(e) => setFormData({ ...formData, is_active: e.target.value === 'active' })}>
                     <option value="active">Aktif</option>
                     <option value="inactive">Nonaktif</option>
+                  </select>
+                </div>
+                <div className="admin-students-form-group">
+                  <label>Peran / Jabatan *</label>
+                  <select name="role" value={formData.role || 'guru'} onChange={handleChange} required>
+                    <option value="guru">Guru Mata Pelajaran</option>
+                    <option value="bk">Guru Bimbingan Konseling (BK)</option>
+                    <option value="wakil_kurikulum">Wakil Kurikulum</option>
                   </select>
                 </div>
               </div>

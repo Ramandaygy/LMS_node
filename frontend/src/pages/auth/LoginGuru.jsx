@@ -37,7 +37,8 @@ const LoginGuru = () => {
         return;
       }
 
-      if (user.role !== 'guru') {
+      const allowedRoles = ['guru', 'bk', 'wakil_kurikulum'];
+      if (!allowedRoles.includes(user.role)) {
         setError(
           'Akun ini bukan akun guru. Akses ditolak.'
         );
@@ -55,9 +56,9 @@ const LoginGuru = () => {
         localStorage.getItem('token')
       );
 
-      // Sama seperti LoginAdmin
-      window.location.href =
-        '/dashboard/guru';
+      // Reset teaching mode default on login
+      localStorage.setItem('guruMode', 'guru');
+      window.location.href = '/dashboard/guru';
 
     } catch (error) {
 

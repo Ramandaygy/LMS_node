@@ -11,6 +11,7 @@ router.use(authMiddleware);
 router.get('/exams', cbtController.getExams);
 router.get('/template-excel', cbtController.downloadTemplateExcel);
 router.post('/import-questions', uploadMemory.single('file'), cbtController.importQuestionsExcel);
+router.post('/import-questions-word', uploadMemory.single('file'), cbtController.importQuestionsWord);
 router.get('/exams/:id/export-excel', cbtController.exportExamExcel);
 
 router.get('/exams/:id', cbtController.getExamById);

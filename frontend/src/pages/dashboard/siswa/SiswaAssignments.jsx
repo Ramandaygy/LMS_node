@@ -77,6 +77,23 @@ const SiswaAssignments = () => {
     setMessage({ type: '', text: '' });
   };
 
+  const formatDeadline = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }) + ' WIB';
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
   const getRemaining = (deadline) => {
     const now = new Date();
     const dl = new Date(deadline);
@@ -129,7 +146,7 @@ const SiswaAssignments = () => {
                 </div>
               </div>
               <div className="deadline">
-                Deadline: {new Date(assignment.deadline).toLocaleString()}
+                Deadline: {formatDeadline(assignment.deadline)}
               </div>
               {assignment.submitted && assignment.score !== null && (
                 <div className="score-preview">
@@ -174,7 +191,7 @@ const SiswaAssignments = () => {
                     <span className="material-symbols-outlined">event</span>
                     <div>
                       <span className="label">Deadline</span>
-                      <span className="value">{new Date(selectedAssignment.deadline).toLocaleString()}</span>
+                      <span className="value">{formatDeadline(selectedAssignment.deadline)}</span>
                     </div>
                   </div>
                   <div className="meta-item">
@@ -277,8 +294,8 @@ const SiswaAssignments = () => {
                     <input type="url" placeholder="https://..." value={submissionLink} onChange={(e) => setSubmissionLink(e.target.value)} />
                   </div>
                   <div className="form-group">
-                    <label>Catatan (opsional)</label>
-                    <textarea rows="3" value={submissionText} onChange={(e) => setSubmissionText(e.target.value)} placeholder="Tulis catatan untuk guru..." />
+                    <label>Ketikan jawaban disini</label>
+                    <textarea rows="3" value={submissionText} onChange={(e) => setSubmissionText(e.target.value)} placeholder="Tulis jawaban Anda di sini..." />
                   </div>
                   <div className="form-actions">
                     <button type="button" onClick={() => setSelectedAssignment(null)}>Batal</button>

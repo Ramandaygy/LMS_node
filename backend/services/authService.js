@@ -32,9 +32,12 @@ exports.register = async (body) => {
 
   switch (role) {
     case 'admin':
+    case 'super_admin':
+    case 'wakil_kurikulum':
       collection = getCollection('users_admin');
       break;
     case 'guru':
+    case 'bk':
       collection = getCollection('users_guru');
       break;
     case 'siswa':

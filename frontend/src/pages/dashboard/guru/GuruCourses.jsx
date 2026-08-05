@@ -87,6 +87,7 @@ const GuruCourses = () => {
   const [loadingSessionData, setLoadingSessionData] = useState(false);
 
   const [classStudents, setClassStudents] = useState([]);
+  const [totalTaughtStudentsCount, setTotalTaughtStudentsCount] = useState(0);
   const [loadingClassStudents, setLoadingClassStudents] = useState(false);
   const [allClassTasks, setAllClassTasks] = useState([]);
   const [loadingAllClassTasks, setLoadingAllClassTasks] = useState(false);
@@ -118,6 +119,43 @@ const GuruCourses = () => {
       { name: '8B' }, { name: '8C' }, { name: '8D' }, { name: '8E' }, { name: '8F' }
     ];
   }, [teacherProfile]);
+
+  const teacherClasses = useMemo(() => {
+    const list = schedules.map(s => {
+      const id = s.class_id?._id || s.class_id || s.id;
+      const name = s.class_name || s.class_id?.name || 'Kelas';
+      return { id: id ? id.toString() : '', name };
+    }).filter(item => item.id);
+    
+    const unique = [];
+    const seen = new Set();
+    for (const item of list) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        unique.push(item);
+      }
+    }
+    return unique;
+  }, [schedules]);
+
+  const teacherSubjects = useMemo(() => {
+    const list = schedules.map(s => {
+      const id = s.subject_id?._id || s.subject_id || '';
+      const name = s.subject || s.subject_id?.name || 'Mata Pelajaran';
+      return { id: id ? id.toString() : name, name };
+    });
+    
+    const unique = [];
+    const seen = new Set();
+    for (const item of list) {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        unique.push(item);
+      }
+    }
+    return unique;
+  }, [schedules]);
+
 
   const fetchSessionComments = async (sch, sessionNum) => {
     try {
@@ -356,8 +394,8 @@ const GuruCourses = () => {
     setCreatingTask(true);
     try {
       const sch = createNewTaskModal.targetSchedule;
-      const classId = sch.class_id?._id || sch.class_id || sch.id;
-      const subjectId = sch.subject_id?._id || sch.subject_id;
+      const classId = newTaskForm.classId || sch.class_id?._id || sch.class_id || sch.id;
+      const subjectId = newTaskForm.subjectId || sch.subject_id?._id || sch.subject_id;
       const sessionNum = createNewTaskModal.targetSessionNum || 1;
 
       await api.post('/assignments', {
@@ -402,13 +440,14 @@ const GuruCourses = () => {
   const loadPageData = async () => {
     setLoading(true);
     try {
-      const [courseRes, profileRes, dbSchedRes, attendanceSchedRes, materialsRes, tasksRes] = await Promise.allSettled([
+      const [courseRes, profileRes, dbSchedRes, attendanceSchedRes, materialsRes, tasksRes, studentsRes] = await Promise.allSettled([
         api.get('/courses'),
         api.get('/profile'),
         api.get('/schedules'),
         api.get('/attendance/schedules'),
         api.get('/materials/guru/me'),
-        api.get('/assignments/guru/me')
+        api.get('/assignments/guru/me'),
+        api.get('/guru/students')
       ]);
 
       if (courseRes.status === 'fulfilled') setCourses(courseRes.value.data.courses || []);
@@ -417,6 +456,7 @@ const GuruCourses = () => {
       if (attendanceSchedRes.status === 'fulfilled') setSchedules(attendanceSchedRes.value.data.schedules || []);
       if (materialsRes.status === 'fulfilled') setTeacherMaterials(materialsRes.value.data.data || []);
       if (tasksRes.status === 'fulfilled') setTeacherTasks(tasksRes.value.data.data || []);
+      if (studentsRes.status === 'fulfilled') setTotalTaughtStudentsCount(studentsRes.value.data?.students?.length || studentsRes.value.data?.data?.length || 0);
 
     } catch (error) {
       console.error('Error loading Modul Guru data:', error);
@@ -1709,6 +1749,14 @@ const GuruCourses = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
                     onClick={() => {
+                      const sch = taskModal.targetSchedule;
+                      const cId = sch.class_id?._id || sch.class_id || sch.id;
+                      const sId = sch.subject_id?._id || sch.subject_id;
+                      setNewTaskForm(prev => ({
+                        ...prev,
+                        classId: cId ? cId.toString() : '',
+                        subjectId: sId ? sId.toString() : ''
+                      }));
                       setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
                       setTaskModal(null);
                     }}
@@ -2166,8 +2214,8 @@ const GuruCourses = () => {
             </div>
             <div style={{ display: 'flex', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
               <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', display: 'block' }}>{classStudents.length || 0}</span>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>Siswa Binaan</span>
+                <span style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', display: 'block' }}>{totalTaughtStudentsCount || 0}</span>
+                <span style={{ fontSize: '11px', color: '#64748b' }}>Siswa yang Diajar</span>
               </div>
               <div style={{ borderRight: '1px solid #cbd5e1' }}></div>
               <div style={{ flex: 1 }}>
@@ -2338,6 +2386,44 @@ const GuruCourses = () => {
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Judul Tugas *</label>
                 <input type="text" required placeholder="Contoh: Tugas 1 - Pendahuluan Algoritma" value={newTaskForm.title} onChange={(e) => setNewTaskForm({ ...newTaskForm, title: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box' }} />
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Kelas *</label>
+                  <select
+                    value={newTaskForm.classId || ''}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, classId: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', background: '#ffffff' }}
+                  >
+                    {teacherClasses.length > 0 ? (
+                      teacherClasses.map(c => (
+                        <option key={c._id || c.id} value={c._id || c.id}>{c.name}</option>
+                      ))
+                    ) : (
+                      <option value={createNewTaskModal.targetSchedule.class_id?._id || createNewTaskModal.targetSchedule.class_id || createNewTaskModal.targetSchedule.id}>
+                        {createNewTaskModal.targetSchedule.class_name}
+                      </option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Mata Pelajaran *</label>
+                  <select
+                    value={newTaskForm.subjectId || ''}
+                    onChange={(e) => setNewTaskForm({ ...newTaskForm, subjectId: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', background: '#ffffff' }}
+                  >
+                    {teacherSubjects.length > 0 ? (
+                      teacherSubjects.map(s => (
+                        <option key={s._id || s.id} value={s._id || s.id}>{s.name}</option>
+                      ))
+                    ) : (
+                      <option value={createNewTaskModal.targetSchedule.subject_id?._id || createNewTaskModal.targetSchedule.subject_id}>
+                        {createNewTaskModal.targetSchedule.subject}
+                      </option>
+                    )}
+                  </select>
+                </div>
+              </div>
               <div style={{ marginBottom: '14px' }}>
                 <label style={{ fontSize: '12px', fontWeight: '800', color: '#334155', display: 'block', marginBottom: '4px' }}>Deskripsi</label>
                 <textarea rows="3" placeholder="Tuliskan instruksi tugas..." value={newTaskForm.description} onChange={(e) => setNewTaskForm({ ...newTaskForm, description: e.target.value })} style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }} />
@@ -2474,6 +2560,14 @@ const GuruCourses = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={() => {
+                    const sch = taskModal.targetSchedule;
+                    const cId = sch.class_id?._id || sch.class_id || sch.id;
+                    const sId = sch.subject_id?._id || sch.subject_id;
+                    setNewTaskForm(prev => ({
+                      ...prev,
+                      classId: cId ? cId.toString() : '',
+                      subjectId: sId ? sId.toString() : ''
+                    }));
                     setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
                     setTaskModal(null);
                   }}

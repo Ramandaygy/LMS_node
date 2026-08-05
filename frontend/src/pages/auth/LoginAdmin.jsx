@@ -33,7 +33,8 @@ const LoginAdmin = () => {
         return;
       }
 
-      if (user.role !== 'admin') {
+      const allowedRoles = ['admin', 'super_admin', 'wakil_kurikulum'];
+      if (!allowedRoles.includes(user.role)) {
         setError('Akun ini bukan akun admin. Akses ditolak.');
         setLoading(false);
         return;
@@ -50,8 +51,13 @@ const LoginAdmin = () => {
         localStorage.getItem('token')
       );
 
-      // FORCE RELOAD
-      window.location.href = '/dashboard/admin';
+      // Redirect based on role
+      if (user.role === 'wakil_kurikulum') {
+        localStorage.setItem('guruMode', 'guru');
+        window.location.href = '/dashboard/guru';
+      } else {
+        window.location.href = '/dashboard/admin';
+      }
 
     } catch (error) {
 

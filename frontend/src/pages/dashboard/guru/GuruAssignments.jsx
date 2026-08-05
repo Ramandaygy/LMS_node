@@ -417,8 +417,8 @@ const GuruAssignments = () => {
                   </div>
                   <div className="form-group">
                     <label>Kelas Target</label>
-                    <select name="class_id" value={formData.class_id} onChange={handleFormChange} required>
-                      <option value="">Pilih Kelas</option>
+                    <select name="class_id" value={formData.class_id} onChange={handleFormChange}>
+                      <option value="">Umum / Draf (Belum Didistribusikan)</option>
                       {teacherClasses.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                     </select>
                   </div>
