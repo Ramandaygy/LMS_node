@@ -8,6 +8,22 @@ const Schedule = require('../models/Schedule');
 exports.getTeacherSchedules = async (req, res) => {
   try {
     const teacherId = req.user.id || req.user._id;
+
+    // Auto-sync schedule subjects with teacher profile subjects
+    try {
+      const guruCollection = mongoose.connection.collection('users_guru');
+      const guru = await guruCollection.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
+      if (guru && guru.subjects && guru.subjects.length > 0) {
+        const teacherSubjectId = new mongoose.Types.ObjectId(guru.subjects[0]);
+        await Schedule.updateMany(
+          { teacher_id: new mongoose.Types.ObjectId(teacherId), subject_id: { $ne: teacherSubjectId } },
+          { $set: { subject_id: teacherSubjectId } }
+        );
+      }
+    } catch (syncErr) {
+      console.error('Error syncing teacher schedules:', syncErr);
+    }
+
     const schedules = await Schedule.find({ teacher_id: teacherId, is_active: true })
       .populate('class_id', 'name')
       .populate('subject_id', 'name');

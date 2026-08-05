@@ -95,6 +95,23 @@ exports.getAllSchedules = async (req, res) => {
 
 exports.getTeacherSchedule = async (req, res) => {
   try {
+    const { teacherId } = req.params;
+
+    // Auto-sync schedule subjects with teacher profile subjects
+    try {
+      const guruCollection = mongoose.connection.collection('users_guru');
+      const guru = await guruCollection.findOne({ _id: new mongoose.Types.ObjectId(teacherId) });
+      if (guru && guru.subjects && guru.subjects.length > 0) {
+        const teacherSubjectId = new mongoose.Types.ObjectId(guru.subjects[0]);
+        await Schedule.updateMany(
+          { teacher_id: new mongoose.Types.ObjectId(teacherId), subject_id: { $ne: teacherSubjectId } },
+          { $set: { subject_id: teacherSubjectId } }
+        );
+      }
+    } catch (syncErr) {
+      console.error('Error syncing teacher schedules:', syncErr);
+    }
+
     const data = await scheduleService.getTeacherSchedule(req.params.teacherId, req.query.academic_year_id);
     return res.json({ success: true, schedule: data });
   } catch (err) {

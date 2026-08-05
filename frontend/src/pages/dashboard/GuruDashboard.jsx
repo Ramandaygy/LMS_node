@@ -24,6 +24,8 @@ const GuruDashboard = () => {
   const [recentAssignments, setRecentAssignments] = useState([]);
   const [totalStudentsCount, setTotalStudentsCount] = useState(0);
   const [homeroomStatus, setHomeroomStatus] = useState(null);
+  const [academicYearLabel, setAcademicYearLabel] = useState('SMP Negeri 1 Suradadi | Semester Genap T.A. 2025/2026');
+  const [totalJP, setTotalJP] = useState(18);
 
   const [selectedDate] = useState(() => {
     const today = new Date();
@@ -50,12 +52,13 @@ const GuruDashboard = () => {
     try {
       setLoading(true);
 
-      const [profileRes, studentsRes, schedulesRes, assignmentsRes, dbSchedRes] = await Promise.allSettled([
+      const [profileRes, studentsRes, schedulesRes, assignmentsRes, dbSchedRes, yearsRes] = await Promise.allSettled([
         api.get('/profile'),
-        api.get('/users/students/all'),
+        api.get('/guru/students'),
         api.get('/attendance/schedules'),
         api.get('/assignments/guru/me'),
-        api.get('/schedules')
+        api.get('/schedules'),
+        api.get('/academic-years')
       ]);
 
       const profileData = profileRes.status === 'fulfilled' ? (profileRes.value.data || {}) : {};
@@ -78,11 +81,28 @@ const GuruDashboard = () => {
       const fetchedSchedules = schedulesRes.status === 'fulfilled' ? (schedulesRes.value.data?.schedules || []) : [];
       setSchedules(fetchedSchedules);
 
+      // Calculate total JP dynamically
+      const calculateJP = (start, end) => {
+        if (!start || !end) return 2;
+        const [startH, startM] = start.split(':').map(Number);
+        const [endH, endM] = end.split(':').map(Number);
+        const diffMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+        return Math.max(1, Math.round(diffMinutes / 40));
+      };
+      const computedJP = fetchedSchedules.reduce((acc, s) => acc + calculateJP(s.start_time, s.end_time), 0);
+      setTotalJP(computedJP || (profileData.classes ? profileData.classes.length * 6 : 18));
+
       const fetchedDbSched = dbSchedRes.status === 'fulfilled' ? (dbSchedRes.value.data?.data || []) : [];
       setAllDbSchedules(fetchedDbSched);
 
       const allAssignments = assignmentsRes.status === 'fulfilled' ? (assignmentsRes.value.data?.data || []) : [];
       setRecentAssignments(allAssignments);
+
+      const yearsList = yearsRes.status === 'fulfilled' ? (yearsRes.value.data?.academic_years || yearsRes.value.data?.data || []) : [];
+      const activeYear = yearsList.find(y => y.is_active);
+      if (activeYear) {
+        setAcademicYearLabel(`SMP Negeri 1 Suradadi | Tahun Ajaran ${activeYear.year} - ${activeYear.semester}`);
+      }
 
       setLoading(false);
     } catch (err) {
@@ -129,29 +149,29 @@ const GuruDashboard = () => {
     total_pertemuan: 16
   }));
 
-  const filteredDbSchedules = allDbSchedules.filter(s => 
+  const filteredDbSchedules = allDbSchedules.filter(s =>
     (s.teacher_id === profile?._id || s.teacher_id?._id === profile?._id) &&
     (s.day || '').toUpperCase() === selectedDay.toUpperCase()
   );
 
-  const displaySchedules = filteredDbSchedules.length > 0 
+  const displaySchedules = filteredDbSchedules.length > 0
     ? filteredDbSchedules.map((s, idx) => ({
-        id: s._id,
-        class_name: s.class_id?.name || 'Kelas',
-        subject: s.subject_id?.name || 'Informatika',
-        day: s.day,
-        start_time: s.start_time || '07:30',
-        end_time: s.end_time || '09:30',
-        room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
-        pertemuan_ke: 9 + idx,
-        presensi_count: 11 + idx,
-        total_pertemuan: 16
-      }))
+      id: s._id,
+      class_name: s.class_id?.name || 'Kelas',
+      subject: s.subject_id?.name || 'Informatika',
+      day: s.day,
+      start_time: s.start_time || '07:30',
+      end_time: s.end_time || '09:30',
+      room: s.room || ('Ruang Kelas ' + (s.class_id?.name || '')),
+      pertemuan_ke: 9 + idx,
+      presensi_count: 11 + idx,
+      total_pertemuan: 16
+    }))
     : baseSchedules;
 
   return (
     <div className="modul-guru-container" style={{ padding: '24px', maxWidth: '1360px', margin: '0 auto' }}>
-      
+
       {/* WELCOME BANNER CARD */}
       <div style={{
         background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
@@ -174,7 +194,7 @@ const GuruDashboard = () => {
             Selamat Datang, {profile?.full_name || 'Susi Herlina, S.Kom.'}!
           </h2>
           <p style={{ fontSize: '13px', margin: 0, opacity: 0.9 }}>
-            SMP Negeri 1 Suradadi | Semester Genap T.A. 2025/2026
+            {academicYearLabel}
           </p>
         </div>
 
@@ -202,7 +222,7 @@ const GuruDashboard = () => {
 
       {/* SUMMARY STATS GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        
+
         <div style={{ background: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#e0f2fe', color: '#0284c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>group</span>
@@ -229,11 +249,11 @@ const GuruDashboard = () => {
           </div>
           <div>
             <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '700', display: 'block' }}>Beban Mengajar</span>
-            <strong style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>{activeClasses.length * 6} JP / Mggu</strong>
+            <strong style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a' }}>{totalJP} JP / Mggu</strong>
           </div>
         </div>
 
-        <div 
+        <div
           onClick={() => homeroomStatus && navigate('/dashboard/guru/walikelas')}
           style={{ background: '#ffffff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)', display: 'flex', alignItems: 'center', gap: '16px', cursor: homeroomStatus ? 'pointer' : 'default' }}
         >
@@ -257,7 +277,7 @@ const GuruDashboard = () => {
           Pintasan Menu Utama Guru
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-          
+
           <button
             onClick={() => navigate('/dashboard/guru/courses')}
             style={{ padding: '14px', borderRadius: '12px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontWeight: '800', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}
@@ -305,7 +325,7 @@ const GuruDashboard = () => {
 
       {/* TODAY'S SCHEDULE SUMMARY & RECENT ACTIVITIES */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
-        
+
         {/* LEFT COLUMN: TODAY SCHEDULE SUMMARY */}
         <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -326,7 +346,7 @@ const GuruDashboard = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {displaySchedules.slice(0, 3).map((sch, idx) => (
-              <div 
+              <div
                 key={sch.id || idx}
                 onClick={() => navigate('/dashboard/guru/courses')}
                 style={{
