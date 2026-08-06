@@ -34,7 +34,7 @@ exports.sendOtpEmail = async (toEmail, otpCode, fullName = 'Pengguna') => {
   const mailOptions = {
     from: `"LMS SMP N 1 Suradadi" <${process.env.SMTP_USER || 'no-reply@lmssmpn1suradadi.sch.id'}>`,
     to: toEmail,
-    subject: ' Kode OTP Verifikasi Reset Password - LMS SMP N 1 Suradadi',
+    subject: '🔒 Kode OTP Verifikasi Reset Password - LMS SMP N 1 Suradadi',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
         <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #0040a1;">
@@ -108,7 +108,7 @@ exports.sendCredentialsEmail = async (toEmail, username, password, fullName, rol
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
         <div style="text-align: center; padding-bottom: 20px; border-bottom: 2px solid #0284c7;">
-          <h2 style="color: #0284c7; nodemargin: 0;">LMS SMP N 1 SURADADI</h2>
+          <h2 style="color: #0284c7; margin: 0;">LMS SMP N 1 SURADADI</h2>
           <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Penyediaan Kredensial Akun Pengguna Terpusat</p>
         </div>
 
