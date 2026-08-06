@@ -325,6 +325,10 @@ exports.getOrtuChildren = async (req, res) => {
         full_name: child.full_name,
         nis: child.nis || child.nisn || '-',
         class_name: className || 'Kelas 8B',
+        email: child.email || '-',
+        phone: child.phone || '-',
+        gender: child.gender === 'L' ? 'Laki-laki' : child.gender === 'P' ? 'Perempuan' : child.gender || '-',
+        address: child.address || '-'
       });
     }
     return res.json({ success: true, children: formatted });
@@ -336,22 +340,40 @@ exports.getOrtuChildren = async (req, res) => {
 
 exports.getOrtuAttendance = async (req, res) => {
   try {
-    const { child_id, month, year } = req.query;
+    const { child_id, academic_year, semester } = req.query;
     if (!child_id) return res.status(400).json({ error: 'child_id required' });
 
     let start, end;
-    if (month && year) {
-      start = new Date(year, month - 1, 1);
-      end = new Date(year, month, 0, 23, 59, 59);
+    if (academic_year && semester) {
+      const years = academic_year.split('/');
+      const yearStart = parseInt(years[0]);
+      const yearEnd = parseInt(years[1]) || (yearStart + 1);
+
+      if (semester.toLowerCase() === 'ganjil') {
+        start = new Date(yearStart, 6, 1, 0, 0, 0); // July 1
+        end = new Date(yearStart, 11, 31, 23, 59, 59); // Dec 31
+      } else {
+        start = new Date(yearEnd, 0, 1, 0, 0, 0); // Jan 1
+        end = new Date(yearEnd, 5, 30, 23, 59, 59); // June 30
+      }
     } else {
-      start = new Date();
-      start.setHours(0, 0, 0, 0);
-      end = new Date();
-      end.setHours(23, 59, 59, 999);
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth();
+      if (currentMonth >= 6) {
+        start = new Date(currentYear, 6, 1, 0, 0, 0);
+        end = new Date(currentYear, 11, 31, 23, 59, 59);
+      } else {
+        start = new Date(currentYear - 1, 0, 1, 0, 0, 0);
+        end = new Date(currentYear, 5, 30, 23, 59, 59);
+      }
     }
 
-    const attendance = await Attendance.find({
-      student_id: child_id,
+    const DailyAttendance = require('../models/DailyAttendance');
+    let childObjId;
+    try { childObjId = new mongoose.Types.ObjectId(child_id.toString()); } catch(e) { childObjId = child_id; }
+
+    const attendance = await DailyAttendance.find({
+      student_id: childObjId,
       date: { $gte: start, $lte: end },
     }).sort({ date: -1 });
 
@@ -372,10 +394,14 @@ exports.getOrtuTodayAttendance = async (req, res) => {
     const end = new Date();
     end.setHours(23, 59, 59, 999);
 
-    const attendance = await Attendance.find({
-      student_id: childId,
+    const DailyAttendance = require('../models/DailyAttendance');
+    let childObjId;
+    try { childObjId = new mongoose.Types.ObjectId(childId.toString()); } catch(e) { childObjId = childId; }
+
+    const attendance = await DailyAttendance.find({
+      student_id: childObjId,
       date: { $gte: start, $lte: end },
-    }).populate('schedule_id').populate('teacher_id', 'full_name');
+    });
 
     return res.json({ success: true, attendance });
   } catch (err) {

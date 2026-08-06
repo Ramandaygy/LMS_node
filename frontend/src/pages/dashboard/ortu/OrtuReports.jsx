@@ -146,13 +146,28 @@ const OrtuReports = () => {
     <div className="ortu-reports-container" style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
       <style>
         {`
+          .print-area {
+            max-width: 100%;
+          }
+          .print-area table {
+            display: block;
+            width: 100%;
+            overflow-x: auto;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            white-space: nowrap;
+          }
+          .print-area table th, .print-area table td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+          }
           @media print {
             body * { visibility: hidden !important; }
             .print-area, .print-area * { visibility: visible !important; }
             .print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; border: none !important; box-shadow: none !important; }
             .no-print { display: none !important; }
             .print-header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            table { width: 100% !important; min-width: 0 !important; border-collapse: collapse; margin-bottom: 20px; }
             th, td { border: 1px solid #000; padding: 8px; text-align: left; }
             th { background-color: #f2f2f2 !important; -webkit-print-color-adjust: exact; }
           }

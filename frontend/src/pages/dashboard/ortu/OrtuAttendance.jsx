@@ -7,8 +7,8 @@ const OrtuAttendance = () => {
   const [selectedChild, setSelectedChild] = useState('');
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterMonth, setFilterMonth] = useState(new Date().getMonth() + 1);
-  const [filterYear, setFilterYear] = useState(new Date().getFullYear());
+  const [filterSemester, setFilterSemester] = useState(new Date().getMonth() >= 6 ? 'Ganjil' : 'Genap');
+  const [filterAcademicYear, setFilterAcademicYear] = useState(`${new Date().getFullYear() - (new Date().getMonth() >= 6 ? 0 : 1)}/${new Date().getFullYear() + (new Date().getMonth() >= 6 ? 1 : 0)}`);
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ const OrtuAttendance = () => {
 
   useEffect(() => {
     if (selectedChild) fetchAttendance();
-  }, [selectedChild, filterMonth, filterYear]);
+  }, [selectedChild, filterSemester, filterAcademicYear]);
 
   const fetchChildren = async () => {
     try {
@@ -35,7 +35,7 @@ const OrtuAttendance = () => {
   const fetchAttendance = async () => {
     try {
       const res = await api.get('/ortu/attendance', {
-        params: { child_id: selectedChild, month: filterMonth, year: filterYear },
+        params: { child_id: selectedChild, academic_year: filterAcademicYear, semester: filterSemester },
       });
       const data = res.data.attendance || [];
       setAttendance(data);
@@ -126,19 +126,18 @@ const OrtuAttendance = () => {
             <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Rekap Absensi</h3>
             <div className="filter-section">
               <div className="filter-group">
-                <label>Bulan</label>
-                <select value={filterMonth} onChange={e => setFilterMonth(parseInt(e.target.value))}>
-                  {months.map((m, i) => (
-                    <option key={i+1} value={i+1}>{m}</option>
+                <label>Tahun Ajaran</label>
+                <select value={filterAcademicYear} onChange={e => setFilterAcademicYear(e.target.value)}>
+                  {['2024/2025', '2025/2026', '2026/2027', '2027/2028'].map(y => (
+                    <option key={y} value={y}>{y}</option>
                   ))}
                 </select>
               </div>
               <div className="filter-group">
-                <label>Tahun</label>
-                <select value={filterYear} onChange={e => setFilterYear(parseInt(e.target.value))}>
-                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map(y => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
+                <label>Semester</label>
+                <select value={filterSemester} onChange={e => setFilterSemester(e.target.value)}>
+                  <option value="Ganjil">Ganjil</option>
+                  <option value="Genap">Genap</option>
                 </select>
               </div>
             </div>

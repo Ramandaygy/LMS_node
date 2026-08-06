@@ -155,28 +155,65 @@ const OrtuDashboard = () => {
           </div>
         )}
 
-        {/* Tugas Mendatang */}
-        {selectedChild && (
-          <div className="assignments-card card-section">
-            <h3>Tugas Mendatang</h3>
-            {assignments.length > 0 ? (
-              <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
-                {assignments.map(a => (
-                  <div key={a._id} className="task-item" style={{ borderLeft: '4px solid #0040a1', paddingLeft: '12px' }}>
-                    <div>
-                      <strong>{a.title}</strong>
-                      <div style={{ fontSize: '12px', color: '#666' }}>
-                        Mata Pelajaran: {a.subject_name || '-'} | Tenggat: {new Date(a.deadline).toLocaleDateString('id-ID')}
+        {/* Peringatan Tenggat Tugas (EWS Notifikasi) */}
+        {selectedChild && (() => {
+          const now = new Date();
+          const warnings = assignments.filter(a => {
+            if (a.submitted) return false;
+            const diffMs = new Date(a.deadline) - now;
+            const diffHours = diffMs / (1000 * 60 * 60);
+            return diffHours > 0 && diffHours <= 24;
+          });
+
+          if (warnings.length === 0) return null;
+
+          return (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '16px', padding: '18px 24px', marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>warning</span>
+                <strong style={{ fontSize: '15px' }}>⚠️ Peringatan Tenggat Tugas Mendekati Batas!</strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {warnings.map(w => {
+                  const hoursLeft = Math.ceil((new Date(w.deadline) - now) / (1000 * 60 * 60));
+                  return (
+                    <div key={w._id} style={{ fontSize: '13px', color: '#7f1d1d', fontWeight: '500' }}>
+                      Anak Anda belum mengumpulkan tugas <strong>"{w.title}"</strong> ({w.subject_name || 'Mata Pelajaran'}) yang akan berakhir dalam <strong>{hoursLeft} jam lagi!</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Tugas Mendatang (Belum Dikerjakan & Belum Overdue) */}
+        {selectedChild && (() => {
+          const now = new Date();
+          const activeTasks = assignments.filter(a => !a.submitted && new Date(a.deadline) > now);
+
+          return (
+            <div className="assignments-card card-section">
+              <h3>Tugas Aktif & Belum Dikerjakan</h3>
+              {activeTasks.length > 0 ? (
+                <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
+                  {activeTasks.map(a => (
+                    <div key={a._id} className="task-item" style={{ borderLeft: '4px solid #0284c7', paddingLeft: '12px', background: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
+                      <div>
+                        <strong>{a.title}</strong>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                          Mata Pelajaran: {a.subject_name || '-'} | Tenggat: {new Date(a.deadline).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ color: '#666' }}>Tidak ada tugas yang aktif saat ini.</p>
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              ) : (
+                <p style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Tidak ada tugas aktif yang belum dikerjakan saat ini.</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Rekomendasi Sederhana */}
         <div className="suggestion-card">

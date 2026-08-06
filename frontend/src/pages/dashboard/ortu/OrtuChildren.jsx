@@ -70,16 +70,28 @@ const OrtuChildren = () => {
                 }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '38px' }}>face</span>
                 </div>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <h3 style={{ margin: '0 0 6px 0', color: '#0f172a', fontSize: '20px', fontWeight: '800' }}>{child.full_name}</h3>
-                  <div style={{ color: '#475569', fontSize: '14px', marginBottom: '4px', fontWeight: '600' }}>
-                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>NIS:</span> {child.nis || '-'}
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>NIS:</span> {child.nis}
                   </div>
-                  <div style={{ color: '#475569', fontSize: '14px', fontWeight: '600' }}>
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
                     <span style={{ color: '#94a3b8', marginRight: '6px' }}>Kelas:</span> 
-                    <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', marginLeft: '4px' }}>
+                    <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700' }}>
                       {child.class_name || 'Tidak ada kelas'}
                     </span>
+                  </div>
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>Email:</span> {child.email}
+                  </div>
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>No HP:</span> {child.phone}
+                  </div>
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>Kelamin:</span> {child.gender}
+                  </div>
+                  <div style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+                    <span style={{ color: '#94a3b8', marginRight: '6px' }}>Alamat:</span> {child.address}
                   </div>
                 </div>
               </div>
