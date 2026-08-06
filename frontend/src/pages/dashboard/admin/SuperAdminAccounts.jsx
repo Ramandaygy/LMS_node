@@ -115,7 +115,7 @@ const SuperAdminAccounts = () => {
       } else {
         // Create user
         await api.post('/users', formData);
-        setSuccessMsg('Akun baru berhasil dibuat (diprovisikan)!');
+        setSuccessMsg('Akun baru berhasil dibuat!');
       }
       setShowModal(false);
       fetchUsers();
@@ -232,10 +232,10 @@ const SuperAdminAccounts = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' }}>
-            SUPER ADMINISTRATOR
+            SUPER ADMIN
           </span>
           <h2 style={{ fontSize: '26px', color: '#0f172a', fontWeight: '800', margin: '8px 0 0 0' }}>
-            Penyediaan Akun Terpusat (Provisioning)
+            Penyediaan Akun Terpusat 
           </h2>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>

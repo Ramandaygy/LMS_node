@@ -88,6 +88,19 @@ exports.sendCredentialsEmail = async (toEmail, username, password, fullName, rol
   };
   const roleLabel = roleLabels[role] || role;
 
+  const loginPaths = {
+    siswa: '/login/siswa',
+    ortu: '/login/ortu',
+    guru: '/login/guru',
+    bk: '/login/guru',
+    wakil_kurikulum: '/login/guru',
+    admin: '/login/admin',
+    super_admin: '/login/admin'
+  };
+  const loginPath = loginPaths[role] || '/login';
+  const baseUrl = process.env.FRONTEND_URL || 'https://lms-node.vercel.app';
+  const fullLoginUrl = `${baseUrl}${loginPath}`;
+
   const mailOptions = {
     from: `"LMS SMP N 1 Suradadi" <${process.env.SMTP_USER || 'no-reply@lmssmpn1suradadi.sch.id'}>`,
     to: toEmail,
@@ -127,7 +140,7 @@ exports.sendCredentialsEmail = async (toEmail, username, password, fullName, rol
           </p>
 
           <div style="text-align: center; margin: 24px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/login" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
+            <a href="${fullLoginUrl}" style="display: inline-block; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
               Login ke LMS
             </a>
           </div>
