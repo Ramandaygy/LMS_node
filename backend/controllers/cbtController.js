@@ -125,10 +125,35 @@ exports.getExams = async (req, res) => {
         $or: classConditions
       };
     } else if (userRole === 'guru') {
-      query.$or = [
-        { teacher: userObjId },
-        { teacher: userId.toString() }
-      ];
+      const guruCol = mongoose.connection.collection('users_guru');
+      const teacherDoc = await guruCol.findOne({ _id: userObjId });
+      const teacherSubjects = teacherDoc && Array.isArray(teacherDoc.subjects) ? teacherDoc.subjects : [];
+
+      if (teacherSubjects.length > 0) {
+        query = {
+          $and: [
+            {
+              $or: [
+                { teacher: userObjId },
+                { teacher: userId.toString() }
+              ]
+            },
+            {
+              $or: [
+                { subject: { $in: teacherSubjects } },
+                { subject_id: { $in: teacherSubjects.map(id => id.toString()) } }
+              ]
+            }
+          ]
+        };
+      } else {
+        query = {
+          $or: [
+            { teacher: userObjId },
+            { teacher: userId.toString() }
+          ]
+        };
+      }
     }
 
     const rawExams = await CbtExam.find(query)

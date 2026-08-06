@@ -93,23 +93,43 @@ exports.exportStudents = async (req, res) => {
     ]).toArray();
 
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Data Siswa');
-    worksheet.columns = [
-      { header: 'NIS', key: 'nis', width: 15 },
-      { header: 'Nama Lengkap', key: 'full_name', width: 30 },
-      { header: 'Kelas', key: 'class_name', width: 15 },
-      { header: 'Orang Tua / Wali', key: 'orang_tua_nama', width: 30 },
-      { header: 'Status', key: 'status_formatted', width: 15 }
-    ];
-
+    
+    // Group students by class name
+    const grouped = {};
     students.forEach(s => {
-      worksheet.addRow({
-        nis: s.nis || '-',
-        full_name: s.full_name || '-',
-        class_name: s.class_name || '-',
-        orang_tua_nama: s.orang_tua_nama || '-',
-        status_formatted: s.status === 'active' ? 'Aktif' : 'Nonaktif'
+      const className = s.class_name || 'Tanpa Kelas';
+      if (!grouped[className]) grouped[className] = [];
+      grouped[className].push(s);
+    });
+
+    // Sort class names alphabetically
+    const classNames = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+
+    classNames.forEach(className => {
+      const worksheet = workbook.addWorksheet(className);
+      worksheet.columns = [
+        { header: 'NIS', key: 'nis', width: 15 },
+        { header: 'Nama Lengkap', key: 'full_name', width: 30 },
+        { header: 'Kelas', key: 'class_name', width: 15 },
+        { header: 'Orang Tua / Wali', key: 'orang_tua_nama', width: 30 },
+        { header: 'Status', key: 'status_formatted', width: 15 }
+      ];
+
+      // Sort students in this class by full_name
+      grouped[className].sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+
+      grouped[className].forEach(s => {
+        worksheet.addRow({
+          nis: s.nis || '-',
+          full_name: s.full_name || '-',
+          class_name: s.class_name || '-',
+          orang_tua_nama: s.orang_tua_nama || '-',
+          status_formatted: s.status === 'active' ? 'Aktif' : 'Nonaktif'
+        });
       });
+
+      // Style header row
+      worksheet.getRow(1).font = { bold: true };
     });
 
     await sendExcelFile(res, workbook, 'laporan_siswa.xlsx');
@@ -377,21 +397,27 @@ exports.importStudents = async (req, res) => {
 
 exports.exportTeachers = async (req, res) => {
   try {
-    const teachers = await getCollection('users_guru').aggregate([
-      { $lookup: { from: 'subjects', localField: 'subjects', foreignField: '_id', as: 'subject_details' } },
-      { $lookup: { from: 'classes', localField: 'classes', foreignField: '_id', as: 'class_details' } },
-      {
-        $project: {
-          _id: 0,
-          nip: 1,
-          full_name: 1,
-          teacher_code: { $ifNull: ['$teacher_code', '$username'] },
-          subjects: { $map: { input: '$subject_details', as: 's', in: '$$s.name' } },
-          phone: 1,
-          is_active: 1
-        }
+    const teachersRaw = await getCollection('users_guru').find({}).toArray();
+    const subjects = await getCollection('subjects').find({}).toArray();
+    const subjectMap = {};
+    subjects.forEach(s => {
+      subjectMap[s._id.toString()] = s.name;
+    });
+
+    const teachers = teachersRaw.map(t => {
+      let teacherSubjects = [];
+      if (Array.isArray(t.subjects)) {
+        teacherSubjects = t.subjects.map(subId => subjectMap[subId.toString()]).filter(Boolean);
       }
-    ]).toArray();
+      return {
+        nip: t.nip || '-',
+        full_name: t.full_name || '-',
+        teacher_code: t.teacher_code || t.username || '-',
+        subjects: teacherSubjects,
+        phone: t.phone || '-',
+        is_active: t.is_active
+      };
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Data Guru');
@@ -409,7 +435,7 @@ exports.exportTeachers = async (req, res) => {
         nip: t.nip || '-',
         full_name: t.full_name || '-',
         teacher_code: t.teacher_code || '-',
-        subjects_formatted: t.subjects ? t.subjects.join(', ') : '-',
+        subjects_formatted: t.subjects.length > 0 ? t.subjects.join(', ') : '-',
         phone: t.phone || '-',
         status_formatted: t.is_active ? 'Aktif' : 'Nonaktif'
       });

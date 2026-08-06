@@ -52,15 +52,36 @@ exports.getMaterialsByTeacher = async (teacherId) => {
   return await enrichMaterials(materials);
 };
 
-// UNTUK SISWA (materi berdasarkan kelas siswa)
 exports.getMaterialsForStudent = async (classId, subjectId = null) => {
   if (!classId) return [];
 
+  let classIdStr = classId.toString();
+  let classIdObj;
+  try {
+    classIdObj = new mongoose.Types.ObjectId(classIdStr);
+  } catch (e) {
+    classIdObj = classId;
+  }
+
   const filter = {
-    class_id: new mongoose.Types.ObjectId(classId.toString()),
+    $or: [
+      { class_id: classIdStr },
+      { class_id: classIdObj },
+      { class: classIdStr },
+      { class: classIdObj }
+    ]
   };
+
   if (subjectId) {
-    filter.subject_id = new mongoose.Types.ObjectId(subjectId.toString());
+    let subIdStr = subjectId.toString();
+    let subIdObj;
+    try { subIdObj = new mongoose.Types.ObjectId(subIdStr); } catch (e) { subIdObj = subjectId; }
+    filter.$or.push(
+      { subject_id: subIdStr },
+      { subject_id: subIdObj },
+      { subject: subIdStr },
+      { subject: subIdObj }
+    );
   }
 
   const materials = await Material.find(filter).sort({ order: 1 });

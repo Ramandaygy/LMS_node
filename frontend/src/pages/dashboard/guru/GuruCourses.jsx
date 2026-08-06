@@ -37,18 +37,15 @@ const getMeetingDate = (day, sessionIdx) => {
     'KAMIS': 4, 'JUMAT': 5, 'SABTU': 6 
   };
   
-  const now = new Date();
-  const currentDay = now.getDay();
-  const targetDay = dayMap[day] || 1;
+  // Anchor to the start of the semester (Monday, August 10, 2026)
+  const semesterStart = new Date('2026-08-10T00:00:00');
+  const targetDayOffset = dayMap[day] || 1; // Monday is 1, Tuesday is 2, etc.
   
-  let diff = targetDay - currentDay;
-  if (diff < 0) diff += 7;
+  // Day offset from Monday (e.g. Wednesday is 2 days after Monday)
+  const offsetFromMonday = targetDayOffset - 1; 
   
-  const firstMeeting = new Date(now);
-  firstMeeting.setDate(now.getDate() + diff);
-  
-  const meetingDate = new Date(firstMeeting);
-  meetingDate.setDate(firstMeeting.getDate() + (sessionIdx * 7));
+  const meetingDate = new Date(semesterStart);
+  meetingDate.setDate(semesterStart.getDate() + offsetFromMonday + (sessionIdx * 7));
   
   return meetingDate;
 };
@@ -1459,7 +1456,7 @@ const GuruCourses = () => {
                         else if (status === 'tidak_hadir' || status === 'absent' || status === 'alfa') alfa++;
                       }
                       const total = hadir + sakit + izin + alfa;
-                      const percentage = total > 0 ? Math.round((hadir / total) * 100) : 0;
+                      const percentage = total > 0 ? Math.round(((hadir + sakit + izin) / total) * 100) : 100;
 
                       return (
                         <tr key={st._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>

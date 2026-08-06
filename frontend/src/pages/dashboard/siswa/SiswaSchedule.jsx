@@ -70,9 +70,9 @@ const SiswaSchedule = () => {
       if (mRes.status === 'fulfilled') {
         const allMats = mRes.value.data.data || mRes.value.data.materials || [];
         setModalMaterials(allMats.filter(m => {
-          const mSub = (m.subject_id?._id || m.subject_id || '').toString();
+          const mSub = (m.subject_id?._id || m.subject_id || m.subject || '').toString();
           const targetSub = (subjectId || '').toString();
-          const mClass = (m.class_id?._id || m.class_id || '').toString();
+          const mClass = (m.class_id?._id || m.class_id || m.class || '').toString();
           const targetClass = (classId || '').toString();
           const isSessionMatch = parseInt(m.session_number) === sessionNum;
           return (mSub === targetSub || (m.title && sch.subject_id?.name && m.title.toLowerCase().includes(sch.subject_id.name.toLowerCase()))) &&
@@ -83,7 +83,7 @@ const SiswaSchedule = () => {
       if (tRes.status === 'fulfilled') {
         const allTasks = tRes.value.data.assignments || tRes.value.data.data || [];
         setModalTasks(allTasks.filter(t => {
-          const tSub = (t.subject_id?._id || t.subject_id || '').toString();
+          const tSub = (t.subject_id?._id || t.subject_id || t.subject || '').toString();
           const targetSub = (subjectId || '').toString();
           const tSession = t.session_number ? parseInt(t.session_number) : 1;
           const isSessionMatch = tSession === sessionNum;

@@ -39,7 +39,23 @@ exports.getAssignmentsByTeacher = async (teacherId) => {
 // UNTUK SISWA
 exports.getAssignmentsForStudent = async (classId, studentId) => {
   // 1. Ambil semua assignment untuk kelas ini
-  const assignments = await Assignment.find({ class: classId, is_active: true }).sort({ deadline: 1 });
+  let classIdStr = classId.toString();
+  let classIdObj;
+  try {
+    classIdObj = new mongoose.Types.ObjectId(classIdStr);
+  } catch (e) {
+    classIdObj = classId;
+  }
+
+  const assignments = await Assignment.find({
+    $or: [
+      { class: classIdStr },
+      { class: classIdObj },
+      { class_id: classIdStr },
+      { class_id: classIdObj }
+    ],
+    is_active: true
+  }).sort({ deadline: 1 });
   if (!assignments.length) return [];
 
   // 2. Ambil semua submission siswa untuk assignment ini
