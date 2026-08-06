@@ -99,4 +99,19 @@ router.delete(
   userController.deleteUser
 );
 
+// ======================================
+// SEND EMAIL CREDENTIALS (PROVISIONING)
+// ======================================
+router.post(
+  '/send-email-all',
+  authMiddleware,
+  userController.sendEmailAll
+);
+
+router.post(
+  '/:id/send-email',
+  authMiddleware,
+  userController.sendEmailSingle
+);
+
 module.exports = router;

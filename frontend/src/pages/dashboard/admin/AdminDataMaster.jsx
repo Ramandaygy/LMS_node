@@ -13,8 +13,6 @@ const AdminDataMaster = () => {
   const tabs = [
     { key: 'students', label: 'Siswa', component: <AdminStudents /> },
     { key: 'teachers', label: 'Guru', component: <AdminTeachers /> },
-    { key: 'subjects', label: 'Mata Pelajaran', component: <AdminSubjects /> },
-    { key: 'classes', label: 'Kelas', component: <AdminClasses /> },
     { key: 'parents', label: 'Orang Tua', component: <AdminParents /> },
   ];
 

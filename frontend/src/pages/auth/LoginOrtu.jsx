@@ -88,10 +88,9 @@ const LoginOrtu = () => {
 
           {/* Form Card */}
           <div className="auth-card-modern">
-            {/* Tab Navigation */}
-            <div className="auth-tabs">
-              <button className="auth-tab active">LOGIN</button>
-              <Link to="/register/ortu" className="auth-tab">REGISTER</Link>
+            <div className="auth-header-modern" style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: '800', color: '#1e293b', margin: '0 0 4px 0' }}>LOGIN ORANG TUA</h3>
+              <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>Portal Pemantauan Orang Tua SMPN 1 Suradadi</p>
             </div>
 
             <form onSubmit={handleSubmit}>

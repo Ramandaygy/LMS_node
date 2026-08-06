@@ -302,7 +302,7 @@ const Profile = () => {
             </>
           )}
 
-          {user?.role === 'guru' && (
+          {(user?.role === 'guru' || user?.role === 'wakil_kurikulum') && (
             <>
               <div className="info-row">
                 <span className="info-label">NIP</span>

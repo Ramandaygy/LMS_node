@@ -137,6 +137,12 @@ app.use(
   require('./routes/scheduleRoutes')
 );
 
+// BACKUP & RESTORE
+app.use(
+  '/api/backup',
+  require('./routes/backupRoutes')
+);
+
 // CBT EXAMS
 app.use(
   '/api/cbt',

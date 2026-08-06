@@ -40,7 +40,7 @@ exports.getProfile = async (req, res) => {
     const result = { ...user };
     delete result.password;
 
-    const isTeacher = user.role === 'guru' || user.role === 'bk' || collectionName === 'users_guru';
+    const isTeacher = user.role === 'guru' || user.role === 'bk' || user.role === 'wakil_kurikulum' || collectionName === 'users_guru';
 
     // Populasi subjects dan classes
     if (isTeacher && user.subjects && user.subjects.length) {

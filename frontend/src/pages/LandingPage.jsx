@@ -145,7 +145,7 @@ const LandingPage = () => {
         <div className="container cta-container">
           <div className="cta-content">
             <h2>Siap Memulai Langkah Pertama Anda?</h2>
-            <p>Daftarkan diri Anda sekarang atau hubungi tim konselor akademik kami untuk informasi lebih lanjut mengenai kurikulum dan pendaftaran.</p>
+            <p>Hubungi admin sekolah untuk mendapatkan detail akun LMS Anda atau hubungi tim konselor akademik kami untuk informasi lebih lanjut mengenai kurikulum.</p>
             <div className="cta-buttons">
               <Link to="/kontak" className="cta-btn-primary">Hubungi Kami</Link>
               <Link to="/tentang" className="cta-btn-secondary">Jadwal Open House</Link>

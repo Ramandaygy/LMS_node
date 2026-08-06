@@ -327,7 +327,7 @@ const GuruStudents = () => {
         <div>
           <h2 className="page-title" style={{ margin: 0 }}>Matriks Leger Nilai Akhir Rapor (Wali Kelas)</h2>
           <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '14px' }}>
-            Rekapitulasi Matriks Nilai Akhir Rapor per Mata Pelajaran (Formula 2:1:1) dan Pencetakan Rapor Siswa Binaan.
+            Rekapitulasi Matriks Nilai Akhir Rapor per Mata Pelajaran  dan Pencetakan Rapor Siswa Binaan.
           </p>
         </div>
         <div className="grade-legend">
@@ -370,7 +370,7 @@ const GuruStudents = () => {
               <th rowSpan="2" className="text-center">No</th>
               <th rowSpan="2" className="text-left th-name-sticky">Nama Siswa</th>
               <th colSpan={subjects.length} className="text-center th-section-header" style={{ background: '#0284c7', color: '#fff' }}>
-                Matriks Nilai Akhir (NA) Rapor per Mapel (Formula 2:1:1)
+                Matriks Nilai Akhir (NA) Rapor per Mapel 
               </th>
               <th rowSpan="2" className="text-center th-bold-header">Jml NA</th>
               <th rowSpan="2" className="text-center th-bold-header">Rata Rapor</th>
@@ -533,7 +533,7 @@ const GuruStudents = () => {
             <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '14px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: '#0f172a' }}>
-                  Edit & Pratinjau Rapor Kurikulum Merdeka
+                  Edit & Pratinjau Rapor 
                 </h3>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>
                   Format Resmi Rapor Kurikulum Merdeka (Formula: NA = (Tugas Harian + PTS + PAS) / 3)
@@ -621,7 +621,7 @@ const GuruStudents = () => {
             {/* RAPOR HEADER / KOP */}
             <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                RAPOR INTRAKURIKULER
+                RAPOR Hasil Belajar SISWA
               </h2>
               <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{raporSchoolName}</div>
             </div>

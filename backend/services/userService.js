@@ -240,6 +240,11 @@ exports.getUsersByRole = async (role) => {
 exports.createUser = async (userData) => {
   let collection;
 
+  // Phone Validation
+  if (userData.phone && !/^\d{10,13}$/.test(userData.phone)) {
+    throw new Error('No HP harus berupa angka sepanjang 10 sampai 13 digit');
+  }
+
   switch (userData.role) {
     case 'siswa':
       collection = getCollection('users_siswa');
@@ -248,13 +253,25 @@ exports.createUser = async (userData) => {
       }
       break;
     case 'guru':
+    case 'bk':
       collection = getCollection('users_guru');
+      if (userData.nip && !/^\d{9,18}$/.test(userData.nip)) {
+        throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
+      }
       break;
     case 'admin':
+    case 'super_admin':
+    case 'wakil_kurikulum':
       collection = getCollection('users_admin');
+      if (userData.role === 'wakil_kurikulum' && userData.nip && !/^\d{9,18}$/.test(userData.nip)) {
+        throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
+      }
       break;
     case 'ortu':
       collection = getCollection('users_ortu');
+      if (!userData.nik || !/^\d{16}$/.test(userData.nik)) {
+        throw new Error('NIK harus berupa angka sepanjang 16 digit');
+      }
       break;
     default:
       throw new Error('Role tidak valid');
@@ -306,11 +323,31 @@ exports.updateUser = async (id, updateData) => {
     getCollection('users_ortu')
   ];
 
+  if (updateData.phone !== undefined && updateData.phone !== '') {
+    if (!/^\d{10,13}$/.test(updateData.phone)) {
+      throw new Error('No HP harus berupa angka sepanjang 10 sampai 13 digit');
+    }
+  }
+
   if (updateData.nis !== undefined) {
-    // Check if user is siswa
     const isSiswa = await getCollection('users_siswa').findOne({ _id: objectId });
     if (isSiswa && (!updateData.nis || !/^\d{4,10}$/.test(updateData.nis))) {
       throw new Error('NIS harus berupa angka sepanjang 4 sampai 10 digit');
+    }
+  }
+
+  if (updateData.nik !== undefined) {
+    const isOrtu = await getCollection('users_ortu').findOne({ _id: objectId });
+    if (isOrtu && (!updateData.nik || !/^\d{16}$/.test(updateData.nik))) {
+      throw new Error('NIK harus berupa angka sepanjang 16 digit');
+    }
+  }
+
+  if (updateData.nip !== undefined && updateData.nip !== '') {
+    const isGuru = await getCollection('users_guru').findOne({ _id: objectId });
+    const isAdmin = await getCollection('users_admin').findOne({ _id: objectId });
+    if ((isGuru || (isAdmin && isAdmin.role === 'wakil_kurikulum')) && !/^\d{9,18}$/.test(updateData.nip)) {
+      throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
     }
   }
 

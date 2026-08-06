@@ -112,20 +112,16 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     admin: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
       { key: 'data-master', label: 'Data Master', icon: 'database', path: '/dashboard/admin/data-master' },
-      { key: 'monitoring', label: 'Pusat Monitoring', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
-      { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
-      { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
-      { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { key: 'settings', label: 'Kop Surat', icon: 'settings', path: '/dashboard/admin/settings' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     super_admin: [
-      { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
-      { key: 'data-master', label: 'Data Master', icon: 'database', path: '/dashboard/admin/data-master' },
-      { key: 'monitoring', label: 'Pusat Monitoring', icon: 'monitoring', path: '/dashboard/admin/monitoring' },
-      { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
-      { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
-      { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
-      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
+      { key: 'dashboard', label: 'Dashboard Sistem', icon: 'dashboard', path: '/dashboard/admin' },
+      { key: 'accounts', label: 'Manajemen Akun', icon: 'manage_accounts', path: '/dashboard/superadmin/accounts' },
+      { key: 'roles', label: 'Hak Akses', icon: 'rule', path: '/dashboard/superadmin/roles' },
+      { key: 'settings', label: 'Pengaturan Sistem', icon: 'settings', path: '/dashboard/superadmin/settings' },
+      { key: 'activity-logs', label: 'Activity Log', icon: 'history', path: '/dashboard/superadmin/activity-logs' },
+      { key: 'backup', label: 'Backup Database', icon: 'backup', path: '/dashboard/superadmin/backup' },
     ],
     wakil_kurikulum: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
@@ -171,7 +167,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   }
 
   const roleNames = {
-    admin: 'ADMINISTRATOR',
+    admin: 'ADMIN TU',
     super_admin: 'SUPER ADMIN',
     wakil_kurikulum: 'WAKIL KURIKULUM',
     guru: 'GURU MAPEL',

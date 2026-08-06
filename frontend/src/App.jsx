@@ -65,6 +65,12 @@ import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
 import AdminDataMaster from './pages/dashboard/admin/AdminDataMaster';
 import AdminMonitoring from './pages/dashboard/admin/AdminMonitoring';
 import AdminStudentDetail from './pages/dashboard/admin/AdminStudentDetail';
+import AdminSettings from './pages/dashboard/admin/AdminSettings';
+import SuperAdminAccounts from './pages/dashboard/admin/SuperAdminAccounts';
+import SuperAdminRoles from './pages/dashboard/admin/SuperAdminRoles';
+import SuperAdminSettings from './pages/dashboard/admin/SuperAdminSettings';
+import SuperAdminActivityLogs from './pages/dashboard/admin/SuperAdminActivityLogs';
+import SuperAdminBackup from './pages/dashboard/admin/SuperAdminBackup';
 
 
 // ============================================
@@ -358,44 +364,9 @@ function App() {
         />
 
         {/* ============================================ */}
-        {/* REGISTER ROUTES */}
+        {/* REGISTER ROUTES - REDIRECTED TO LOGIN (CLOSED SYSTEM) */}
         {/* ============================================ */}
-
-        <Route
-          path="/register/siswa"
-          element={
-            <AuthLayout>
-              <RegisterSiswa />
-            </AuthLayout>
-          }
-        />
-
-        <Route
-          path="/register/guru"
-          element={
-            <AuthLayout>
-              <RegisterGuru />
-            </AuthLayout>
-          }
-        />
-
-        <Route
-          path="/register/ortu"
-          element={
-            <AuthLayout>
-              <RegisterOrtu />
-            </AuthLayout>
-          }
-        />
-
-        <Route
-          path="/register/admin"
-          element={
-            <AuthLayout>
-              <RegisterAdmin />
-            </AuthLayout>
-          }
-        />
+        <Route path="/register/*" element={<Navigate to="/login" replace />} />
 
         
 
@@ -760,6 +731,72 @@ function App() {
             <ProtectedRoute allowedRole="admin">
               <DashboardLayout role="admin">
                 <AdminDataMaster />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/settings"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <AdminSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/superadmin/accounts"
+          element={
+            <ProtectedRoute allowedRole="super_admin">
+              <DashboardLayout role="super_admin">
+                <SuperAdminAccounts />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/superadmin/roles"
+          element={
+            <ProtectedRoute allowedRole="super_admin">
+              <DashboardLayout role="super_admin">
+                <SuperAdminRoles />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/superadmin/settings"
+          element={
+            <ProtectedRoute allowedRole="super_admin">
+              <DashboardLayout role="super_admin">
+                <SuperAdminSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/superadmin/activity-logs"
+          element={
+            <ProtectedRoute allowedRole="super_admin">
+              <DashboardLayout role="super_admin">
+                <SuperAdminActivityLogs />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/superadmin/backup"
+          element={
+            <ProtectedRoute allowedRole="super_admin">
+              <DashboardLayout role="super_admin">
+                <SuperAdminBackup />
               </DashboardLayout>
             </ProtectedRoute>
           }

@@ -267,3 +267,76 @@ exports.getAllStudents = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Gagal mengambil data siswa' });
   }
 };
+
+// ======================================
+// PROVISIONING EMAIL SENDER CONTROLLERS
+// ======================================
+const generateRandomPassword = () => {
+  return 'smp' + Math.floor(10000 + Math.random() * 90000); // e.g. smp29381
+};
+
+exports.sendEmailSingle = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await userService.getUserById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan' });
+    }
+
+    if (!user.email) {
+      return res.status(400).json({ success: false, message: 'Pengguna tidak memiliki email terdaftar' });
+    }
+
+    const tempPassword = generateRandomPassword();
+    
+    // Update password in database
+    await userService.updateUser(id, { password: tempPassword });
+
+    // Send email
+    const emailService = require('../services/emailService');
+    await emailService.sendCredentialsEmail(user.email, user.username, tempPassword, user.full_name, user.role);
+
+    // Log the activity
+    const { logActivity } = require('../utils/activityLogger');
+    await logActivity(req, 'PROVISION_EMAIL_SINGLE', `Sent credentials email to ${user.full_name} (${user.email})`);
+
+    return res.status(200).json({ success: true, message: `Email kredensial berhasil dikirim ke ${user.full_name}!` });
+  } catch (err) {
+    console.error('Error sending single email:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Gagal mengirim email.' });
+  }
+};
+
+exports.sendEmailAll = async (req, res) => {
+  try {
+    const allUsers = await userService.getAllUsers();
+    // Filter out super_admin and users without email
+    const targetUsers = allUsers.filter(u => u.role !== 'super_admin' && u.email);
+
+    if (targetUsers.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada pengguna yang memenuhi syarat untuk dikirimi email.' });
+    }
+
+    const emailService = require('../services/emailService');
+    const { logActivity } = require('../utils/activityLogger');
+
+    let successCount = 0;
+    for (const user of targetUsers) {
+      try {
+        const tempPassword = generateRandomPassword();
+        await userService.updateUser(user._id || user.id, { password: tempPassword });
+        await emailService.sendCredentialsEmail(user.email, user.username, tempPassword, user.full_name, user.role);
+        successCount++;
+      } catch (userErr) {
+        console.error(`Failed to send email to ${user.full_name}:`, userErr.message);
+      }
+    }
+
+    await logActivity(req, 'PROVISION_EMAIL_ALL', `Sent credentials email to ${successCount} users`);
+
+    return res.status(200).json({ success: true, message: `Kredensial berhasil dikirim ke ${successCount} pengguna!` });
+  } catch (err) {
+    console.error('Error sending bulk emails:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Gagal mengirim email massal.' });
+  }
+};
