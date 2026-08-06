@@ -64,16 +64,33 @@ exports.getQuizzesForSiswa = async (req, res) => {
       student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId.toString()) });
     }
     
-    const studentClass = student?.class_name || student?.class_id?.name || '';
+    const studentClass = student?.class_name || '';
     const studentClassId = student?.class_id || '';
     
+    let classConditions = [];
+    if (studentClass && studentClass.trim()) {
+      classConditions.push({ class_name: { $regex: new RegExp(studentClass.trim(), 'i') } });
+    }
+    if (studentClassId) {
+      const classIdStr = studentClassId.toString();
+      let classIdObj;
+      try {
+        classIdObj = new mongoose.Types.ObjectId(classIdStr);
+      } catch (e) {
+        classIdObj = studentClassId;
+      }
+      classConditions.push({ class_id: classIdStr });
+      classConditions.push({ class_id: classIdObj });
+    }
+
+    if (classConditions.length === 0) {
+      return res.json({ success: true, quizzes: [] });
+    }
+
     const quizzes = await QuizBank.find({
       is_master: false,
       is_active: true,
-      $or: [
-        { class_name: { $regex: new RegExp(studentClass, 'i') } },
-        { class_id: studentClassId }
-      ]
+      $or: classConditions
     }).sort({ createdAt: -1 });
     
     const QuizSubmission = require('../models/QuizSubmission');
@@ -412,17 +429,27 @@ Output Wajib murni JSON array tanpa format markdown apapun:
       success: true,
       questions: [
         {
-          question_text: `Apa tujuan utama dari ${req.body.topic || 'materi ini'}?`,
-          answer: 'Memahami dasar konsep dan implementasi.',
-          options: ['Memahami dasar konsep & implementasi', 'Mengganti hardware', 'Menghapus database', 'Mematikan daya server'],
+          question_text: `Apa tujuan utama dari mempelajari topik "${req.body.topic || 'materi ini'}"?`,
+          answer: 'Memahami konsep dasar dan implementasi praktisnya.',
+          options: [
+            'Memahami konsep dasar dan implementasi praktisnya',
+            'Menghindari materi pelajaran tersebut',
+            'Hanya menghafal istilah tanpa pemahaman',
+            'Tidak ada tujuan yang benar'
+          ],
           correct_option: 0,
           points: 10,
           time_limit_seconds: 30
         },
         {
-          question_text: `Sebutkan langkah awal saat mempelajari ${req.body.topic || 'materi ini'}!`,
-          answer: 'Identifikasi kebutuhan dan variabel dasar.',
-          options: ['Langsung menguji tanpa rencana', 'Identifikasi kebutuhan & variabel dasar', 'Menjual perangkat', 'Menghapus file'],
+          question_text: `Bagaimana langkah terbaik untuk menguasai topik "${req.body.topic || 'materi ini'}"?`,
+          answer: 'Mempelajari konsep secara sistematis dan berlatih soal.',
+          options: [
+            'Mengabaikan penjelasan guru di kelas',
+            'Mempelajari konsep secara sistematis dan berlatih soal',
+            'Belajar terburu-buru hanya sebelum ujian',
+            'Menyalin tugas milik teman kelas'
+          ],
           correct_option: 1,
           points: 10,
           time_limit_seconds: 30

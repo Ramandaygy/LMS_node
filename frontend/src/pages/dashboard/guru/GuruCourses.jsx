@@ -37,8 +37,8 @@ const getMeetingDate = (day, sessionIdx) => {
     'KAMIS': 4, 'JUMAT': 5, 'SABTU': 6 
   };
   
-  // Anchor to the start of the semester (Monday, August 10, 2026)
-  const semesterStart = new Date('2026-08-10T00:00:00');
+  // Anchor to the start of the semester (Monday, August 3, 2026)
+  const semesterStart = new Date('2026-08-03T00:00:00');
   const targetDayOffset = dayMap[day] || 1; // Monday is 1, Tuesday is 2, etc.
   
   // Day offset from Monday (e.g. Wednesday is 2 days after Monday)
