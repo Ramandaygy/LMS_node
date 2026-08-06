@@ -11,10 +11,11 @@ const userSchema = new mongoose.Schema(
 
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      default: ''
     },
 
     password: {
@@ -149,8 +150,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.index({ role: 1, class_name: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ nis: 1 });
 userSchema.index({ nip: 1 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', userSchema);
