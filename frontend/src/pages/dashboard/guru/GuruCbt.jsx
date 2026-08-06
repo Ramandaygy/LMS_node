@@ -6,6 +6,7 @@ const GuruCbt = () => {
   const [exams, setExams] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [teacherSubjects, setTeacherSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -59,6 +60,7 @@ const GuruCbt = () => {
   useEffect(() => {
     fetchExams(true);
     fetchSubjectsAndClasses();
+    fetchTeacherProfile();
   }, []);
 
   // Close dropdown on outside click
@@ -102,6 +104,15 @@ const GuruCbt = () => {
       if (subList.length > 0 && !selectedSubject) setSelectedSubject(subList[0]._id || subList[0].id);
     } catch (err) {
       console.error('Error fetching master subjects/classes:', err);
+    }
+  };
+
+  const fetchTeacherProfile = async () => {
+    try {
+      const res = await api.get('/profile');
+      setTeacherSubjects(res.data.subjects || []);
+    } catch (err) {
+      console.error('Error fetching teacher profile:', err);
     }
   };
 
@@ -161,7 +172,9 @@ const GuruCbt = () => {
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Excel ke form kuis.`);
         } else {
           const cleanFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-          const defaultSub = subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '';
+          const defaultSub = teacherSubjects.length > 0 
+            ? teacherSubjects[0]._id 
+            : (subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '');
 
           const payload = {
             title: `Bank Soal: ${cleanFileName}`,
@@ -224,7 +237,9 @@ const GuruCbt = () => {
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Word (.docx) ke form kuis.`);
         } else {
           const cleanFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-          const defaultSub = subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '';
+          const defaultSub = teacherSubjects.length > 0 
+            ? teacherSubjects[0]._id 
+            : (subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '');
 
           const payload = {
             title: `Bank Soal: ${cleanFileName}`,

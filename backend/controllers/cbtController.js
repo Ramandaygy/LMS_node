@@ -943,7 +943,14 @@ exports.importQuestionsWord = async (req, res) => {
     const text = result.value || '';
     
     // Split questions by ==== or ---- or double newlines
-    const blocks = text.split(/(====+|----+|\r?\n\r?\n\r?\n+)/);
+    let blocks = text.split(/(====+|----+|\r?\n\r?\n\r?\n+)/);
+    
+    // Fallback: If only 1 block is parsed, split by question numbers, e.g. "1. ", "2) " at the start of a line
+    if (blocks.length <= 1) {
+      const splitRegex = /\r?\n\s*(?=\d+[\.\)])/;
+      blocks = text.split(splitRegex);
+    }
+
     const questions = [];
     const errors = [];
 
@@ -982,7 +989,7 @@ exports.importQuestionsWord = async (req, res) => {
           explanation = line.replace(/^pembahasan:/i, '').trim();
         } else {
           if (!qText) {
-            qText = line;
+            qText = line.replace(/^\d+[\.\)]\s*/, '').trim();
           }
         }
       });

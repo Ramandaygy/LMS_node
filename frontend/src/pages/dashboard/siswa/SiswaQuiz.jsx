@@ -3,7 +3,7 @@ import api from '../../../services/api';
 import '../../../styles/dashboard/siswa/siswa-cbt.css';
 
 const SiswaQuiz = () => {
-  const [studentQuizzes, setStudentQuizzes] = useState([]);
+  const [rawQuizzes, setRawQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -13,27 +13,21 @@ const SiswaQuiz = () => {
   const [quizResult, setQuizResult] = useState(null);
   const [quizLeaderboardModal, setQuizLeaderboardModal] = useState(null);
 
-  // State untuk track quiz yang sudah dijawab
   const [submittedQuizzes, setSubmittedQuizzes] = useState({});
+  const [activeQuizTab, setActiveQuizTab] = useState('belum');
 
   useEffect(() => {
     fetchStudentQuizzes(true);
   }, []);
 
-  // 🔥 FETCH QUIZZES FOR SISWA - menggunakan endpoint /quiz/siswa
   const fetchStudentQuizzes = async (showFullLoader = false) => {
     try {
       if (showFullLoader) setLoading(true);
       const res = await api.get('/quiz/siswa');
       const all = res.data.quizzes || [];
+      setRawQuizzes(all);
       
-      // Filter kuis yang belum dijawab (is_submitted sudah dari backend)
-      const availableQuizzes = all.filter(q => !q.is_submitted);
       const submitted = all.filter(q => q.is_submitted);
-      
-      setStudentQuizzes(availableQuizzes);
-      
-      // Track quiz yang sudah dijawab
       const submittedMap = {};
       submitted.forEach(q => {
         submittedMap[q._id] = true;
@@ -47,13 +41,11 @@ const SiswaQuiz = () => {
     }
   };
 
-  // Cek apakah quiz sudah dijawab
   const isQuizSubmitted = (quizId) => {
     return submittedQuizzes[quizId] === true;
   };
 
   const handleStartQuiz = (qz) => {
-    // Cegah jika sudah dijawab
     if (isQuizSubmitted(qz._id)) {
       alert('Anda sudah mengerjakan kuis ini sebelumnya!');
       return;
@@ -70,7 +62,6 @@ const SiswaQuiz = () => {
   const handleSubmitQuiz = async () => {
     if (!activeQuiz) return;
     
-    // Cegah submit ulang
     if (isQuizSubmitted(activeQuiz._id)) {
       alert('Anda sudah mengerjakan kuis ini sebelumnya!');
       setActiveQuiz(null);
@@ -90,13 +81,7 @@ const SiswaQuiz = () => {
           star_rating: res.data.star_rating
         });
         
-        // Tandai quiz sebagai sudah dijawab di state lokal
         setSubmittedQuizzes(prev => ({ ...prev, [activeQuiz._id]: true }));
-        
-        // Hapus quiz dari daftar yang tersedia
-        setStudentQuizzes(prev => prev.filter(q => q._id !== activeQuiz._id));
-        
-        // Refresh dari server untuk memastikan konsistensi
         await fetchStudentQuizzes(false);
       }
     } catch (err) {
@@ -250,6 +235,10 @@ const SiswaQuiz = () => {
     );
   }
 
+  const displayedQuizzes = rawQuizzes.filter(q => 
+    activeQuizTab === 'belum' ? !q.is_submitted : q.is_submitted
+  );
+
   return (
     <div className="cbt-container" style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <div className="cbt-page-header" style={{ marginBottom: '24px' }}>
@@ -263,10 +252,46 @@ const SiswaQuiz = () => {
 
       {error && <div className="cbt-alert-error" style={{ background: '#fee2e2', color: '#dc2626', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px' }}>{error}</div>}
 
-      {studentQuizzes.length > 0 ? (
+      {/* Tabs Menu */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+        <button
+          onClick={() => setActiveQuizTab('belum')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeQuizTab === 'belum' ? '3px solid #0284c7' : '3px solid transparent',
+            color: activeQuizTab === 'belum' ? '#0284c7' : '#64748b',
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '800',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease-in-out'
+          }}
+        >
+          ⏳ Belum Dikerjakan ({rawQuizzes.filter(q => !q.is_submitted).length})
+        </button>
+        <button
+          onClick={() => setActiveQuizTab('selesai')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeQuizTab === 'selesai' ? '3px solid #0284c7' : '3px solid transparent',
+            color: activeQuizTab === 'selesai' ? '#0284c7' : '#64748b',
+            padding: '8px 16px',
+            fontSize: '14px',
+            fontWeight: '800',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease-in-out'
+          }}
+        >
+          ✅ Sudah Selesai ({rawQuizzes.filter(q => q.is_submitted).length})
+        </button>
+      </div>
+
+      {displayedQuizzes.length > 0 ? (
         <div className="cbt-exams-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-          {studentQuizzes.map((qz) => (
-            <div key={qz._id} className="cbt-exam-card" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          {displayedQuizzes.map((qz) => (
+            <div key={qz._id} className="cbt-exam-card" style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', position: 'relative' }}>
               <div className="exam-card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
                 <span style={{ fontSize: '11px', fontWeight: '800', background: '#0284c7', color: '#ffffff', padding: '3px 8px', borderRadius: '6px' }}>
                   Kelas {qz.class_name || '8B'}
@@ -281,27 +306,56 @@ const SiswaQuiz = () => {
                 Mata Pelajaran: {qz.subject_name || 'Informatika'} | {qz.questions?.length || 0} Pertanyaan
               </p>
 
+              {qz.is_submitted && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px 12px', marginBottom: '14px', fontSize: '12px', color: '#166534', fontWeight: '700' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#15803d' }}>verified</span>
+                  <span>Sudah dikerjakan!</span>
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => handleStartQuiz(qz)}
-                  style={{
-                    flex: 1,
-                    background: '#0284c7',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '10px 14px',
-                    borderRadius: '10px',
-                    fontSize: '12px',
-                    fontWeight: '800',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '4px'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Kerjakan Kuis
-                </button>
+                {!qz.is_submitted ? (
+                  <button
+                    onClick={() => handleStartQuiz(qz)}
+                    style={{
+                      flex: 1,
+                      background: '#0284c7',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>play_arrow</span> Kerjakan Kuis
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    style={{
+                      flex: 1,
+                      background: '#e2e8f0',
+                      color: '#94a3b8',
+                      border: 'none',
+                      padding: '10px 14px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: '800',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span> Selesai
+                  </button>
+                )}
                 <button
                   onClick={() => handleOpenQuizLeaderboard(qz)}
                   style={{ background: '#f0f9ff', border: '1px solid #0284c7', color: '#0284c7', padding: '10px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -315,8 +369,14 @@ const SiswaQuiz = () => {
       ) : (
         <div className="cbt-empty-state" style={{ background: '#ffffff', borderRadius: '16px', border: '1px dashed #cbd5e1', padding: '60px 20px', textAlign: 'center' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#94a3b8' }}>star</span>
-          <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '12px 0 4px 0' }}>Belum Ada Kuis Sesi Aktif</h3>
-          <p style={{ fontSize: '14px', color: '#64748b', margin: '0' }}>Belum ada kuis interaktif yang sedang berlangsung di kelas Anda, atau semua kuis sudah Anda kerjakan.</p>
+          <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#0f172a', margin: '12px 0 4px 0' }}>
+            {activeQuizTab === 'belum' ? 'Tidak Ada Kuis Aktif' : 'Belum Ada Kuis Selesai'}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#64748b', margin: '0' }}>
+            {activeQuizTab === 'belum' 
+              ? 'Belum ada kuis interaktif baru yang perlu Anda kerjakan di kelas.'
+              : 'Anda belum memiliki riwayat kuis yang telah selesai dikerjakan.'}
+          </p>
         </div>
       )}
 
