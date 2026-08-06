@@ -374,7 +374,7 @@ const SiswaCbt = () => {
 
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: '0 0 16px 0' }}>{currentQ?.question_text}</p>
 
-            {currentQ?.type === 'essay' ? (
+            {currentQ?.type === 'essay' || !currentQ?.options || currentQ?.options?.length === 0 ? (
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#475569', marginBottom: '8px' }}>Jawaban Anda:</label>
                 <textarea

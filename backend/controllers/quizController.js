@@ -72,8 +72,8 @@ exports.getQuizzesForSiswa = async (req, res) => {
       }
     }
     
-    const studentClass = student?.class_name || '';
-    const studentClassId = student?.class_id || '';
+    const studentClass = student?.class_name || student?.class_id?.name || '';
+    const studentClassId = student?.class_id?._id || student?.class_id || '';
     
     let classConditions = [];
     if (studentClass && studentClass.trim()) {

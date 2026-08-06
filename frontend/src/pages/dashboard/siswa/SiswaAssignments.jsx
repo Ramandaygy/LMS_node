@@ -13,6 +13,15 @@ const SiswaAssignments = () => {
   const [submitting, setSubmitting] = useState(false);
   const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('Semua');
+
+  const getSubmissionFileUrl = (pathStr) => {
+    if (!pathStr) return '#';
+    if (pathStr.startsWith('http')) return pathStr;
+    if (pathStr.startsWith('/uploads')) return `${baseURL}${pathStr}`;
+    return `${baseURL}/uploads/${pathStr}`;
+  };
+
   useEffect(() => {
     fetchAssignments();
   }, []);
@@ -107,6 +116,11 @@ const SiswaAssignments = () => {
 
   if (loading) return <div className="loading">Memuat tugas...</div>;
 
+  const subjects = [...new Set(assignments.map(a => a.subject_name).filter(Boolean))];
+  const filteredAssignments = selectedSubjectFilter === 'Semua' 
+    ? assignments 
+    : assignments.filter(a => a.subject_name === selectedSubjectFilter);
+
   return (
     <div className="siswa-assignments-container">
       {message.text && (
@@ -120,8 +134,50 @@ const SiswaAssignments = () => {
         {/* Daftar tugas (kiri) */}
         <div className="assignments-list">
           <h3 className="list-title">Daftar Tugas</h3>
-          {assignments.length === 0 && <div className="empty">Belum ada tugas</div>}
-          {assignments.map(assignment => (
+          
+          {/* Subject Filter Tab Bar */}
+          <div className="subject-filters" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '14px' }}>
+            <button 
+              onClick={() => setSelectedSubjectFilter('Semua')}
+              style={{
+                padding: '6px 12px',
+                borderRadius: '20px',
+                border: 'none',
+                background: selectedSubjectFilter === 'Semua' ? '#0284c7' : '#f1f5f9',
+                color: selectedSubjectFilter === 'Semua' ? '#ffffff' : '#64748b',
+                fontSize: '12px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+            >
+              📚 Semua Mapel
+            </button>
+            {subjects.map(sub => (
+              <button 
+                key={sub}
+                onClick={() => setSelectedSubjectFilter(sub)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  background: selectedSubjectFilter === sub ? '#0284c7' : '#f1f5f9',
+                  color: selectedSubjectFilter === sub ? '#ffffff' : '#64748b',
+                  fontSize: '12px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📖 {sub}
+              </button>
+            ))}
+          </div>
+
+          {filteredAssignments.length === 0 && <div className="empty">Belum ada tugas</div>}
+          {filteredAssignments.map(assignment => (
             <div
               key={assignment._id}
               className={`assignment-card ${selectedAssignment?._id === assignment._id ? 'selected' : ''}`}
@@ -220,7 +276,7 @@ const SiswaAssignments = () => {
                     {selectedAssignment.attachments.map((att, i) => (
                       <li key={i}>
                         {att.type === 'file' ? (
-                          <a href={`${baseURL}/uploads/${att.value}`} target="_blank" rel="noopener noreferrer">
+                          <a href={getSubmissionFileUrl(att.value)} target="_blank" rel="noopener noreferrer">
                             <span className="material-symbols-outlined">attach_file</span> Unduh File
                           </a>
                         ) : (
@@ -260,7 +316,7 @@ const SiswaAssignments = () => {
                   )}
                   {selectedAssignment.submission_file && (
                     <div className="my-submission">
-                      <strong>File yang dikirim:</strong> <a href={`${baseURL}/uploads/${selectedAssignment.submission_file}`} target="_blank">Lihat lampiran</a>
+                      <strong>File yang dikirim:</strong> <a href={getSubmissionFileUrl(selectedAssignment.submission_file)} target="_blank" rel="noreferrer">Lihat lampiran</a>
                     </div>
                   )}
                   {selectedAssignment.submission_link && (
@@ -284,9 +340,19 @@ const SiswaAssignments = () => {
                   <h3>Kumpulkan Tugas</h3>
                   <div className="form-group">
                     <label>Upload File (PDF, gambar, doc, max 5MB)</label>
-                    <div className="file-zone">
-                      <input type="file" onChange={handleFileChange} />
-                      <span className="helper">Klik atau tarik file ke sini</span>
+                    <div className="file-zone" style={{ position: 'relative' }}>
+                      <input 
+                        type="file" 
+                        id="file-upload-input" 
+                        onChange={handleFileChange} 
+                        style={{ display: 'none' }} 
+                      />
+                      <label htmlFor="file-upload-input" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', border: '2px dashed #cbd5e1', borderRadius: '10px', background: '#f8fafc', transition: 'border-color 0.2s' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#64748b' }}>cloud_upload</span>
+                        <span className="helper" style={{ display: 'block', marginTop: '8px', fontSize: '13px', fontWeight: '600', color: '#475569' }}>
+                          {submissionFile ? `Terpilih: ${submissionFile.name}` : 'Klik untuk memilih atau unggah file'}
+                        </span>
+                      </label>
                     </div>
                   </div>
                   <div className="form-group">
