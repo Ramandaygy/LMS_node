@@ -160,9 +160,26 @@ const GuruCbt = () => {
           setQuestions((prev) => [...prev.filter(q => q.question_text.trim() !== ''), ...importedQuestions]);
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Excel ke form kuis.`);
         } else {
-          setQuestions(importedQuestions);
-          handleOpenCreate();
-          setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Excel. Silakan lengkapi Judul Ujian & Simpan.`);
+          const cleanFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+          const defaultSub = subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '';
+
+          const payload = {
+            title: `Bank Soal: ${cleanFileName}`,
+            subject: defaultSub,
+            duration_minutes: 30,
+            pass_score: 75,
+            is_active: true,
+            is_master: true,
+            questions: importedQuestions
+          };
+
+          const saveRes = await api.post('/cbt/exams', payload);
+          if (saveRes.data.success) {
+            setSuccess(`Berhasil mengimpor & langsung menyimpan ${importedQuestions.length} soal dari Excel ke Paket Ujian: "${cleanFileName}".`);
+            fetchExams(false);
+          } else {
+            throw new Error('Gagal menyimpan otomatis ke database');
+          }
         }
       }
     } catch (err) {
@@ -206,9 +223,26 @@ const GuruCbt = () => {
           setQuestions((prev) => [...prev.filter(q => q.question_text.trim() !== ''), ...importedQuestions]);
           setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Word (.docx) ke form kuis.`);
         } else {
-          setQuestions(importedQuestions);
-          handleOpenCreate();
-          setSuccess(`Berhasil mengimpor ${importedQuestions.length} soal dari Word (.docx). Silakan lengkapi Judul Ujian & Simpan.`);
+          const cleanFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+          const defaultSub = subjects.length > 0 ? (subjects[0]._id || subjects[0].id) : '';
+
+          const payload = {
+            title: `Bank Soal: ${cleanFileName}`,
+            subject: defaultSub,
+            duration_minutes: 30,
+            pass_score: 75,
+            is_active: true,
+            is_master: true,
+            questions: importedQuestions
+          };
+
+          const saveRes = await api.post('/cbt/exams', payload);
+          if (saveRes.data.success) {
+            setSuccess(`Berhasil mengimpor & langsung menyimpan ${importedQuestions.length} soal dari Word (.docx) ke Paket Ujian: "${cleanFileName}".`);
+            fetchExams(false);
+          } else {
+            throw new Error('Gagal menyimpan otomatis ke database');
+          }
         }
       }
     } catch (err) {
@@ -823,11 +857,11 @@ const GuruCbt = () => {
                 <div className="questions-section-header">
                   <h3>Daftar Soal Ujian ({questions.length})</h3>
                   <div className="q-header-buttons" style={{ display: 'flex', gap: '6px' }}>
-                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick}>
-                      <span className="material-symbols-outlined">upload_file</span> Excel
+                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick} style={{ color: '#166534', borderColor: '#86efac' }}>
+                      <span className="material-symbols-outlined" style={{ color: '#166534' }}>upload_file</span> Excel
                     </button>
-                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportWordClick} style={{ background: '#2b579a' }}>
-                      <span className="material-symbols-outlined">description</span> Word (.docx)
+                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportWordClick} style={{ color: '#2b579a', borderColor: '#93c5fd' }}>
+                      <span className="material-symbols-outlined" style={{ color: '#2b579a' }}>description</span> Word (.docx)
                     </button>
                     <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
                       + Tambah Soal

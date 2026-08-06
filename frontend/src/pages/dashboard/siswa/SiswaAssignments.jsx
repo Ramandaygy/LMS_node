@@ -114,12 +114,18 @@ const SiswaAssignments = () => {
     return { text: `${days} hari tersisa`, class: 'normal' };
   };
 
+  const [statusFilter, setStatusFilter] = useState('Semua');
+
   if (loading) return <div className="loading">Memuat tugas...</div>;
 
   const subjects = [...new Set(assignments.map(a => a.subject_name).filter(Boolean))];
-  const filteredAssignments = selectedSubjectFilter === 'Semua' 
-    ? assignments 
-    : assignments.filter(a => a.subject_name === selectedSubjectFilter);
+  const filteredAssignments = assignments.filter(a => {
+    const matchSubject = selectedSubjectFilter === 'Semua' || a.subject_name === selectedSubjectFilter;
+    const matchStatus = statusFilter === 'Semua' || 
+      (statusFilter === 'Sudah' && a.submitted) || 
+      (statusFilter === 'Belum' && !a.submitted);
+    return matchSubject && matchStatus;
+  });
 
   return (
     <div className="siswa-assignments-container">
@@ -135,45 +141,58 @@ const SiswaAssignments = () => {
         <div className="assignments-list">
           <h3 className="list-title">Daftar Tugas</h3>
           
-          {/* Subject Filter Tab Bar */}
-          <div className="subject-filters" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '10px', marginBottom: '14px' }}>
-            <button 
-              onClick={() => setSelectedSubjectFilter('Semua')}
-              style={{
-                padding: '6px 12px',
-                borderRadius: '20px',
-                border: 'none',
-                background: selectedSubjectFilter === 'Semua' ? '#0284c7' : '#f1f5f9',
-                color: selectedSubjectFilter === 'Semua' ? '#ffffff' : '#64748b',
-                fontSize: '12px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-            >
-              📚 Semua Mapel
-            </button>
-            {subjects.map(sub => (
-              <button 
-                key={sub}
-                onClick={() => setSelectedSubjectFilter(sub)}
+          {/* Status Tabs & Subject Dropdown Filter Row */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '14px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+            <div className="status-filters" style={{ display: 'flex', gap: '6px' }}>
+              {['Semua', 'Belum', 'Sudah'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    background: statusFilter === status ? '#0284c7' : '#f1f5f9',
+                    color: statusFilter === status ? '#ffffff' : '#64748b',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'center'
+                  }}
+                >
+                  {status === 'Semua' && '📚 Semua'}
+                  {status === 'Belum' && '⏳ Belum Selesai'}
+                  {status === 'Sudah' && '✅ Sudah Selesai'}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>filter_alt</span>
+              <select
+                value={selectedSubjectFilter}
+                onChange={(e) => setSelectedSubjectFilter(e.target.value)}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '20px',
-                  border: 'none',
-                  background: selectedSubjectFilter === sub ? '#0284c7' : '#f1f5f9',
-                  color: selectedSubjectFilter === sub ? '#ffffff' : '#64748b',
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
                   fontSize: '12px',
                   fontWeight: '700',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: 'all 0.2s'
+                  color: '#334155',
+                  outline: 'none',
+                  cursor: 'pointer'
                 }}
               >
-                📖 {sub}
-              </button>
-            ))}
+                <option value="Semua">Semua Mata Pelajaran</option>
+                {subjects.map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {filteredAssignments.length === 0 && <div className="empty">Belum ada tugas</div>}

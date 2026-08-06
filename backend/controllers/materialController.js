@@ -128,7 +128,7 @@ exports.createMaterial = async (req, res) => {
 // GENERATE KONTEN MATERI DENGAN AI (Backend Auto-Prompting)
 exports.generateMaterial = async (req, res) => {
   try {
-    const { title, prompt, subject_name, class_name, description } = req.body;
+    const { title, prompt, subject_name, class_name, description, slide_count } = req.body;
 
     if (!title && !prompt) {
       return res.status(400).json({
@@ -144,6 +144,7 @@ exports.generateMaterial = async (req, res) => {
       subject_name,
       class_name,
       description,
+      slide_count: slide_count ? parseInt(slide_count) : 5,
       multiSlide: true // ← TAMBAHKAN FLAG INI
     });
 

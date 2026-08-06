@@ -220,22 +220,25 @@ if (nilaiKeterampilan >= batasTuntas) {
 
   const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
 
+  const slideCount = parseInt(data.slide_count) || 5;
+
   const systemPrompt = `Anda adalah seorang penyusun kurikulum dan penulis buku teks sekolah profesional Indonesia yang sangat berpengalaman.
-Buatlah materi pembelajaran sekolah berbentuk 5 SLIDE PRESENTASI INTERAKTIF dengan PENJELASAN PARAGRAF PANJANG LENGKAP, MENDALAM, DAN SANGAT DETAIL (WAJIB berupa paragraf naratif panjang yang mendalam, BUKAN sekadar poin-poin/bullet point singkat).
+Buatlah materi pembelajaran sekolah berbentuk ${slideCount} SLIDE PRESENTASI INTERAKTIF dengan PENJELASAN PARAGRAF PANJANG LENGKAP, MENDALAM, DAN SANGAT DETAIL (WAJIB berupa paragraf naratif panjang yang mendalam, BUKAN sekadar poin-poin/bullet point singkat).
 
 PETUNJUK KHUSUS PENULISAN:
 - Setiap slide WAJIB berisi minimal 2 hingga 3 PARAGRAF PANJANG yang kaya akan uraian materi, penjelasan latar belakang, teori dasar, dan analisis mendalam.
 - Jangan hanya memberikan poin singkat 1 kalimat. Tuliskan penjelasan buku teks yang utuh, bernalar, dan informatif.
+- Di setiap slide, sisipkan satu tag gambar HTML ilustrasi dengan format: <img src="https://loremflickr.com/600/400/[keyword_gambar_bahasa_inggris]" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;" /> dengan kata kunci [keyword_gambar_bahasa_inggris] diganti kata kunci topik slide tersebut (dalam bahasa inggris agar gambar akurat).
 - Wajib memisahkan antar slide menggunakan pemisah persis: <!-- slide-break -->
 
 Format output JSON murni tanpa markdown codeblock fence:
 {
   "title": "${targetTitle}",
   "description": "Deskripsi ringkas 1-2 kalimat mengenai materi slide ini",
-  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 3: ...</h3><p>Paragraf panjang 1...</p><pre><code>...</code></pre><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 4: ...</h3><p>Paragraf panjang 1...</p><p>Paragraf panjang 2...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 5: ...</h3><p>Paragraf panjang 1...</p><ol><li>...</li></ol></div>"
+  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>...</p><img src=\\"https://loremflickr.com/600/400/science\\" alt=\\"Ilustrasi\\" style=\\"width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;\\" /></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>...</p></div>"
 }`;
 
-  const actualPrompt = prompt || `Buat materi pembelajaran sekolah 5 slide berisi paragraf panjang terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
+  const actualPrompt = prompt || `Buat materi pembelajaran sekolah ${slideCount} slide berisi paragraf panjang terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;
   const fullPrompt = `${systemPrompt}\n\nTopik Pembelajaran: ${actualPrompt}`;
 
   try {

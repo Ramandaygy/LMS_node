@@ -698,7 +698,7 @@ exports.importQuestionsExcel = async (req, res) => {
       const optB = getVal(4);
       const optC = getVal(5);
       const optD = getVal(6);
-      const correctStr = getVal(7).toUpperCase();
+      const correctStr = getVal(7);
       const explanation = getVal(8);
 
       if (!qText && !optA && !optB) return;
@@ -707,22 +707,33 @@ exports.importQuestionsExcel = async (req, res) => {
         errors.push(`Baris ${rowNumber}: Pertanyaan tidak boleh kosong.`);
         return;
       }
-      if (!optA || !optB || !optC || !optD) {
-        errors.push(`Baris ${rowNumber}: Pilihan A, B, C, D harus diisi lengkap.`);
-        return;
+
+      const isEssay = !optA && !optB && !optC && !optD;
+
+      if (isEssay) {
+        questions.push({
+          type: 'essay',
+          question_text: qText,
+          options: [],
+          correct_option: 0,
+          correct_answer_text: correctStr || '',
+          explanation: explanation || ''
+        });
+      } else {
+        let correctOption = 0;
+        const correctStrUpper = (correctStr || '').toUpperCase().trim();
+        if (correctStrUpper === 'B' || correctStrUpper === '2') correctOption = 1;
+        else if (correctStrUpper === 'C' || correctStrUpper === '3') correctOption = 2;
+        else if (correctStrUpper === 'D' || correctStrUpper === '4') correctOption = 3;
+
+        questions.push({
+          type: 'pg',
+          question_text: qText,
+          options: [optA || 'Pilihan A', optB || 'Pilihan B', optC || 'Pilihan C', optD || 'Pilihan D'],
+          correct_option: correctOption,
+          explanation: explanation || ''
+        });
       }
-
-      let correctOption = 0;
-      if (correctStr === 'B' || correctStr === '2') correctOption = 1;
-      else if (correctStr === 'C' || correctStr === '3') correctOption = 2;
-      else if (correctStr === 'D' || correctStr === '4') correctOption = 3;
-
-      questions.push({
-        question_text: qText,
-        options: [optA, optB, optC, optD],
-        correct_option: correctOption,
-        explanation: explanation || ''
-      });
     });
 
     if (questions.length === 0) {

@@ -22,7 +22,8 @@ const GuruMaterials = () => {
     subject_id: '',
     session_number: '1',
     external_link: '',
-    file: null
+    file: null,
+    slide_count: 5
   });
   const [editingId, setEditingId] = useState(null);
   const [editorMode, setEditorMode] = useState('rendered'); // 'rendered' | 'code'
@@ -285,7 +286,8 @@ const GuruMaterials = () => {
         subject_name: selectedSubject ? selectedSubject.name : 'Informatika',
         class_name: selectedClass ? selectedClass.name : 'Kelas',
         subject_id: form.subject_id || (selectedSubject?._id || ''),
-        class_id: form.class_id
+        class_id: form.class_id,
+        slide_count: form.slide_count || 5
       });
 
       const aiData = res.data?.data || res.data;
@@ -946,6 +948,27 @@ const GuruMaterials = () => {
                 <strong>Format File yang Didukung:</strong> PDF (.pdf), Word (.doc / .docx), PowerPoint (.ppt / .pptx). Maksimal ukuran file: <strong>50 MB</strong>.
               </span>
               {form.file && <span className="file-name" style={{ fontWeight: '800', color: '#0284c7', marginTop: '6px', display: 'block', fontSize: '12px' }}>📄 File Terpilih: {form.file.name}</span>}
+            </div>
+
+            <div style={{ background: '#f5f3ff', border: '1px dashed #c084fc', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px' }}>
+              <label style={{ color: '#6b21a8', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', fontSize: '13px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#a855f7' }}>slideshow</span>
+                PENGATURAN GENERATOR AI SLIDE
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#6b21a8' }}>Jumlah Slide:</span>
+                <select 
+                  value={form.slide_count || 5} 
+                  onChange={(e) => setForm(prev => ({ ...prev, slide_count: Number(e.target.value) }))}
+                  style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #c084fc', outline: 'none', fontSize: '13px', background: '#ffffff' }}
+                >
+                  <option value={5}>5 Slide</option>
+                  <option value={8}>8 Slide</option>
+                  <option value={10}>10 Slide</option>
+                  <option value={12}>12 Slide</option>
+                  <option value={15}>15 Slide</option>
+                </select>
+              </div>
             </div>
 
             <div style={{ marginBottom: '16px', marginTop: '8px' }}>

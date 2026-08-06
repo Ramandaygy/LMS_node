@@ -366,31 +366,46 @@
 }
 
 .btn-import-excel-modal {
-  background: #dcfce7;
-  border: 1px solid #86efac;
-  color: #166534;
-  padding: 6px 14px;
-  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  padding: 8px 16px;
+  border-radius: 20px;
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.btn-import-excel-modal:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
 }
 
 .btn-add-q {
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  color: #166534;
-  padding: 6px 14px;
-  border-radius: 8px;
+  background: #0284c7;
+  border: none;
+  color: #ffffff;
+  padding: 8px 16px;
+  border-radius: 20px;
   font-weight: 700;
   font-size: 12px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(2, 132, 199, 0.15);
+}
+
+.btn-add-q:hover {
+  background: #026090;
+  transform: translateY(-1px);
 }
 
 .questions-list-form {

@@ -72,12 +72,23 @@ exports.getQuizzesForSiswa = async (req, res) => {
       }
     }
     
-    const studentClass = student?.class_name || student?.class_id?.name || '';
+    let studentClass = student?.class_name || student?.class_id?.name || '';
     const studentClassId = student?.class_id?._id || student?.class_id || '';
     
+    if (!studentClass && studentClassId) {
+      const classCol = mongoose.connection.collection('classes');
+      try {
+        const clsObj = await classCol.findOne({ _id: new mongoose.Types.ObjectId(studentClassId.toString()) });
+        if (clsObj) studentClass = clsObj.name;
+      } catch (err) {
+        console.error('Error fetching class in getQuizzesForSiswa:', err);
+      }
+    }
+
     let classConditions = [];
     if (studentClass && studentClass.trim()) {
       classConditions.push({ class_name: { $regex: new RegExp(studentClass.trim(), 'i') } });
+      classConditions.push({ class_id: studentClass.trim() });
     }
     if (studentClassId) {
       const classIdStr = studentClassId.toString();
