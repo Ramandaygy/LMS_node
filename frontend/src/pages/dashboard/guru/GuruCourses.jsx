@@ -640,7 +640,11 @@ const GuruCourses = () => {
 
       let realGrades = [];
       try {
-        const resGrades = await api.get(`/grades/rekap/class/${classId}`);
+        const sch = activeCourseDetail?.schedule || {};
+        const subjectIdVal = sch.subject_id?._id || sch.subject_id || '';
+        const resGrades = await api.get(`/grades/rekap/class/${classId}`, {
+          params: { subject_id: subjectIdVal }
+        });
         realGrades = resGrades.data.data || resGrades.data.grades || [];
       } catch (e) {
         console.warn('Grades rekap endpoint returned empty or failed:', e);
@@ -874,6 +878,7 @@ const GuruCourses = () => {
     class_id: s.class_id?._id || s.class_id,
     class_name: s.class_name || s.class_id?.name || 'Kelas',
     subject: s.subject || s.subject_id?.name || 'Informatika',
+    subject_id: s.subject_id?._id || s.subject_id,
     day: s.day,
     start_time: s.start_time || '07:30',
     end_time: s.end_time || '09:30',

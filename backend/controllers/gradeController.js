@@ -115,8 +115,23 @@ exports.getClassRekapGrades = async (req, res) => {
     const assignmentFilter = {
       $or: classConditions
     };
-    if (subject_id && mongoose.Types.ObjectId.isValid(subject_id)) {
-      assignmentFilter.subject = new mongoose.Types.ObjectId(subject_id);
+    if (subject_id) {
+      const subIdStr = subject_id.toString();
+      let subIdObj;
+      try {
+        subIdObj = new mongoose.Types.ObjectId(subIdStr);
+      } catch (e) {}
+
+      assignmentFilter.$and = [
+        {
+          $or: [
+            { subject: subIdObj },
+            { subject: subIdStr },
+            { subject_id: subIdObj },
+            { subject_id: subIdStr }
+          ]
+        }
+      ];
     }
     const assignments = await assignmentCol.find(assignmentFilter).sort({ createdAt: 1 }).limit(3).toArray();
     const assignmentIds = assignments.map(a => a._id);
@@ -146,8 +161,19 @@ exports.getClassRekapGrades = async (req, res) => {
       student: { $in: [...studentIds, ...studentIdStrings] },
       type: { $in: ['uts', 'uas'] }
     };
-    if (subject_id && mongoose.Types.ObjectId.isValid(subject_id)) {
-      gradeFilter.subject = new mongoose.Types.ObjectId(subject_id);
+    if (subject_id) {
+      const subIdStr = subject_id.toString();
+      let subIdObj;
+      try {
+        subIdObj = new mongoose.Types.ObjectId(subIdStr);
+      } catch (e) {}
+
+      gradeFilter.$or = [
+        { subject: subIdObj },
+        { subject: subIdStr },
+        { subject_id: subIdObj },
+        { subject_id: subIdStr }
+      ];
     }
     const grades = await Grade.find(gradeFilter).lean();
 

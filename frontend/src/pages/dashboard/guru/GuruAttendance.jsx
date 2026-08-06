@@ -345,21 +345,15 @@ const GuruAttendance = () => {
       <div className="siakad-top-header">
         <div>
           <h1 className="siakad-page-title">Presensi & Pertemuan KBM Kelas</h1>
-          <p className="siakad-page-subtitle">Riwayat KBM dan Presensi Pertemuan</p>
+          <p className="siakad-page-subtitle">Riwayat Presensi Pertemuan</p>
         </div>
 
         <div className="siakad-header-right-actions">
-          {activeViewMode === 'input' ? (
             <button className="btn-siakad-back" onClick={() => setActiveViewMode('history')}>
               <span className="material-symbols-outlined">arrow_back</span>
               Kembali ke Riwayat Presensi
             </button>
-          ) : (
-            <button className="btn-siakad-back" onClick={() => navigate('/dashboard/guru')}>
-              <span className="material-symbols-outlined">arrow_back</span>
-              Kembali ke Dashboard Guru
-            </button>
-          )}
+      
         </div>
       </div>
 
@@ -367,7 +361,7 @@ const GuruAttendance = () => {
       {success && <div className="alert success">{success}</div>}
 
       {/* ============================================================
-          🔥 DROPDOWN JADWAL PRESENSI - DI ATAS (SEBELUM META INFO)
+           DROPDOWN JADWAL PRESENSI - DI ATAS (SEBELUM META INFO)
           ============================================================ */}
       <div style={{ 
         background: '#ffffff', 
@@ -440,17 +434,10 @@ const GuruAttendance = () => {
         <div className="meta-grid">
           <div className="meta-col">
             <div className="meta-item">
-              <span className="meta-label">Sekolah:</span>
-              <span className="meta-val">SMP Negeri 1 Suradadi</span>
-            </div>
-            <div className="meta-item">
               <span className="meta-label">Mata Pelajaran:</span>
               <span className="meta-val">{selectedScheduleInfo?.subject || 'INFORMATIKA'}</span>
             </div>
-            <div className="meta-item">
-              <span className="meta-label">Kurikulum:</span>
-              <span className="meta-val">Kurikulum Merdeka 2024</span>
-            </div>
+  
             <div className="meta-item">
               <span className="meta-label">Kapasitas:</span>
               <span className="meta-val">{totalStudents} Siswa</span>
@@ -487,7 +474,7 @@ const GuruAttendance = () => {
       </div>
 
       {/* ============================================================
-          🔥 MATERI HARI INI - HANYA 1 PERTEMUAN (DINAMIS)
+          MATERI HARI INI - HANYA 1 PERTEMUAN (DINAMIS)
           ============================================================ */}
       <div style={{ 
         background: '#ffffff', 
@@ -635,7 +622,7 @@ const GuruAttendance = () => {
           {/* Daftar Riwayat Absensi */}
           <div style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #cbd5e1', padding: '20px', marginBottom: '16px' }}>
             <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', marginBottom: '12px' }}>
-              📋 Riwayat Absensi Pertemuan ke-{activeSessionNumber}
+               Riwayat Absensi Pertemuan ke-{activeSessionNumber}
             </h4>
             
             {loadingAttendance ? (
@@ -679,10 +666,10 @@ const GuruAttendance = () => {
                       // Cari nama siswa
                       const student = students.find(s => (s._id || s.id) === studentId);
                       const statusMap = {
-                        'present': '✅ Hadir',
-                        'sick': '🤒 Sakit',
-                        'permit': '📝 Izin',
-                        'absent': '❌ Alfa'
+                        'present': ' Hadir',
+                        'sick': 'Sakit',
+                        'permit': ' Izin',
+                        'absent': ' Alfa'
                       };
                       const statusColor = {
                         'present': '#16a34a',
@@ -739,7 +726,7 @@ const GuruAttendance = () => {
               gap: '6px'
             }}
           >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_calendar</span>
+            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_kalend3r</span>
             Isi / Perbarui Presensi
           </button>
         </div>
@@ -930,7 +917,7 @@ const GuruAttendance = () => {
                 </label>
                 <textarea
                   rows="3"
-                  placeholder="Masukkan uraian sub-materi..."
+                  placeholder="Masukkan uraian materi..."
                   value={editingMaterialModal.subMateri}
                   onChange={(e) => setEditingMaterialModal({ ...editingMaterialModal, subMateri: e.target.value })}
                   style={{ width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '10px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}

@@ -194,23 +194,21 @@ if (nilaiKeterampilan >= batasTuntas) {
 </div>`;
   }
 
-  const fallbackContent = [slide1, slide2, slide3, slide4, slide5].join('\n<!-- slide-break -->\n');
-
-  // Simpan slides array untuk digunakan jika AI gagal
-  const fallbackSlides = [
-    { title: 'Slide 1: Pengenalan Pembelajaran', body: slide1 },
-    { title: 'Slide 2: Konsep Utama', body: slide2 },
-    { title: 'Slide 3: Contoh & Pembahasan', body: slide3 },
-    { title: 'Slide 4: Penerapan Praktis', body: slide4 },
-    { title: 'Slide 5: Rangkuman & Evaluasi', body: slide5 }
-  ];
+  const fallbackSlides = [];
+  for (let i = 1; i <= slideCount; i++) {
+    fallbackSlides.push({
+      title: `Slide ${i}: Pembahasan Bagian ${i}`,
+      body: `<div class="material-slide"><h3>Slide ${i}: Pembahasan Bagian ${i}</h3><p>Ini adalah materi penjelasan mendalam mengenai ${targetTitle} untuk bagian ke-${i}. Silakan pelajari bagian ini secara saksama agar memahami seluruh konsepnya.</p><img src="https://loremflickr.com/600/400/${targetSubject.toLowerCase()}" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;" /></div>`
+    });
+  }
+  const fallbackContent = fallbackSlides.map(s => s.body).join('\n<!-- slide-break -->\n');
 
   const defaultRichFallback = {
     title: targetTitle,
     description: description || `Materi pembelajaran slide interaktif paragraf panjang mengenai ${targetTitle} untuk mata pelajaran ${targetSubject} kelas ${targetClass}.`,
     content: fallbackContent,
-    slides: fallbackSlides,  // ← TAMBAHKAN INI
-    slide_count: 5
+    slides: fallbackSlides,
+    slide_count: slideCount
   };
 
   const apiKey = process.env.GEMINI_API_KEY;
@@ -260,9 +258,17 @@ Format output JSON murni tanpa markdown codeblock fence:
       return defaultRichFallback;
     }
 
+    let cleanedText = rawText;
     const jsonMatch = rawText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      rawText = jsonMatch[0];
+      cleanedText = jsonMatch[0];
+    }
+
+    let aiContent = null;
+    try {
+      aiContent = JSON.parse(cleanedText);
+    } catch (e) {
+      console.error('Failed to parse Gemini raw JSON:', e.message, 'Cleaned text was:', cleanedText);
     }
 
      if (aiContent && aiContent.content) {

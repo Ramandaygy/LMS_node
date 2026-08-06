@@ -159,11 +159,21 @@ exports.deleteSubmission =
       let filePath = '';
 
       if (req.file) {
-        if (process.env.VERCEL === '1' && req.file.buffer) {
-          const { uploadToSupabase } = require('../services/supabaseService');
-          filePath = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype, 'submissions');
-        } else {
-          filePath = `/uploads/submissions/${req.file.filename}`;
+        try {
+          if (process.env.VERCEL === '1' && req.file.buffer) {
+            const { uploadToSupabase } = require('../services/supabaseService');
+            filePath = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype, 'submissions');
+          } else {
+            filePath = `/uploads/submissions/${req.file.filename}`;
+          }
+        } catch (uploadErr) {
+          console.warn('[UploadToSupabase submission fallback]:', uploadErr.message);
+          if (req.file.buffer) {
+            const base64Str = req.file.buffer.toString('base64');
+            filePath = `data:${req.file.mimetype};base64,${base64Str}`;
+          } else {
+            filePath = `/uploads/submissions/${req.file.filename || req.file.originalname}`;
+          }
         }
       }
 

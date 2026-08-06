@@ -14,6 +14,7 @@ const SiswaAssignments = () => {
   const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('Semua');
+  const [allSubjects, setAllSubjects] = useState([]);
 
   const getSubmissionFileUrl = (pathStr) => {
     if (!pathStr) return '#';
@@ -24,6 +25,7 @@ const SiswaAssignments = () => {
 
   useEffect(() => {
     fetchAssignments();
+    fetchSubjects();
   }, []);
 
   const fetchAssignments = async () => {
@@ -34,6 +36,15 @@ const SiswaAssignments = () => {
       setMessage({ type: 'error', text: 'Gagal memuat tugas' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSubjects = async () => {
+    try {
+      const res = await api.get('/subjects');
+      setAllSubjects(res.data.data || res.data.subjects || []);
+    } catch (err) {
+      console.error('Gagal memuat mata pelajaran:', err);
     }
   };
 
@@ -162,9 +173,9 @@ const SiswaAssignments = () => {
                     textAlign: 'center'
                   }}
                 >
-                  {status === 'Semua' && '📚 Semua'}
-                  {status === 'Belum' && '⏳ Belum Selesai'}
-                  {status === 'Sudah' && '✅ Sudah Selesai'}
+                  {status === 'Semua' && ' Semua'}
+                  {status === 'Belum' && ' Belum Dikerjakan'}
+                  {status === 'Sudah' && ' Sudah Dikerjakan'}
                 </button>
               ))}
             </div>
@@ -187,11 +198,14 @@ const SiswaAssignments = () => {
                   cursor: 'pointer'
                 }}
               >
-                <option value="Semua">Semua Mata Pelajaran</option>
-                {subjects.map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
-                ))}
-              </select>
+                 <option value="Semua">Semua Mata Pelajaran</option>
+                 {[...new Set([
+                   ...allSubjects.map(s => s.name).filter(Boolean),
+                   ...assignments.map(a => a.subject_name).filter(Boolean)
+                 ])].sort().map(sub => (
+                   <option key={sub} value={sub}>{sub}</option>
+                 ))}
+               </select>
             </div>
           </div>
 
@@ -333,11 +347,7 @@ const SiswaAssignments = () => {
                       <strong>Feedback Guru:</strong> {selectedAssignment.feedback}
                     </div>
                   )}
-                  {selectedAssignment.submission_file && (
-                    <div className="my-submission">
-                      <strong>File yang dikirim:</strong> <a href={getSubmissionFileUrl(selectedAssignment.submission_file)} target="_blank" rel="noreferrer">Lihat lampiran</a>
-                    </div>
-                  )}
+
                   {selectedAssignment.submission_link && (
                     <div className="my-submission">
                       <strong>Link yang dikirim:</strong> <a href={selectedAssignment.submission_link} target="_blank">{selectedAssignment.submission_link}</a>
