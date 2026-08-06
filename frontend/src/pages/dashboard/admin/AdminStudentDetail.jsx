@@ -6,20 +6,20 @@ import '../../../styles/dashboard/admin/admin-student-detail.css';
 const AdminStudentDetail = () => {
   const { studentId } = useParams();
   const navigate = useNavigate();
-  
+
   const [student, setStudent] = useState(null);
   const [gradesHistory, setGradesHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   const [selectedYear, setSelectedYear] = useState('all');
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
 
   // Kirim event ke sidebar untuk menjaga menu aktif
   useEffect(() => {
-    const event = new CustomEvent('sidebarMenuChange', { 
-      detail: { menu: 'data-master' } 
+    const event = new CustomEvent('sidebarMenuChange', {
+      detail: { menu: 'data-master' }
     });
     window.dispatchEvent(event);
   }, []);
@@ -70,7 +70,7 @@ const AdminStudentDetail = () => {
       try {
         const fallbackRes = await api.get(`/users/${studentId}`);
         const fallbackData = fallbackRes.data.data || fallbackRes.data;
-        
+
         let parentData = null;
         if (fallbackData.parent_id) {
           try {
@@ -80,7 +80,7 @@ const AdminStudentDetail = () => {
             console.log('Parent not found');
           }
         }
-        
+
         setStudent({
           ...fallbackData,
           parent: parentData || null,
@@ -101,26 +101,26 @@ const AdminStudentDetail = () => {
     try {
       const gradesRes = await api.get(`/grades/student/${studentId}/history`);
       let grades = gradesRes.data.data || gradesRes.data.grades || [];
-      
+
       // Filter berdasarkan tahun ajaran
       let filteredGrades = grades;
       if (selectedYear !== 'all') {
         const selectedYearData = academicYears.find(y => y._id === selectedYear);
         if (selectedYearData) {
-          filteredGrades = grades.filter(g => 
-            g.academic_year === selectedYearData.year || 
+          filteredGrades = grades.filter(g =>
+            g.academic_year === selectedYearData.year ||
             g.academic_year_id === selectedYear
           );
         }
       }
-      
+
       if (filteredGrades.length === 0 && availableSubjects.length > 0) {
         const currentYear = new Date().getFullYear();
         const currentMonth = new Date().getMonth();
         const currentSemester = currentMonth >= 6 ? 'Ganjil' : 'Genap';
         const activeYear = academicYears.find(y => y.is_active);
         const yearLabel = activeYear ? `${activeYear.year}` : `${currentYear}/${currentYear + 1}`;
-        
+
         const dummyGrades = availableSubjects.map(sub => ({
           academic_year: yearLabel,
           semester: currentSemester,
@@ -147,7 +147,7 @@ const AdminStudentDetail = () => {
         const currentSemester = currentMonth >= 6 ? 'Ganjil' : 'Genap';
         const activeYear = academicYears.find(y => y.is_active);
         const yearLabel = activeYear ? `${activeYear.year}` : `${currentYear}/${currentYear + 1}`;
-        
+
         const dummyGrades = availableSubjects.map(sub => ({
           academic_year: yearLabel,
           semester: currentSemester,
@@ -193,18 +193,16 @@ const AdminStudentDetail = () => {
   };
 
   const groupedData = groupedGrades();
-  const filteredData = activeSemester === 'all' 
-    ? groupedData 
-    : groupedData.filter(g => g.semester.toLowerCase() === activeSemester.toLowerCase());
+  const filteredData = groupedData;
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '-';
-      return date.toLocaleDateString('id-ID', { 
-        day: 'numeric', 
-        month: 'long', 
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
         year: 'numeric'
       });
     } catch (err) {
@@ -217,9 +215,9 @@ const AdminStudentDetail = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '-';
-      return date.toLocaleDateString('id-ID', { 
-        day: 'numeric', 
-        month: 'long', 
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'long',
         year: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -265,8 +263,8 @@ const AdminStudentDetail = () => {
   const studentPhone = student.phone || '-';
   const studentTempatLahir = student.tempat_lahir || '-';
   const studentTanggalLahir = student.tanggal_lahir ? formatDate(student.tanggal_lahir) : '-';
-  const studentCreatedAt = student.createdAt ? formatDateTime(student.createdAt) : 
-                           student.created_at ? formatDateTime(student.created_at) : '-';
+  const studentCreatedAt = student.createdAt ? formatDateTime(student.createdAt) :
+    student.created_at ? formatDateTime(student.created_at) : '-';
   const studentStatus = student.is_active !== false;
 
   return (
@@ -314,8 +312,8 @@ const AdminStudentDetail = () => {
               <div className="info-row">
                 <span className="info-label">Jenis Kelamin</span>
                 <span className="info-value">
-                  {studentGender === 'Laki-laki' ? 'Laki-laki' : 
-                   studentGender === 'Perempuan' ? 'Perempuan' : '-'}
+                  {studentGender === 'Laki-laki' ? 'Laki-laki' :
+                    studentGender === 'Perempuan' ? 'Perempuan' : '-'}
                 </span>
               </div>
               <div className="info-row">
@@ -399,27 +397,6 @@ const AdminStudentDetail = () => {
                   </option>
                 ))}
               </select>
-              
-              <div className="grades-filter">
-                <button 
-                  className={`filter-btn ${activeSemester === 'all' ? 'active' : ''}`}
-                  onClick={() => setActiveSemester('all')}
-                >
-                  Semua
-                </button>
-                <button 
-                  className={`filter-btn ${activeSemester === 'ganjil' ? 'active' : ''}`}
-                  onClick={() => setActiveSemester('ganjil')}
-                >
-                  Ganjil
-                </button>
-                <button 
-                  className={`filter-btn ${activeSemester === 'genap' ? 'active' : ''}`}
-                  onClick={() => setActiveSemester('genap')}
-                >
-                  Genap
-                </button>
-              </div>
             </div>
           </div>
 
@@ -458,7 +435,7 @@ const AdminStudentDetail = () => {
                         const nilaiAkhir = grade.nilai_akhir || grade.nilai || grade.nilai_akhir_semester || '-';
                         const isPass = nilaiAkhir !== '-' && Number(nilaiAkhir) >= 75;
                         const isEmpty = grade.is_empty === true;
-                        
+
                         return (
                           <tr key={gIdx} className={isEmpty ? 'empty-row' : ''}>
                             <td>{gIdx + 1}</td>

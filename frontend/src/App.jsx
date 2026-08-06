@@ -62,9 +62,6 @@ import AdminClasses from './pages/dashboard/admin/AdminClasses';
 import AdminSubjects from './pages/dashboard/admin/AdminMapel';
 import AdminAcademicYear from './pages/dashboard/admin/AdminAcademic';
 import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
-import AdminStudents from './pages/dashboard/admin/AdminStudents';
-import AdminTeachers from './pages/dashboard/admin/AdminTeachers';
-import AdminParents from './pages/dashboard/admin/AdminParents';
 import AdminMonitoring from './pages/dashboard/admin/AdminMonitoring';
 import AdminStudentDetail from './pages/dashboard/admin/AdminStudentDetail';
 import AdminSettings from './pages/dashboard/admin/AdminSettings';
@@ -370,7 +367,7 @@ function App() {
         {/* ============================================ */}
         <Route path="/register/*" element={<Navigate to="/login" replace />} />
 
-        
+
 
         {/* ============================================ */}
         {/* SISWA DASHBOARD */}
@@ -397,15 +394,15 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
-        <Route 
+
+        <Route
           path="/dashboard/siswa/attendance" element={
-          <ProtectedRoute allowedRole="siswa">
-            <DashboardLayout role="siswa">
-              <SiswaAttendance />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+            <ProtectedRoute allowedRole="siswa">
+              <DashboardLayout role="siswa">
+                <SiswaAttendance />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
 
         <Route
           path="/dashboard/siswa/materials"
@@ -893,14 +890,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route 
-            path="/dashboard/ortu/attendance" element={
-          <ProtectedRoute allowedRole="ortu">
-            <DashboardLayout role="ortu">
-              <OrtuAttendance />
-            </DashboardLayout>
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/dashboard/ortu/attendance" element={
+            <ProtectedRoute allowedRole="ortu">
+              <DashboardLayout role="ortu">
+                <OrtuAttendance />
+              </DashboardLayout>
+            </ProtectedRoute>
+          } />
 
         <Route path="/dashboard/ortu/monitoring" element={
           <ProtectedRoute allowedRole="ortu">
