@@ -124,9 +124,15 @@ exports.getExams = async (req, res) => {
         is_master: false,
         $or: classConditions
       };
-    } else if (userRole === 'guru') {
+    } else if (userRole === 'guru' || userRole === 'wakil_kurikulum') {
       const guruCol = mongoose.connection.collection('users_guru');
-      const teacherDoc = await guruCol.findOne({ _id: userObjId });
+      const adminCol = mongoose.connection.collection('users_admin');
+      
+      let teacherDoc = await guruCol.findOne({ _id: userObjId });
+      if (!teacherDoc) {
+        teacherDoc = await adminCol.findOne({ _id: userObjId });
+      }
+      
       const teacherSubjects = teacherDoc && Array.isArray(teacherDoc.subjects) ? teacherDoc.subjects : [];
 
       if (teacherSubjects.length > 0) {

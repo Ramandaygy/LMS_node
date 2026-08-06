@@ -54,14 +54,22 @@ exports.getMasterQuizzes = async (req, res) => {
 // ============================================================
 exports.getQuizzesForSiswa = async (req, res) => {
   try {
-    const studentId = req.user.id || req.user._id;
+    const studentId = req.user?.id || req.user?._id;
+    if (!studentId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
     
     const User = require('../models/User');
+    const mongoose = require('mongoose');
     let student = await User.findById(studentId).lean();
     
     if (!student) {
       const siswaCol = mongoose.connection.collection('users_siswa');
-      student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId.toString()) });
+      try {
+        student = await siswaCol.findOne({ _id: new mongoose.Types.ObjectId(studentId.toString()) });
+      } catch (err) {
+        student = null;
+      }
     }
     
     const studentClass = student?.class_name || '';
@@ -76,11 +84,11 @@ exports.getQuizzesForSiswa = async (req, res) => {
       let classIdObj;
       try {
         classIdObj = new mongoose.Types.ObjectId(classIdStr);
+        classConditions.push({ class_id: classIdObj });
       } catch (e) {
-        classIdObj = studentClassId;
+        // ignore
       }
       classConditions.push({ class_id: classIdStr });
-      classConditions.push({ class_id: classIdObj });
     }
 
     if (classConditions.length === 0) {
@@ -91,14 +99,13 @@ exports.getQuizzesForSiswa = async (req, res) => {
       is_master: false,
       is_active: true,
       $or: classConditions
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).lean();
     
     const QuizSubmission = require('../models/QuizSubmission');
-    const mongoose = require('mongoose');
     const studentConditions = [studentId.toString()];
-    if (mongoose.Types.ObjectId.isValid(studentId.toString())) {
+    try {
       studentConditions.push(new mongoose.Types.ObjectId(studentId.toString()));
-    }
+    } catch (e) {}
 
     const submittedQuizIds = await QuizSubmission.distinct('quiz_id', {
       student_id: { $in: studentConditions }
@@ -107,14 +114,14 @@ exports.getQuizzesForSiswa = async (req, res) => {
     const submittedSet = new Set(submittedQuizIds.map(id => id.toString()));
     
     const quizzesWithStatus = quizzes.map(q => ({
-      ...q.toObject(),
+      ...q,
       is_submitted: submittedSet.has(q._id.toString())
     }));
     
     return res.json({ success: true, quizzes: quizzesWithStatus });
   } catch (err) {
     console.error('Error fetching quizzes for siswa:', err);
-    return res.status(500).json({ success: false, message: 'Gagal memuat data kuis.' });
+    return res.status(500).json({ success: false, message: 'Gagal memuat kuis live.' });
   }
 };
 
