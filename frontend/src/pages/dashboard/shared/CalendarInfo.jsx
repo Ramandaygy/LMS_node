@@ -9,7 +9,7 @@ const CalendarInfo = () => {
   const [error, setError] = useState('');
   
   const currentUser = authService.getCurrentUser();
-  const isAdmin = currentUser?.role === 'admin';
+  const canManageEvent = currentUser?.role === 'admin' || currentUser?.role === 'super_admin' || currentUser?.role === 'guru';
 
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -19,7 +19,8 @@ const CalendarInfo = () => {
     start_date: '',
     end_date: '',
     type: 'academic',
-    color: '#0040a1'
+    color: '#0040a1',
+    visibility: 'public'
   });
 
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -54,7 +55,7 @@ const CalendarInfo = () => {
       }
       setShowModal(false);
       setEditingEvent(null);
-      setFormData({ title: '', description: '', start_date: '', end_date: '', type: 'academic', color: '#0040a1' });
+      setFormData({ title: '', description: '', start_date: '', end_date: '', type: 'academic', color: '#0040a1', visibility: 'public' });
       fetchEvents();
     } catch (err) {
       alert('Gagal menyimpan event');
@@ -69,7 +70,8 @@ const CalendarInfo = () => {
       start_date: event.start_date.split('T')[0],
       end_date: event.end_date.split('T')[0],
       type: event.type || 'academic',
-      color: event.color || '#0040a1'
+      color: event.color || '#0040a1',
+      visibility: event.visibility || 'public'
     });
     setShowModal(true);
   };
@@ -124,7 +126,7 @@ const CalendarInfo = () => {
                 key={ev._id} 
                 className="event-chip" 
                 style={{ backgroundColor: ev.color }}
-                onClick={() => isAdmin && handleEdit(ev)}
+                onClick={() => canManageEvent && handleEdit(ev)}
                 title={ev.title}
               >
                 {ev.title}
@@ -172,10 +174,13 @@ const CalendarInfo = () => {
                     ` - ${new Date(ev.end_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`
                   }
                 </div>
-                <div className="upcoming-title">{ev.title}</div>
+                <div className="upcoming-title">
+                  {ev.visibility === 'private' && <span className="material-symbols-outlined" style={{fontSize: '14px', marginRight: '4px', color: '#64748b'}}>lock</span>}
+                  {ev.title}
+                </div>
                 {ev.description && <div className="upcoming-desc">{ev.description}</div>}
                 
-                {isAdmin && (
+                {canManageEvent && (
                   <div className="upcoming-actions">
                     <button onClick={() => handleEdit(ev)} className="btn-edit-small">Edit</button>
                     <button onClick={() => handleDelete(ev._id)} className="btn-del-small">Hapus</button>
@@ -198,7 +203,7 @@ const CalendarInfo = () => {
           <h2>Kalender Info</h2>
           <p>Informasi jadwal dan kegiatan akademik sekolah</p>
         </div>
-        {isAdmin && (
+        {canManageEvent && (
           <button className="btn-add-event" onClick={() => { setEditingEvent(null); setFormData({ title: '', description: '', start_date: '', end_date: '', type: 'academic', color: '#0040a1' }); setShowModal(true); }}>
             + Tambah Agenda
           </button>
@@ -216,7 +221,7 @@ const CalendarInfo = () => {
         </div>
       </div>
 
-      {showModal && isAdmin && (
+      {showModal && canManageEvent && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>{editingEvent ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h3>
@@ -243,6 +248,19 @@ const CalendarInfo = () => {
                 <div className="form-group">
                   <label>Warna Label</label>
                   <input type="color" name="color" value={formData.color} onChange={handleChange} />
+                </div>
+                <div className="form-group">
+                  <label>Visibilitas</label>
+                  <div style={{ display: 'flex', gap: '15px', marginTop: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'normal' }}>
+                      <input type="radio" name="visibility" value="public" checked={formData.visibility === 'public'} onChange={handleChange} />
+                      Publik (Semua)
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'normal' }}>
+                      <input type="radio" name="visibility" value="private" checked={formData.visibility === 'private'} onChange={handleChange} />
+                      Pribadi (Hanya Saya)
+                    </label>
+                  </div>
                 </div>
               </div>
               <div className="modal-buttons">

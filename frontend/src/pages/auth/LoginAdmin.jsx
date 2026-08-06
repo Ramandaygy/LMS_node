@@ -131,7 +131,7 @@ const LoginAdmin = () => {
               {error && <div className="auth-error">{error}</div>}
               
               <div className="auth-input-group">
-                <label>Admin ID or Email Address</label>
+                <label>Admin ID or Email / Username</label>
                 <div className="auth-input-wrapper">
                   <span className="material-symbols-outlined">person</span>
                   <input

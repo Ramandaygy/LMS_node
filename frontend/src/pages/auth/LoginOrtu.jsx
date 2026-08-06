@@ -97,7 +97,7 @@ const LoginOrtu = () => {
               {error && <div className="auth-error">{error}</div>}
 
               <div className="auth-input-group">
-                <label>Email </label>
+                <label>Email / Username</label>
                 <div className="auth-input-wrapper">
                   <span className="material-symbols-outlined">person</span>
                   <input

@@ -225,6 +225,58 @@ const GuruProgress = () => {
         </div>
       </div>
 
+      {students.length > 0 && (
+        <div className="statistics-section">
+          <h3 className="section-title">Ringkasan Analisis Kelas</h3>
+          <div className="stats-grid">
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-blue">
+                <span className="material-symbols-outlined">analytics</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Rata-rata Kelas</p>
+                <p className="stat-value">
+                  {((students.reduce((sum, s) => sum + s.avgScore + (s.avgQuizScore || 0), 0)) / (students.length * 2)).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-green">
+                <span className="material-symbols-outlined">verified</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Rendah</p>
+                <p className="stat-value text-green">
+                  {students.filter(s => s.risk === 'low').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
+            </div>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-yellow">
+                <span className="material-symbols-outlined">info</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Sedang</p>
+                <p className="stat-value text-yellow">
+                  {students.filter(s => s.risk === 'medium').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
+            </div>
+            <div className="stat-card premium-card">
+              <div className="stat-icon bg-red">
+                <span className="material-symbols-outlined">warning</span>
+              </div>
+              <div className="stat-info">
+                <p className="stat-label">Risiko Tinggi</p>
+                <p className="stat-value text-red">
+                  {students.filter(s => s.risk === 'high').length} <span className="stat-suffix">Siswa</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="filter-section premium-card">
         <div className="class-selector">
           <label htmlFor="class-select">Pilih Kelas</label>
@@ -358,57 +410,7 @@ const GuruProgress = () => {
         );
       })()}
 
-      {students.length > 0 && (
-        <div className="statistics-section">
-          <h3 className="section-title">Ringkasan Analisis Kelas</h3>
-          <div className="stats-grid">
-            <div className="stat-card premium-card">
-              <div className="stat-icon bg-blue">
-                <span className="material-symbols-outlined">analytics</span>
-              </div>
-              <div className="stat-info">
-                <p className="stat-label">Rata-rata Kelas</p>
-                <p className="stat-value">
-                  {((students.reduce((sum, s) => sum + s.avgScore + (s.avgQuizScore || 0), 0)) / (students.length * 2)).toFixed(1)}%
-                </p>
-              </div>
-            </div>
-            <div className="stat-card premium-card">
-              <div className="stat-icon bg-green">
-                <span className="material-symbols-outlined">verified</span>
-              </div>
-              <div className="stat-info">
-                <p className="stat-label">Risiko Rendah</p>
-                <p className="stat-value text-green">
-                  {students.filter(s => s.risk === 'low').length} <span className="stat-suffix">Siswa</span>
-                </p>
-              </div>
-            </div>
-            <div className="stat-card premium-card">
-              <div className="stat-icon bg-yellow">
-                <span className="material-symbols-outlined">info</span>
-              </div>
-              <div className="stat-info">
-                <p className="stat-label">Risiko Sedang</p>
-                <p className="stat-value text-yellow">
-                  {students.filter(s => s.risk === 'medium').length} <span className="stat-suffix">Siswa</span>
-                </p>
-              </div>
-            </div>
-            <div className="stat-card premium-card">
-              <div className="stat-icon bg-red">
-                <span className="material-symbols-outlined">warning</span>
-              </div>
-              <div className="stat-info">
-                <p className="stat-label">Risiko Tinggi</p>
-                <p className="stat-value text-red">
-                  {students.filter(s => s.risk === 'high').length} <span className="stat-suffix">Siswa</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      
     </div>
   );
 };

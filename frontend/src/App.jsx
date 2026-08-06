@@ -62,7 +62,9 @@ import AdminClasses from './pages/dashboard/admin/AdminClasses';
 import AdminSubjects from './pages/dashboard/admin/AdminMapel';
 import AdminAcademicYear from './pages/dashboard/admin/AdminAcademic';
 import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
-import AdminDataMaster from './pages/dashboard/admin/AdminDataMaster';
+import AdminStudents from './pages/dashboard/admin/AdminStudents';
+import AdminTeachers from './pages/dashboard/admin/AdminTeachers';
+import AdminParents from './pages/dashboard/admin/AdminParents';
 import AdminMonitoring from './pages/dashboard/admin/AdminMonitoring';
 import AdminStudentDetail from './pages/dashboard/admin/AdminStudentDetail';
 import AdminSettings from './pages/dashboard/admin/AdminSettings';
@@ -726,11 +728,31 @@ function App() {
         />
 
         <Route
-          path="/dashboard/admin/data-master"
+          path="/dashboard/admin/students"
           element={
             <ProtectedRoute allowedRole="admin">
               <DashboardLayout role="admin">
-                <AdminDataMaster />
+                <AdminStudents />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/teachers"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <AdminTeachers />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/admin/parents"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <DashboardLayout role="admin">
+                <AdminParents />
               </DashboardLayout>
             </ProtectedRoute>
           }

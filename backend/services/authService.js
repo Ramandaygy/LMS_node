@@ -108,10 +108,13 @@ exports.login = async (body) => {
   const emailLower = email.toLowerCase();
   let user = null;
 
-  user = await getCollection('users_admin').findOne({ email: emailLower });
-  if (!user) user = await getCollection('users_guru').findOne({ email: emailLower });
-  if (!user) user = await getCollection('users_siswa').findOne({ email: emailLower });
-  if (!user) user = await getCollection('users_ortu').findOne({ email: emailLower });
+  const query = { $or: [{ email: emailLower }, { username: email }] };
+
+  user = await getCollection('users_admin').findOne(query);
+  if (!user) user = await getCollection('users_guru').findOne(query);
+  if (!user) user = await getCollection('users_siswa').findOne(query);
+  if (!user) user = await getCollection('users_ortu').findOne(query);
+
 
   console.log(
     'FOUND USER:',

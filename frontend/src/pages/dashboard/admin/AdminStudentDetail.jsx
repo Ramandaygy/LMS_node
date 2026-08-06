@@ -11,7 +11,7 @@ const AdminStudentDetail = () => {
   const [gradesHistory, setGradesHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeSemester, setActiveSemester] = useState('all');
+  
   const [selectedYear, setSelectedYear] = useState('all');
   const [availableSubjects, setAvailableSubjects] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);

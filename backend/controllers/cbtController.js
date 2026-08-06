@@ -942,91 +942,133 @@ exports.importQuestionsWord = async (req, res) => {
     const result = await mammoth.extractRawText({ buffer: req.file.buffer });
     const text = result.value || '';
     
-    // Split questions by ==== or ---- or double newlines
-    let blocks = text.split(/(====+|----+|\r?\n\r?\n\r?\n+)/);
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     
-    // Fallback: If only 1 block is parsed, split by question numbers, e.g. "1. ", "2) " at the start of a line
-    if (blocks.length <= 1) {
-      const splitRegex = /\r?\n\s*(?=\d+[\.\)])/;
-      blocks = text.split(splitRegex);
-    }
-
     const questions = [];
     const errors = [];
+    
+    let currentQuestion = null;
+    let isParsingQuestionText = false;
+    let isParsingExplanation = false;
 
-    blocks.forEach((block, idx) => {
-      const cleanBlock = block.trim();
-      if (!cleanBlock || cleanBlock.match(/^(====+|----+)$/)) return;
-
-      const lines = cleanBlock.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      let qText = '';
-      let optA = '';
-      let optB = '';
-      let optC = '';
-      let optD = '';
-      let correctStr = '';
-      let explanation = '';
-      let type = 'pg';
-
-      lines.forEach(line => {
-        const lowerLine = line.toLowerCase();
-        if (lowerLine.startsWith('pertanyaan:') || lowerLine.startsWith('soal:')) {
-          qText = line.replace(/^(pertanyaan:|soal:)/i, '').trim();
-        } else if (lowerLine.startsWith('tipe:') || lowerLine.startsWith('type:')) {
-          const t = line.replace(/^(tipe:|type:)/i, '').trim().toLowerCase();
-          if (t.includes('essay') || t.includes('esai')) type = 'essay';
-        } else if (line.startsWith('A.') || line.startsWith('A:') || line.startsWith('a.')) {
-          optA = line.substring(2).trim();
-        } else if (line.startsWith('B.') || line.startsWith('B:') || line.startsWith('b.')) {
-          optB = line.substring(2).trim();
-        } else if (line.startsWith('C.') || line.startsWith('C:') || line.startsWith('c.')) {
-          optC = line.substring(2).trim();
-        } else if (line.startsWith('D.') || line.startsWith('D:') || line.startsWith('d.')) {
-          optD = line.substring(2).trim();
-        } else if (lowerLine.startsWith('kunci:') || lowerLine.startsWith('kunci jawaban:')) {
-          correctStr = line.replace(/^(kunci:|kunci jawaban:)/i, '').trim();
-        } else if (lowerLine.startsWith('pembahasan:')) {
-          explanation = line.replace(/^pembahasan:/i, '').trim();
-        } else {
-          if (!qText) {
-            qText = line.replace(/^\d+[\.\)]\s*/, '').trim();
-          }
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      
+      // Deteksi awal soal baru (misal: "1. Nama Tegal berasal...", "2) Pada masa...")
+      const questionMatch = line.match(/^(\d+)[\.\)]\s+(.*)/);
+      
+      // Jika menemukan soal baru atau kata "Pertanyaan:"
+      if (questionMatch || lowerLine.startsWith('pertanyaan:') || lowerLine.startsWith('soal:')) {
+        // Simpan soal sebelumnya jika ada
+        if (currentQuestion) {
+          questions.push(currentQuestion);
         }
-      });
+        
+        let qText = '';
+        if (questionMatch) {
+          qText = questionMatch[2];
+        } else {
+          qText = line.replace(/^(pertanyaan:|soal:)/i, '').trim();
+        }
 
-      // Auto detect essay type if options A/B are missing and it's not explicitly set
-      if (type === 'pg' && (!optA || !optB)) {
-        type = 'essay';
-      }
-
-      if (!qText) {
-        errors.push(`Blok ${idx + 1}: Teks pertanyaan tidak ditemukan.`);
+        currentQuestion = {
+          type: 'pg', // Default
+          question_text: qText,
+          options: ['', '', '', ''],
+          correct_option: 0,
+          correct_answer_text: '',
+          explanation: ''
+        };
+        isParsingQuestionText = true;
+        isParsingExplanation = false;
         return;
       }
 
-      if (type === 'pg') {
-        let correctOption = 0;
-        const correctUpper = correctStr.toUpperCase();
-        if (correctUpper === 'B' || correctUpper === '2') correctOption = 1;
-        else if (correctUpper === 'C' || correctUpper === '3') correctOption = 2;
-        else if (correctUpper === 'D' || correctUpper === '4') correctOption = 3;
+      // Jika kita belum menemukan soal pertama, abaikan baris ini (berarti ini header/judul dokumen)
+      if (!currentQuestion) return;
 
-        questions.push({
-          type: 'pg',
-          question_text: qText,
-          options: [optA || 'Pilihan A', optB || 'Pilihan B', optC || 'Pilihan C', optD || 'Pilihan D'],
-          correct_option: correctOption,
-          explanation: explanation || ''
-        });
-      } else {
-        questions.push({
-          type: 'essay',
-          question_text: qText,
-          options: [],
-          correct_option: 0,
-          correct_answer_text: correctStr || '',
-          explanation: explanation || ''
-        });
+      // Cek apakah line ini adalah opsi jawaban A, B, C, D
+      let isOption = false;
+      if (line.match(/^[A-Aa]\s*[\.\:]\s*/)) {
+        currentQuestion.options[0] = line.replace(/^[A-Aa]\s*[\.\:]\s*/, '').trim();
+        isOption = true;
+      } else if (line.match(/^[B-Bb]\s*[\.\:]\s*/)) {
+        currentQuestion.options[1] = line.replace(/^[B-Bb]\s*[\.\:]\s*/, '').trim();
+        isOption = true;
+      } else if (line.match(/^[C-Cc]\s*[\.\:]\s*/)) {
+        currentQuestion.options[2] = line.replace(/^[C-Cc]\s*[\.\:]\s*/, '').trim();
+        isOption = true;
+      } else if (line.match(/^[D-Dd]\s*[\.\:]\s*/)) {
+        currentQuestion.options[3] = line.replace(/^[D-Dd]\s*[\.\:]\s*/, '').trim();
+        isOption = true;
+      }
+
+      if (isOption) {
+        isParsingQuestionText = false;
+        isParsingExplanation = false;
+        return;
+      }
+
+      // Cek kunci jawaban
+      if (lowerLine.startsWith('kunci:') || lowerLine.startsWith('kunci jawaban:')) {
+        const key = line.replace(/^(kunci:|kunci jawaban:)/i, '').trim();
+        currentQuestion.correct_answer_text = key;
+        
+        const correctUpper = key.toUpperCase();
+        if (correctUpper === 'A' || correctUpper === '1') currentQuestion.correct_option = 0;
+        else if (correctUpper === 'B' || correctUpper === '2') currentQuestion.correct_option = 1;
+        else if (correctUpper === 'C' || correctUpper === '3') currentQuestion.correct_option = 2;
+        else if (correctUpper === 'D' || correctUpper === '4') currentQuestion.correct_option = 3;
+        
+        isParsingQuestionText = false;
+        isParsingExplanation = false;
+        return;
+      }
+      
+      // Cek tipe soal
+      if (lowerLine.startsWith('tipe:') || lowerLine.startsWith('type:')) {
+        const t = line.replace(/^(tipe:|type:)/i, '').trim().toLowerCase();
+        if (t.includes('essay') || t.includes('esai')) currentQuestion.type = 'essay';
+        isParsingQuestionText = false;
+        return;
+      }
+
+      // Cek pembahasan
+      if (lowerLine.startsWith('pembahasan:')) {
+        currentQuestion.explanation = line.replace(/^pembahasan:/i, '').trim();
+        isParsingExplanation = true;
+        isParsingQuestionText = false;
+        return;
+      }
+
+      // Jika bukan opsi, bukan kunci, bukan tipe, dan kita sedang parsing teks pertanyaan (multi-line text)
+      if (isParsingQuestionText) {
+        currentQuestion.question_text += '\n' + line;
+      } else if (isParsingExplanation) {
+        currentQuestion.explanation += '\n' + line;
+      }
+    });
+
+    // Push the last question
+    if (currentQuestion) {
+      questions.push(currentQuestion);
+    }
+
+    // Post-processing: auto-detect essay if options are empty
+    questions.forEach((q, idx) => {
+      if (q.type === 'pg' && (!q.options[0] || !q.options[1])) {
+        q.type = 'essay';
+        q.options = [];
+      } else if (q.type === 'pg') {
+        // Fallback for empty options
+        if (!q.options[0]) q.options[0] = 'Pilihan A';
+        if (!q.options[1]) q.options[1] = 'Pilihan B';
+        if (!q.options[2]) q.options[2] = 'Pilihan C';
+        if (!q.options[3]) q.options[3] = 'Pilihan D';
+      }
+      
+      if (!q.question_text) {
+        errors.push(`Soal ke-${idx + 1}: Teks pertanyaan kosong.`);
       }
     });
 
@@ -1048,4 +1090,3 @@ exports.importQuestionsWord = async (req, res) => {
     console.error('Error importing questions Word:', err);
     return res.status(500).json({ success: false, message: 'Gagal memproses file Word (.docx).' });
   }
-};

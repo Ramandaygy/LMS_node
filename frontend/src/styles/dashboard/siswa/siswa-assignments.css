@@ -325,3 +325,46 @@
   color: #94a3b8;
   padding: 40px;
 }
+@media (max-width: 768px) {
+  .assignments-grid {
+    flex-direction: column;
+  }
+  .assignments-list {
+    width: 100%;
+  }
+  .assignment-detail {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: #f7f9fb;
+    width: 100%;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .assignment-detail.show-mobile {
+    display: block;
+  }
+  .btn-close-mobile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    color: #0040a1;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 8px 0;
+    margin-bottom: 16px;
+    cursor: pointer;
+  }
+}
+@media (min-width: 769px) {
+  .btn-close-mobile {
+    display: none;
+  }
+}

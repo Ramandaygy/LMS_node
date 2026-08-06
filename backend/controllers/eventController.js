@@ -6,6 +6,11 @@ exports.getEvents = async (req, res) => {
     const filter = {};
     if (req.user && (req.user.role === 'siswa' || req.user.role === 'ortu')) {
       filter.visibility = 'public';
+    } else if (req.user) {
+      filter.$or = [
+        { visibility: 'public' },
+        { visibility: 'private', created_by: req.user.id }
+      ];
     }
     const events = await Event.find(filter).sort({ start_date: 1 });
     res.json(events);
