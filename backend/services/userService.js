@@ -122,9 +122,12 @@ exports.getUsersByRole = async (role) => {
       users = Array.from(allSiswaMap.values());
       break;
 
-    case 'guru':
-      users = await getCollection('users_guru').find({ role: { $in: ['guru', 'bk'] } }).toArray();
+    case 'guru': {
+      const guruAndBk = await getCollection('users_guru').find({ role: { $in: ['guru', 'bk'] } }).toArray();
+      const waka = await getCollection('users_admin').find({ role: 'wakil_kurikulum' }).toArray();
+      users = [...guruAndBk, ...waka];
       break;
+    }
 
     case 'bk':
       users = await getCollection('users_guru').find({ role: 'bk' }).toArray();

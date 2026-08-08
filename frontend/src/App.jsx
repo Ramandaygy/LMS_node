@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -51,72 +51,71 @@ import SiswaDashboard from './pages/dashboard/SiswaDashboard';
 import OrtuDashboard from './pages/dashboard/OrtuDashboard';
 import BkDashboard from './pages/dashboard/bk/BkDashboard';
 
+import CalendarInfo from './pages/dashboard/shared/CalendarInfo';
+
+import Navbar from './components/Layout/Navbar';
+import Sidebar from './components/Layout/Sidebar';
+
 // ============================================
 // ADMIN SUB PAGES
 // ============================================
-import AdminStudents from './pages/dashboard/admin/AdminStudents';
-import AdminTeachers from './pages/dashboard/admin/AdminTeachers';
-import AdminParents from './pages/dashboard/admin/AdminParents';
-import AdminReports from './pages/dashboard/admin/AdminReports';
-import AdminClasses from './pages/dashboard/admin/AdminClasses';
-import AdminSubjects from './pages/dashboard/admin/AdminMapel';
-import AdminAcademicYear from './pages/dashboard/admin/AdminAcademic';
-import AdminSchedule from './pages/dashboard/admin/AdminSchedule';
-import AdminMonitoring from './pages/dashboard/admin/AdminMonitoring';
-import AdminStudentDetail from './pages/dashboard/admin/AdminStudentDetail';
-import AdminSettings from './pages/dashboard/admin/AdminSettings';
-import SuperAdminAccounts from './pages/dashboard/admin/SuperAdminAccounts';
-import SuperAdminRoles from './pages/dashboard/admin/SuperAdminRoles';
-import SuperAdminSettings from './pages/dashboard/admin/SuperAdminSettings';
-import SuperAdminActivityLogs from './pages/dashboard/admin/SuperAdminActivityLogs';
-import SuperAdminBackup from './pages/dashboard/admin/SuperAdminBackup';
+// Lazy-loaded admin pages for code splitting
+const AdminStudents = lazy(() => import('./pages/dashboard/admin/AdminStudents'));
+const AdminTeachers = lazy(() => import('./pages/dashboard/admin/AdminTeachers'));
+const AdminParents = lazy(() => import('./pages/dashboard/admin/AdminParents'));
+const AdminReports = lazy(() => import('./pages/dashboard/admin/AdminReports'));
+const AdminClasses = lazy(() => import('./pages/dashboard/admin/AdminClasses'));
+const AdminSubjects = lazy(() => import('./pages/dashboard/admin/AdminMapel'));
+const AdminAcademicYear = lazy(() => import('./pages/dashboard/admin/AdminAcademic'));
+const AdminSchedule = lazy(() => import('./pages/dashboard/admin/AdminSchedule'));
+const AdminMonitoring = lazy(() => import('./pages/dashboard/admin/AdminMonitoring'));
+const AdminStudentDetail = lazy(() => import('./pages/dashboard/admin/AdminStudentDetail'));
+const AdminSettings = lazy(() => import('./pages/dashboard/admin/AdminSettings'));
+const SuperAdminAccounts = lazy(() => import('./pages/dashboard/admin/SuperAdminAccounts'));
+const SuperAdminRoles = lazy(() => import('./pages/dashboard/admin/SuperAdminRoles'));
+const SuperAdminSettings = lazy(() => import('./pages/dashboard/admin/SuperAdminSettings'));
+const SuperAdminActivityLogs = lazy(() => import('./pages/dashboard/admin/SuperAdminActivityLogs'));
+const SuperAdminBackup = lazy(() => import('./pages/dashboard/admin/SuperAdminBackup'));
 
-
-// ============================================
-// SHARED SUB PAGES
-// ============================================
-import CalendarInfo from './pages/dashboard/shared/CalendarInfo';
 
 // ============================================
 // GURU SUB PAGES
 // ============================================
-import GuruCourses from './pages/dashboard/guru/GuruCourses';
-import GuruAssignments from './pages/dashboard/guru/GuruAssignments';
-import GuruMaterials from './pages/dashboard/guru/GuruMaterials';
-import GuruAttendance from './pages/dashboard/guru/GuruAttendance';
-import GuruMonitoring from './pages/dashboard/guru/GuruMonitoring';
-import GuruStudents from './pages/dashboard/guru/GuruStudents';
-import GuruProgress from './pages/dashboard/guru/GuruProgress';
-import GuruQuiz from './pages/dashboard/guru/GuruQuiz';
-import GuruCbt from './pages/dashboard/guru/GuruCbt';
-import GuruInputNilai from './pages/dashboard/guru/GuruInputNilai';
-import GuruWaliKelas from './pages/dashboard/guru/GuruWaliKelas';
+// Lazy-loaded guru pages for code splitting (heavy components)
+const GuruCourses = lazy(() => import('./pages/dashboard/guru/GuruCourses'));
+const GuruAssignments = lazy(() => import('./pages/dashboard/guru/GuruAssignments'));
+const GuruMaterials = lazy(() => import('./pages/dashboard/guru/GuruMaterials'));
+const GuruAttendance = lazy(() => import('./pages/dashboard/guru/GuruAttendance'));
+const GuruMonitoring = lazy(() => import('./pages/dashboard/guru/GuruMonitoring'));
+const GuruStudents = lazy(() => import('./pages/dashboard/guru/GuruStudents'));
+const GuruProgress = lazy(() => import('./pages/dashboard/guru/GuruProgress'));
+const GuruQuiz = lazy(() => import('./pages/dashboard/guru/GuruQuiz'));
+const GuruCbt = lazy(() => import('./pages/dashboard/guru/GuruCbt'));
+const GuruInputNilai = lazy(() => import('./pages/dashboard/guru/GuruInputNilai'));
+const GuruWaliKelas = lazy(() => import('./pages/dashboard/guru/GuruWaliKelas'));
 
 // ============================================
 // SISWA SUB PAGES
 // ============================================
-import SiswaAssignments from './pages/dashboard/siswa/SiswaAssignments';
-import SiswaAttendance from './pages/dashboard/siswa/SiswaAttendance';
-import SiswaMaterials from './pages/dashboard/siswa/SiswaMaterials';
-import SiswaProgress from './pages/dashboard/siswa/SiswaProgress';
-import SiswaSchedule from './pages/dashboard/siswa/SiswaSchedule';
-import SiswaCbt from './pages/dashboard/siswa/SiswaCbt';
-import SiswaQuiz from './pages/dashboard/siswa/SiswaQuiz';
+// Lazy-loaded siswa pages
+const SiswaAssignments = lazy(() => import('./pages/dashboard/siswa/SiswaAssignments'));
+const SiswaAttendance = lazy(() => import('./pages/dashboard/siswa/SiswaAttendance'));
+const SiswaMaterials = lazy(() => import('./pages/dashboard/siswa/SiswaMaterials'));
+const SiswaProgress = lazy(() => import('./pages/dashboard/siswa/SiswaProgress'));
+const SiswaSchedule = lazy(() => import('./pages/dashboard/siswa/SiswaSchedule'));
+const SiswaCbt = lazy(() => import('./pages/dashboard/siswa/SiswaCbt'));
+const SiswaQuiz = lazy(() => import('./pages/dashboard/siswa/SiswaQuiz'));
 
 // ============================================
 // ORTU SUB PAGES
 // ============================================
-import OrtuAttendance from './pages/dashboard/ortu/OrtuAttendance';
-import OrtuMonitoring from './pages/dashboard/ortu/OrtuMonitoring';
-import OrtuChildren from './pages/dashboard/ortu/OrtuChildren';
-import OrtuReports from './pages/dashboard/ortu/OrtuReports';
-import OrtuSchedule from './pages/dashboard/ortu/OrtuSchedule';
+// Lazy-loaded ortu pages
+const OrtuAttendance = lazy(() => import('./pages/dashboard/ortu/OrtuAttendance'));
+const OrtuMonitoring = lazy(() => import('./pages/dashboard/ortu/OrtuMonitoring'));
+const OrtuChildren = lazy(() => import('./pages/dashboard/ortu/OrtuChildren'));
+const OrtuReports = lazy(() => import('./pages/dashboard/ortu/OrtuReports'));
+const OrtuSchedule = lazy(() => import('./pages/dashboard/ortu/OrtuSchedule'));
 
-// ============================================
-// COMPONENTS
-// ============================================
-import Navbar from './components/Layout/Navbar';
-import Sidebar from './components/Layout/Sidebar';
 
 // ============================================
 // PROTECTED ROUTE
@@ -232,7 +231,15 @@ function App() {
           onClose={() => setSidebarOpen(false)}
         />
         <div className="main-content">
-          {children}
+          <Suspense fallback={
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTopColor: '#0284c7', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <p style={{ color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Memuat halaman...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          }>
+            {children}
+          </Suspense>
         </div>
       </div>
     );
@@ -488,7 +495,7 @@ function App() {
         <Route
           path="/dashboard/guru/courses"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruCourses />
               </DashboardLayout>
@@ -499,7 +506,7 @@ function App() {
         <Route
           path="/dashboard/guru/walikelas"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruWaliKelas />
               </DashboardLayout>
@@ -510,7 +517,7 @@ function App() {
         <Route
           path="/dashboard/guru/assignments"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruAssignments />
               </DashboardLayout>
@@ -521,7 +528,7 @@ function App() {
         <Route
           path="/dashboard/guru/materials"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruMaterials />
               </DashboardLayout>
@@ -532,7 +539,7 @@ function App() {
         <Route
           path="/dashboard/guru/attendance"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruAttendance />
               </DashboardLayout>
@@ -543,7 +550,7 @@ function App() {
         <Route
           path="/dashboard/guru/input-nilai"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruInputNilai />
               </DashboardLayout>
@@ -565,7 +572,7 @@ function App() {
         <Route
           path="/dashboard/guru/progress"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruProgress />
               </DashboardLayout>
@@ -576,7 +583,7 @@ function App() {
         <Route
           path="/dashboard/guru/students"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruStudents />
               </DashboardLayout>
@@ -587,7 +594,7 @@ function App() {
         <Route
           path="/dashboard/guru/quiz"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruQuiz />
               </DashboardLayout>
@@ -598,7 +605,7 @@ function App() {
         <Route
           path="/dashboard/guru/cbt"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <GuruCbt />
               </DashboardLayout>
@@ -609,7 +616,7 @@ function App() {
         <Route
           path="/dashboard/guru/calendar"
           element={
-            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <CalendarInfo />
               </DashboardLayout>
@@ -835,7 +842,7 @@ function App() {
         <Route
           path="/dashboard/admin/monitoring"
           element={
-            <ProtectedRoute allowedRole={['admin', 'guru']}>
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminMonitoring />
               </DashboardLayout>
@@ -846,7 +853,7 @@ function App() {
         <Route
           path="/dashboard/guru/leger"
           element={
-            <ProtectedRoute allowedRole={['admin', 'guru']}>
+            <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
                 <AdminMonitoring />
               </DashboardLayout>

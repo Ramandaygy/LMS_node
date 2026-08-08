@@ -45,12 +45,12 @@ const BkDashboard = () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      // 1. Fetch students of this class
-      const studentsRes = await api.get(`/attendance/students/${selectedClass}`);
+      // Fetch students and attendance in parallel
+      const [studentsRes, attendanceRes] = await Promise.all([
+        api.get(`/attendance/students/${selectedClass}`),
+        api.get(`/daily-attendance/class/${selectedClass}?date=${selectedDate}`)
+      ]);
       const studentList = studentsRes.data.students || studentsRes.data.data || [];
-      
-      // 2. Fetch existing daily attendance for this class and date
-      const attendanceRes = await api.get(`/daily-attendance/class/${selectedClass}?date=${selectedDate}`);
       const savedAttendance = attendanceRes.data.data || [];
 
       // Map saved attendance

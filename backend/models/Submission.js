@@ -13,4 +13,6 @@ const submissionSchema = new mongoose.Schema({
   graded_by: { type: mongoose.Schema.Types.ObjectId, default: null }
 }, { timestamps: true });
 
+submissionSchema.index({ student_id: 1, score: 1 });
+
 module.exports = mongoose.model('Submission', submissionSchema);

@@ -280,32 +280,193 @@ exports.checkAndNotifyEWS = async (studentId) => {
 
 exports.getStudentsProgressByClass = async (classId) => {
   const mongoose = require('mongoose');
+  const Material = require('../models/Material');
+  const MaterialProgress = require('../models/MaterialProgress');
   const siswaCol = mongoose.connection.collection('users_siswa');
-  const classIdStr = classId.toString();
+  const submissionsCol = mongoose.connection.collection('submissions');
+  const assignmentsCol = mongoose.connection.collection('assignments');
+  const attendancesCol = mongoose.connection.collection('attendances');
+  const gradesCol = mongoose.connection.collection('grades');
+  const subjectsCol = mongoose.connection.collection('subjects');
 
+  const classIdStr = classId.toString();
+  let classObjectId;
+  try { classObjectId = new mongoose.Types.ObjectId(classIdStr); } catch (e) { classObjectId = classIdStr; }
+
+  // 1. Fetch all students in the class (1 query)
   const students = await siswaCol.find({
     is_active: { $ne: false },
     $or: [
-      { class_id: classId },
+      { class_id: classObjectId },
       { class_id: classIdStr }
     ]
   }).sort({ full_name: 1 }).toArray();
 
-  const progressData = [];
-  for (const student of students) {
-    const data = await getStudentData(student._id);
-    const prediction = rfService.predictRisk(data.avgScore, data.attendanceRate, data.materialCompletionRate, data.avgQuizScore);
-    progressData.push({
+  if (students.length === 0) return [];
+
+  const studentIds = students.map(s => s._id);
+  const studentIdStrings = studentIds.map(id => id.toString());
+
+  // 2. Batch fetch ALL submissions for all students (1 query)
+  const allSubmissions = await submissionsCol.find({
+    student_id: { $in: [...studentIds, ...studentIdStrings] },
+    score: { $ne: null }
+  }).toArray();
+
+  // 3. Batch fetch ALL related assignments (1 query)
+  const assignmentIds = [...new Set(allSubmissions.map(s => s.assignment_id.toString()))];
+  const assignmentObjIds = assignmentIds.map(id => {
+    try { return new mongoose.Types.ObjectId(id); } catch (e) { return id; }
+  });
+  const allAssignments = assignmentObjIds.length > 0
+    ? await assignmentsCol.find({ _id: { $in: [...assignmentObjIds, ...assignmentIds] } }).toArray()
+    : [];
+
+  const assignmentMap = {};
+  allAssignments.forEach(a => {
+    assignmentMap[a._id.toString()] = {
+      title: a.title,
+      total_score: a.total_score || a.max_score || 100,
+      subject: (a.subject || a.subject_id || a.subjectId || '').toString()
+    };
+  });
+
+  // 4. Batch fetch ALL attendances for all students (1 query)
+  const allAttendances = await attendancesCol.find({
+    student_id: { $in: [...studentIds, ...studentIdStrings] }
+  }).toArray();
+
+  // 5. Batch fetch ALL grades for all students (1 query)
+  const allGrades = await gradesCol.find({
+    student: { $in: [...studentIds, ...studentIdStrings] }
+  }).toArray();
+
+  // 6. Batch fetch material completion data (2 queries)
+  const materialIds = await Material.find({ class_id: classObjectId }).distinct('_id');
+  const allMaterialProgress = materialIds.length > 0
+    ? await MaterialProgress.find({
+        student: { $in: studentIds },
+        material: { $in: materialIds },
+        completed: true
+      }).lean()
+    : [];
+  const totalMaterials = materialIds.length;
+
+  // 7. Fetch all subjects once (1 query, shared)
+  const allSubjects = await subjectsCol.find({ is_active: { $ne: false } }).toArray();
+
+  // --- GROUP DATA BY STUDENT IN-MEMORY ---
+  const submissionsByStudent = {};
+  allSubmissions.forEach(s => {
+    const sid = s.student_id.toString();
+    if (!submissionsByStudent[sid]) submissionsByStudent[sid] = [];
+    submissionsByStudent[sid].push(s);
+  });
+
+  const attendancesByStudent = {};
+  allAttendances.forEach(a => {
+    const sid = a.student_id.toString();
+    if (!attendancesByStudent[sid]) attendancesByStudent[sid] = [];
+    attendancesByStudent[sid].push(a);
+  });
+
+  const gradesByStudent = {};
+  allGrades.forEach(g => {
+    const sid = g.student.toString();
+    if (!gradesByStudent[sid]) gradesByStudent[sid] = [];
+    gradesByStudent[sid].push(g);
+  });
+
+  const materialCompletionByStudent = {};
+  allMaterialProgress.forEach(mp => {
+    const sid = mp.student.toString();
+    materialCompletionByStudent[sid] = (materialCompletionByStudent[sid] || 0) + 1;
+  });
+
+  // --- COMPUTE PROGRESS PER STUDENT (IN-MEMORY, NO EXTRA QUERIES) ---
+  const progressData = students.map(student => {
+    const sid = student._id.toString();
+
+    // Submissions & avg score
+    const studentSubmissions = submissionsByStudent[sid] || [];
+    let totalScore = 0, totalMax = 0;
+    studentSubmissions.forEach(s => {
+      const assign = assignmentMap[s.assignment_id.toString()] || { total_score: 100 };
+      totalScore += s.score;
+      totalMax += assign.total_score;
+    });
+
+    // Subject breakdown for overall avg
+    const studentGrades = gradesByStudent[sid] || [];
+    const subjectBreakdown = allSubjects.map(sub => {
+      const subIdStr = sub._id.toString();
+      const subAssignments = allAssignments.filter(a => (a.subject || a.subject_id || a.subjectId || '').toString() === subIdStr);
+      const subAssignIds = new Set(subAssignments.map(a => a._id.toString()));
+      const subSubmissions = studentSubmissions.filter(s => subAssignIds.has(s.assignment_id.toString()));
+
+      let subTaskScoreSum = 0, subTaskMaxSum = 0;
+      subSubmissions.forEach(s => {
+        const assign = assignmentMap[s.assignment_id.toString()] || { total_score: 100 };
+        subTaskScoreSum += s.score;
+        subTaskMaxSum += assign.total_score || 100;
+      });
+      const subNH = subTaskMaxSum > 0 ? Math.round((subTaskScoreSum / subTaskMaxSum) * 100) : null;
+
+      const subGrades = studentGrades.filter(g => g.subject?.toString() === subIdStr);
+      const pts = subGrades.find(g => g.type === 'uts')?.score ?? null;
+      const pas = subGrades.find(g => g.type === 'uas')?.score ?? null;
+
+      let subAvgScore = null;
+      if (subNH !== null || pts !== null || pas !== null) {
+        const nhVal = subNH !== null ? subNH : (pts !== null ? pts : (pas !== null ? pas : 0));
+        const ptsVal = pts !== null ? pts : nhVal;
+        const pasVal = pas !== null ? pas : nhVal;
+        subAvgScore = Math.round((nhVal + ptsVal + pasVal) / 3);
+      }
+      return subAvgScore;
+    }).filter(v => typeof v === 'number');
+
+    const avgScore = subjectBreakdown.length > 0
+      ? Math.round(subjectBreakdown.reduce((a, b) => a + b, 0) / subjectBreakdown.length)
+      : (totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0);
+
+    // Attendance
+    const studentAttendances = attendancesByStudent[sid] || [];
+    const totalDays = studentAttendances.length;
+    const presentDays = studentAttendances.filter(a => {
+      const st = (a.status || '').toLowerCase();
+      return st === 'hadir' || st === 'present' || st === 'sakit' || st === 'sick' || st === 'ijin' || st === 'izin' || st === 'permission';
+    }).length;
+    const attendanceRate = totalDays > 0 ? (presentDays / totalDays) * 100 : 100;
+
+    // Quiz score
+    let quizScoreSum = 0, quizCount = 0;
+    studentGrades.forEach(g => {
+      if (g.type === 'quiz') { quizScoreSum += g.score; quizCount++; }
+    });
+    const avgQuizScore = quizCount > 0 ? quizScoreSum / quizCount : 0;
+
+    // Material completion
+    const completedMaterials = materialCompletionByStudent[sid] || 0;
+    const materialCompletionRate = totalMaterials > 0 ? Math.round((completedMaterials / totalMaterials) * 100) : 0;
+
+    // Risk prediction (pure computation, no DB call)
+    const prediction = rfService.predictRisk(avgScore, attendanceRate, materialCompletionRate, avgQuizScore);
+
+    return {
       studentId: student._id,
+      student_name: student.full_name,
       studentName: student.full_name,
       nis: student.nis || student.username || '-',
-      attendanceRate: Math.round(data.attendanceRate),
-      avgScore: Math.round(data.avgScore),
-      materialCompletionRate: Math.round(data.materialCompletionRate),
-      avgQuizScore: Math.round(data.avgQuizScore),
+      attendanceRate: Math.round(attendanceRate),
+      avgScore: Math.round(avgScore),
+      materialCompletionRate: materialCompletionRate,
+      avgQuizScore: Math.round(avgQuizScore),
       risk: prediction.risk,
-      reasons: prediction.reasons
-    });
-  }
+      message: prediction.message,
+      reasons: prediction.reasons || []
+    };
+  });
+
   return progressData;
 };

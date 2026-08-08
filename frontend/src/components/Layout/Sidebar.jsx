@@ -45,7 +45,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   useEffect(() => {
     fetchUserProfile();
-    if (userRole === 'guru') {
+    if (['guru', 'wakil_kurikulum', 'bk'].includes(userRole)) {
       const checkHomeroom = async () => {
         try {
           const api = (await import('../../services/api')).default;
@@ -119,11 +119,18 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     ],
     super_admin: [
       { key: 'dashboard', label: 'Dashboard Sistem', icon: 'dashboard', path: '/dashboard/admin' },
+      { key: 'students', label: 'Kelola Siswa', icon: 'school', path: '/dashboard/admin/students' },
+      { key: 'teachers', label: 'Kelola Guru', icon: 'record_voice_over', path: '/dashboard/admin/teachers' },
+      { key: 'parents', label: 'Kelola Orang Tua', icon: 'family_restroom', path: '/dashboard/admin/parents' },
+      { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
+      { key: 'assignments', label: 'Penjadwalan Guru', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
+      { key: 'reports', label: 'Laporan Akademik', icon: 'analytics', path: '/dashboard/admin/reports' },
       { key: 'accounts', label: 'Manajemen Akun', icon: 'manage_accounts', path: '/dashboard/superadmin/accounts' },
       { key: 'roles', label: 'Hak Akses', icon: 'rule', path: '/dashboard/superadmin/roles' },
-      { key: 'settings', label: 'Pengaturan Sistem', icon: 'settings', path: '/dashboard/superadmin/settings' },
       { key: 'activity-logs', label: 'Activity Log', icon: 'history', path: '/dashboard/superadmin/activity-logs' },
       { key: 'backup', label: 'Backup Database', icon: 'backup', path: '/dashboard/superadmin/backup' },
+      { key: 'settings', label: 'Pengaturan Sistem', icon: 'settings', path: '/dashboard/superadmin/settings' },
+      { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     wakil_kurikulum: [
       { key: 'dashboard', label: 'Dashboard', icon: 'dashboard', path: '/dashboard/admin' },
@@ -160,12 +167,17 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
   // Resolve current menus based on role and active teaching/admin mode
   let currentMenus = menus[userRole] || menus.siswa;
-  if (userRole === 'wakil_kurikulum') {
-    currentMenus = (guruMode === 'wakil_kurikulum') ? menus.wakil_kurikulum : guruMapelMenuList;
-  } else if (userRole === 'bk') {
-    currentMenus = (guruMode === 'bk') ? menus.bk : guruMapelMenuList;
-  } else if (userRole === 'guru') {
-    currentMenus = (guruMode === 'walikelas' && homeroomStatus) ? waliKelasMenuList : guruMapelMenuList;
+  
+  if (['guru', 'wakil_kurikulum', 'bk'].includes(userRole)) {
+    if (guruMode === 'wakil_kurikulum' && userRole === 'wakil_kurikulum') {
+      currentMenus = menus.wakil_kurikulum;
+    } else if (guruMode === 'bk' && userRole === 'bk') {
+      currentMenus = menus.bk;
+    } else if (guruMode === 'walikelas' && homeroomStatus) {
+      currentMenus = waliKelasMenuList;
+    } else {
+      currentMenus = guruMapelMenuList;
+    }
   }
 
   const roleNames = {
@@ -230,7 +242,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    navigate('/login');
+    window.location.href = '/login';
   };
 
   // Handle profile
@@ -338,7 +350,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
                   }}
                 >
                   <option value="guru">📘 Mode Guru Mapel (KBM)</option>
-                  {userRole === 'guru' && homeroomStatus && (
+                  {homeroomStatus && (
                     <option value="walikelas">🛡️ Mode Wali Kelas ({homeroomStatus.name})</option>
                   )}
                   {userRole === 'wakil_kurikulum' && (

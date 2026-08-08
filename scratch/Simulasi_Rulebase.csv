@@ -1,0 +1,13 @@
+Nama Siswa,Persentase Kehadiran (%),Jumlah Alpa,Jumlah Tugas Kosong,Rata-rata Nilai,Poin Pelanggaran BK,Skor Kehadiran,Skor Akademik,Skor Kedisiplinan,Total Skor Risiko,Status / Kategori
+Budi Santoso,75,4,5,65,15,30,40,10,80,🔴 RED FLAG
+Siti Aminah,98,0,0,85,0,0,0,0,0,🟢 AMAN
+Andi Setiawan,85,2,2,70,5,15,20,0,35,🟡 WARNING
+Rina Wati,60,7,8,55,30,50,50,40,140,🔴 RED FLAG (CRITICAL)
+Agus Salim,95,1,1,78,25,0,10,30,40,🟡 WARNING
+
+--- RULES / ATURAN PENILAIAN ---,,,,,,,,,,
+Kategori,Kondisi,Poin,,,,,,,,
+Kehadiran,"Alpa >= 3 = 30 poin, Alpa >= 5 = 50 poin",,,,,,,,
+Akademik,"Tugas Kosong >= 4 = 40 poin, Rata-rata < 70 = 20 poin",,,,,,,,
+Kedisiplinan,"Poin BK >= 20 = 30 poin, Poin BK >= 30 = 40 poin",,,,,,,,
+THRESHOLD,"Total > 70 = RED FLAG, Total > 30 = WARNING",,,,,,,,

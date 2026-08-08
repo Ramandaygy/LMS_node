@@ -79,57 +79,9 @@ const AdminReports = () => {
       const queryString = params.toString();
       
       if (type === 'leger') {
-        endpoint = `/admin/reports/leger${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'subject-scores') {
-        endpoint = `/admin/reports/subject-scores${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'mastery') {
-        endpoint = `/admin/reports/mastery${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'exam-scores') {
-        endpoint = `/admin/reports/exam-scores${queryString ? '?' + queryString : ''}`;
+        endpoint = `/admin/monitoring/leger${queryString ? '?' + queryString : ''}`;
       } else if (type === 'teacher-load') {
-        endpoint = `/admin/reports/teacher-load${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'teacher-schedule') {
-        endpoint = `/admin/reports/teacher-schedule${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'teacher-by-subject') {
-        endpoint = `/admin/reports/teacher-by-subject`;
-      } else if (type === 'homeroom-teacher') {
-        endpoint = `/admin/reports/homeroom-teacher${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'student-per-class') {
-        endpoint = `/admin/reports/student-per-class${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'student-stats') {
-        endpoint = `/admin/reports/student-stats${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'alumni') {
-        endpoint = `/admin/reports/alumni${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'student-achievement') {
-        endpoint = `/admin/reports/student-achievement${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'attendance-student') {
-        endpoint = `/admin/reports/attendance-student${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'attendance-teacher') {
-        endpoint = `/admin/reports/attendance-teacher${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'red-flag') {
-        endpoint = `/admin/reports/red-flag${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'attendance-monthly') {
-        endpoint = `/admin/reports/attendance-monthly${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'task-submission') {
-        endpoint = `/admin/reports/task-submission${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'cbt-exam') {
-        endpoint = `/admin/reports/cbt-exam${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'material-distribution') {
-        endpoint = `/admin/reports/material-distribution${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'student-progress') {
-        endpoint = `/admin/reports/student-progress${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'rooms') {
-        endpoint = `/admin/reports/rooms`;
-      } else if (type === 'facilities') {
-        endpoint = `/admin/reports/facilities`;
-      } else if (type === 'master-book') {
-        endpoint = `/admin/reports/master-book${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'audit-trail') {
-        endpoint = `/admin/reports/audit-trail`;
-      } else if (type === 'login-stats') {
-        endpoint = `/admin/reports/login-stats${queryString ? '?' + queryString : ''}`;
-      } else if (type === 'backup-log') {
-        endpoint = `/admin/reports/backup-log`;
+        endpoint = `/admin/monitoring/teachers${queryString ? '?' + queryString : ''}`;
       }
 
       const response = await api.get(endpoint);
@@ -196,57 +148,29 @@ const AdminReports = () => {
       // Generate table berdasarkan type
       switch(type) {
         case 'leger':
-          const legerData = data.students_leger || [];
+          const legerData = data.data?.students || [];
           title = 'LAPORAN LEGER NILAI SISWA';
-          headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Rata-Rata', 'Status'];
+          headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Rata-Rata', 'Peringkat'];
           rows = legerData.map((st, i) => [
             i + 1,
             st.nis,
-            st.name,
-            st.class_name,
-            st.avg_score,
-            st.is_tuntas ? 'TUNTAS' : 'BELUM TUNTAS'
+            st.full_name,
+            data.data?.class_info?.name || '-',
+            st.avgRapor,
+            st.rank
           ]);
           break;
         case 'teacher-load':
-          const teacherData = data.teachers || [];
+          const teacherData = data.data || [];
           title = 'LAPORAN DATA GURU & BEBAN MENGAJAR';
-          headers = ['No', 'NIP', 'Nama Guru', 'Mapel', 'Kelas', 'JP'];
+          headers = ['No', 'NIP', 'Nama Guru', 'Mapel', 'Kelas', 'Siswa Binaan'];
           rows = teacherData.map((g, i) => [
             i + 1,
             g.nip || '-',
             g.full_name,
-            g.subjects_formatted || '-',
-            g.classes_formatted || '-',
-            g.total_jp || 0
-          ]);
-          break;
-        case 'attendance-student':
-          const attData = data.class_summary || [];
-          title = 'LAPORAN PRESENSI SISWA';
-          headers = ['No', 'Kelas', 'Siswa', 'Hadir', 'Sakit', 'Izin', 'Alpa', '%'];
-          rows = attData.map((c, i) => [
-            i + 1,
-            c.class_name,
-            c.total_students,
-            c.hadir,
-            c.sakit,
-            c.izin,
-            c.alpa,
-            `${c.pct_hadir}%`
-          ]);
-          break;
-        case 'student-per-class':
-          const studentData = data.students || [];
-          title = 'LAPORAN DATA SISWA PER KELAS';
-          headers = ['No', 'NIS', 'Nama Siswa', 'Kelas', 'Jenis Kelamin', 'Status'];
-          rows = studentData.map((s, i) => [
-            i + 1,
-            s.nis || '-',
-            s.full_name,
-            s.class_name,
-            s.gender || '-',
-            s.is_active !== false ? 'Aktif' : 'Nonaktif'
+            g.assigned_subjects?.join(', ') || '-',
+            g.assigned_classes?.join(', ') || '-',
+            g.total_students_taught || 0
           ]);
           break;
         default:
@@ -343,12 +267,8 @@ const AdminReports = () => {
   // ============================================================
   const renderCategoryTabs = () => {
     const categories = [
-      { id: 'academic', label: '📖 Akademik & Nilai', icon: 'military_tech' },
-      { id: 'teachers', label: '👨‍🏫 Ketenagaan (Guru)', icon: 'person' },
-      { id: 'students', label: '👨‍🎓 Kesiswaan', icon: 'school' },
-      { id: 'attendance', label: '📋 Presensi', icon: 'how_to_reg' },
-      { id: 'learning', label: '📝 Pembelajaran', icon: 'menu_book' },
-      { id: 'facilities', label: '🏫 Sarana & Fasilitas', icon: 'meeting_room' }
+      { id: 'academic', label: '📖 Akademik & Kenaikan Kelas', icon: 'military_tech' },
+      { id: 'teachers', label: '👨‍🏫 Ketenagaan (Guru)', icon: 'person' }
     ];
 
     return (
@@ -373,22 +293,10 @@ const AdminReports = () => {
   const renderReportCards = () => {
     const reports = {
       academic: [
-        { id: 'leger', label: 'Leger Nilai', desc: 'Rekapitulasi lengkap nilai akhir siswa, ketuntasan, KKM, rata-rata, dan nilai ujian' }
+        { id: 'leger', label: 'Leger Nilai & Kenaikan Kelas', desc: 'Rekapitulasi lengkap nilai akhir siswa, ketuntasan, KKM, dan penentuan kenaikan kelas.' }
       ],
       teachers: [
-        { id: 'teacher-load', label: 'Beban Mengajar', desc: 'Laporan data guru, rombel wali kelas, beban mengajar JP, dan jadwal mengajar' }
-      ],
-      students: [
-        { id: 'student-per-class', label: 'Data & Statistik Siswa', desc: 'Daftar data siswa aktif lengkap per kelas, rombel, jenis kelamin, prestasi, dan alumni' }
-      ],
-      attendance: [
-        { id: 'attendance-student', label: 'Presensi Kehadiran', desc: 'Rekapitulasi kehadiran harian/bulanan siswa dan guru, serta deteksi siswa berisiko' }
-      ],
-      learning: [
-        { id: 'task-submission', label: 'KBM & Ujian CBT', desc: 'Rekapitulasi tugas kelas, ujian CBT, progres materi, dan aktivitas kelas' }
-      ],
-      facilities: [
-        { id: 'facilities', label: 'Sarana & Prasarana', desc: 'Rekapitulasi penggunaan fasilitas sekolah, kelas, kapasitas, dan buku induk' }
+        { id: 'teacher-load', label: 'Beban Mengajar Guru', desc: 'Laporan data guru, bidang tugas, dan total jam tatap muka (JP) mengajar.' }
       ]
     };
 
@@ -403,22 +311,12 @@ const AdminReports = () => {
                 <span className="material-symbols-outlined">
                   {activeCategory === 'academic' && 'military_tech'}
                   {activeCategory === 'teachers' && 'person'}
-                  {activeCategory === 'students' && 'school'}
-                  {activeCategory === 'attendance' && 'how_to_reg'}
-                  {activeCategory === 'learning' && 'menu_book'}
-                  {activeCategory === 'facilities' && 'meeting_room'}
-                  {activeCategory === 'audit' && 'admin_panel_settings'}
                 </span>
               </div>
               <div className="pillar-tags">
                 <span className="tag">
                   {activeCategory === 'academic' && 'Akademik'}
                   {activeCategory === 'teachers' && 'Guru'}
-                  {activeCategory === 'students' && 'Siswa'}
-                  {activeCategory === 'attendance' && 'Presensi'}
-                  {activeCategory === 'learning' && 'Pembelajaran'}
-                  {activeCategory === 'facilities' && 'Sarana'}
-                  {activeCategory === 'audit' && 'Audit'}
                 </span>
               </div>
             </div>
@@ -501,8 +399,6 @@ const AdminReports = () => {
       {/* Report Cards */}
       {renderReportCards()}
 
-
-
       {/* ============================================================
           PREVIEW MODAL
           ============================================================ */}
@@ -545,16 +441,16 @@ const AdminReports = () => {
                             </tr>
                           </thead>
                           <tbody>
-                            {(previewData.students_leger || []).map((s, idx) => (
+                            {(previewData?.data?.students || []).map((s, idx) => (
                               <tr key={idx}>
                                 <td>{idx + 1}</td>
-                                <td>{s.nis}</td>
-                                <td><strong>{s.name}</strong></td>
-                                <td>{s.class_name}</td>
-                                <td><strong>{s.avg_score}</strong></td>
+                                <td>{s.nis || '-'}</td>
+                                <td><strong>{s.full_name}</strong></td>
+                                <td>{previewData?.data?.class_info?.name || '-'}</td>
+                                <td><span className="jp-badge">{s.avgRapor}</span></td>
                                 <td>
-                                  <span className={`status-pill ${s.is_tuntas ? 'tuntas' : 'belum'}`}>
-                                    {s.is_tuntas ? '✅ Tuntas' : '⏳ Belum'}
+                                  <span className={`status-pill tuntas`}>
+                                    Peringkat {s.rank}
                                   </span>
                                 </td>
                               </tr>
@@ -581,24 +477,18 @@ const AdminReports = () => {
                               <th>Nama Guru</th>
                               <th>Mapel</th>
                               <th>Kelas</th>
-                              <th>JP</th>
-                              <th>Status</th>
+                              <th>Siswa Binaan</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {(previewData.teachers || []).map((g, idx) => (
+                            {(previewData.data || []).map((g, idx) => (
                               <tr key={idx}>
                                 <td>{idx + 1}</td>
                                 <td>{g.nip || '-'}</td>
                                 <td><strong>{g.full_name}</strong></td>
-                                <td>{g.subjects_formatted || '-'}</td>
-                                <td>{g.classes_formatted || '-'}</td>
-                                <td><span className="jp-badge">{g.total_jp || 0} JP</span></td>
-                                <td>
-                                  <span className={`status-pill ${g.is_active !== false ? 'tuntas' : 'belum'}`}>
-                                    {g.is_active !== false ? '✅ Aktif' : '⏳ Nonaktif'}
-                                  </span>
-                                </td>
+                                <td>{g.assigned_subjects?.join(', ') || '-'}</td>
+                                <td>{g.assigned_classes?.join(', ') || '-'}</td>
+                                <td><span className="jp-badge">{g.total_students_taught || 0} Siswa</span></td>
                               </tr>
                             ))}
                           </tbody>
@@ -607,151 +497,6 @@ const AdminReports = () => {
                     </div>
                   )}
 
-                  {/* PRATINJAU PRESENSI SISWA */}
-                  {previewType === 'attendance-student' && (
-                    <div>
-                      <div className="preview-stat-bar">
-                        <span>📋 Total Siswa: <strong>{previewData.total_students || 0}</strong></span>
-                        <span>📊 Rata-rata Kehadiran: <strong>{previewData.avg_attendance || 0}%</strong></span>
-                      </div>
-                      <div className="table-responsive">
-                        <table className="preview-table">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>Kelas</th>
-                              <th>Siswa</th>
-                              <th>Hadir</th>
-                              <th>Sakit</th>
-                              <th>Izin</th>
-                              <th>Alpa</th>
-                              <th>%</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(previewData.class_summary || []).map((c, idx) => (
-                              <tr key={idx}>
-                                <td>{idx + 1}</td>
-                                <td><strong>{c.class_name}</strong></td>
-                                <td>{c.total_students}</td>
-                                <td>{c.hadir}</td>
-                                <td>{c.sakit}</td>
-                                <td>{c.izin}</td>
-                                <td>{c.alpa}</td>
-                                <td><strong>{c.pct_hadir}%</strong></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PRATINJAU RED FLAG */}
-                  {previewType === 'red-flag' && (
-                    <div>
-                      <div className="preview-stat-bar">
-                        <span>🚨 Total Red Flag: <strong>{(previewData.red_flag_students || []).length}</strong> siswa</span>
-                      </div>
-                      <div className="table-responsive">
-                        <table className="preview-table redflag">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>NIS</th>
-                              <th>Nama</th>
-                              <th>Kelas</th>
-                              <th>Alpa</th>
-                              <th>Orang Tua</th>
-                              <th>Kontak</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(previewData.red_flag_students || []).map((s, idx) => (
-                              <tr key={idx}>
-                                <td>{idx + 1}</td>
-                                <td>{s.nis}</td>
-                                <td><strong>{s.name}</strong></td>
-                                <td>{s.class_name}</td>
-                                <td><span className="alpa-count">{s.alpa}</span></td>
-                                <td>{s.parent_name || '-'}</td>
-                                <td>{s.parent_phone || '-'}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PRATINJAU AUDIT TRAIL */}
-                  {previewType === 'audit-trail' && (
-                    <div>
-                      <div className="table-responsive">
-                        <table className="preview-table">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>Waktu</th>
-                              <th>Pengguna</th>
-                              <th>Aktivitas</th>
-                              <th>Detail</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(previewData.logs || []).map((l, idx) => (
-                              <tr key={idx}>
-                                <td>{l.no || idx + 1}</td>
-                                <td>{l.time}</td>
-                                <td><strong>{l.user}</strong></td>
-                                <td><span className="action-tag">{l.action}</span></td>
-                                <td>{l.detail}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* PRATINJAU DATA SISWA PER KELAS */}
-                  {previewType === 'student-per-class' && (
-                    <div>
-                      <div className="preview-stat-bar">
-                        <span>👨‍🎓 Total Siswa: <strong>{previewData.total_students || 0}</strong></span>
-                      </div>
-                      <div className="table-responsive">
-                        <table className="preview-table">
-                          <thead>
-                            <tr>
-                              <th>#</th>
-                              <th>NIS</th>
-                              <th>Nama Siswa</th>
-                              <th>Kelas</th>
-                              <th>JK</th>
-                              <th>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(previewData.students || []).map((s, idx) => (
-                              <tr key={idx}>
-                                <td>{idx + 1}</td>
-                                <td>{s.nis || '-'}</td>
-                                <td><strong>{s.full_name}</strong></td>
-                                <td>{s.class_name}</td>
-                                <td>{s.gender || '-'}</td>
-                                <td>
-                                  <span className={`status-pill ${s.is_active !== false ? 'tuntas' : 'belum'}`}>
-                                    {s.is_active !== false ? '✅ Aktif' : '⏳ Nonaktif'}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
 
                 </div>
               ) : null}

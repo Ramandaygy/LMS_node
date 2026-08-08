@@ -8,7 +8,7 @@ const Navbar = ({ user, onLogout }) => {
 
   const handleLogout = () => {
     onLogout();
-    navigate('/login');
+    window.location.href = '/login';
   };
 
   const toggleMenu = () => {

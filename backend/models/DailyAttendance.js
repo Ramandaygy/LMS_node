@@ -37,4 +37,7 @@ const dailyAttendanceSchema = new mongoose.Schema(
   }
 );
 
+dailyAttendanceSchema.index({ student_id: 1 });
+dailyAttendanceSchema.index({ class_id: 1, date: 1 });
+
 module.exports = mongoose.model('DailyAttendance', dailyAttendanceSchema);

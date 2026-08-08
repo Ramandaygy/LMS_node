@@ -228,7 +228,9 @@ const AdminParents = () => {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const response = await api.post('/admin/import/parents', fd);
+      const response = await api.post('/admin/import/parents', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       const { success_count, error_count, errors } = response.data;
       if (success_count > 0 && error_count > 0) {
         setSuccessMsg(`Import selesai: ${success_count} berhasil dimasukkan.`);

@@ -50,7 +50,7 @@ const Profile = () => {
       });
       setAvatarPreview(data.profileImage || null);
 
-      if (data.role === 'guru') {
+      if (['guru', 'wakil_kurikulum', 'bk'].includes(data.role)) {
         try {
           const hrRes = await api.get('/guru/homeroom-status');
           if (hrRes.data.success && hrRes.data.is_homeroom) {
@@ -175,7 +175,15 @@ const Profile = () => {
   };
 
   const getRoleLabel = (role) => {
-    const labels = { admin: 'Administrator', guru: 'Guru', siswa: 'Siswa', ortu: 'Orang Tua' };
+    const labels = { 
+      admin: 'Administrator', 
+      guru: 'Guru Mapel', 
+      siswa: 'Siswa', 
+      ortu: 'Orang Tua',
+      bk: 'Guru BK',
+      wakil_kurikulum: 'Wakil Kurikulum',
+      super_admin: 'Super Admin'
+    };
     return labels[role] || role;
   };
 
@@ -302,7 +310,7 @@ const Profile = () => {
             </>
           )}
 
-          {(user?.role === 'guru' || user?.role === 'wakil_kurikulum') && (
+          {['guru', 'wakil_kurikulum', 'bk'].includes(user?.role) && (
             <>
               <div className="info-row">
                 <span className="info-label">NIP</span>

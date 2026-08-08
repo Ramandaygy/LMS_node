@@ -670,6 +670,7 @@ exports.importParents = async (req, res) => {
       .find({})
       .toArray();
     const studentNisMap = Object.fromEntries(existingStudents.map(s => [s.nis?.trim(), s._id]));
+    const studentNameMap = Object.fromEntries(existingStudents.map(s => [s.full_name?.trim()?.toLowerCase(), s._id]));
 
     const parentsToInsert = [];
 
@@ -707,11 +708,11 @@ exports.importParents = async (req, res) => {
         if (anak_nis_list) {
           const nis_list = anak_nis_list.split(',').map(n => n.trim()).filter(Boolean);
           for (let anis of nis_list) {
-            const studentId = studentNisMap[anis];
+            const studentId = studentNisMap[anis] || studentNameMap[anis.toLowerCase()];
             if (studentId) {
               anak_ids.push(studentId);
             } else {
-              errors.push(`Baris ${i}: Siswa NIS '${anis}' tidak ditemukan`);
+              errors.push(`Baris ${i}: Siswa dengan NIS atau Nama '${anis}' tidak ditemukan`);
             }
           }
         }
@@ -720,7 +721,9 @@ exports.importParents = async (req, res) => {
         parentNikSet.add(nik);
         parentEmailSet.add(email);
 
+        const newParentId = new mongoose.Types.ObjectId();
         parentsToInsert.push({
+          _id: newParentId,
           nik, full_name, email, username, password: hashed_default, role: 'ortu', children: anak_ids, phone,
           profile: { avatar: null, bio: '', address: '' }, created_at: new Date(), updated_at: new Date()
         });
@@ -730,6 +733,17 @@ exports.importParents = async (req, res) => {
 
     if (parentsToInsert.length > 0) {
       await getCollection('users_ortu').insertMany(parentsToInsert);
+      
+      const updatePromises = parentsToInsert.map(parent => {
+        if (parent.children && parent.children.length > 0) {
+          return getCollection('users_siswa').updateMany(
+            { _id: { $in: parent.children } },
+            { $set: { parent_id: parent._id } }
+          );
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(updatePromises);
     }
 
     res.json({ message: 'Import orang tua selesai', success_count: success, error_count: errors.length, errors: errors.slice(0, 10), default_password });
