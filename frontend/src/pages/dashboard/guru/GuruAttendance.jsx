@@ -709,26 +709,7 @@ const GuruAttendance = () => {
             )}
           </div>
 
-          <button 
-            className="btn-save-primary" 
-            onClick={() => handleOpenInputForm(activeSessionNumber)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '10px',
-              border: 'none',
-              background: '#0284c7',
-              color: '#ffffff',
-              fontWeight: '800',
-              fontSize: '13px',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_kalend3r</span>
-            Isi / Perbarui Presensi
-          </button>
+        
         </div>
       )}
 
