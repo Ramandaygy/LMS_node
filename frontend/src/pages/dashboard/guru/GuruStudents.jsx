@@ -58,10 +58,11 @@ const GuruStudents = () => {
 
   const fetchMyStudents = async () => {
     try {
-      const [response, ayRes, settingsRes] = await Promise.all([
+      const [response, ayRes, settingsRes, profileRes] = await Promise.all([
         api.get('/guru/students'),
         api.get('/academic-years').catch(() => ({ data: [] })),
-        api.get('/settings').catch(() => ({ data: { data: {} } }))
+        api.get('/settings').catch(() => ({ data: { data: {} } })),
+        api.get('/profile').catch(() => ({ data: { data: {} } }))
       ]);
 
       const studentsData = response.data.students || [];
@@ -75,6 +76,17 @@ const GuruStudents = () => {
       setSubjects(allSub);
       setTeacherSubjects(tSub);
       setTeacherClasses(tCls);
+
+      // Set dynamic Wali Kelas based on logged in teacher
+      const profileData = profileRes.data?.data || profileRes.data || {};
+      if (profileData.full_name) {
+        setTeacherName(profileData.full_name);
+      }
+      if (profileData.nip) {
+        setTeacherNip(`NIP. ${profileData.nip}`);
+      } else {
+        setTeacherNip('-');
+      }
 
       // Auto-connect with Admin Active Academic Year
       const ayList = ayRes.data || [];

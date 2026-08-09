@@ -306,19 +306,33 @@ const SiswaAssignments = () => {
                 <div className="detail-attachments">
                   <h3>Materi Pendukung</h3>
                   <ul className="attachments-list">
-                    {selectedAssignment.attachments.map((att, i) => (
-                      <li key={i}>
-                        {att.type === 'file' ? (
-                          <a href={getSubmissionFileUrl(att.value)} target="_blank" rel="noopener noreferrer">
-                            <span className="material-symbols-outlined">attach_file</span> Unduh File
-                          </a>
-                        ) : (
-                          <a href={att.value} target="_blank" rel="noopener noreferrer">
-                            <span className="material-symbols-outlined">link</span> {att.value}
-                          </a>
-                        )}
-                      </li>
-                    ))}
+                    {selectedAssignment.attachments.map((att, i) => {
+                      const fileUrl = att.type === 'file' ? getSubmissionFileUrl(att.value) : att.value;
+                      const isImage = att.type === 'file' && att.value.match(/\.(jpeg|jpg|gif|png|webp)$/i);
+                      
+                      return (
+                        <li key={i} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {isImage && (
+                            <div className="attachment-image-preview">
+                              <img 
+                                src={fileUrl} 
+                                alt="Materi Lampiran" 
+                                style={{ maxWidth: '100%', maxHeight: '400px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #cbd5e1' }}
+                              />
+                            </div>
+                          )}
+                          {att.type === 'file' ? (
+                            <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                              <span className="material-symbols-outlined">attach_file</span> {isImage ? 'Buka Gambar (Penuh)' : 'Unduh File'}
+                            </a>
+                          ) : (
+                            <a href={att.value} target="_blank" rel="noopener noreferrer">
+                              <span className="material-symbols-outlined">link</span> {att.value}
+                            </a>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               )}

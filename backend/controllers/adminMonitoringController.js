@@ -522,67 +522,55 @@ async function computeLegerData(classId, semester = 'Genap', academicYearId = nu
       const subIdStr = sub._id.toString();
       const key = `${stIdStr}_${subIdStr}`;
 
-      if (isGanjil) {
-        // Semester Ganjil was unrecorded / empty
-        subjectGrades[subIdStr] = {
-          subject_name: sub.name,
-          NH: '-',
-          PTS: '-',
-          PAS: '-',
-          NA: '-',
-          predikat: '-',
-        };
-      } else {
-        // Submissions for this student + subject
-        const studentSubmissions = submissionsByStudentAndSubject[key] || [];
-        let totalTugasScore = 0;
-        let totalTugasMax = 0;
-        studentSubmissions.forEach(s => {
-          totalTugasScore += s.score;
-          totalTugasMax += s.max_score;
-        });
+      // Submissions for this student + subject
+      const studentSubmissions = submissionsByStudentAndSubject[key] || [];
+      let totalTugasScore = 0;
+      let totalTugasMax = 0;
+      studentSubmissions.forEach(s => {
+        totalTugasScore += s.score;
+        totalTugasMax += s.max_score;
+      });
 
-        const hasNH = totalTugasMax > 0;
-        const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
+      const hasNH = totalTugasMax > 0;
+      const NH = hasNH ? Math.round((totalTugasScore / totalTugasMax) * 100) : null;
 
-        // PTS & PAS
-        const PTS = gradesByStudentAndSubject[`${key}_uts`] !== undefined ? gradesByStudentAndSubject[`${key}_uts`] : null;
-        const PAS = gradesByStudentAndSubject[`${key}_uas`] !== undefined ? gradesByStudentAndSubject[`${key}_uas`] : null;
+      // PTS & PAS
+      const PTS = gradesByStudentAndSubject[`${key}_uts`] !== undefined ? gradesByStudentAndSubject[`${key}_uts`] : null;
+      const PAS = gradesByStudentAndSubject[`${key}_uas`] !== undefined ? gradesByStudentAndSubject[`${key}_uas`] : null;
 
-        // Formula NA = (NH + PTS + PAS) / 3
-        let NA = null;
-        if (NH !== null || PTS !== null || PAS !== null) {
-          const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
-          const ptsVal = PTS !== null ? PTS : nhVal;
-          const pasVal = PAS !== null ? PAS : nhVal;
-          NA = Math.round((nhVal + ptsVal + pasVal) / 3);
-        }
+      // Formula NA = (NH + PTS + PAS) / 3
+      let NA = null;
+      if (NH !== null || PTS !== null || PAS !== null) {
+        const nhVal = NH !== null ? NH : (PTS !== null ? PTS : (PAS !== null ? PAS : 0));
+        const ptsVal = PTS !== null ? PTS : nhVal;
+        const pasVal = PAS !== null ? PAS : nhVal;
+        NA = Math.round((nhVal + ptsVal + pasVal) / 3);
+      }
 
-        let predikat = '-';
-        if (NA !== null) {
-          if (NA >= 88) predikat = 'A';
-          else if (NA >= 78) predikat = 'B';
-          else if (NA >= 75) predikat = 'C';
-          else predikat = 'D';
-        }
+      let predikat = '-';
+      if (NA !== null) {
+        if (NA >= 88) predikat = 'A';
+        else if (NA >= 78) predikat = 'B';
+        else if (NA >= 75) predikat = 'C';
+        else predikat = 'D';
+      }
 
-        subjectGrades[subIdStr] = {
-          subject_name: sub.name,
-          NH: NH !== null ? NH : '-',
-          PTS: PTS !== null ? PTS : '-',
-          PAS: PAS !== null ? PAS : '-',
-          NA: NA !== null ? NA : '-',
-          predikat,
-        };
+      subjectGrades[subIdStr] = {
+        subject_name: sub.name,
+        NH: NH !== null ? NH : '-',
+        PTS: PTS !== null ? PTS : '-',
+        PAS: PAS !== null ? PAS : '-',
+        NA: NA !== null ? NA : '-',
+        predikat,
+      };
 
-        if (NA !== null) {
-          totalNASum += NA;
-          subjectCount++;
-        }
+      if (NA !== null) {
+        totalNASum += NA;
+        subjectCount++;
       }
     }
 
-    const avgRapor = isGanjil ? '-' : (subjectCount > 0 ? Math.round(totalNASum / subjectCount) : '-');
+    const avgRapor = subjectCount > 0 ? Math.round(totalNASum / subjectCount) : '-';
 
     return {
       _id: st._id,
@@ -596,23 +584,17 @@ async function computeLegerData(classId, semester = 'Genap', academicYearId = nu
     };
   });
 
-  // Compute Ranking if not ganjil (sort descending by avgRapor)
-  if (!isGanjil) {
-    const sortedStudents = [...studentLegerList].sort((a, b) => (typeof b.avgRapor === 'number' ? b.avgRapor : 0) - (typeof a.avgRapor === 'number' ? a.avgRapor : 0));
-    sortedStudents.forEach((st, idx) => {
-      st.rank = idx + 1;
-    });
-    return {
-      class_info: {
-        _id: classDoc._id,
-        name: classDoc.name,
-        grade_level: classDoc.grade_level,
-        homeroom_teacher: homeroomTeacherName,
-      },
-      subjects: subjects.map((s) => ({ _id: s._id, name: s.name, code: s.code })),
-      students: sortedStudents,
-    };
-  }
+  // Compute Ranking (sort descending by avgRapor)
+  studentLegerList.sort((a, b) => {
+    const aVal = a.avgRapor === '-' ? -1 : a.avgRapor;
+    const bVal = b.avgRapor === '-' ? -1 : b.avgRapor;
+    return bVal - aVal;
+  });
+
+  // Re-assign Rank sequentially after sorting
+  studentLegerList.forEach((st, idx) => {
+    st.rank = idx + 1;
+  });
 
   return {
     class_info: {

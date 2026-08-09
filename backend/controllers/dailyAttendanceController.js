@@ -106,3 +106,37 @@ exports.getStudentAttendanceSummary = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// Get Student Daily Attendance Recap for a whole class
+exports.getDailyAttendanceRecapByClass = async (req, res) => {
+  try {
+    const { classId } = req.params;
+    if (!classId) {
+      return res.status(400).json({ success: false, message: 'Class ID diperlukan' });
+    }
+
+    const records = await DailyAttendance.find({
+      class_id: new mongoose.Types.ObjectId(classId)
+    });
+
+    const summaryMap = {}; // student_id -> { present, absent, permit, sick, total }
+
+    records.forEach(r => {
+      const studentId = r.student_id.toString();
+      if (!summaryMap[studentId]) {
+        summaryMap[studentId] = { present: 0, absent: 0, permit: 0, sick: 0, total: 0 };
+      }
+      
+      summaryMap[studentId].total++;
+      if (r.status === 'present') summaryMap[studentId].present++;
+      else if (r.status === 'absent') summaryMap[studentId].absent++;
+      else if (r.status === 'permit') summaryMap[studentId].permit++;
+      else if (r.status === 'sick') summaryMap[studentId].sick++;
+    });
+
+    return res.json({ success: true, summary: summaryMap });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};

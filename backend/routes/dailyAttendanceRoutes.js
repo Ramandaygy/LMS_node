@@ -13,6 +13,9 @@ router.post('/upsert', roleMiddleware('admin', 'super_admin', 'wakil_kurikulum',
 // View attendance per class (Super Admin, Wakil Kurikulum, BK, Guru)
 router.get('/class/:classId', roleMiddleware('admin', 'super_admin', 'wakil_kurikulum', 'bk', 'guru'), dailyAttendanceController.getDailyAttendanceByClass);
 
+// View attendance recap for a whole class
+router.get('/recap/class/:classId', roleMiddleware('admin', 'super_admin', 'wakil_kurikulum', 'bk', 'guru'), dailyAttendanceController.getDailyAttendanceRecapByClass);
+
 // Summary stats for student report cards
 router.get('/student/:studentId/summary', dailyAttendanceController.getStudentAttendanceSummary);
 

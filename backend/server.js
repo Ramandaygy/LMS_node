@@ -12,6 +12,9 @@ const auth = require('./middleware/authMiddleware');
 
 const app = express();
 
+// INIT CRON JOBS
+require('./jobs/cronJobs');
+
 // =====================================
 // MIDDLEWARE
 // =====================================
