@@ -194,6 +194,8 @@ if (nilaiKeterampilan >= batasTuntas) {
 </div>`;
   }
 
+  const slideCount = parseInt(data.slide_count) || 5;
+
   const fallbackSlides = [];
   for (let i = 1; i <= slideCount; i++) {
     fallbackSlides.push({
@@ -217,8 +219,6 @@ if (nilaiKeterampilan >= batasTuntas) {
   }
 
   const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
-
-  const slideCount = parseInt(data.slide_count) || 5;
 
   const systemPrompt = `Anda adalah seorang penyusun kurikulum dan penulis buku teks sekolah profesional Indonesia yang sangat berpengalaman.
 Buatlah materi pembelajaran sekolah berbentuk ${slideCount} SLIDE PRESENTASI INTERAKTIF dengan PENJELASAN PARAGRAF PANJANG LENGKAP, MENDALAM, DAN SANGAT DETAIL (WAJIB berupa paragraf naratif panjang yang mendalam, BUKAN sekadar poin-poin/bullet point singkat).

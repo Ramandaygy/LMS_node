@@ -208,11 +208,32 @@ const GuruProgress = () => {
 
   return (
     <div className="guru-progress-container">
-      <div className="page-header">
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div className="header-title">
           <h2>Monitoring Progres Siswa</h2>
           <p>Analisis Kualifikasi Perkembangan Siswa Berbasis Standar KKM 75</p>
         </div>
+        <button 
+          onClick={fetchStudentsProgress}
+          disabled={loading || !selectedClass}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(2, 132, 199, 0.2)',
+            transition: 'all 0.2s'
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>refresh</span>
+          {loading ? 'Memuat...' : 'Perbarui Data'}
+        </button>
       </div>
 
       <div className="feature-info-card premium-card">

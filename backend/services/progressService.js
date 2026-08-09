@@ -95,6 +95,19 @@ async function getStudentData(studentId) {
       created_at: g.created_at || g.createdAt || new Date()
     };
   });
+
+  // Also include Live Quiz submissions
+  const QuizSubmission = require('../models/QuizSubmission');
+  const liveQuizSubmissions = await QuizSubmission.find({
+    student_id: objStudentId 
+  }).lean();
+
+  liveQuizSubmissions.forEach(sub => {
+    // If they got 2 stars, total_score is probably > 0, but we use total_score
+    quizScoreSum += (sub.total_score || 0);
+    quizCount++;
+  });
+
   const avgQuizScore = quizCount > 0 ? quizScoreSum / quizCount : 0;
 
   // 5. Compute subject breakdown for all subjects

@@ -89,8 +89,8 @@ const GuruStudents = () => {
       }
 
       // Auto-connect with Admin Active Academic Year
-      const ayList = ayRes.data || [];
-      const activeAy = ayList.find(a => a.is_active);
+      const ayList = ayRes.data?.academic_years || ayRes.data?.data || [];
+      const activeAy = Array.isArray(ayList) ? ayList.find(a => a.is_active) : null;
       if (activeAy) {
         setRaporAcademicYear(activeAy.name || '2025/2026');
         setRaporSemester(activeAy.semester ? `${activeAy.semester}` : '2 (Genap)');
