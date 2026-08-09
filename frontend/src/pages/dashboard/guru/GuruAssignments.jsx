@@ -615,7 +615,12 @@ const GuruAssignments = () => {
                               {isSubmitted ? (
                                 <div className="submission-actions-cell" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                                   {sub.file && (
-                                    <a href={sub.file.startsWith('http') ? sub.file : `/uploads/${sub.file}`} target="_blank" rel="noreferrer" className="btn-table-file">
+                                    <a 
+                                      href={sub.file.startsWith('http') || sub.file.startsWith('data:') ? sub.file : (sub.file.startsWith('/uploads') ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}`.replace('/api', '') + sub.file : `/uploads/${sub.file}`)} 
+                                      target="_blank" 
+                                      rel="noreferrer" 
+                                      className="btn-table-file"
+                                    >
                                       <span className="material-symbols-outlined">picture_as_pdf</span> File
                                     </a>
                                   )}

@@ -348,9 +348,32 @@ const SiswaAssignments = () => {
                     </div>
                   )}
 
+                  {selectedAssignment.submission_file && (
+                    <div className="my-submission" style={{ marginTop: '10px' }}>
+                      <strong>File yang dikirim:</strong> <br/>
+                      <a 
+                        href={selectedAssignment.submission_file.startsWith('http') || selectedAssignment.submission_file.startsWith('data:') ? selectedAssignment.submission_file : (selectedAssignment.submission_file.startsWith('/uploads') ? `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}`.replace('/api', '') + selectedAssignment.submission_file : `/uploads/${selectedAssignment.submission_file}`)} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#f1f5f9', padding: '5px 10px', borderRadius: '5px', textDecoration: 'none', color: '#334155', marginTop: '5px' }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>picture_as_pdf</span> 
+                        Buka File
+                      </a>
+                    </div>
+                  )}
                   {selectedAssignment.submission_link && (
-                    <div className="my-submission">
-                      <strong>Link yang dikirim:</strong> <a href={selectedAssignment.submission_link} target="_blank">{selectedAssignment.submission_link}</a>
+                    <div className="my-submission" style={{ marginTop: '10px' }}>
+                      <strong>Link yang dikirim:</strong> <br/>
+                      <a href={selectedAssignment.submission_link} target="_blank" rel="noreferrer" style={{ wordBreak: 'break-all' }}>{selectedAssignment.submission_link}</a>
+                    </div>
+                  )}
+                  {selectedAssignment.submission_content && (
+                    <div className="my-submission" style={{ marginTop: '10px' }}>
+                      <strong>Teks Jawaban:</strong>
+                      <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '5px', marginTop: '5px', whiteSpace: 'pre-wrap', border: '1px solid #e2e8f0' }}>
+                        {selectedAssignment.submission_content}
+                      </div>
                     </div>
                   )}
                 </div>
