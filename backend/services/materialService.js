@@ -199,8 +199,14 @@ if (nilaiKeterampilan >= batasTuntas) {
   const fallbackSlides = [];
   for (let i = 1; i <= slideCount; i++) {
     fallbackSlides.push({
-      title: `Slide ${i}: Pembahasan Bagian ${i}`,
-      body: `<div class="material-slide"><h3>Slide ${i}: Pembahasan Bagian ${i}</h3><p>Ini adalah materi penjelasan mendalam mengenai ${targetTitle} untuk bagian ke-${i}. Silakan pelajari bagian ini secara saksama agar memahami seluruh konsepnya.</p><img src="https://loremflickr.com/600/400/${targetSubject.toLowerCase()}" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;" /></div>`
+      title: `Slide ${i}: Uraian Materi Bagian ${i}`,
+      body: `<div class="material-slide">
+<h3>Slide ${i}: Uraian Materi Bagian ${i}</h3>
+<p>Ini adalah bagian ke-${i} dari materi pembelajaran <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong>. Pada bagian ini, kita akan membahas konsep-konsep krusial yang mendasari topik utama. Pembahasan ini dirancang untuk memberikan pemahaman menyeluruh yang mencakup konteks sejarah, prinsip dasar, dan relevansi materi dalam kehidupan sehari-hari siswa kelas ${targetClass}.</p>
+<p>Lebih lanjut, mari kita telaah bagaimana berbagai elemen di dalam <strong>${targetTitle}</strong> saling berinteraksi secara harmonis. Pemahaman teoritis yang kuat di sini akan menjadi bekal berharga untuk menganalisis berbagai persoalan, menyelesaikan studi kasus, serta mengaplikasikan pengetahuan ini dalam tugas-tugas praktis berikutnya. Siswa diharapkan mampu mencatat poin-poin penting dan mengembangkannya dalam diskusi kelas.</p>
+<p>Sebagai pelengkap, penting bagi siswa untuk merefleksikan kembali setiap penjelasan yang telah disampaikan. Melalui analisis yang komprehensif, wawasan yang didapat tidak hanya berguna untuk keperluan akademik, namun juga akan sangat bermanfaat sebagai fondasi penalaran kritis ketika siswa berhadapan dengan masalah-masalah dunia nyata.</p>
+<img src="https://loremflickr.com/600/400/${targetSubject.toLowerCase()}" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 16px 0; display:block;" />
+</div>`
     });
   }
   const fallbackContent = fallbackSlides.map(s => s.body).join('\n<!-- slide-break -->\n');
