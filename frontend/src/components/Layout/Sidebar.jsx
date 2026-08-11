@@ -141,6 +141,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     ],
     bk: [
       { key: 'dashboard', label: 'Absensi Harian (Rapor)', icon: 'event_available', path: '/dashboard/bk' },
+      { key: 'monitoring', label: 'Monitoring Siswa', icon: 'psychology', path: '/dashboard/bk/monitoring' },
       { key: 'calendar', label: 'Kalender Info', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     guru: activeGuruMenuList,

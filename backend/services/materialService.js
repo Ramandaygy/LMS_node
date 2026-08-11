@@ -196,17 +196,30 @@ if (nilaiKeterampilan >= batasTuntas) {
 
   const slideCount = parseInt(data.slide_count) || 5;
 
+  const preGeneratedSlides = [slide1, slide2, slide3, slide4, slide5];
   const fallbackSlides = [];
   for (let i = 1; i <= slideCount; i++) {
+    let slideBody = '';
+    let slideTitle = `Slide ${i}: Uraian Materi Bagian ${i}`;
+    
+    if (i <= 5 && preGeneratedSlides[i-1]) {
+      slideBody = preGeneratedSlides[i-1];
+      // Extract title from <h3> if exists
+      const titleMatch = slideBody.match(/<h3[^>]*>(.*?)<\/h3>/i);
+      if (titleMatch) {
+        slideTitle = titleMatch[1].replace(/<[^>]*>?/gm, '');
+      }
+    } else {
+      slideBody = `<div class="material-slide">
+<h3>Slide ${i}: Uraian Lanjutan</h3>
+<p>Ini adalah bagian ke-${i} dari materi pembelajaran <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong>.</p>
+<p>Siswa diharapkan untuk terus menggali lebih dalam mengenai topik ini melalui referensi tambahan dan diskusi kelompok.</p>
+</div>`;
+    }
+    
     fallbackSlides.push({
-      title: `Slide ${i}: Uraian Materi Bagian ${i}`,
-      body: `<div class="material-slide">
-<h3>Slide ${i}: Uraian Materi Bagian ${i}</h3>
-<p>Ini adalah bagian ke-${i} dari materi pembelajaran <strong>${targetTitle}</strong> untuk mata pelajaran <strong>${targetSubject}</strong>. Pada bagian ini, kita akan membahas konsep-konsep krusial yang mendasari topik utama. Pembahasan ini dirancang untuk memberikan pemahaman menyeluruh yang mencakup konteks sejarah, prinsip dasar, dan relevansi materi dalam kehidupan sehari-hari siswa kelas ${targetClass}.</p>
-<p>Lebih lanjut, mari kita telaah bagaimana berbagai elemen di dalam <strong>${targetTitle}</strong> saling berinteraksi secara harmonis. Pemahaman teoritis yang kuat di sini akan menjadi bekal berharga untuk menganalisis berbagai persoalan, menyelesaikan studi kasus, serta mengaplikasikan pengetahuan ini dalam tugas-tugas praktis berikutnya. Siswa diharapkan mampu mencatat poin-poin penting dan mengembangkannya dalam diskusi kelas.</p>
-<p>Sebagai pelengkap, penting bagi siswa untuk merefleksikan kembali setiap penjelasan yang telah disampaikan. Melalui analisis yang komprehensif, wawasan yang didapat tidak hanya berguna untuk keperluan akademik, namun juga akan sangat bermanfaat sebagai fondasi penalaran kritis ketika siswa berhadapan dengan masalah-masalah dunia nyata.</p>
-<img src="https://loremflickr.com/600/400/${targetSubject.toLowerCase()}" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 16px 0; display:block;" />
-</div>`
+      title: slideTitle,
+      body: slideBody
     });
   }
   const fallbackContent = fallbackSlides.map(s => s.body).join('\n<!-- slide-break -->\n');
@@ -226,20 +239,20 @@ if (nilaiKeterampilan >= batasTuntas) {
 
   const modelCandidates = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash"];
 
-  const systemPrompt = `Anda adalah seorang penyusun kurikulum dan penulis buku teks sekolah profesional Indonesia yang sangat berpengalaman.
+const systemPrompt = `Anda adalah seorang penyusun kurikulum dan penulis buku teks sekolah profesional Indonesia yang sangat berpengalaman.
 Buatlah materi pembelajaran sekolah berbentuk ${slideCount} SLIDE PRESENTASI INTERAKTIF dengan PENJELASAN PARAGRAF PANJANG LENGKAP, MENDALAM, DAN SANGAT DETAIL (WAJIB berupa paragraf naratif panjang yang mendalam, BUKAN sekadar poin-poin/bullet point singkat).
 
 PETUNJUK KHUSUS PENULISAN:
 - Setiap slide WAJIB berisi minimal 2 hingga 3 PARAGRAF PANJANG yang kaya akan uraian materi, penjelasan latar belakang, teori dasar, dan analisis mendalam.
 - Jangan hanya memberikan poin singkat 1 kalimat. Tuliskan penjelasan buku teks yang utuh, bernalar, dan informatif.
-- Di setiap slide, sisipkan satu tag gambar HTML ilustrasi dengan format: <img src="https://loremflickr.com/600/400/[keyword_gambar_bahasa_inggris]" alt="Ilustrasi" style="width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;" /> dengan kata kunci [keyword_gambar_bahasa_inggris] diganti kata kunci topik slide tersebut (dalam bahasa inggris agar gambar akurat).
 - Wajib memisahkan antar slide menggunakan pemisah persis: <!-- slide-break -->
+- Jangan sertakan gambar atau tag img apapun.
 
 Format output JSON murni tanpa markdown codeblock fence:
 {
   "title": "${targetTitle}",
   "description": "Deskripsi ringkas 1-2 kalimat mengenai materi slide ini",
-  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>...</p><img src=\\"https://loremflickr.com/600/400/science\\" alt=\\"Ilustrasi\\" style=\\"width:100%; max-width:550px; height:auto; border-radius:12px; margin: 12px 0; display:block;\\" /></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>...</p></div>"
+  "content": "<div class=\\"material-slide\\"><h3>Slide 1: ...</h3><p>...</p></div><!-- slide-break --><div class=\\"material-slide\\"><h3>Slide 2: ...</h3><p>...</p></div>"
 }`;
 
   const actualPrompt = prompt || `Buat materi pembelajaran sekolah ${slideCount} slide berisi paragraf panjang terlengkap mengenai topik "${targetTitle}". ${description ? `Konteks guru: ${description}` : ''}`;

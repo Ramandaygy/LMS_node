@@ -638,6 +638,17 @@ function App() {
           }
         />
 
+        <Route
+          path="/dashboard/bk/monitoring"
+          element={
+            <ProtectedRoute allowedRole="bk">
+              <DashboardLayout role="bk">
+                <AdminMonitoring />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* ============================================ */}
         {/* ADMIN DASHBOARD */}
         {/* ============================================ */}

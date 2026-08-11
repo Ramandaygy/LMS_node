@@ -7,6 +7,8 @@ import '../../../styles/dashboard/admin/admin-reports.css';
 const AdminMonitoring = () => {
   const currentUser = authService.getCurrentUser();
   const isGuru = currentUser?.role === 'guru';
+  const isBk = currentUser?.role === 'bk';
+  const isAdminOrSuper = ['admin', 'super_admin', 'wakil_kurikulum'].includes(currentUser?.role);
 
   const [activeTab, setActiveTab] = useState('leger');
 
@@ -298,13 +300,15 @@ const AdminMonitoring = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
           <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#3b82f6' }}>monitoring</span>
           <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800', color: '#0f172a', fontFamily: 'Outfit, sans-serif' }}>
-            {isGuru ? 'Matriks Leger Nilai Sekolah' : 'Pusat Monitoring & Leger Nilai Sekolah'}
+            {isGuru ? 'Matriks Leger Nilai Sekolah' : isBk ? 'Monitoring Akademik & EWS' : 'Pusat Monitoring & Leger Nilai Sekolah'}
           </h1>
         </div>
         <p style={{ margin: 0, color: '#64748b', fontSize: '15px' }}>
           {isGuru
             ? 'Rekapitulasi Leger Nilai Akademik  & Cetak Excel Leger.'
-            : 'Rekapitulasi Leger Nilai Akademik , Monitoring EWS, Pemetaan Guru, dan Audit Log Aktivitas.'}
+            : isBk
+              ? 'Monitoring Progres Akademik, Pemantauan Risiko Siswa (EWS), dan Leger Nilai.'
+              : 'Rekapitulasi Leger Nilai Akademik , Monitoring EWS, Pemetaan Guru, dan Audit Log Aktivitas.'}
         </p>
       </div>
 
@@ -350,45 +354,49 @@ const AdminMonitoring = () => {
             Monitoring Risiko Siswa (EWS)
           </button>
 
-          <button
-            onClick={() => setActiveTab('teachers')}
-            style={{
-              padding: '12px 24px',
-              fontWeight: '700',
-              fontSize: '15px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'teachers' ? '3px solid #3b82f6' : '3px solid transparent',
-              color: activeTab === 'teachers' ? '#2563eb' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>supervisor_account</span>
-            Pemetaan Guru & Beban Mengajar
-          </button>
+          {isAdminOrSuper && (
+            <>
+              <button
+                onClick={() => setActiveTab('teachers')}
+                style={{
+                  padding: '12px 24px',
+                  fontWeight: '700',
+                  fontSize: '15px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderBottom: activeTab === 'teachers' ? '3px solid #3b82f6' : '3px solid transparent',
+                  color: activeTab === 'teachers' ? '#2563eb' : '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>supervisor_account</span>
+                Pemetaan Guru & Beban Mengajar
+              </button>
 
-          <button
-            onClick={() => setActiveTab('activities')}
-            style={{
-              padding: '12px 24px',
-              fontWeight: '700',
-              fontSize: '15px',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              borderBottom: activeTab === 'activities' ? '3px solid #3b82f6' : '3px solid transparent',
-              color: activeTab === 'activities' ? '#2563eb' : '#64748b',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
-            Audit Log Aktivitas Guru
-          </button>
+              <button
+                onClick={() => setActiveTab('activities')}
+                style={{
+                  padding: '12px 24px',
+                  fontWeight: '700',
+                  fontSize: '15px',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  borderBottom: activeTab === 'activities' ? '3px solid #3b82f6' : '3px solid transparent',
+                  color: activeTab === 'activities' ? '#2563eb' : '#64748b',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>history</span>
+                Audit Log Aktivitas Guru
+              </button>
+            </>
+          )}
         </div>
       )}
 
