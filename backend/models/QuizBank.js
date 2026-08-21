@@ -2,8 +2,14 @@ const mongoose = require('mongoose');
 
 const quizQuestionSchema = new mongoose.Schema({
   question_text: { type: String, required: true },
+  type: { type: String, enum: ['pg', 'tf', 'matching'], default: 'pg' },
   options: [{ type: String }],
   correct_option: { type: Number, default: 0 },
+  correct_tf: { type: Boolean, default: true },
+  matching_pairs: [{
+    left: { type: String },
+    right: { type: String }
+  }],
   answer: { type: String, default: '' },
   points: { type: Number, default: 10 },
   time_limit_seconds: { type: Number, default: 30 }

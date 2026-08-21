@@ -155,7 +155,13 @@ exports.deleteSubmission =
     try {
       const { assignmentId } = req.params;
       const studentId = req.user.id;
-      const { content, link } = req.body;
+      const { content, link, answers } = req.body;
+      let parsedAnswers = null;
+      if (answers) {
+        try {
+          parsedAnswers = JSON.parse(answers);
+        } catch(e) { console.error('Failed to parse answers', e); }
+      }
       let filePath = '';
 
       if (req.file) {
@@ -177,7 +183,7 @@ exports.deleteSubmission =
         }
       }
 
-      const submission = await submissionService.submitAssignment(assignmentId, studentId, { content, link, filePath });
+      const submission = await submissionService.submitAssignment(assignmentId, studentId, { content, link, filePath, answers: parsedAnswers });
       res.json({ success: true, data: submission });
     } catch (err) {
       console.error(err);

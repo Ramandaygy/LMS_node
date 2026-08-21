@@ -24,6 +24,8 @@ const GuruAssignments = () => {
     kkm: 70,
     attachments: [],
     max_score: 100,
+    assignment_type: 'upload',
+    questions: []
   });
 
   const [teacherSubjects, setTeacherSubjects] = useState([]);
@@ -127,7 +129,14 @@ const GuruAssignments = () => {
       const initialGrades = {};
       const initialFeedbacks = {};
       mergedSubmissions.forEach(sub => {
-        initialGrades[sub.student_id] = sub.score !== null && sub.score !== undefined ? sub.score : '';
+        if (sub.score !== null && sub.score !== undefined) {
+          initialGrades[sub.student_id] = sub.score;
+        } else if (assignment.assignment_type === 'structured' && sub.pilgan_score !== undefined) {
+          // Prepopulate with auto-graded pilgan score if the final score is not yet set
+          initialGrades[sub.student_id] = sub.pilgan_score;
+        } else {
+          initialGrades[sub.student_id] = '';
+        }
         initialFeedbacks[sub.student_id] = sub.feedback || '';
       });
 
@@ -159,6 +168,8 @@ const GuruAssignments = () => {
       kkm: assignment.kkm || 70,
       attachments: assignment.attachments || [],
       max_score: assignment.max_score || 100,
+      assignment_type: assignment.assignment_type || 'upload',
+      questions: assignment.questions || []
     });
     setShowCreateForm(true);
     setSelectedAssignment(null);
@@ -230,6 +241,8 @@ const GuruAssignments = () => {
     data.append('deadline', formData.deadline);
     data.append('kkm', formData.kkm);
     data.append('max_score', formData.max_score);
+    data.append('assignment_type', formData.assignment_type);
+    data.append('questions', JSON.stringify(formData.questions));
 
     formData.attachments.forEach((att) => {
       if (att.type === 'file' && att.value instanceof File) {
@@ -423,6 +436,19 @@ const GuruAssignments = () => {
                     </select>
                   </div>
                 </div>
+                
+                <div className="form-group">
+                  <label>Tipe Pengumpulan Tugas</label>
+                  <select 
+                    name="assignment_type" 
+                    value={formData.assignment_type || 'upload'} 
+                    onChange={handleFormChange}
+                  >
+                    <option value="upload">Biasa (Upload File / Teks Bebas)</option>
+                    <option value="structured">Terstruktur (Form Soal Pilihan Ganda & Uraian)</option>
+                  </select>
+                </div>
+
                 <div className="form-group">
                   <label>Deskripsi / Instruksi Pengerjaan Tugas</label>
                   <textarea name="description" rows="5" placeholder="Tuliskan petunjuk pengerjaan tugas secara rinci..." value={formData.description} onChange={handleFormChange} />
@@ -441,6 +467,120 @@ const GuruAssignments = () => {
                     <input type="number" name="max_score" value={formData.max_score} onChange={handleFormChange} />
                   </div>
                 </div>
+
+                {formData.assignment_type === 'structured' && (
+                  <div className="questions-builder-section">
+                    <h4 className="questions-builder-title">
+                      <span className="material-symbols-outlined">quiz</span>
+                      Daftar Soal Terstruktur
+                    </h4>
+                    {formData.questions?.map((q, qIndex) => (
+                      <div key={qIndex} className="question-card">
+                        <div className="question-header">
+                          <strong className="question-number">Soal #{qIndex + 1}</strong>
+                          <button type="button" className="btn-remove-question" onClick={() => {
+                            const newQ = [...formData.questions];
+                            newQ.splice(qIndex, 1);
+                            setFormData({...formData, questions: newQ});
+                          }}>
+                            <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>delete</span>
+                            Hapus Soal
+                          </button>
+                        </div>
+                        
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Tipe Soal</label>
+                            <select 
+                              value={q.question_type}
+                              onChange={(e) => {
+                                const newQ = [...formData.questions];
+                                newQ[qIndex].question_type = e.target.value;
+                                setFormData({...formData, questions: newQ});
+                              }}
+                            >
+                              <option value="pilgan">Pilihan Ganda (Auto-Grade)</option>
+                              <option value="essay">Uraian Singkat / Essay</option>
+                            </select>
+                          </div>
+                          <div className="form-group">
+                            <label>Bobot Nilai</label>
+                            <input 
+                              type="number" 
+                              value={q.points}
+                              onChange={(e) => {
+                                const newQ = [...formData.questions];
+                                newQ[qIndex].points = Number(e.target.value);
+                                setFormData({...formData, questions: newQ});
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Pertanyaan</label>
+                          <textarea 
+                            rows="2" 
+                            value={q.text}
+                            onChange={(e) => {
+                              const newQ = [...formData.questions];
+                              newQ[qIndex].text = e.target.value;
+                              setFormData({...formData, questions: newQ});
+                            }}
+                            placeholder="Tuliskan pertanyaan disini..."
+                          />
+                        </div>
+
+                        {q.question_type === 'pilgan' && (
+                          <div className="options-section">
+                            <label>Opsi Jawaban & Kunci (Pilih radio button untuk set kunci)</label>
+                            {['A', 'B', 'C', 'D'].map((optLabel, optIdx) => (
+                              <div key={optIdx} className="option-row">
+                                <input 
+                                  type="radio" 
+                                  name={`correct_${qIndex}`} 
+                                  className="option-radio"
+                                  checked={q.correct_answer === q.options?.[optIdx]}
+                                  onChange={() => {
+                                    const newQ = [...formData.questions];
+                                    newQ[qIndex].correct_answer = newQ[qIndex].options[optIdx];
+                                    setFormData({...formData, questions: newQ});
+                                  }}
+                                />
+                                <span className="option-label">{optLabel}.</span>
+                                <input 
+                                  type="text" 
+                                  className="option-input"
+                                  value={q.options?.[optIdx] || ''}
+                                  onChange={(e) => {
+                                    const newQ = [...formData.questions];
+                                    if(!newQ[qIndex].options) newQ[qIndex].options = ['', '', '', ''];
+                                    newQ[qIndex].options[optIdx] = e.target.value;
+                                    setFormData({...formData, questions: newQ});
+                                  }}
+                                  placeholder={`Teks opsi ${optLabel}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    
+                    <button 
+                      type="button" 
+                      className="btn-add-question"
+                      onClick={() => setFormData({
+                        ...formData, 
+                        questions: [...(formData.questions||[]), { question_type: 'pilgan', text: '', options: ['', '', '', ''], correct_answer: '', points: 10 }]
+                      })}
+                    >
+                      <span className="material-symbols-outlined">add_circle</span>
+                      Tambah Soal
+                    </button>
+                  </div>
+                )}
+
                 <div className="form-group attachments-group">
                   <label>Lampiran Tugas (File PDF/Gambar atau Tautan URL)</label>
                   {formData.attachments.map((att, idx) => (
@@ -516,6 +656,57 @@ const GuruAssignments = () => {
                     {selectedAssignment.description || 'Tidak ada deskripsi tambahan untuk tugas ini.'}
                   </p>
                 </div>
+
+                {/* Tampilan Preview Soal Terstruktur untuk Guru */}
+                {selectedAssignment.assignment_type === 'structured' && selectedAssignment.questions && selectedAssignment.questions.length > 0 && (
+                  <div className="task-questions-preview" style={{ marginBottom: '20px' }}>
+                    <h4 className="desc-title" style={{ marginBottom: '12px' }}>
+                      <span className="material-symbols-outlined">quiz</span>
+                      Daftar Soal Terstruktur ({selectedAssignment.questions.length} Soal)
+                    </h4>
+                    <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      {selectedAssignment.questions.map((q, idx) => (
+                        <div key={idx} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: idx < selectedAssignment.questions.length - 1 ? '1px dashed #cbd5e1' : 'none' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <strong style={{ fontSize: '13px', color: '#0f172a' }}>{idx + 1}. {q.text}</strong>
+                            <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                              Bobot: {q.points}
+                            </span>
+                          </div>
+                          
+                          {q.question_type === 'pilgan' && q.options && (
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
+                              {q.options.map((opt, oIdx) => {
+                                const isCorrect = opt === q.correct_answer;
+                                return (
+                                  <div key={oIdx} style={{ 
+                                    padding: '8px 12px', 
+                                    background: isCorrect ? '#dcfce7' : '#ffffff', 
+                                    border: `1px solid ${isCorrect ? '#86efac' : '#cbd5e1'}`,
+                                    borderRadius: '8px',
+                                    fontSize: '12px',
+                                    color: isCorrect ? '#166534' : '#475569',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}>
+                                    {isCorrect && <span className="material-symbols-outlined" style={{ fontSize: '14px', color: '#16a34a' }}>check_circle</span>}
+                                    {String.fromCharCode(65 + oIdx)}. {opt}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                          {q.question_type === 'essay' && (
+                            <div style={{ marginTop: '8px', padding: '10px', background: '#ffffff', border: '1px dashed #cbd5e1', borderRadius: '8px', fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>
+                              Area jawaban uraian siswa...
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Lampiran File/Link Guru */}
                 {selectedAssignment.attachments?.length > 0 && (
@@ -635,10 +826,20 @@ const GuruAssignments = () => {
                                       onClick={() => setSelectedSubmissionModal(sub)}
                                       title="Lihat Detail Jawaban Teks"
                                     >
-                                      <span className="material-symbols-outlined">visibility</span> Lihat Jawaban
+                                      <span className="material-symbols-outlined">visibility</span> Lihat Teks
                                     </button>
                                   )}
-                                  {!sub.file && !sub.link && !sub.content && (
+                                  {selectedAssignment.assignment_type === 'structured' && sub.answers && sub.answers.length > 0 && (
+                                    <button 
+                                      className="btn-table-preview"
+                                      style={{ background: '#0284c7', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                                      onClick={() => setSelectedSubmissionModal(sub)}
+                                      title="Lihat Jawaban Terstruktur"
+                                    >
+                                      <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>quiz</span> Jawaban Soal
+                                    </button>
+                                  )}
+                                  {!sub.file && !sub.link && !sub.content && !(selectedAssignment.assignment_type === 'structured' && sub.answers && sub.answers.length > 0) && (
                                     <span className="text-dash">Sudah Mengumpulkan</span>
                                   )}
                                 </div>
@@ -752,9 +953,57 @@ const GuruAssignments = () => {
               <div className="modal-meta-row" style={{ marginBottom: '16px', fontSize: '13px', color: '#64748b' }}>
                 <span>Waktu Pengumpulan: <strong>{selectedSubmissionModal.submitted_at ? new Date(selectedSubmissionModal.submitted_at).toLocaleString('id-ID') : '-'}</strong></span>
               </div>
-              <div className="modal-answer-text" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
-                {selectedSubmissionModal.content}
-              </div>
+              
+              {selectedAssignment?.assignment_type === 'structured' && selectedSubmissionModal.answers && selectedSubmissionModal.answers.length > 0 ? (
+                <div className="modal-structured-answers">
+                  {selectedSubmissionModal.answers.map((ans, idx) => {
+                    const question = selectedAssignment.questions?.[idx];
+                    const qText = question ? question.text : `Soal #${idx + 1}`;
+                    return (
+                      <div key={idx} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: idx < selectedSubmissionModal.answers.length - 1 ? '1px dashed #cbd5e1' : 'none' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}>
+                          {idx + 1}. {qText}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px' }}>
+                          <span style={{ color: '#64748b', minWidth: '60px' }}>Jawaban:</span>
+                          <div style={{ 
+                            background: ans.is_correct ? '#dcfce7' : (question?.question_type === 'pilgan' ? '#fee2e2' : '#ffffff'),
+                            color: ans.is_correct ? '#166534' : (question?.question_type === 'pilgan' ? '#991b1b' : '#334155'),
+                            border: `1px solid ${ans.is_correct ? '#86efac' : (question?.question_type === 'pilgan' ? '#fca5a5' : '#cbd5e1')}`,
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            flex: 1
+                          }}>
+                            {ans.answer_text || <em style={{ color: '#94a3b8' }}>Tidak dijawab</em>}
+                          </div>
+                        </div>
+                        {question?.question_type === 'pilgan' && (
+                          <div style={{ marginTop: '6px', fontSize: '11px', color: ans.is_correct ? '#16a34a' : '#ef4444', fontWeight: 'bold', marginLeft: '68px' }}>
+                            {ans.is_correct ? `+${ans.points_earned} Poin` : `Salah (Kunci: ${question.correct_answer})`}
+                          </div>
+                        )}
+                        {question?.question_type === 'essay' && (
+                          <div style={{ marginTop: '6px', fontSize: '11px', color: '#0284c7', fontWeight: 'bold', marginLeft: '68px' }}>
+                            (Bobot Maksimal: {question.points} Poin) - Perlu Dinilai Manual
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {selectedSubmissionModal.pilgan_score !== undefined && (
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ color: '#334155', fontSize: '14px' }}>Skor Auto-Grade Pilihan Ganda:</strong>
+                      <span style={{ background: '#0284c7', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+                        {selectedSubmissionModal.pilgan_score} Poin
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="modal-answer-text" style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                  {selectedSubmissionModal.content || <em style={{ color: '#94a3b8' }}>Tidak ada jawaban teks</em>}
+                </div>
+              )}
             </div>
             <div className="modal-footer" style={{ marginTop: '20px', textAlign: 'right' }}>
               <button className="btn-cancel" onClick={() => setSelectedSubmissionModal(null)}>Tutup</button>

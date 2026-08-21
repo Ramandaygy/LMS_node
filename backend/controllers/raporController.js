@@ -80,7 +80,8 @@ exports.saveRapor = async (req, res) => {
       teacher_name,
       teacher_nip,
       place_date,
-      semester
+      semester,
+      is_published
     } = req.body;
 
     let rapor = await Rapor.findOne({ student_id: objStudentId });
@@ -101,7 +102,8 @@ exports.saveRapor = async (req, res) => {
         headmaster_nip,
         teacher_name,
         teacher_nip,
-        place_date
+        place_date,
+        is_published: is_published !== undefined ? is_published : false
       });
     } else {
       if (extracurriculars !== undefined) rapor.extracurriculars = extracurriculars;
@@ -118,6 +120,7 @@ exports.saveRapor = async (req, res) => {
       if (teacher_nip !== undefined) rapor.teacher_nip = teacher_nip;
       if (place_date !== undefined) rapor.place_date = place_date;
       if (semester !== undefined) rapor.semester = semester;
+      if (is_published !== undefined) rapor.is_published = is_published;
     }
 
     const savedRapor = await rapor.save();

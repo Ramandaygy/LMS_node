@@ -1,6 +1,7 @@
 const QuizBank = require('../models/QuizBank');
 const mongoose = require('mongoose');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Material = require('../models/Material');
 
 // ============================================================
 // GET ALL QUIZZES - FILTER BY TEACHER
@@ -350,129 +351,105 @@ exports.getQuizSubmissions = async (req, res) => {
 // ============================================================
 exports.generateQuizAI = async (req, res) => {
   try {
-    const { topic, subject_name, num_questions, material_id } = req.body;
-    let contextTopic = topic || 'Informatika Dasar';
+    const { material_id, subject_name, num_questions } = req.body;
+    
+    // Batasi jumlah soal (default 5, max 20)
+    let count = parseInt(num_questions) || 5;
+    if (count < 1) count = 1;
+    if (count > 20) count = 20;
+
+    let contextTopic = subject_name || 'Informatika';
+    let topic = subject_name || 'Informatika';
 
     if (material_id) {
-      const Material = require('../models/Material');
-      const mat = await Material.findById(material_id);
+      let mat;
+      try {
+        mat = await Material.findById(material_id);
+      } catch (e) {
+        // jika bukan object id
+        mat = await Material.findOne({ _id: material_id });
+      }
+
       if (mat) {
-        contextTopic = `Judul Dokumen: "${mat.title}". Deskripsi: "${mat.description || ''}". Isi Ringkasan: "${(mat.content || mat.title || '').slice(0, 800)}"`;
+        topic = mat.title || topic;
+        // Ambil porsi besar dari konten materi (hingga 30.000 karakter) untuk dianalisis
+        if (mat.content) {
+          contextTopic = mat.content.slice(0, 30000);
+        } else if (mat.description) {
+          contextTopic = mat.description;
+        }
       }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-    const count = Number(num_questions) || 5;
     const randomSeed = Math.floor(Math.random() * 10000);
 
     if (!apiKey) {
-      const fallbackQuestions = [
-        {
-          question_text: `Apa konsep utama yang dipelajari pada ${topic || 'materi ini'}?`,
-          answer: 'Memahami sintaks dasar dan alur logika eksekusi program.',
-          options: ['Sintaks & Alur Eksekusi', 'Desain Grafis Animasi', 'Manajemen Server Cloud', 'Pengujian Perangkat Keras'],
-          correct_option: 0,
-          points: 10,
-          time_limit_seconds: 30
-        },
-        {
-          question_text: `Manakah komponen utama yang paling krusial pada ${topic || 'topik ini'}?`,
-          answer: 'Struktur data pendukung dan fungsi logika.',
-          options: ['Kabel Jaringan', 'Struktur Data & Fungsi Logika', 'Ukuran Layar Monitor', 'Kecepatan Printer'],
-          correct_option: 1,
-          points: 10,
-          time_limit_seconds: 30
-        },
-        {
-          question_text: `Apa fungsi dari instruksi atau metode dasar pada ${topic || 'materi ini'}?`,
-          answer: 'Memproses masukan data menjadi keluaran yang valid.',
-          options: ['Menghapus sistem operasi', 'Menutup koneksi internet', 'Memproses masukan data menjadi keluaran valid', 'Mengunci layar komputer'],
-          correct_option: 2,
-          points: 10,
-          time_limit_seconds: 30
-        },
-        {
-          question_text: `Mengapa penerapan ${topic || 'materi ini'} sangat penting dalam sistem komputer?`,
-          answer: 'Meningkatkan efisiensi kerja dan mengurangi risiko kesalahan logika.',
-          options: ['Agar komputer lebih berat', 'Meningkatkan efisiensi kerja & mengurangi kesalahan logika', 'Menambah daya listrik', 'Mengganti komponen memori'],
-          correct_option: 1,
-          points: 10,
-          time_limit_seconds: 30
-        },
-        {
-          question_text: `Bagaimana alur penyelesaian masalah yang paling tepat pada ${topic || 'materi ini'}?`,
-          answer: 'Analisis masalah -> Perancangan solusi -> Implementasi -> Pengujian.',
-          options: ['Pengujian -> Analisis -> Hapus', 'Analisis -> Perancangan -> Implementasi -> Pengujian', 'Implementasi -> Abaikan -> Selesai', 'Perancangan saja'],
-          correct_option: 1,
-          points: 10,
-          time_limit_seconds: 30
-        }
-      ];
-      return res.json({ success: true, questions: fallbackQuestions.slice(0, count) });
+      return res.status(500).json({ success: false, message: 'API Key Gemini tidak ditemukan.' });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Menggunakan gemini-2.5-flash agar lebih stabil dari traffic tinggi
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const promptText = `Anda adalah pembuat kuis profesional. Buatlah ${count} soal kuis pilihan ganda yang SANGAT BERVARIASI, UNIK, dan BERBEDA SATU SAMA LAIN mengenai "${contextTopic}" untuk mata pelajaran "${subject_name || 'Informatika'}".
+    const promptText = `Anda adalah pendidik dan pembuat kuis profesional. Buatlah ${count} soal kuis yang SANGAT SESUAI DENGAN MATERI BERIKUT:
+"${contextTopic}"
+
+Mata Pelajaran: "${subject_name || 'Informatika'}"
 Seed variasi: ${randomSeed}.
 
 PENTING:
-- Setiap soal HARUS membahas aspek yang berbeda (misal: definisi, fungsi, contoh penerapan, sintaks/komponen, dan analisis kasus).
-- JANGAN ADA SOAL YANG DUPLIKAT ATAU MIRIP!
-- Berikan 4 pilihan jawaban unik (A, B, C, D) untuk setiap soal.
-- Tentukan indeks kunci jawaban benar (correct_option: 0 untuk A, 1 untuk B, 2 untuk C, 3 untuk D).
+- Soal HARUS didasarkan SECARA SPESIFIK pada informasi yang ada di materi di atas.
+- JANGAN buat soal umum jika materi sudah cukup spesifik.
+- Buat campuran tipe soal secara proporsional dari 3 tipe berikut: "pg" (Pilihan Ganda), "tf" (Benar/Salah), dan "matching" (Menjodohkan).
+- Berikan 4 opsi untuk tipe "pg" dan pasangan yang masuk akal untuk "matching".
+- Susun kalimat pertanyaan agar luwes, profesional, dan natural (tidak seperti robot memotong kalimat).
 
-Output Wajib murni JSON array tanpa format markdown apapun:
+Format output WAJIB berupa murni JSON array tanpa blok markdown apapun:
 [
   {
-    "question_text": "Teks pertanyaan 1 yang unik...",
-    "options": ["Pilihan A", "Pilihan B", "Pilihan C", "Pilihan D"],
+    "type": "pg",
+    "question_text": "Pertanyaan PG...",
+    "options": ["Opsi A", "Opsi B", "Opsi C", "Opsi D"],
     "correct_option": 0,
-    "answer": "Kunci jawaban & penjelasan singkat...",
-    "points": 10,
-    "time_limit_seconds": 30
+    "points": 10
+  },
+  {
+    "type": "tf",
+    "question_text": "Pernyataan Benar atau Salah...",
+    "correct_tf": true,
+    "points": 10
+  },
+  {
+    "type": "matching",
+    "question_text": "Pasangkan istilah berikut...",
+    "matching_pairs": [
+      {"left": "Istilah 1", "right": "Arti 1"},
+      {"left": "Istilah 2", "right": "Arti 2"}
+    ],
+    "points": 10
   }
 ]`;
 
     const result = await model.generateContent(promptText);
     let text = result.response.text().trim();
-    text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    
+    // Gunakan regex untuk memastikan hanya array JSON yang diparsing
+    const jsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (jsonMatch) {
+      text = jsonMatch[0];
+    } else {
+      text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+    }
+    
     const parsed = JSON.parse(text);
 
     return res.json({ success: true, questions: parsed });
   } catch (err) {
     console.error('Error generating AI quiz:', err);
-    return res.json({
-      success: true,
-      questions: [
-        {
-          question_text: `Apa tujuan utama dari mempelajari topik "${req.body.topic || 'materi ini'}"?`,
-          answer: 'Memahami konsep dasar dan implementasi praktisnya.',
-          options: [
-            'Memahami konsep dasar dan implementasi praktisnya',
-            'Menghindari materi pelajaran tersebut',
-            'Hanya menghafal istilah tanpa pemahaman',
-            'Tidak ada tujuan yang benar'
-          ],
-          correct_option: 0,
-          points: 10,
-          time_limit_seconds: 30
-        },
-        {
-          question_text: `Bagaimana langkah terbaik untuk menguasai topik "${req.body.topic || 'materi ini'}"?`,
-          answer: 'Mempelajari konsep secara sistematis dan berlatih soal.',
-          options: [
-            'Mengabaikan penjelasan guru di kelas',
-            'Mempelajari konsep secara sistematis dan berlatih soal',
-            'Belajar terburu-buru hanya sebelum ujian',
-            'Menyalin tugas milik teman kelas'
-          ],
-          correct_option: 1,
-          points: 10,
-          time_limit_seconds: 30
-        }
-      ]
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal membuat kuis AI: ' + err.message
     });
   }
 };
@@ -534,16 +511,61 @@ exports.submitQuiz = async (req, res) => {
     (quiz.questions || []).forEach((q, idx) => {
       const qPts = q.points || 10;
       maxPoints += qPts;
-      const studentAns = answers && answers[idx] !== undefined ? answers[idx] : -1;
-      const isCorrect = Number(studentAns) === Number(q.correct_option);
-      if (isCorrect) totalPoints += qPts;
-
-      processedAnswers.push({
+      const studentAns = answers && answers[idx] !== undefined ? answers[idx] : null;
+      
+      let isCorrect = false;
+      let pointsEarned = 0;
+      let processedAns = {
         question_index: idx,
-        selected_option: studentAns,
-        is_correct: isCorrect,
-        points_earned: isCorrect ? qPts : 0
-      });
+        selected_option: -1,
+        selected_tf: null,
+        matched_pairs: [],
+        is_correct: false,
+        points_earned: 0
+      };
+
+      if (studentAns !== null) {
+        if (q.type === 'tf') {
+          // TF Grading
+          const ansTf = typeof studentAns === 'object' ? studentAns.selected_tf : studentAns;
+          if (ansTf === q.correct_tf) {
+            isCorrect = true;
+            pointsEarned = qPts;
+          }
+          processedAns.selected_tf = ansTf;
+        } else if (q.type === 'matching') {
+          // Matching Grading (Partial points)
+          const ansPairs = typeof studentAns === 'object' ? (studentAns.matched_pairs || []) : [];
+          let correctCount = 0;
+          let totalPairs = (q.matching_pairs || []).length;
+          
+          if (totalPairs > 0) {
+            (q.matching_pairs || []).forEach(cp => {
+              const studentPair = ansPairs.find(sp => sp.left === cp.left);
+              if (studentPair && studentPair.right === cp.right) {
+                correctCount++;
+              }
+            });
+            pointsEarned = (correctCount / totalPairs) * qPts;
+            if (correctCount === totalPairs) isCorrect = true;
+          }
+          processedAns.matched_pairs = ansPairs;
+        } else {
+          // PG Grading
+          const ansOpt = typeof studentAns === 'object' ? studentAns.selected_option : Number(studentAns);
+          if (Number(ansOpt) === Number(q.correct_option)) {
+            isCorrect = true;
+            pointsEarned = qPts;
+          }
+          processedAns.selected_option = ansOpt;
+        }
+      }
+
+      totalPoints += pointsEarned;
+      processedAns.is_correct = isCorrect;
+      processedAns.points_earned = pointsEarned;
+
+      processedAnswers.push(processedAns);
     });
 
     const percentage = maxPoints > 0 ? (totalPoints / maxPoints) * 100 : 0;

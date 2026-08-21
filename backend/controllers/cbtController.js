@@ -353,6 +353,7 @@ exports.createExam = async (req, res) => {
       pass_score: Number(pass_score) || 75,
       is_active: is_active !== undefined ? is_active : true,
       is_master: req.body.is_master !== undefined ? req.body.is_master : true,
+      exam_type: req.body.exam_type || 'quiz',
       start_time: start_time ? parseLocalDate(start_time) : null,
       end_time: end_time ? parseLocalDate(end_time) : null,
       hide_correct_answers: hide_correct_answers !== undefined ? hide_correct_answers : true,
@@ -390,6 +391,7 @@ exports.updateExam = async (req, res) => {
     if (duration_minutes !== undefined) exam.duration_minutes = duration_minutes;
     if (pass_score !== undefined) exam.pass_score = pass_score;
     if (is_active !== undefined) exam.is_active = is_active;
+    if (req.body.exam_type !== undefined) exam.exam_type = req.body.exam_type;
     if (questions !== undefined) exam.questions = questions;
     if (start_time !== undefined) exam.start_time = start_time ? parseLocalDate(start_time) : null;
     if (end_time !== undefined) exam.end_time = end_time ? parseLocalDate(end_time) : null;
@@ -469,42 +471,72 @@ exports.submitExam = async (req, res) => {
     const evaluatedAnswers = (exam.questions || []).map((q, idx) => {
       const studentAns = (userAnswers || []).find(a => Number(a.question_index) === idx);
       const isFlagged = studentAns ? !!studentAns.is_flagged : false;
+      
+      let baseAnswer = {
+        question_index: idx,
+        selected_option: -1,
+        selected_tf: null,
+        matched_pairs: [],
+        essay_answer: '',
+        is_flagged: isFlagged,
+        is_correct: false
+      };
 
       if (q.type === 'essay') {
         const essayAns = studentAns && studentAns.essay_answer ? String(studentAns.essay_answer).trim() : '';
-        let isCorrect = false;
         if (!essayAns) {
           unansweredCount++;
         } else {
-          isCorrect = true; // Auto-pass/correct if answered, or simple match
+          baseAnswer.is_correct = true; 
           correctCount++;
         }
-        return {
-          question_index: idx,
-          selected_option: -1,
-          essay_answer: essayAns,
-          is_flagged: isFlagged,
-          is_correct: isCorrect
-        };
-      } else {
-        const selected = studentAns && studentAns.selected_option !== undefined && studentAns.selected_option !== null ? Number(studentAns.selected_option) : -1;
-        let isCorrect = false;
-        if (selected === -1 || isNaN(selected)) {
+        baseAnswer.essay_answer = essayAns;
+      } else if (q.type === 'tf') {
+        const selectedTf = studentAns && studentAns.selected_tf !== undefined && studentAns.selected_tf !== null ? studentAns.selected_tf : null;
+        if (selectedTf === null) {
           unansweredCount++;
-        } else if (selected === Number(q.correct_option)) {
-          isCorrect = true;
+        } else if (selectedTf === q.correct_tf) {
+          baseAnswer.is_correct = true;
           correctCount++;
         } else {
           wrongCount++;
         }
-        return {
-          question_index: idx,
-          selected_option: selected,
-          essay_answer: '',
-          is_flagged: isFlagged,
-          is_correct: isCorrect
-        };
+        baseAnswer.selected_tf = selectedTf;
+      } else if (q.type === 'matching') {
+        const ansPairs = studentAns && Array.isArray(studentAns.matched_pairs) ? studentAns.matched_pairs : [];
+        let matchingCorrectCount = 0;
+        let totalPairs = (q.matching_pairs || []).length;
+        
+        if (ansPairs.length === 0) {
+           unansweredCount++;
+        } else if (totalPairs > 0) {
+          (q.matching_pairs || []).forEach(cp => {
+            const sp = ansPairs.find(p => p.left === cp.left);
+            if (sp && sp.right === cp.right) {
+              matchingCorrectCount++;
+            }
+          });
+          
+          let fractionalCorrect = matchingCorrectCount / totalPairs;
+          correctCount += fractionalCorrect;
+          if (fractionalCorrect < 1) wrongCount += (1 - fractionalCorrect);
+          if (fractionalCorrect === 1) baseAnswer.is_correct = true;
+        }
+        baseAnswer.matched_pairs = ansPairs;
+      } else {
+        const selected = studentAns && studentAns.selected_option !== undefined && studentAns.selected_option !== null ? Number(studentAns.selected_option) : -1;
+        if (selected === -1 || isNaN(selected)) {
+          unansweredCount++;
+        } else if (selected === Number(q.correct_option)) {
+          baseAnswer.is_correct = true;
+          correctCount++;
+        } else {
+          wrongCount++;
+        }
+        baseAnswer.selected_option = selected;
       }
+      
+      return baseAnswer;
     });
 
     const finalScore = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
@@ -528,13 +560,14 @@ exports.submitExam = async (req, res) => {
     // Auto sync to Grade model for subject gradebook
     try {
       if (exam.subject) {
+        const examType = exam.exam_type || 'quiz';
         await Grade.findOneAndUpdate(
-          { student: studentObjId, subject: exam.subject, type: 'quiz' },
+          { student: studentObjId, subject: exam.subject, type: examType },
           {
             student: studentObjId,
             subject: exam.subject,
             score: finalScore,
-            type: 'quiz',
+            type: examType,
             note: `CBT: ${exam.title}`
           },
           { upsert: true, new: true }

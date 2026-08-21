@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../../services/api';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer, 
+  PieChart, Pie, Cell 
+} from 'recharts';
 import '../../../styles/dashboard/admin/admin-students.css';
 
 const GuruWaliKelas = () => {
@@ -26,10 +30,50 @@ const GuruWaliKelas = () => {
     }
   };
 
+  const { pieData, barData } = useMemo(() => {
+    if (!overviewData?.students_progress) return { pieData: [], barData: [] };
+    
+    // Calculate Pie Data (Risk Status)
+    const riskCounts = { high: 0, medium: 0, low: 0 };
+    overviewData.students_progress.forEach(s => {
+      if (s.risk) riskCounts[s.risk]++;
+      else riskCounts.low++;
+    });
+    
+    const pie = [
+      { name: 'Aman / Rendah', value: riskCounts.low, color: '#10b981' },
+      { name: 'Risiko Sedang', value: riskCounts.medium, color: '#f59e0b' },
+      { name: 'Risiko Tinggi', value: riskCounts.high, color: '#ef4444' },
+    ].filter(d => d.value > 0);
+
+    // Calculate Bar Data (Score Distribution)
+    const scoreRanges = { '0-50': 0, '51-75': 0, '76-90': 0, '91-100': 0 };
+    overviewData.students_progress.forEach(s => {
+      const score = s.avgScore || 0;
+      if (score <= 50) scoreRanges['0-50']++;
+      else if (score <= 75) scoreRanges['51-75']++;
+      else if (score <= 90) scoreRanges['76-90']++;
+      else scoreRanges['91-100']++;
+    });
+
+    const bar = [
+      { name: '0-50 (Kurang)', total: scoreRanges['0-50'] },
+      { name: '51-75 (Cukup)', total: scoreRanges['51-75'] },
+      { name: '76-90 (Baik)', total: scoreRanges['76-90'] },
+      { name: '91-100 (Sangat Baik)', total: scoreRanges['91-100'] },
+    ];
+
+    return { pieData: pie, barData: bar };
+  }, [overviewData]);
+
+
   if (loading) {
     return (
-      <div className="admin-students-page">
-        <div className="loading">Memuat Dashboard Wali Kelas...</div>
+      <div className="admin-students-page" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center', color: '#64748b' }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'spin 1.5s linear infinite' }}>autorenew</span>
+          <div style={{ marginTop: '12px', fontWeight: 600 }}>Memuat Dashboard Wali Kelas...</div>
+        </div>
       </div>
     );
   }
@@ -82,197 +126,270 @@ const GuruWaliKelas = () => {
   );
 
   return (
-    <div className="admin-students-page">
-      {/* Header Banner */}
+    <div className="admin-students-page" style={{ paddingBottom: '40px' }}>
+      {/* Premium Header Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)',
         borderRadius: '20px',
-        padding: '30px 36px',
+        padding: '36px 40px',
         color: '#ffffff',
-        marginBottom: '28px',
-        boxShadow: '0 12px 30px rgba(15, 23, 42, 0.15)',
+        marginBottom: '32px',
+        boxShadow: '0 15px 35px rgba(59, 130, 246, 0.2)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
-        gap: '16px'
+        gap: '20px',
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span className="material-symbols-outlined" style={{ color: '#38bdf8', fontSize: '32px' }}>shield_person</span>
-            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, letterSpacing: '-0.5px' }}>
-              Dashboard Wali Kelas: <span style={{ color: '#38bdf8' }}>{class_info.name}</span>
+        {/* Dekorasi Background */}
+        <div style={{ position: 'absolute', right: '-10%', top: '-50%', width: '300px', height: '300px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', filter: 'blur(30px)' }}></div>
+        <div style={{ position: 'absolute', left: '-5%', bottom: '-50%', width: '200px', height: '200px', background: 'rgba(255,255,255,0.05)', borderRadius: '50%', filter: 'blur(20px)' }}></div>
+
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.2)', padding: '8px', borderRadius: '12px', display: 'flex' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>school</span>
+            </div>
+            <h1 style={{ margin: 0, fontSize: '30px', fontWeight: 800, letterSpacing: '-0.5px' }}>
+              Dashboard Wali Kelas: <span style={{ color: '#bae6fd' }}>{class_info.name}</span>
             </h1>
           </div>
-          <p style={{ margin: 0, color: '#94a3b8', fontSize: '14px' }}>
-            Rekapitulasi perkembangan akademik, kehadiran, dan pemantauan tingkat risiko siswa binaan kelas Anda.
+          <p style={{ margin: 0, color: '#e0f2fe', fontSize: '15px', maxWidth: '600px', lineHeight: 1.5 }}>
+            Pantau performa akademik, tingkat kehadiran, dan deteksi dini status risiko belajar seluruh siswa binaan Anda.
           </p>
         </div>
 
-      {errorMsg && (
-        <div style={{ padding: '12px 18px', background: '#ffe4e6', color: '#e11d48', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', fontWeight: 600 }}>
-          {errorMsg}
-        </div>
-      )}
+        {errorMsg && (
+          <div style={{ padding: '12px 18px', background: '#ffe4e6', color: '#e11d48', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', fontWeight: 600, position: 'relative', zIndex: 1 }}>
+            {errorMsg}
+          </div>
+        )}
 
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div style={{ display: 'flex', gap: '12px', position: 'relative', zIndex: 1 }}>
           <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            padding: '10px 18px',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
+            background: 'rgba(255, 255, 255, 0.15)',
+            backdropFilter: 'blur(12px)',
+            padding: '14px 24px',
+            borderRadius: '16px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             textAlign: 'center'
           }}>
-            <div style={{ fontSize: '11px', color: '#cbd5e1', textTransform: 'uppercase', fontWeight: 600 }}>Tingkat Kelas</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: '#38bdf8' }}>Kelas {class_info.grade_level}</div>
+            <div style={{ fontSize: '12px', color: '#e0f2fe', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '1px' }}>Tingkat Kelas</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: '#ffffff' }}>Kelas {class_info.grade_level}</div>
           </div>
         </div>
       </div>
 
-      {/* Metric Cards Grid */}
+      {/* Metric Cards Grid with Hover Effects */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '20px',
-        marginBottom: '28px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gap: '24px',
+        marginBottom: '32px'
       }}>
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Total Siswa Binaan</span>
-            <div style={{ width: '40px', height: '40px', background: '#eff6ff', color: '#0284c7', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined">groups</span>
+        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)', transition: 'transform 0.3s', cursor: 'default' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Total Siswa Binaan</span>
+            <div style={{ width: '48px', height: '48px', background: '#eff6ff', color: '#3b82f6', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>groups</span>
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{stats.total_students} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 500 }}>Siswa</span></div>
+          <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            {stats.total_students} <span style={{ fontSize: '16px', color: '#94a3b8', fontWeight: 600 }}>Siswa</span>
+          </div>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Rata-Rata Kehadiran</span>
-            <div style={{ width: '40px', height: '40px', background: '#ecfdf5', color: '#10b981', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined">calendar_month</span>
+        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)', transition: 'transform 0.3s', cursor: 'default' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Rata-Rata Kehadiran</span>
+            <div style={{ width: '48px', height: '48px', background: '#ecfdf5', color: '#10b981', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>calendar_month</span>
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{stats.avg_attendance}%</div>
+          <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a' }}>{stats.avg_attendance}%</div>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 15px rgba(0,0,0,0.03)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 600 }}>Rata-Rata Nilai</span>
-            <div style={{ width: '40px', height: '40px', background: '#f5f3ff', color: '#8b5cf6', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined">analytics</span>
+        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)', transition: 'transform 0.3s', cursor: 'default' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Rata-Rata Nilai</span>
+            <div style={{ width: '48px', height: '48px', background: '#f5f3ff', color: '#8b5cf6', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>analytics</span>
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#0f172a' }}>{stats.avg_grade}</div>
+          <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a' }}>{stats.avg_grade}</div>
         </div>
 
-        <div style={{ background: '#ffffff', borderRadius: '16px', padding: '22px 24px', border: '1px solid #fecdd3', boxShadow: '0 4px 15px rgba(225, 29, 72, 0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <span style={{ fontSize: '13px', color: '#e11d48', fontWeight: 600 }}>Siswa Perlu Perhatian</span>
-            <div style={{ width: '40px', height: '40px', background: '#ffe4e6', color: '#e11d48', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span className="material-symbols-outlined">warning</span>
+        <div style={{ background: '#fff1f2', borderRadius: '20px', padding: '24px', border: '1px solid #fecdd3', boxShadow: '0 10px 25px rgba(225, 29, 72, 0.08)', transition: 'transform 0.3s', cursor: 'default' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-5px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', color: '#be123c', fontWeight: 800, textTransform: 'uppercase' }}>Perlu Perhatian</span>
+            <div style={{ width: '48px', height: '48px', background: '#ffe4e6', color: '#e11d48', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>warning</span>
             </div>
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, color: '#e11d48' }}>{stats.high_risk} <span style={{ fontSize: '14px', color: '#f43f5e', fontWeight: 500 }}>Siswa Risiko Tinggi</span></div>
+          <div style={{ fontSize: '36px', fontWeight: 900, color: '#be123c', display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+            {stats.high_risk} <span style={{ fontSize: '15px', color: '#e11d48', fontWeight: 600 }}>Siswa Risiko Tinggi</span>
+          </div>
         </div>
       </div>
 
-      {/* Main Table Card */}
-      <div className="admin-students-card">
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      {/* Charts Section */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '32px' }}>
+        {/* Bar Chart */}
+        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)' }}>
+          <h3 style={{ margin: '0 0 24px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Distribusi Rata-Rata Nilai Siswa</h3>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer>
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                <RechartsTooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }} 
+                />
+                <Bar dataKey="total" name="Jumlah Siswa" fill="#3b82f6" radius={[6, 6, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Pie Chart */}
+        <div style={{ background: '#ffffff', borderRadius: '20px', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)' }}>
+          <h3 style={{ margin: '0 0 24px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Proporsi Status Risiko Belajar</h3>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  paddingAngle={5}
+                  dataKey="value"
+                  label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                  itemStyle={{ fontWeight: 600 }}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Table Card - Enhanced */}
+      <div style={{ background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)', overflow: 'hidden' }}>
+        <div style={{ padding: '24px 30px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', background: '#f8fafc' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>Daftar Siswa Binaan {class_info.name}</h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Status risiko belajar dihitung secara real-time berdasarkan presensi dan nilai tugas.</p>
+            <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>Daftar Siswa Binaan {class_info.name}</h3>
+            <p style={{ margin: '6px 0 0 0', fontSize: '14px', color: '#64748b' }}>Status risiko dihitung otomatis (*real-time*) berdasarkan presensi dan nilai tes.</p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+            <span className="material-symbols-outlined" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', fontSize: '20px' }}>search</span>
             <input
               type="text"
-              placeholder="Cari siswa / NIS..."
+              placeholder="Cari nama atau NIS..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
-                padding: '8px 14px',
-                borderRadius: '10px',
+                padding: '12px 16px 12px 42px',
+                borderRadius: '12px',
                 border: '1px solid #cbd5e1',
-                fontSize: '13px',
+                fontSize: '14px',
                 outline: 'none',
-                width: '220px'
+                width: '260px',
+                transition: 'border-color 0.3s, box-shadow 0.3s',
+              }}
+              onFocus={e => {
+                e.target.style.borderColor = '#3b82f6';
+                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = '#cbd5e1';
+                e.target.style.boxShadow = 'none';
               }}
             />
           </div>
         </div>
 
-        <div className="admin-students-table-container">
-          <table className="admin-students-table">
+        <div style={{ overflowX: 'auto', padding: '0 10px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
-              <tr>
-                <th style={{ width: '60px', textAlign: 'center' }}>No</th>
-                <th>Nama Siswa</th>
-                <th>NIS</th>
-                <th style={{ textAlign: 'center' }}>Kehadiran (%)</th>
-                <th style={{ textAlign: 'center' }}>Progress Materi (%)</th>
-                <th style={{ textAlign: 'center' }}>Rata-Rata Nilai (%)</th>
-                <th style={{ textAlign: 'center' }}>Status Risiko Belajar</th>
+              <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', width: '60px', textAlign: 'center' }}>No</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase' }}>Nama Lengkap</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase' }}>NIS</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Kehadiran</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Progress Belajar</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Rata-Rata Nilai</th>
+                <th style={{ padding: '16px 20px', color: '#64748b', fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', textAlign: 'center' }}>Status Risiko</th>
               </tr>
             </thead>
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                    Tidak ada siswa binaan yang ditemukan.
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '48px', color: '#cbd5e1', marginBottom: '16px', display: 'block' }}>person_off</span>
+                    <div style={{ fontSize: '16px', fontWeight: 600 }}>Tidak ada data siswa ditemukan.</div>
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((siswa, idx) => (
-                  <tr key={siswa.studentId || idx}>
-                    <td style={{ textAlign: 'center', fontWeight: 600, color: '#64748b' }}>{idx + 1}</td>
-                    <td>
-                      <div style={{ fontWeight: 700, color: '#0f172a' }}>{siswa.studentName}</div>
+                  <tr key={siswa.studentId || idx} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '16px 20px', textAlign: 'center', fontWeight: 700, color: '#94a3b8' }}>{idx + 1}</td>
+                    <td style={{ padding: '16px 20px' }}>
+                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '15px', marginBottom: '2px' }}>{siswa.studentName}</div>
                     </td>
-                    <td style={{ color: '#475569', fontSize: '13px' }}>{siswa.nis || '-'}</td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ padding: '16px 20px', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>{siswa.nis || '-'}</td>
+                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                       <span style={{
-                        padding: '4px 10px',
+                        display: 'inline-block',
+                        padding: '6px 12px',
                         borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        background: siswa.attendanceRate >= 80 ? '#e8f5e9' : '#fdecea',
-                        color: siswa.attendanceRate >= 80 ? '#27ae60' : '#e74c3c'
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        background: siswa.attendanceRate >= 80 ? '#ecfdf5' : '#fef2f2',
+                        color: siswa.attendanceRate >= 80 ? '#10b981' : '#ef4444',
+                        minWidth: '60px'
                       }}>
                         {siswa.attendanceRate}%
                       </span>
                     </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <span style={{
-                        padding: '4px 10px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        background: siswa.materialCompletionRate >= 75 ? '#e0f2fe' : '#fef3c7',
-                        color: siswa.materialCompletionRate >= 75 ? '#0284c7' : '#d97706'
-                      }}>
-                        {siswa.materialCompletionRate || 0}%
-                      </span>
+                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                        <div style={{ width: '60px', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${siswa.materialCompletionRate || 0}%`, height: '100%', background: siswa.materialCompletionRate >= 75 ? '#3b82f6' : '#f59e0b', borderRadius: '4px' }}></div>
+                        </div>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#475569', minWidth: '35px' }}>{siswa.materialCompletionRate || 0}%</span>
+                      </div>
                     </td>
-                    <td style={{ textAlign: 'center', fontWeight: 700, color: '#1e293b' }}>
-                      {siswa.avgScore || 0}%
+                    <td style={{ padding: '16px 20px', textAlign: 'center', fontWeight: 800, color: '#1e293b', fontSize: '16px' }}>
+                      {siswa.avgScore || 0}
                     </td>
-                    <td style={{ textAlign: 'center' }}>
+                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                       {siswa.risk === 'high' && (
-                        <span style={{ background: '#ffe4e6', color: '#e11d48', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>error</span> Risiko Tinggi
+                        <span style={{ background: '#fff1f2', color: '#e11d48', padding: '6px 16px', borderRadius: '30px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #ffe4e6' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>error</span> Risiko Tinggi
                         </span>
                       )}
                       {siswa.risk === 'medium' && (
-                        <span style={{ background: '#fef3c7', color: '#d97706', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>warning</span> Risiko Sedang
+                        <span style={{ background: '#fffbeb', color: '#d97706', padding: '6px 16px', borderRadius: '30px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #fef3c7' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>warning</span> Risiko Sedang
                         </span>
                       )}
                       {siswa.risk === 'low' && (
-                        <span style={{ background: '#dcfce7', color: '#15803d', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span> Aman / Rendah
+                        <span style={{ background: '#f0fdf4', color: '#15803d', padding: '6px 16px', borderRadius: '30px', fontSize: '13px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #dcfce7' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>check_circle</span> Aman
                         </span>
                       )}
                     </td>

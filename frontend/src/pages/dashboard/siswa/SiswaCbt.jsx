@@ -93,10 +93,45 @@ const SiswaCbt = () => {
     setUserAnswers((prev) => ({
       ...prev,
       [qIdx]: {
+        ...prev[qIdx],
         selected: optionIdx,
         flagged: prev[qIdx]?.flagged || false,
       },
     }));
+  };
+
+  const handleSelectTfOption = (qIdx, value) => {
+    setUserAnswers((prev) => ({
+      ...prev,
+      [qIdx]: {
+        ...prev[qIdx],
+        selected_tf: value,
+        flagged: prev[qIdx]?.flagged || false,
+      },
+    }));
+  };
+
+  const handleSelectMatchingOption = (qIdx, leftVal, rightVal) => {
+    setUserAnswers((prev) => {
+      const currentAns = prev[qIdx] || { matched_pairs: [], flagged: false };
+      const pairs = [...(currentAns.matched_pairs || [])];
+      
+      const existingIdx = pairs.findIndex(p => p.left === leftVal);
+      if (existingIdx !== -1) {
+        pairs[existingIdx].right = rightVal;
+      } else {
+        pairs.push({ left: leftVal, right: rightVal });
+      }
+      
+      return { 
+        ...prev, 
+        [qIdx]: { 
+          ...currentAns,
+          matched_pairs: pairs,
+          flagged: currentAns.flagged || false
+        } 
+      };
+    });
   };
 
   const handleEssayAnswerChange = (qIdx, text) => {
@@ -131,8 +166,10 @@ const SiswaCbt = () => {
       const formattedAnswers = Object.entries(userAnswers).map(([qIdx, val]) => ({
         question_index: parseInt(qIdx),
         selected_option: val.selected !== undefined ? val.selected : -1,
+        selected_tf: val.selected_tf !== undefined ? val.selected_tf : null,
+        matched_pairs: val.matched_pairs || [],
         essay_answer: val.essay_answer || '',
-        is_flagged: val.flagged
+        is_flagged: val.flagged || false
       }));
 
       const totalTimeSeconds = (activeExam.duration_minutes || 30) * 60;
@@ -198,6 +235,8 @@ const SiswaCbt = () => {
     if (ans?.flagged) return 'flagged'; // Ragu-ragu (Yellow)
     if (ans?.selected !== undefined && ans?.selected !== null && ans?.selected !== -1) return 'answered'; // Green
     if (ans?.essay_answer && ans.essay_answer.trim().length > 0) return 'answered'; // Green
+    if (ans?.selected_tf !== undefined && ans?.selected_tf !== null) return 'answered'; // Green
+    if (ans?.matched_pairs && ans.matched_pairs.length > 0) return 'answered'; // Green
     return 'unanswered';
   };
 
@@ -374,7 +413,7 @@ const SiswaCbt = () => {
 
             <p style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', margin: '0 0 16px 0' }}>{currentQ?.question_text}</p>
 
-            {currentQ?.type === 'essay' || !currentQ?.options || currentQ?.options?.length === 0 ? (
+            {currentQ?.type === 'essay' ? (
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', fontSize: '13px', fontWeight: '800', color: '#475569', marginBottom: '8px' }}>Jawaban Anda:</label>
                 <textarea
@@ -393,6 +432,60 @@ const SiswaCbt = () => {
                     boxSizing: 'border-box'
                   }}
                 />
+              </div>
+            ) : currentQ?.type === 'tf' ? (
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
+                <button
+                  onClick={() => handleSelectTfOption(currentQuestionIdx, true)}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                    border: currentAns.selected_tf === true ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                    background: currentAns.selected_tf === true ? '#f0f9ff' : '#ffffff',
+                    color: currentAns.selected_tf === true ? '#0284c7' : '#0f172a',
+                    fontWeight: currentAns.selected_tf === true ? '800' : '500'
+                  }}
+                >
+                  Benar
+                </button>
+                <button
+                  onClick={() => handleSelectTfOption(currentQuestionIdx, false)}
+                  style={{
+                    flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                    border: currentAns.selected_tf === false ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                    background: currentAns.selected_tf === false ? '#fef2f2' : '#ffffff',
+                    color: currentAns.selected_tf === false ? '#dc2626' : '#0f172a',
+                    fontWeight: currentAns.selected_tf === false ? '800' : '500'
+                  }}
+                >
+                  Salah
+                </button>
+              </div>
+            ) : currentQ?.type === 'matching' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Pilih pasangan yang tepat untuk setiap item di sebelah kiri:</div>
+                {(currentQ.matching_pairs || []).map((pair, pIdx) => {
+                  const selectedRight = (currentAns.matched_pairs || []).find(p => p.left === pair.left)?.right || '';
+                  
+                  // Get all possible right answers
+                  const allRightOptions = Array.from(new Set((currentQ.matching_pairs || []).map(p => p.right))).sort();
+
+                  return (
+                    <div key={pIdx} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ flex: 1, fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{pair.left}</div>
+                      <div style={{ fontWeight: '800', color: '#94a3b8' }}>&rarr;</div>
+                      <select
+                        value={selectedRight}
+                        onChange={(e) => handleSelectMatchingOption(currentQuestionIdx, pair.left, e.target.value)}
+                        style={{ flex: 1, padding: '10px', border: '1px solid #0284c7', borderRadius: '8px', outline: 'none', fontSize: '13px', background: '#ffffff' }}
+                      >
+                        <option value="">-- Pilih Jawaban --</option>
+                        {allRightOptions.map((opt, oIdx) => (
+                          <option key={oIdx} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>

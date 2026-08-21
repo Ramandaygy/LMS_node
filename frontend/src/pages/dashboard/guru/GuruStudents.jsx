@@ -41,7 +41,7 @@ const GuruStudents = () => {
   const [raporSemester, setRaporSemester] = useState('2 (Genap)');
   const [raporAcademicYear, setRaporAcademicYear] = useState('2025/2026');
   const [raporNisn, setRaporNisn] = useState('0081293810');
-  const [showKopEditForm, setShowKopEditForm] = useState(false);
+  const [isRaporPublished, setIsRaporPublished] = useState(false);
   const [kokurikulerNote, setKokurikulerNote] = useState('Pada semester ini, ananda menunjukkan capaian yang cukup baik dalam pelaksanaan projek kokurikuler Penguatan Profil Pelajar Pancasila.');
   const [parentFeedback, setParentFeedback] = useState('');
 
@@ -188,6 +188,9 @@ const GuruStudents = () => {
         if (rData.teacher_name) setTeacherName(rData.teacher_name);
         if (rData.teacher_nip) setTeacherNip(rData.teacher_nip);
         if (rData.place_date) setPlaceDate(rData.place_date);
+        setIsRaporPublished(rData.is_published || false);
+      } else {
+        setIsRaporPublished(false);
       }
     } catch (e) {
       console.warn('No persistent Rapor data found, using defaults:', e);
@@ -210,7 +213,8 @@ const GuruStudents = () => {
         headmaster_nip: headmasterNip,
         teacher_name: teacherName,
         teacher_nip: teacherNip,
-        place_date: placeDate
+        place_date: placeDate,
+        is_published: isRaporPublished
       };
       const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
       if (res.data.success) {
@@ -219,6 +223,35 @@ const GuruStudents = () => {
     } catch (err) {
       console.error(err);
       alert('Gagal menyimpan rapor siswa.');
+    }
+  };
+
+  const handleTogglePublishRapor = async () => {
+    if (!selectedStudent) return;
+    const newStatus = !isRaporPublished;
+    try {
+      const payload = {
+        school_name: raporSchoolName,
+        school_address: raporSchoolAddress,
+        semester: raporSemester,
+        extracurriculars: ekstraList,
+        note: homeroomNote,
+        kokurikuler_note: kokurikulerNote,
+        headmaster_name: headmasterName,
+        headmaster_nip: headmasterNip,
+        teacher_name: teacherName,
+        teacher_nip: teacherNip,
+        place_date: placeDate,
+        is_published: newStatus
+      };
+      const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
+      if (res.data.success) {
+        setIsRaporPublished(newStatus);
+        alert(newStatus ? 'Rapor berhasil dibagikan ke Orang Tua!' : 'Rapor berhasil ditarik dari Orang Tua!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mengubah status publikasi rapor.');
     }
   };
 
@@ -548,42 +581,44 @@ const GuruStudents = () => {
                   Edit & Pratinjau Rapor 
                 </h3>
                 <span style={{ fontSize: '13px', color: '#64748b' }}>
-                  Format Resmi Rapor Kurikulum Merdeka (Formula: NA = (Tugas Harian + PTS + PAS) / 3)
+                  Format Resmi Rapor Kurikulum Merdeka (Formula: NA = Nilai Rata-rata Sesuai Bobot Pengaturan Sistem)
                 </span>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
-                  onClick={() => setShowKopEditForm(!showKopEditForm)}
+                  onClick={handleTogglePublishRapor}
                   style={{
-                    padding: '8px 14px',
+                    padding: '8px 16px',
                     borderRadius: '10px',
-                    background: showKopEditForm ? '#cbd5e1' : '#eff6ff',
-                    color: showKopEditForm ? '#0f172a' : '#2563eb',
-                    border: '1px solid #bfdbfe',
-                    fontWeight: '700',
-                    fontSize: '13px',
+                    background: isRaporPublished ? '#fef2f2' : '#f0fdf4',
+                    color: isRaporPublished ? '#ef4444' : '#16a34a',
+                    border: `1px solid ${isRaporPublished ? '#fca5a5' : '#86efac'}`,
+                    fontWeight: '800',
+                    fontSize: '14px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px'
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>edit_note</span>
-                  {showKopEditForm ? 'Tutup Edit Kop' : 'Edit Kop & Identitas'}
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    {isRaporPublished ? 'visibility_off' : 'send'}
+                  </span>
+                  {isRaporPublished ? 'Tarik Rapor' : 'Bagikan ke Ortu'}
                 </button>
                 <button
                   onClick={handleSaveRapor}
                   style={{ padding: '8px 18px', borderRadius: '10px', background: '#0284c7', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>save</span>
-                  Simpan Rapor
+                  Simpan Draft
                 </button>
                 <button
                   onClick={handlePrintRapor}
-                  style={{ padding: '8px 18px', borderRadius: '10px', background: '#16a34a', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  style={{ padding: '8px 18px', borderRadius: '10px', background: '#1e293b', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>print</span>
-                  Cetak / Simpan PDF
+                  Cetak / PDF
                 </button>
                 <button
                   onClick={() => setShowDetailModal(false)}
@@ -593,42 +628,6 @@ const GuruStudents = () => {
                 </button>
               </div>
             </div>
-
-            {/* EXPANDABLE EDIT KOP & IDENTITAS FORM (NO PRINT) */}
-            {showKopEditForm && (
-              <div className="no-print" style={{ background: '#f8fafc', padding: '16px 20px', borderRadius: '12px', marginBottom: '24px', border: '1px solid #94a3b8' }}>
-                <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#2563eb' }}>tune</span>
-                  Edit Kop Surat & Identitas Rapor (Otomatis Terhubung Data Admin)
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', fontSize: '12px' }}>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Nama Sekolah</label>
-                    <input type="text" value={raporSchoolName} onChange={e => setRaporSchoolName(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Alamat Sekolah</label>
-                    <input type="text" value={raporSchoolAddress} onChange={e => setRaporSchoolAddress(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Tahun Pelajaran (Admin)</label>
-                    <input type="text" value={raporAcademicYear} onChange={e => setRaporAcademicYear(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#2563eb' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Semester (Admin)</label>
-                    <input type="text" value={raporSemester} onChange={e => setRaporSemester(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#2563eb' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>Fase</label>
-                    <input type="text" value={raporPhase} onChange={e => setRaporPhase(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontWeight: '700', display: 'block', marginBottom: '4px', color: '#475569' }}>NISN Siswa</label>
-                    <input type="text" value={raporNisn} onChange={e => setRaporNisn(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }} />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* RAPOR HEADER / KOP */}
             <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>

@@ -158,12 +158,15 @@ exports.getBinaanStudents = async (req, res) => {
       const subId = g.subject ? g.subject.toString() : '';
       if (gradesByStudent[sId] && subId) {
         if (!gradesByStudent[sId][subId]) {
-          gradesByStudent[sId][subId] = { uts: null, uas: null };
+          gradesByStudent[sId][subId] = { uts: null, uas: null, quizCount: 0, quizSum: 0 };
         }
         if (g.type === 'uts') {
           gradesByStudent[sId][subId].uts = g.score;
         } else if (g.type === 'uas') {
           gradesByStudent[sId][subId].uas = g.score;
+        } else if (g.type === 'quiz') {
+          gradesByStudent[sId][subId].quizSum += g.score;
+          gradesByStudent[sId][subId].quizCount += 1;
         }
       }
     });
@@ -176,8 +179,24 @@ exports.getBinaanStudents = async (req, res) => {
       subjects.forEach(sub => {
         const subId = sub._id.toString();
         const records = assignmentGradesByStudent[sId]?.[subId];
+        let assignmentAvg = null;
         if (records && records.max > 0) {
-          studentSubjectAssignmentAvg[sId][subId] = Number(((records.sum / records.max) * 100).toFixed(2));
+          assignmentAvg = Number(((records.sum / records.max) * 100).toFixed(2));
+        }
+
+        const quizCount = gradesByStudent[sId]?.[subId]?.quizCount || 0;
+        const quizSum = gradesByStudent[sId]?.[subId]?.quizSum || 0;
+        let quizAvg = null;
+        if (quizCount > 0) {
+          quizAvg = Number((quizSum / quizCount).toFixed(2));
+        }
+
+        if (assignmentAvg !== null && quizAvg !== null) {
+          studentSubjectAssignmentAvg[sId][subId] = Number(((assignmentAvg + quizAvg) / 2).toFixed(2));
+        } else if (assignmentAvg !== null) {
+          studentSubjectAssignmentAvg[sId][subId] = assignmentAvg;
+        } else if (quizAvg !== null) {
+          studentSubjectAssignmentAvg[sId][subId] = quizAvg;
         } else {
           studentSubjectAssignmentAvg[sId][subId] = '-';
         }

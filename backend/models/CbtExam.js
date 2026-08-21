@@ -2,9 +2,14 @@ const mongoose = require('mongoose');
 
 const questionSchema = new mongoose.Schema({
   question_text: { type: String, required: true },
-  type: { type: String, enum: ['pg', 'essay'], default: 'pg' }, // 'pg' (Pilihan Ganda) or 'essay'
-  options: [{ type: String }], // Array of 4 options: [A, B, C, D] (only for PG)
+  type: { type: String, enum: ['pg', 'essay', 'tf', 'matching'], default: 'pg' }, // 'pg', 'essay', 'tf', 'matching'
+  options: [{ type: String }], // Array of 4 options (only for PG)
   correct_option: { type: Number }, // Index 0, 1, 2, or 3 (only for PG)
+  correct_tf: { type: Boolean, default: true }, // For True/False
+  matching_pairs: [{ // For matching
+    left: { type: String },
+    right: { type: String }
+  }],
   correct_answer_text: { type: String, default: '' }, // Jawaban ideal / kunci jawaban essay
   explanation: { type: String, default: '' } // Pembahasan soal
 });
@@ -17,6 +22,7 @@ const cbtExamSchema = new mongoose.Schema({
   class_id: { type: mongoose.Schema.Types.Mixed, default: null },
   class_name: { type: String, default: '' },
   teacher: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+  exam_type: { type: String, enum: ['quiz', 'uts', 'uas'], default: 'quiz' },
   duration_minutes: { type: Number, default: 30 },
   pass_score: { type: Number, default: 75 },
   is_master: { type: Boolean, default: false },

@@ -76,6 +76,10 @@ const raporSchema = new mongoose.Schema(
     parent_feedback: {
       type: String,
       default: ''
+    },
+    is_published: {
+      type: Boolean,
+      default: false
     }
   },
   {

@@ -9,18 +9,19 @@ const Submission = require('../models/Submission');
 cron.schedule('0 0 * * *', async () => {
   console.log('[CRON] Memulai proses pembersihan auto-cleanup file lama...');
   try {
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Cari tugas yang deadline-nya sudah lewat 7 hari
+    // Cari tugas yang deadline-nya sudah lewat 30 hari
     const expiredAssignments = await Assignment.find({
-      deadline: { $lt: sevenDaysAgo }
+      deadline: { $lt: thirtyDaysAgo },
+      is_active: { $ne: false } // Hindari memproses tugas yang sudah diarsipkan
     });
 
     const assignmentIds = expiredAssignments.map(a => a._id);
 
     if (assignmentIds.length === 0) {
-      console.log('[CRON] Tidak ada tugas yang kedaluwarsa lebih dari 7 hari.');
+      console.log('[CRON] Tidak ada tugas yang kedaluwarsa lebih dari 30 hari yang perlu dibersihkan.');
       return;
     }
 
@@ -75,12 +76,20 @@ cron.schedule('0 0 * * *', async () => {
           }
         }
         
+        
         if (hasChanges) {
           assignment.attachments = newAttachments;
-          await assignment.save();
-          deletedMediaCount++;
         }
       }
+      
+      // Kosongkan isi soal, deskripsi, dan nonaktifkan untuk menghemat DB Size
+      // (Data ini di-'archive' tapi tidak di-delete agar Submissions tidak menjadi yatim piatu / gagal ditarik saat Rekap)
+      assignment.is_active = false;
+      assignment.description = '[Telah dihapus otomatis oleh sistem (Lewat 30 Hari)]';
+      assignment.questions = [];
+      
+      await assignment.save();
+      deletedMediaCount++;
     }
 
     console.log(`[CRON] Auto-cleanup selesai. Menghapus file dari ${deletedCount} submission dan media dari ${deletedMediaCount} soal tugas.`);

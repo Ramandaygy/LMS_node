@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell,
+  LineChart, Line
+} from 'recharts';
 import api from '../../services/api';
 import '../../styles/dashboard/admin/admin.css';
 
@@ -46,6 +50,24 @@ const AdminDashboard = () => {
     );
   }
 
+  // Data for Bar Chart
+  const barData = [
+    { name: 'Siswa', value: stats.total_students, color: '#2563eb' },
+    { name: 'Guru', value: stats.total_teachers, color: '#059669' },
+    { name: 'Ortu/Wali', value: stats.total_parents, color: '#d97706' },
+  ];
+
+  // Mock data for Line Chart (Trend aktivitas bulanan)
+  const lineData = [
+    { name: 'Jan', kunjungan: 4000 },
+    { name: 'Feb', kunjungan: 3000 },
+    { name: 'Mar', kunjungan: 5000 },
+    { name: 'Apr', kunjungan: 4500 },
+    { name: 'Mei', kunjungan: 6000 },
+    { name: 'Jun', kunjungan: 5500 },
+    { name: 'Jul', kunjungan: 7000 },
+  ];
+
   return (
     <div className="admin-dashboard-modern" style={{ padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header Section */}
@@ -54,10 +76,10 @@ const AdminDashboard = () => {
           DASHBOARD ADMINISTRATOR
         </span>
         <h2 className="header-title" style={{ fontSize: '32px', color: '#0f172a', fontWeight: '800', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
-          Sistem Informasi Akademik
+          Sistem Manajemen Pembelajaran (LMS)
         </h2>
         <p className="header-subtitle" style={{ margin: 0, fontSize: '15px', color: '#64748b', fontWeight: '500' }}>
-          Ringkasan real-time aktivitas akademik dan administrasi sekolah.
+          Ringkasan real-time aktivitas pembelajaran dan administrasi LMS.
         </p>
       </section>
 
@@ -107,6 +129,56 @@ const AdminDashboard = () => {
           </div>
           <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_subjects}</h4>
           <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mata Pelajaran</p>
+        </div>
+
+      </div>
+
+      {/* Charts Section */}
+      <div className="charts-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+        
+        {/* Bar Chart: Populasi */}
+        <div className="chart-card" style={{ background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+          <h3 style={{ fontSize: '18px', color: '#0f172a', fontWeight: '800', marginBottom: '20px', fontFamily: 'Outfit, sans-serif' }}>
+            Proporsi Pengguna
+          </h3>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} />
+                <RechartsTooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
+                  {barData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Line Chart: Tren Aktivitas */}
+        <div className="chart-card" style={{ background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
+          <h3 style={{ fontSize: '18px', color: '#0f172a', fontWeight: '800', marginBottom: '20px', fontFamily: 'Outfit, sans-serif' }}>
+            Tren Aktivitas (Simulasi)
+          </h3>
+          <div style={{ width: '100%', height: '300px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={lineData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: '#64748b' }} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                />
+                <Line type="monotone" dataKey="kunjungan" stroke="#8b5cf6" strokeWidth={4} dot={{ r: 6, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
       </div>

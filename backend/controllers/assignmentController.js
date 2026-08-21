@@ -38,6 +38,16 @@ exports.createAssignment = async (req, res) => {
 
     const classIdVal = req.body.class_id || req.body.class;
     const subjectIdVal = req.body.subject_id || req.body.subject;
+    
+    let parsedQuestions = [];
+    if (req.body.questions) {
+      try {
+        parsedQuestions = JSON.parse(req.body.questions);
+      } catch(e) {
+        console.error("Failed to parse questions", e);
+      }
+    }
+
     const assignmentData = {
       ...req.body,
       class: classIdVal,
@@ -45,7 +55,9 @@ exports.createAssignment = async (req, res) => {
       subject: subjectIdVal,
       subject_id: subjectIdVal,
       teacher: teacherId,
-      attachments
+      attachments,
+      assignment_type: req.body.assignment_type || 'upload',
+      questions: parsedQuestions
     };
     const newAssignment = await assignmentService.createAssignment(assignmentData);
 
@@ -164,13 +176,25 @@ exports.updateAssignment = async (req, res) => {
 
     const classIdVal = req.body.class_id || req.body.class;
     const subjectIdVal = req.body.subject_id || req.body.subject;
+    
+    let parsedQuestions = [];
+    if (req.body.questions) {
+      try {
+        parsedQuestions = JSON.parse(req.body.questions);
+      } catch(e) {
+        console.error("Failed to parse questions", e);
+      }
+    }
+
     const updateData = {
       ...req.body,
       class: classIdVal,
       class_id: classIdVal,
       subject: subjectIdVal,
       subject_id: subjectIdVal,
-      attachments
+      attachments,
+      assignment_type: req.body.assignment_type || 'upload',
+      questions: parsedQuestions
     };
 
     const updated = await assignmentService.updateAssignment(req.params.id, updateData);

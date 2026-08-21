@@ -36,11 +36,12 @@ const GuruCbt = () => {
   const [passScore, setPassScore] = useState(75);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [examType, setExamType] = useState('quiz');
   const [hideCorrectAnswers, setHideCorrectAnswers] = useState(true);
 
   // Question Form State
   const [questions, setQuestions] = useState([
-    { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
+    { question_text: '', type: 'pg', options: ['', '', '', ''], correct_option: 0, correct_tf: true, matching_pairs: [], explanation: '' }
   ]);
 
   // Results Modal State
@@ -291,7 +292,7 @@ const GuruCbt = () => {
   const handleAddQuestion = () => {
     setQuestions((prev) => [
       ...prev,
-      { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
+      { question_text: '', type: 'pg', options: ['', '', '', ''], correct_option: 0, correct_tf: true, matching_pairs: [], explanation: '' }
     ]);
   };
 
@@ -331,9 +332,13 @@ const GuruCbt = () => {
       updated[qIdx].options = [];
       updated[qIdx].correct_option = 0;
       updated[qIdx].correct_answer_text = updated[qIdx].correct_answer_text || '';
-    } else {
+    } else if (typeValue === 'pg') {
       updated[qIdx].options = ['', '', '', ''];
       updated[qIdx].correct_option = 0;
+    } else if (typeValue === 'tf') {
+      updated[qIdx].correct_tf = true;
+    } else if (typeValue === 'matching') {
+      if(!updated[qIdx].matching_pairs) updated[qIdx].matching_pairs = [];
     }
     setQuestions(updated);
   };
@@ -381,8 +386,9 @@ const GuruCbt = () => {
     setPassScore(75);
     setStartTime('');
     setEndTime('');
+    setExamType('quiz');
     setHideCorrectAnswers(true);
-    setQuestions([{ question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }]);
+    setQuestions([{ question_text: '', type: 'pg', options: ['', '', '', ''], correct_option: 0, correct_tf: true, matching_pairs: [], explanation: '' }]);
     setShowCreateModal(true);
   };
 
@@ -395,9 +401,10 @@ const GuruCbt = () => {
     setPassScore(exam.pass_score);
     setStartTime(formatToLocalDatetimeInput(exam.start_time));
     setEndTime(formatToLocalDatetimeInput(exam.end_time));
+    setExamType(exam.exam_type || 'quiz');
     setHideCorrectAnswers(exam.hide_correct_answers !== undefined ? exam.hide_correct_answers : true);
     setQuestions(exam.questions && exam.questions.length > 0 ? exam.questions : [
-      { question_text: '', options: ['', '', '', ''], correct_option: 0, explanation: '' }
+      { question_text: '', type: 'pg', options: ['', '', '', ''], correct_option: 0, correct_tf: true, matching_pairs: [], explanation: '' }
     ]);
     setShowCreateModal(true);
   };
@@ -436,6 +443,7 @@ const GuruCbt = () => {
         pass_score: Number(passScore),
         is_active: true,
         is_master: activeTab === 'master', // Match currently active tab as creator target
+        exam_type: examType,
         start_time: startTime || null,
         end_time: endTime || null,
         hide_correct_answers: hideCorrectAnswers,
@@ -805,6 +813,19 @@ const GuruCbt = () => {
 
               <div className="form-row-grid">
                 <div className="form-group">
+                  <label>Jenis Ujian *</label>
+                  <select
+                    value={examType}
+                    onChange={(e) => setExamType(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="quiz">Ulangan Harian (UH)</option>
+                    <option value="uts">Ujian Tengah Semester (UTS)</option>
+                    <option value="uas">Ujian Akhir Semester (UAS)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
                   <label>Durasi (Menit) *</label>
                   <input
                     type="number"
@@ -905,6 +926,8 @@ const GuruCbt = () => {
                             className="form-select"
                           >
                             <option value="pg">Pilihan Ganda (PG)</option>
+                            <option value="tf">Benar / Salah</option>
+                            <option value="matching">Menjodohkan</option>
                             <option value="essay">Essay / Uraian</option>
                           </select>
                         </div>
@@ -932,6 +955,60 @@ const GuruCbt = () => {
                             className="form-input"
                             style={{ fontFamily: 'inherit', padding: '8px' }}
                           />
+                        </div>
+                      ) : q.type === 'tf' ? (
+                        <div className="form-group" style={{ marginBottom: '12px' }}>
+                          <label>Kunci Jawaban</label>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input type="radio" checked={q.correct_tf === true} onChange={() => {
+                                const updated = [...questions];
+                                updated[qIdx].correct_tf = true;
+                                setQuestions(updated);
+                              }} /> Benar
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <input type="radio" checked={q.correct_tf === false} onChange={() => {
+                                const updated = [...questions];
+                                updated[qIdx].correct_tf = false;
+                                setQuestions(updated);
+                              }} /> Salah
+                            </label>
+                          </div>
+                        </div>
+                      ) : q.type === 'matching' ? (
+                        <div className="form-group" style={{ marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <label>Pasangan Jawaban (Kiri = Premis, Kanan = Jawaban)</label>
+                            <button type="button" onClick={() => {
+                              const updated = [...questions];
+                              if(!updated[qIdx].matching_pairs) updated[qIdx].matching_pairs = [];
+                              updated[qIdx].matching_pairs.push({ left: '', right: '' });
+                              setQuestions(updated);
+                            }} style={{ background: '#e2e8f0', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>+ Pasangan</button>
+                          </div>
+                          {(q.matching_pairs || []).map((pair, pIdx) => (
+                            <div key={pIdx} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                              <input type="text" placeholder="Premis Kiri" value={pair.left} onChange={e => {
+                                const updated = [...questions];
+                                updated[qIdx].matching_pairs[pIdx].left = e.target.value;
+                                setQuestions(updated);
+                              }} className="form-input" style={{ flex: 1 }} />
+                              <input type="text" placeholder="Jawaban Kanan" value={pair.right} onChange={e => {
+                                const updated = [...questions];
+                                updated[qIdx].matching_pairs[pIdx].right = e.target.value;
+                                setQuestions(updated);
+                              }} className="form-input" style={{ flex: 1 }} />
+                              <button type="button" onClick={() => {
+                                const updated = [...questions];
+                                updated[qIdx].matching_pairs = updated[qIdx].matching_pairs.filter((_, i) => i !== pIdx);
+                                setQuestions(updated);
+                              }} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer', padding: '0 10px' }}>X</button>
+                            </div>
+                          ))}
+                          {(!q.matching_pairs || q.matching_pairs.length === 0) && (
+                            <div style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '11px' }}>Tambahkan setidaknya 1 pasangan.</div>
+                          )}
                         </div>
                       ) : (
                         <div className="options-input-grid">

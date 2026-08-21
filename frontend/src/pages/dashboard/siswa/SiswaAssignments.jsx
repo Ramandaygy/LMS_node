@@ -9,6 +9,7 @@ const SiswaAssignments = () => {
   const [submissionFile, setSubmissionFile] = useState(null);
   const [submissionLink, setSubmissionLink] = useState('');
   const [submissionText, setSubmissionText] = useState('');
+  const [studentAnswers, setStudentAnswers] = useState({});
   const [message, setMessage] = useState({ type: '', text: '' });
   const [submitting, setSubmitting] = useState(false);
   const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -62,6 +63,9 @@ const SiswaAssignments = () => {
     if (submissionFile) formData.append('file', submissionFile);
     if (submissionLink) formData.append('link', submissionLink);
     if (submissionText) formData.append('content', submissionText);
+    if (selectedAssignment.assignment_type === 'structured') {
+      formData.append('answers', JSON.stringify(studentAnswers));
+    }
     try {
       await api.post(`/assignments/${selectedAssignment._id}/submit`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -94,6 +98,7 @@ const SiswaAssignments = () => {
     setSubmissionFile(null);
     setSubmissionLink('');
     setSubmissionText('');
+    setStudentAnswers({});
     setMessage({ type: '', text: '' });
   };
 
@@ -390,6 +395,51 @@ const SiswaAssignments = () => {
                       </div>
                     </div>
                   )}
+
+                  {selectedAssignment.assignment_type === 'structured' && selectedAssignment.submission_answers && selectedAssignment.submission_answers.length > 0 && (
+                    <div className="my-submission" style={{ marginTop: '20px' }}>
+                      <strong>Riwayat Jawaban Anda:</strong>
+                      <div style={{ marginTop: '10px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                        {selectedAssignment.submission_answers.map((ans, idx) => {
+                          const question = selectedAssignment.questions?.[idx];
+                          const qText = question ? question.text : `Soal #${idx + 1}`;
+                          return (
+                            <div key={idx} style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: idx < selectedAssignment.submission_answers.length - 1 ? '1px dashed #cbd5e1' : 'none' }}>
+                              <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#0f172a', marginBottom: '8px' }}>
+                                {idx + 1}. {qText}
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px' }}>
+                                <span style={{ color: '#64748b', minWidth: '60px' }}>Jawaban:</span>
+                                <div style={{ 
+                                  background: ans.is_correct ? '#dcfce7' : (question?.question_type === 'pilgan' ? '#fee2e2' : '#ffffff'),
+                                  color: ans.is_correct ? '#166534' : (question?.question_type === 'pilgan' ? '#991b1b' : '#334155'),
+                                  border: `1px solid ${ans.is_correct ? '#86efac' : (question?.question_type === 'pilgan' ? '#fca5a5' : '#cbd5e1')}`,
+                                  padding: '6px 12px',
+                                  borderRadius: '8px',
+                                  flex: 1
+                                }}>
+                                  {ans.answer_text || <em style={{ color: '#94a3b8' }}>Tidak dijawab</em>}
+                                </div>
+                              </div>
+                              {question?.question_type === 'pilgan' && (
+                                <div style={{ marginTop: '6px', fontSize: '11px', color: ans.is_correct ? '#16a34a' : '#ef4444', fontWeight: 'bold', marginLeft: '68px' }}>
+                                  {ans.is_correct ? `+${ans.points_earned} Poin` : `Salah (Kunci: ${question.correct_answer})`}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {selectedAssignment.pilgan_score !== undefined && (
+                          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '2px solid #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <strong style={{ color: '#334155', fontSize: '14px' }}>Skor Pilihan Ganda (Auto-Grade):</strong>
+                            <span style={{ background: '#0284c7', color: '#ffffff', padding: '6px 12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px' }}>
+                              {selectedAssignment.pilgan_score} Poin
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : new Date() > new Date(selectedAssignment.deadline) ? (
                 <div className="submission-status" style={{ backgroundColor: '#fee2e2', border: '1px solid #f87171' }}>
@@ -401,6 +451,57 @@ const SiswaAssignments = () => {
                     </div>
                   </div>
                 </div>
+              ) : selectedAssignment.assignment_type === 'structured' ? (
+                <form onSubmit={handleSubmit} className="submit-form">
+                  <h3>Kerjakan Soal</h3>
+                  {selectedAssignment.questions && selectedAssignment.questions.map((q, idx) => (
+                    <div key={idx} style={{ background: '#ffffff', padding: '16px', borderRadius: '12px', border: '1px solid #cbd5e1', marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                        <strong style={{ fontSize: '14px', color: '#0f172a' }}>{idx + 1}. {q.text}</strong>
+                        <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '12px', fontWeight: 'bold' }}>
+                          Bobot: {q.points} Poin
+                        </span>
+                      </div>
+                      
+                      {q.question_type === 'pilgan' && q.options && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {q.options.map((opt, oIdx) => (
+                            <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 12px', background: studentAnswers[idx] === opt ? '#eff6ff' : '#f8fafc', border: `1px solid ${studentAnswers[idx] === opt ? '#bfdbfe' : '#e2e8f0'}`, borderRadius: '8px' }}>
+                              <input 
+                                type="radio" 
+                                name={`answer_${idx}`}
+                                value={opt}
+                                checked={studentAnswers[idx] === opt}
+                                onChange={(e) => setStudentAnswers({...studentAnswers, [idx]: e.target.value})}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '13px', color: '#334155' }}>
+                                {String.fromCharCode(65 + oIdx)}. {opt}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {q.question_type === 'essay' && (
+                        <textarea 
+                          rows="4" 
+                          value={studentAnswers[idx] || ''}
+                          onChange={(e) => setStudentAnswers({...studentAnswers, [idx]: e.target.value})}
+                          placeholder="Tuliskan jawaban uraian Anda di sini..."
+                          style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', boxSizing: 'border-box' }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                  
+                  <div className="form-actions">
+                    <button type="button" onClick={() => setSelectedAssignment(null)}>Batal</button>
+                    <button type="submit" disabled={submitting}>
+                      {submitting ? 'Menyimpan...' : 'Kumpulkan Jawaban'}
+                    </button>
+                  </div>
+                </form>
               ) : (
                 <form onSubmit={handleSubmit} className="submit-form">
                   <h3>Kumpulkan Tugas</h3>

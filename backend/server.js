@@ -123,6 +123,12 @@ app.use(
   require('./routes/attendanceRoutes')
 );
 
+// FORUMS
+app.use(
+  '/api/forums',
+  require('./routes/forumRoutes')
+);
+
 // GRADES
 app.use(
   '/api/grades',

@@ -59,6 +59,26 @@ const SiswaQuiz = () => {
     setQuizAnswers(prev => ({ ...prev, [qIdx]: oIdx }));
   };
 
+  const handleSelectTfOption = (qIdx, value) => {
+    setQuizAnswers(prev => ({ ...prev, [qIdx]: { selected_tf: value } }));
+  };
+
+  const handleSelectMatchingOption = (qIdx, pIdx, leftVal, rightVal) => {
+    setQuizAnswers(prev => {
+      const currentAns = prev[qIdx] || { matched_pairs: [] };
+      const pairs = [...(currentAns.matched_pairs || [])];
+      
+      const existingIdx = pairs.findIndex(p => p.left === leftVal);
+      if (existingIdx !== -1) {
+        pairs[existingIdx].right = rightVal;
+      } else {
+        pairs.push({ left: leftVal, right: rightVal });
+      }
+      
+      return { ...prev, [qIdx]: { matched_pairs: pairs } };
+    });
+  };
+
   const handleSubmitQuiz = async () => {
     if (!activeQuiz) return;
     
@@ -153,7 +173,59 @@ const SiswaQuiz = () => {
                   {q.question_text || q.text}
                 </p>
 
-                {q.options && q.options.length > 0 ? (
+                {q.type === 'tf' ? (
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <label
+                      onClick={() => handleSelectTfOption(idx, true)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                        border: quizAnswers[idx]?.selected_tf === true ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                        background: quizAnswers[idx]?.selected_tf === true ? '#f0f9ff' : '#ffffff',
+                        fontWeight: quizAnswers[idx]?.selected_tf === true ? '800' : '500'
+                      }}
+                    >
+                      Benar
+                    </label>
+                    <label
+                      onClick={() => handleSelectTfOption(idx, false)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px', textAlign: 'center', cursor: 'pointer',
+                        border: quizAnswers[idx]?.selected_tf === false ? '2px solid #dc2626' : '1px solid #cbd5e1',
+                        background: quizAnswers[idx]?.selected_tf === false ? '#fef2f2' : '#ffffff',
+                        fontWeight: quizAnswers[idx]?.selected_tf === false ? '800' : '500'
+                      }}
+                    >
+                      Salah
+                    </label>
+                  </div>
+                ) : q.type === 'matching' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Pilih pasangan yang tepat untuk setiap item di sebelah kiri:</div>
+                    {(q.matching_pairs || []).map((pair, pIdx) => {
+                      const selectedRight = (quizAnswers[idx]?.matched_pairs || []).find(p => p.left === pair.left)?.right || '';
+                      
+                      // Get all possible right answers (shuffled ideally, but here just distinct)
+                      const allRightOptions = Array.from(new Set((q.matching_pairs || []).map(p => p.right))).sort();
+
+                      return (
+                        <div key={pIdx} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <div style={{ flex: 1, fontWeight: '700', fontSize: '13px' }}>{pair.left}</div>
+                          <div style={{ fontWeight: '800', color: '#94a3b8' }}>&rarr;</div>
+                          <select
+                            value={selectedRight}
+                            onChange={(e) => handleSelectMatchingOption(idx, pIdx, pair.left, e.target.value)}
+                            style={{ flex: 1, padding: '8px', border: '1px solid #0284c7', borderRadius: '6px', outline: 'none' }}
+                          >
+                            <option value="">-- Pilih Jawaban --</option>
+                            {allRightOptions.map((opt, oIdx) => (
+                              <option key={oIdx} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : q.options && q.options.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {q.options.map((opt, oIdx) => (
                       <label

@@ -20,6 +20,15 @@ const assignmentSchema = new mongoose.Schema(
     }],
 
     is_active: { type: Boolean, default: true },
+
+    assignment_type: { type: String, enum: ['upload', 'structured'], default: 'upload' },
+    questions: [{
+      question_type: { type: String, enum: ['pilgan', 'essay'] },
+      text: { type: String },
+      options: [{ type: String }],
+      correct_answer: { type: String },
+      points: { type: Number, default: 10 }
+    }],
   },
   { timestamps: true }
 );

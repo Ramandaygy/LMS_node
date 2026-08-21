@@ -402,11 +402,20 @@ const GuruMaterials = () => {
 
   const renderMultiSlideContent = (content) => {
     if (!content) return <p>Tidak ada teks konten tambahan.</p>;
+    
+    let contentStr = content;
+    if (typeof content !== 'string') {
+      try {
+        contentStr = JSON.stringify(content);
+      } catch(e) {
+        contentStr = String(content);
+      }
+    }
 
-    let slides = content.split(/<!--\s*slide-break\s*-->/i).map(s => s.trim()).filter(Boolean);
+    let slides = contentStr.split(/<!--\s*slide-break\s*-->/i).map(s => s.trim()).filter(Boolean);
 
     if (slides.length <= 1) {
-      const matchSlideDivs = content.match(/<div class="material-slide">[\s\S]*?<\/div>/gi);
+      const matchSlideDivs = contentStr.match(/<div class="material-slide">[\s\S]*?<\/div>/gi);
       if (matchSlideDivs && matchSlideDivs.length > 1) {
         slides = matchSlideDivs;
       }
@@ -1153,7 +1162,10 @@ const GuruMaterials = () => {
 
                     <div className="actions-right" onClick={(e) => e.stopPropagation()}>
                       <button 
-                        onClick={() => setSelectedMaterialModal(m)}
+                        onClick={() => {
+                          setActiveSlideIdx(0);
+                          setSelectedMaterialModal(m);
+                        }}
                         style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span> Detail Isi Materi
@@ -1169,7 +1181,7 @@ const GuruMaterials = () => {
 
       {/* MODAL POPUP BATCH DISTRIBUSI MATERI */}
       {showDistributeModal && (
-        <div className="modal-backdrop" onClick={() => setShowDistributeModal(false)}>
+        <div className="modal-backdrop" onClick={() => setShowDistributeModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
           <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
             <div className="modal-header">
               <h3>
@@ -1223,7 +1235,7 @@ const GuruMaterials = () => {
           🔥 MODAL POPUP DETAIL & PRATINJAU DOKUMEN MATERI - DIPERBAIKI
           ============================================================ */}
       {selectedMaterialModal && (
-        <div className="modal-backdrop" onClick={() => setSelectedMaterialModal(null)}>
+        <div className="modal-backdrop" onClick={() => setSelectedMaterialModal(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
           <div 
             className="modal-content-box" 
             onClick={(e) => e.stopPropagation()} 

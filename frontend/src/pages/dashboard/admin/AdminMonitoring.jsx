@@ -509,7 +509,7 @@ const AdminMonitoring = () => {
               <div style={{ fontSize: '13px', color: '#1e40af', marginTop: '2px' }}>
                 {selectedLegerSemester === 'Ganjil' 
                   ? 'Catatan: Leger Nilai Semester Ganjil ditampilkan kosong (-) karena belum ada penginputan nilai pada sistem periode tersebut.'
-                  : 'NA = (NH + PTS + PAS) / 3 — di mana NH = Tugas Harian, PTS = Sumatif Tengah Semester, PAS = Sumatif Akhir Semester.'}
+                  : 'NA = Dihitung Berdasarkan Bobot Penilaian (Tugas Harian, UTS, UAS) pada Pengaturan Sistem.'}
               </div>
             </div>
           </div>

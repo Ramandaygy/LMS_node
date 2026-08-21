@@ -71,11 +71,13 @@ exports.getAssignmentsForStudent = async (classId, studentId) => {
     submissionMap.set(sub.assignment_id.toString(), {
       submitted: true,
       score: sub.score,
+      pilgan_score: sub.pilgan_score,
       feedback: sub.feedback,
       submitted_at: sub.submitted_at,
       file: sub.file,
       link: sub.link,
-      content: sub.content
+      content: sub.content,
+      answers: sub.answers
     });
   });
 
@@ -85,11 +87,13 @@ exports.getAssignmentsForStudent = async (classId, studentId) => {
     ...a,
     submitted: submissionMap.has(a._id.toString()),
     score: submissionMap.get(a._id.toString())?.score ?? null,
+    pilgan_score: submissionMap.get(a._id.toString())?.pilgan_score ?? null,
     feedback: submissionMap.get(a._id.toString())?.feedback ?? null,
     submitted_at: submissionMap.get(a._id.toString())?.submitted_at ?? null,
     submission_file: submissionMap.get(a._id.toString())?.file ?? null,
     submission_link: submissionMap.get(a._id.toString())?.link ?? null,
-    submission_content: submissionMap.get(a._id.toString())?.content ?? null
+    submission_content: submissionMap.get(a._id.toString())?.content ?? null,
+    submission_answers: submissionMap.get(a._id.toString())?.answers ?? null
   }));
 };
 

@@ -10,6 +10,11 @@ const quizSubmissionSchema = new mongoose.Schema({
   answers: [{
     question_index: Number,
     selected_option: Number,
+    selected_tf: Boolean, // For True/False
+    matched_pairs: [{ // For Matching (e.g. { left: "A", right: "B" })
+      left: String,
+      right: String
+    }],
     is_correct: Boolean,
     points_earned: Number
   }],

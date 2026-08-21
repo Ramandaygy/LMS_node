@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+﻿import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -60,6 +60,7 @@ import Sidebar from './components/Layout/Sidebar';
 // ADMIN SUB PAGES
 // ============================================
 // Lazy-loaded admin pages for code splitting
+const AdminDataMaster = lazy(() => import('./pages/dashboard/admin/AdminDataMaster'));
 const AdminStudents = lazy(() => import('./pages/dashboard/admin/AdminStudents'));
 const AdminTeachers = lazy(() => import('./pages/dashboard/admin/AdminTeachers'));
 const AdminParents = lazy(() => import('./pages/dashboard/admin/AdminParents'));
@@ -665,9 +666,20 @@ function App() {
         />
 
         <Route
+          path="/dashboard/admin/data-master"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
+              <DashboardLayout role="admin">
+                <AdminDataMaster />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/dashboard/admin/students"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminStudents />
               </DashboardLayout>
@@ -678,7 +690,7 @@ function App() {
         <Route
           path="/dashboard/admin/teachers"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminTeachers />
               </DashboardLayout>
@@ -712,7 +724,7 @@ function App() {
         <Route
           path="/dashboard/admin/subjects"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminSubjects />
               </DashboardLayout>
@@ -745,7 +757,7 @@ function App() {
         <Route
           path="/dashboard/admin/students"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminStudents />
               </DashboardLayout>
@@ -755,7 +767,7 @@ function App() {
         <Route
           path="/dashboard/admin/teachers"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminTeachers />
               </DashboardLayout>
@@ -765,7 +777,7 @@ function App() {
         <Route
           path="/dashboard/admin/parents"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminParents />
               </DashboardLayout>
@@ -776,7 +788,7 @@ function App() {
         <Route
           path="/dashboard/admin/settings"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminSettings />
               </DashboardLayout>
@@ -842,7 +854,7 @@ function App() {
         <Route
           path="/dashboard/admin/students/:studentId"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminStudentDetail />
               </DashboardLayout>
@@ -875,7 +887,7 @@ function App() {
         <Route
           path="/dashboard/admin/parents"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminParents />
               </DashboardLayout>
@@ -886,7 +898,7 @@ function App() {
         <Route
           path="/dashboard/admin/calendar"
           element={
-            <ProtectedRoute allowedRole="admin">
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <CalendarInfo />
               </DashboardLayout>

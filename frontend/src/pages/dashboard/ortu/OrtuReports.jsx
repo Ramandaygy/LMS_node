@@ -214,7 +214,7 @@ const OrtuReports = () => {
           {/* PRINTABLE AREA */}
           <div className="print-area" style={{ background: 'white', padding: '30px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
             
-            {raporData ? (
+            {raporData && raporData.is_published ? (
               // OFFICIAL RAPOR FROM HOMEROOM TEACHER
               <div>
                 {/* RAPOR HEADER / KOP */}
@@ -485,8 +485,16 @@ const OrtuReports = () => {
                 </div>
               </div>
             ) : (
-              // FALLBACK / AUTO SUMMARY
+              // UNOFFICIAL / AUTO CALCULATED PREVIEW OR WARNING
               <div>
+                <div style={{ textAlign: 'center', marginBottom: '24px', padding: '20px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#d97706', marginBottom: '8px' }}>warning</span>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#92400e' }}>Rapor Resmi Belum Dibagikan</h3>
+                  <p style={{ margin: 0, color: '#b45309', fontSize: '14px' }}>
+                    Wali Kelas belum mempublikasikan rapor resmi untuk semester ini. Laporan di bawah ini adalah rekapan nilai otomatis dari sistem.
+                  </p>
+                </div>
+                
                 <div className="print-header" style={{ marginBottom: '30px', textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px' }}>
                   <h1 style={{ fontSize: '24px', margin: '0 0 10px 0', color: '#0f172a', textTransform: 'uppercase' }}>Laporan Hasil Belajar Siswa (Draft)</h1>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '20px', textAlign: 'left', fontSize: '14px', color: '#334155' }}>

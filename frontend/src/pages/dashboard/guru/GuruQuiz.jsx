@@ -19,9 +19,10 @@ const GuruQuiz = () => {
   const [quizDesc, setQuizDesc] = useState('');
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [questions, setQuestions] = useState([
-    { question_text: '', answer: '', options: ['A', 'B', 'C', 'D'], correct_option: 0, points: 10 }
+    { question_text: '', type: 'pg', answer: '', options: ['A', 'B', 'C', 'D'], correct_option: 0, correct_tf: true, matching_pairs: [], points: 10 }
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [numQuestionsToGenerate, setNumQuestionsToGenerate] = useState(5);
   const [savingQuiz, setSavingQuiz] = useState(false);
 
   // State untuk preview materi
@@ -177,11 +178,19 @@ const GuruQuiz = () => {
         topic: quizTitle || 'Topik Pembelajaran',
         subject_name: selectedSubject || 'Informatika',
         material_id: selectedMaterialId || undefined,
-        num_questions: 5
+        num_questions: numQuestionsToGenerate
       });
 
       if (res.data && res.data.success) {
-        const generated = res.data.questions || [];
+        const generated = (res.data.questions || []).map(q => ({
+          type: q.type || 'pg',
+          question_text: q.question_text || '',
+          options: q.options || ['A', 'B', 'C', 'D'],
+          correct_option: q.correct_option !== undefined ? q.correct_option : 0,
+          correct_tf: q.correct_tf !== undefined ? q.correct_tf : true,
+          matching_pairs: q.matching_pairs || [],
+          points: q.points || 10
+        }));
         setQuestions(prev => [...prev.filter(q => q.question_text.trim() !== ''), ...generated]);
         alert(`Berhasil membuat ${generated.length} pertanyaan kuis unik via AI dari sumber materi!`);
       }
@@ -875,6 +884,18 @@ const GuruQuiz = () => {
                     </button>
                   )}
 
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                    <label style={{ fontSize: '12px', fontWeight: '800', color: '#475569', whiteSpace: 'nowrap' }}>Jumlah Soal:</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="20" 
+                      value={numQuestionsToGenerate} 
+                      onChange={(e) => setNumQuestionsToGenerate(e.target.value)} 
+                      style={{ width: '50px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }} 
+                    />
+                  </div>
+
                   <button
                     type="button"
                     onClick={handleGenerateAI}
@@ -925,7 +946,7 @@ const GuruQuiz = () => {
                   <strong style={{ fontSize: '13px', color: '#0f172a' }}>Daftar Soal Kuis ({questions.length})</strong>
                   <button
                     type="button"
-                    onClick={() => setQuestions(prev => [...prev, { question_text: '', answer: '', options: ['A', 'B', 'C', 'D'], correct_option: 0, points: 10 }])}
+                    onClick={() => setQuestions(prev => [...prev, { question_text: '', type: 'pg', answer: '', options: ['A', 'B', 'C', 'D'], correct_option: 0, correct_tf: true, matching_pairs: [], points: 10 }])}
                     style={{ background: '#e0f2fe', color: '#0284c7', border: 'none', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '800', cursor: 'pointer' }}
                   >
                     + Tambah Soal
@@ -940,6 +961,22 @@ const GuruQuiz = () => {
                         <button type="button" onClick={() => setQuestions(prev => prev.filter((_, i) => i !== idx))} style={{ color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px' }}>Hapus</button>
                       )}
                     </div>
+                    <div style={{ display: 'flex', gap: '10px', marginBottom: '8px' }}>
+                      <select
+                        value={q.type || 'pg'}
+                        onChange={(e) => {
+                          const updated = [...questions];
+                          updated[idx].type = e.target.value;
+                          setQuestions(updated);
+                        }}
+                        style={{ padding: '6px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px' }}
+                      >
+                        <option value="pg">Pilihan Ganda</option>
+                        <option value="tf">Benar / Salah</option>
+                        <option value="matching">Menjodohkan</option>
+                      </select>
+                    </div>
+                    
                     <input
                       type="text"
                       placeholder={`Tuliskan teks pertanyaan kuis #${idx + 1}...`}
@@ -949,11 +986,106 @@ const GuruQuiz = () => {
                         updated[idx].question_text = e.target.value;
                         setQuestions(updated);
                       }}
-                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', marginBottom: '6px' }}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '12px', marginBottom: '8px' }}
                     />
+                    
+                    {(!q.type || q.type === 'pg') && (
+                      <div style={{ marginBottom: '8px', fontSize: '12px' }}>
+                        <div style={{ color: '#0284c7', marginBottom: '8px' }}>Opsi Pilihan Ganda</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                          {(q.options || ['', '', '', '']).map((opt, optIdx) => (
+                            <div key={optIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontWeight: 'bold', width: '15px' }}>{String.fromCharCode(65 + optIdx)}.</span>
+                              <input 
+                                type="text"
+                                value={opt}
+                                placeholder={`Tulis opsi ${String.fromCharCode(65 + optIdx)}...`}
+                                onChange={(e) => {
+                                  const updated = [...questions];
+                                  if (!updated[idx].options) updated[idx].options = ['', '', '', ''];
+                                  updated[idx].options[optIdx] = e.target.value;
+                                  setQuestions(updated);
+                                }}
+                                style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#f1f5f9', padding: '6px 10px', borderRadius: '6px' }}>
+                          <label style={{ fontWeight: 'bold' }}>Kunci Jawaban Benar:</label>
+                          <select value={q.correct_option || 0} onChange={(e) => {
+                            const updated = [...questions];
+                            updated[idx].correct_option = Number(e.target.value);
+                            setQuestions(updated);
+                          }} style={{ padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold' }}>
+                            <option value={0}>A</option>
+                            <option value={1}>B</option>
+                            <option value={2}>C</option>
+                            <option value={3}>D</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {q.type === 'tf' && (
+                      <div style={{ marginBottom: '8px', fontSize: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <strong style={{ color: '#0284c7' }}>Kunci Jawaban:</strong>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <input type="radio" checked={q.correct_tf === true} onChange={() => {
+                            const updated = [...questions];
+                            updated[idx].correct_tf = true;
+                            setQuestions(updated);
+                          }} /> Benar
+                        </label>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <input type="radio" checked={q.correct_tf === false} onChange={() => {
+                            const updated = [...questions];
+                            updated[idx].correct_tf = false;
+                            setQuestions(updated);
+                          }} /> Salah
+                        </label>
+                      </div>
+                    )}
+
+                    {q.type === 'matching' && (
+                      <div style={{ marginBottom: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <strong style={{ color: '#0284c7' }}>Pasangan Jawaban (Kiri = Premis, Kanan = Jawaban)</strong>
+                          <button type="button" onClick={() => {
+                            const updated = [...questions];
+                            if(!updated[idx].matching_pairs) updated[idx].matching_pairs = [];
+                            updated[idx].matching_pairs.push({ left: '', right: '' });
+                            setQuestions(updated);
+                          }} style={{ background: '#e2e8f0', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>+ Pasangan</button>
+                        </div>
+                        {(q.matching_pairs || []).map((pair, pIdx) => (
+                          <div key={pIdx} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                            <input type="text" placeholder="Premis Kiri" value={pair.left} onChange={e => {
+                              const updated = [...questions];
+                              updated[idx].matching_pairs[pIdx].left = e.target.value;
+                              setQuestions(updated);
+                            }} style={{ flex: 1, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+                            <input type="text" placeholder="Jawaban Kanan" value={pair.right} onChange={e => {
+                              const updated = [...questions];
+                              updated[idx].matching_pairs[pIdx].right = e.target.value;
+                              setQuestions(updated);
+                            }} style={{ flex: 1, padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+                            <button type="button" onClick={() => {
+                              const updated = [...questions];
+                              updated[idx].matching_pairs = updated[idx].matching_pairs.filter((_, i) => i !== pIdx);
+                              setQuestions(updated);
+                            }} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer' }}>X</button>
+                          </div>
+                        ))}
+                        {(!q.matching_pairs || q.matching_pairs.length === 0) && (
+                          <div style={{ color: '#ef4444', fontStyle: 'italic', fontSize: '11px' }}>Tambahkan setidaknya 1 pasangan.</div>
+                        )}
+                      </div>
+                    )}
+
                     <input
                       type="text"
-                      placeholder="Kunci Jawaban / Penjelasan Singkat"
+                      placeholder="Penjelasan Singkat (Opsional)"
                       value={q.answer || ''}
                       onChange={(e) => {
                         const updated = [...questions];
