@@ -14,8 +14,20 @@ const AdminDashboard = () => {
     total_teachers: 0,
     total_parents: 0,
     total_classes: 0,
-    total_subjects: 0
+    total_subjects: 0,
+    total_high_risk: 0,
+    total_materials: 0,
+    total_assignments: 0
   });
+
+  const userRole = (() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u)?.role : null;
+    } catch (e) {
+      return null;
+    }
+  })();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,7 +63,12 @@ const AdminDashboard = () => {
   }
 
   // Data for Bar Chart
-  const barData = [
+  const barData = userRole === 'wakil_kurikulum' ? [
+    { name: 'Kelas', value: stats.total_classes, color: '#4f46e5' },
+    { name: 'Mapel', value: stats.total_subjects, color: '#e11d48' },
+    { name: 'Materi', value: stats.total_materials, color: '#059669' },
+    { name: 'Tugas', value: stats.total_assignments, color: '#d97706' },
+  ] : [
     { name: 'Siswa', value: stats.total_students, color: '#2563eb' },
     { name: 'Guru', value: stats.total_teachers, color: '#059669' },
     { name: 'Ortu/Wali', value: stats.total_parents, color: '#d97706' },
@@ -72,8 +89,8 @@ const AdminDashboard = () => {
     <div className="admin-dashboard-modern" style={{ padding: '30px', background: '#f8fafc', minHeight: '100vh' }}>
       {/* Header Section */}
       <section className="dashboard-header" style={{ marginBottom: '32px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <span className="header-badge" style={{ alignSelf: 'flex-start', background: '#e0e7ff', color: '#4f46e5', padding: '6px 14px', borderRadius: '30px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-          DASHBOARD ADMINISTRATOR
+        <span className="header-badge" style={{ alignSelf: 'flex-start', background: userRole === 'wakil_kurikulum' ? '#fce7f3' : '#e0e7ff', color: userRole === 'wakil_kurikulum' ? '#db2777' : '#4f46e5', padding: '6px 14px', borderRadius: '30px', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          {userRole === 'wakil_kurikulum' ? 'DASHBOARD WAKIL KURIKULUM' : 'DASHBOARD ADMINISTRATOR'}
         </span>
         <h2 className="header-title" style={{ fontSize: '32px', color: '#0f172a', fontWeight: '800', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
           Sistem Manajemen Pembelajaran (LMS)
@@ -86,60 +103,92 @@ const AdminDashboard = () => {
       {/* Bento Grid Metrics */}
       <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginBottom: '40px' }}>
         
-        {/* Siswa Card */}
-        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
-          <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#2563eb' }}>school</span>
-          </div>
-          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_students}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Siswa Aktif</p>
-        </div>
+        {userRole === 'wakil_kurikulum' ? (
+          <>
+            {/* Kelas Card for Waka */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: '#e0e7ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#4f46e5' }}>class</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_classes}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Kelas</p>
+            </div>
+            
+            {/* Mapel Card for Waka */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: '#fff1f2', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#e11d48' }}>library_books</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_subjects}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mata Pelajaran</p>
+            </div>
 
-        {/* Guru Card */}
-        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
-          <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#059669' }}>supervisor_account</span>
-          </div>
-          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_teachers}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Guru Aktif</p>
-        </div>
+            {/* Materi Card for Waka */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#059669' }}>menu_book</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_materials}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Materi Ajar</p>
+            </div>
 
-        {/* Wali Card */}
-        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
-          <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#d97706' }}>family_restroom</span>
-          </div>
-          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_parents}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Orang Tua/Wali</p>
-        </div>
+            {/* High Risk Card for Waka */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <div style={{ background: '#fef2f2', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#ef4444' }}>warning</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_high_risk}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Siswa High Risk</p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Siswa Card */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+              <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#2563eb' }}>school</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_students}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Siswa Aktif</p>
+            </div>
 
-        {/* Kelas Card */}
-        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
-          <div style={{ background: '#e0e7ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#4f46e5' }}>class</span>
-          </div>
-          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_classes}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Kelas</p>
-        </div>
+            {/* Guru Card */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+              <div style={{ background: '#ecfdf5', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#059669' }}>supervisor_account</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_teachers}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Guru Aktif</p>
+            </div>
 
-        {/* Mapel Card */}
-        <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
-          <div style={{ background: '#fff1f2', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#e11d48' }}>library_books</span>
-          </div>
-          <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_subjects}</h4>
-          <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Mata Pelajaran</p>
-        </div>
+            {/* Wali Card */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+              <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#d97706' }}>family_restroom</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_parents}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Orang Tua/Wali</p>
+            </div>
 
+            {/* Kelas Card */}
+            <div className="metric-card" style={{ background: '#fff', padding: '24px', borderRadius: '20px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', transition: 'transform 0.2s ease-in-out' }}>
+              <div style={{ background: '#e0e7ff', padding: '12px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#4f46e5' }}>class</span>
+              </div>
+              <h4 style={{ fontSize: '32px', margin: 0, fontWeight: '800', color: '#0f172a' }}>{stats.total_classes}</h4>
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Kelas</p>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Charts Section */}
       <div className="charts-section" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px', marginBottom: '40px' }}>
         
-        {/* Bar Chart: Populasi */}
+        {/* Bar Chart: Populasi/Statistik */}
         <div className="chart-card" style={{ background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #f1f5f9', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)' }}>
           <h3 style={{ fontSize: '18px', color: '#0f172a', fontWeight: '800', marginBottom: '20px', fontFamily: 'Outfit, sans-serif' }}>
-            Proporsi Pengguna
+            {userRole === 'wakil_kurikulum' ? 'Komposisi Akademik' : 'Proporsi Pengguna'}
           </h3>
           <div style={{ width: '100%', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -190,14 +239,6 @@ const AdminDashboard = () => {
         </h3>
         <div className="commands-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
           {(() => {
-            const userRole = (() => {
-              try {
-                const u = localStorage.getItem('user');
-                return u ? JSON.parse(u)?.role : null;
-              } catch (e) {
-                return null;
-              }
-            })();
 
             const filteredCards = commandCards.filter(cmd => {
               if (userRole === 'wakil_kurikulum') {

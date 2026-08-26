@@ -13,13 +13,19 @@ exports.getDashboardStats = async (req, res) => {
       total_teachers,
       total_parents,
       total_classes,
-      total_subjects
+      total_subjects,
+      total_high_risk,
+      total_materials,
+      total_assignments
     ] = await Promise.all([
       mongoose.connection.collection('users_siswa').countDocuments({ role: 'siswa' }),
       mongoose.connection.collection('users_guru').countDocuments({ role: 'guru' }),
       mongoose.connection.collection('users_ortu').countDocuments({ role: 'ortu' }),
       Class.countDocuments(),
-      Subject.countDocuments()
+      Subject.countDocuments(),
+      mongoose.connection.collection('users_siswa').countDocuments({ role: 'siswa', last_ews_risk: 'High Risk' }),
+      mongoose.connection.collection('materials').countDocuments(),
+      mongoose.connection.collection('assignments').countDocuments()
     ]);
 
     return res.status(200).json({
@@ -28,7 +34,10 @@ exports.getDashboardStats = async (req, res) => {
       total_teachers,
       total_parents,
       total_classes,
-      total_subjects
+      total_subjects,
+      total_high_risk,
+      total_materials,
+      total_assignments
     });
   } catch (err) {
     console.error('Error in getDashboardStats:', err);
