@@ -553,19 +553,37 @@ const GuruCbt = () => {
 
   return (
     <div className="guru-cbt-container">
-      {/* Hidden File Inputs for Excel Import */}
+      {/* Hidden File Input for Main Import */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={(e) => handleExcelFileChange(e, false)}
-        accept=".xlsx, .xls"
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file) {
+            if (file.name.endsWith('.docx')) {
+              handleWordFileChange(e, false);
+            } else {
+              handleExcelFileChange(e, false);
+            }
+          }
+        }}
+        accept=".xlsx, .xls, .docx"
         style={{ display: 'none' }}
       />
       <input
         type="file"
         ref={modalFileInputRef}
-        onChange={(e) => handleExcelFileChange(e, true)}
-        accept=".xlsx, .xls"
+        onChange={(e) => {
+          const file = e.target.files[0];
+          if (file) {
+            if (file.name.endsWith('.docx')) {
+              handleWordFileChange(e, true);
+            } else {
+              handleExcelFileChange(e, true);
+            }
+          }
+        }}
+        accept=".xlsx, .xls, .docx"
         style={{ display: 'none' }}
       />
       {/* Hidden File Inputs for Word Import */}
@@ -604,11 +622,7 @@ const GuruCbt = () => {
                   <div className="dropdown-group-title">IMPORT SOAL</div>
                   <button onClick={handleImportExcelClick} disabled={importLoading}>
                     <span className="material-symbols-outlined">upload_file</span>
-                    {importLoading ? 'Memproses...' : 'Import Soal dari Excel (.xlsx)'}
-                  </button>
-                  <button onClick={handleImportWordClick} disabled={importLoading} style={{ marginTop: '4px' }}>
-                    <span className="material-symbols-outlined">description</span>
-                    {importLoading ? 'Memproses...' : 'Import Soal dari Word (.docx)'}
+                    {importLoading ? 'Memproses...' : 'Import Soal (.xlsx / .docx)'}
                   </button>
                 </div>
                 <div className="dropdown-divider"></div>
@@ -893,11 +907,8 @@ const GuruCbt = () => {
                 <div className="questions-section-header">
                   <h3>Daftar Soal Ujian ({questions.length})</h3>
                   <div className="q-header-buttons" style={{ display: 'flex', gap: '6px' }}>
-                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick} style={{ color: '#166534', borderColor: '#86efac' }}>
-                      <span className="material-symbols-outlined" style={{ color: '#166534' }}>upload_file</span> Excel
-                    </button>
-                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportWordClick} style={{ color: '#2b579a', borderColor: '#93c5fd' }}>
-                      <span className="material-symbols-outlined" style={{ color: '#2b579a' }}>description</span> Word (.docx)
+                    <button type="button" className="btn-import-excel-modal" onClick={handleModalImportClick} style={{ color: '#0f766e', borderColor: '#5eead4' }}>
+                      <span className="material-symbols-outlined" style={{ color: '#0f766e' }}>upload_file</span> Import Soal
                     </button>
                     <button type="button" className="btn-add-q" onClick={handleAddQuestion}>
                       + Tambah Soal
