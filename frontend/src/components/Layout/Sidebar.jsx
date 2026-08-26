@@ -140,7 +140,8 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'calendar', label: 'Kalender', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     bk: [
-      { key: 'dashboard', label: 'Daftar Hadir', icon: 'event_available', path: '/dashboard/bk' },
+      { key: 'dashboard', label: 'Beranda', icon: 'dashboard', path: '/dashboard/bk' },
+      { key: 'attendance', label: 'Daftar Hadir', icon: 'event_available', path: '/dashboard/bk/attendance' },
       { key: 'monitoring', label: 'Pantau Siswa', icon: 'psychology', path: '/dashboard/bk/monitoring' },
       { key: 'calendar', label: 'Kalender', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
@@ -216,7 +217,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
     for (const menu of currentMenus) {
       if (currentPath === menu.path) return menu.key;
       // Memastikan active state tetap berada di menu yang tepat untuk child routes
-      if (currentPath.startsWith(menu.path) && menu.path !== '/dashboard/admin' && menu.path !== '/dashboard/guru' && menu.path !== '/dashboard/siswa' && menu.path !== '/dashboard/ortu') return menu.key;
+      if (currentPath.startsWith(menu.path) && menu.path !== '/dashboard/admin' && menu.path !== '/dashboard/guru' && menu.path !== '/dashboard/siswa' && menu.path !== '/dashboard/ortu' && menu.path !== '/dashboard/bk') return menu.key;
     }
     if (currentPath.startsWith('/dashboard/admin')) return 'dashboard';
     if (currentPath.startsWith('/dashboard/guru')) return 'dashboard';

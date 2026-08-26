@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
@@ -49,7 +49,8 @@ import AdminDashboard from './pages/dashboard/AdminDashboard';
 import GuruDashboard from './pages/dashboard/GuruDashboard';
 import SiswaDashboard from './pages/dashboard/SiswaDashboard';
 import OrtuDashboard from './pages/dashboard/OrtuDashboard';
-import BkDashboard from './pages/dashboard/bk/BkDashboard';
+import BkAttendance from './pages/dashboard/bk/BkAttendance';
+import BkMainDashboard from './pages/dashboard/bk/BkMainDashboard';
 
 import CalendarInfo from './pages/dashboard/shared/CalendarInfo';
 
@@ -633,7 +634,18 @@ function App() {
           element={
             <ProtectedRoute allowedRole="bk">
               <DashboardLayout role="bk">
-                <BkDashboard />
+                <BkMainDashboard />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/bk/attendance"
+          element={
+            <ProtectedRoute allowedRole="bk">
+              <DashboardLayout role="bk">
+                <BkAttendance />
               </DashboardLayout>
             </ProtectedRoute>
           }
