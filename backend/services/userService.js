@@ -376,6 +376,26 @@ exports.updateUser = async (id, updateData) => {
     } catch (err) {}
   }
 
+  if (updateData.subjects && Array.isArray(updateData.subjects)) {
+    updateData.subjects = updateData.subjects.map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (err) {
+        return id;
+      }
+    });
+  }
+
+  if (updateData.classes && Array.isArray(updateData.classes)) {
+    updateData.classes = updateData.classes.map(id => {
+      try {
+        return new mongoose.Types.ObjectId(id);
+      } catch (err) {
+        return id;
+      }
+    });
+  }
+
   if (updateData.parent_id) {
     try {
       updateData.parent_id = new mongoose.Types.ObjectId(updateData.parent_id);

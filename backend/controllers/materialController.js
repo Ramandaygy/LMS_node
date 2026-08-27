@@ -307,43 +307,26 @@ exports.getStudentMaterials = async (req, res) => {
     const classId = student.class_id;
     if (!classId) return res.json({ success: true, data: [] });
 
-    // Get all schedules for the student's class to find subject-teacher mappings
-    const schedulesCol = mongoose.connection.collection('schedules');
-    const schedules = await schedulesCol.find({ class_id: classId }).toArray();
-    
-    // Map subject_id string to teacher_id string
-    const subjectTeacherMap = {};
-    schedules.forEach(sch => {
-      if (sch.subject_id && sch.teacher_id) {
-        subjectTeacherMap[sch.subject_id.toString()] = sch.teacher_id.toString();
-      }
-    });
-
     const materials = await materialService.getMaterialsForStudent(classId.toString());
-
-    // Filter materials based on schedule (matching subject-teacher mapping)
-    const filteredMaterials = materials.filter(m => {
-      if (!m.subject_id || !m.uploaded_by) return true;
-      const expectedTeacherId = subjectTeacherMap[m.subject_id.toString()];
-      if (!expectedTeacherId) return true;
-      return m.uploaded_by.toString() === expectedTeacherId;
-    });
 
     const progressMap = await materialProgressService.getProgressMap(
       studentId,
-      filteredMaterials.map(m => m._id)
+      materials.map(m => m._id.toString())
     );
 
-    const enriched = filteredMaterials.map(m => ({
-      ...m,
-      progress: progressMap[m._id.toString()] || {
+    const enriched = materials.map(m => {
+      const progress = progressMap[m._id.toString()] || {
         progress_percent: 0,
         completed: false,
         current_slide: 0,
         total_slides: 1,
         completed_at: null
-      }
-    }));
+      };
+      return {
+        ...m,
+        progress
+      };
+    });
 
     return res.json({ success: true, data: enriched });
   } catch (err) {

@@ -264,7 +264,9 @@ exports.getExamById = async (req, res) => {
         _id: q._id,
         index: idx,
         question_text: q.question_text,
-        options: q.options
+        type: q.type,
+        options: q.options,
+        matching_pairs: q.matching_pairs
       }));
 
       return res.json({
