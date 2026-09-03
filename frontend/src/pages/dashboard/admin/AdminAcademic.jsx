@@ -13,6 +13,8 @@ const AdminAcademicYear = () => {
     year: '',
     start_date: '',
     end_date: '',
+    grade_input_start_date: '',
+    grade_input_end_date: '',
     is_active: true,
     semester: ''
   });
@@ -113,7 +115,7 @@ const AdminAcademicYear = () => {
       }
       setShowModal(false);
       setEditingYear(null);
-      setFormData({ year: '', start_date: '', end_date: '', is_active: true, semester: '' });
+      setFormData({ year: '', start_date: '', end_date: '', grade_input_start_date: '', grade_input_end_date: '', is_active: true, semester: '' });
       fetchAcademicYears();
     } catch (err) {
       setError(err.response?.data?.message || 'Gagal menyimpan data');
@@ -137,6 +139,8 @@ const AdminAcademicYear = () => {
       year: year.year || year.name || '',
       start_date: parseDate(year.start_date),
       end_date: parseDate(year.end_date),
+      grade_input_start_date: parseDate(year.grade_input_start_date),
+      grade_input_end_date: parseDate(year.grade_input_end_date),
       is_active: year.is_active,
       semester: year.semester || ''
     });
@@ -339,7 +343,7 @@ const AdminAcademicYear = () => {
           <h2>Tahun Ajaran</h2>
           <p>Kelola tahun ajaran, kenaikan kelas, dan alumni</p>
         </div>
-        <button className="btn-add" onClick={() => { setEditingYear(null); setFormData({ year: '', start_date: '', end_date: '', is_active: true, semester: '' }); setShowModal(true); }}>
+        <button className="btn-add" onClick={() => { setEditingYear(null); setFormData({ year: '', start_date: '', end_date: '', grade_input_start_date: '', grade_input_end_date: '', is_active: true, semester: '' }); setShowModal(true); }}>
           + Tambah Tahun Ajaran
         </button>
       </div>
@@ -421,6 +425,16 @@ const AdminAcademicYear = () => {
                 <div className="form-group">
                   <label>Tanggal Selesai</label>
                   <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} />
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Mulai Input Nilai</label>
+                  <input type="date" name="grade_input_start_date" value={formData.grade_input_start_date} onChange={handleChange} />
+                </div>
+                <div className="form-group">
+                  <label>Batas Akhir Input Nilai</label>
+                  <input type="date" name="grade_input_end_date" value={formData.grade_input_end_date} onChange={handleChange} />
                 </div>
               </div>
               <div className="form-group checkbox">

@@ -53,7 +53,7 @@ const SuperAdminSettings = () => {
     const wUTS = Number(sysSettings.weight_uts);
     const wUAS = Number(sysSettings.weight_uas);
     if (wNH + wUTS + wUAS !== 100) {
-      setErrorMsg('Total Bobot Nilai (NH + UTS + UAS) harus tepat 100%.');
+      setErrorMsg('Total Bobot Nilai (NH + PTS + PTA) harus tepat 100%.');
       return;
     }
 
@@ -177,7 +177,7 @@ const SuperAdminSettings = () => {
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot UTS (%)</label>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot PTS (%)</label>
                 <input
                   type="number"
                   name="weight_uts"
@@ -188,7 +188,7 @@ const SuperAdminSettings = () => {
                 />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot UAS (%)</label>
+                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot PTA (%)</label>
                 <input
                   type="number"
                   name="weight_uas"

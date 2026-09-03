@@ -7,8 +7,21 @@ const DAYS = ['SENIN', 'SELASA', 'RABU', 'KAMIS', 'JUMAT', 'SABTU'];
 
 const getCurrentDayName = () => {
   const dayIdx = new Date().getDay();
-  const dayMap = { 1: 'SENIN', 2: 'SELASA', 3: 'RABU', 4: 'KAMIS', 5: 'JUMAT', 6: 'SABTU' };
+  const dayMap = { 1: 'SENIN', 2: 'SELASA', 3: 'RABU', 4: 'KAMIS', 5: 'JUMAT', 6: 'SABTU', 0: 'MINGGU' };
   return dayMap[dayIdx] || 'SENIN';
+};
+
+const getScheduleStatus = (startTime, endTime) => {
+  if (!startTime || !endTime) return { label: 'Aktif', color: '#16a34a', bg: '#dcfce7' };
+  const now = new Date();
+  const currentTotal = now.getHours() * 60 + now.getMinutes();
+  const [startH, startM] = startTime.split(':').map(Number);
+  const startTotal = startH * 60 + startM;
+  const [endH, endM] = endTime.split(':').map(Number);
+  const endTotal = endH * 60 + endM;
+  if (currentTotal < startTotal) return { label: 'Akan Datang', color: '#0284c7', bg: '#e0f2fe' };
+  if (currentTotal >= startTotal && currentTotal <= endTotal) return { label: 'Aktif', color: '#16a34a', bg: '#dcfce7' };
+  return { label: 'Selesai', color: '#64748b', bg: '#f1f5f9' };
 };
 
 const GuruDashboard = () => {
@@ -352,7 +365,7 @@ const GuruDashboard = () => {
                 style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',
-                  borderLeft: '4px solid #0284c7',
+                  borderLeft: `4px solid ${getScheduleStatus(sch.start_time, sch.end_time).color}`,
                   borderRadius: '12px',
                   padding: '14px 16px',
                   display: 'flex',
@@ -371,8 +384,8 @@ const GuruDashboard = () => {
                   </span>
                 </div>
 
-                <span style={{ background: '#dcfce7', color: '#16a34a', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '800' }}>
-                  Aktif
+                <span style={{ background: getScheduleStatus(sch.start_time, sch.end_time).bg, color: getScheduleStatus(sch.start_time, sch.end_time).color, padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '800' }}>
+                  {getScheduleStatus(sch.start_time, sch.end_time).label}
                 </span>
               </div>
             ))}
@@ -391,7 +404,7 @@ const GuruDashboard = () => {
               recentAssignments.slice(0, 4).map(asg => (
                 <div key={asg._id} style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{asg.title}</strong>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(asg.due_date).toLocaleDateString('id-ID')}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {(asg.due_date || asg.deadline) && !isNaN(new Date(asg.due_date || asg.deadline).getTime()) ? new Date(asg.due_date || asg.deadline).toLocaleDateString('id-ID') : 'Belum ditentukan'}</span>
                 </div>
               ))
             ) : (

@@ -409,7 +409,7 @@ exports.updateUser = async (id, updateData) => {
         { _id: objectId },
         { $set: updateData }
       );
-      return true;
+      return await collection.findOne({ _id: objectId });
     }
   }
 

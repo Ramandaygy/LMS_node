@@ -160,7 +160,9 @@ const OrtuDashboard = () => {
           const now = new Date();
           const warnings = assignments.filter(a => {
             if (a.submitted) return false;
-            const diffMs = new Date(a.deadline) - now;
+            const d = a.due_date || a.deadline;
+            if (!d || isNaN(new Date(d).getTime())) return false;
+            const diffMs = new Date(d) - now;
             const diffHours = diffMs / (1000 * 60 * 60);
             return diffHours > 0 && diffHours <= 24;
           });
@@ -175,7 +177,8 @@ const OrtuDashboard = () => {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {warnings.map(w => {
-                  const hoursLeft = Math.ceil((new Date(w.deadline) - now) / (1000 * 60 * 60));
+                  const d = w.due_date || w.deadline;
+                  const hoursLeft = Math.ceil((new Date(d) - now) / (1000 * 60 * 60));
                   return (
                     <div key={w._id} style={{ fontSize: '13px', color: '#7f1d1d', fontWeight: '500' }}>
                       Anak Anda belum mengumpulkan tugas <strong>"{w.title}"</strong> ({w.subject_name || 'Mata Pelajaran'}) yang akan berakhir dalam <strong>{hoursLeft} jam lagi!</strong>
@@ -190,7 +193,12 @@ const OrtuDashboard = () => {
         {/* Tugas Mendatang (Belum Dikerjakan & Belum Overdue) */}
         {selectedChild && (() => {
           const now = new Date();
-          const activeTasks = assignments.filter(a => !a.submitted && new Date(a.deadline) > now);
+          const activeTasks = assignments.filter(a => {
+            if (a.submitted) return false;
+            const d = a.due_date || a.deadline;
+            if (!d || isNaN(new Date(d).getTime())) return true;
+            return new Date(d) > now;
+          });
 
           return (
             <div className="assignments-card card-section">
@@ -202,7 +210,7 @@ const OrtuDashboard = () => {
                       <div>
                         <strong>{a.title}</strong>
                         <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                          Mata Pelajaran: {a.subject_name || '-'} | Tenggat: {new Date(a.deadline).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          Mata Pelajaran: {a.subject_name || '-'} | Tenggat: {(a.due_date || a.deadline) && !isNaN(new Date(a.due_date || a.deadline).getTime()) ? new Date(a.due_date || a.deadline).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Belum ditentukan'}
                         </div>
                       </div>
                     </div>

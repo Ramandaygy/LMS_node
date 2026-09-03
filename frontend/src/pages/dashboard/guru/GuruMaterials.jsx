@@ -1182,13 +1182,13 @@ const GuruMaterials = () => {
       {/* MODAL POPUP BATCH DISTRIBUSI MATERI */}
       {showDistributeModal && (
         <div className="modal-backdrop" onClick={() => setShowDistributeModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
-            <div className="modal-header">
-              <h3>
-                <span className="material-symbols-outlined">send</span>
+          <div className="modal-content-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px', width: '100%', background: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '18px', color: '#0f172a' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#3b82f6' }}>send</span>
                 Distribusi {selectedMaterialIds.length} Materi ke Kelas Target
               </h3>
-              <button className="btn-close-modal" onClick={() => setShowDistributeModal(false)}>
+              <button className="btn-close-modal" onClick={() => setShowDistributeModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', padding: '4px', borderRadius: '50%', transition: 'background 0.2s' }}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>

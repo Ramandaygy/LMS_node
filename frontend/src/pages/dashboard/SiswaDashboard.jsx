@@ -39,12 +39,20 @@ const SiswaDashboard = () => {
       try {
         const assignRes = await api.get('/assignments/siswa/me');
         const assignData = assignRes.data.data || [];
-        setAssignments(assignData.filter(a => new Date(a.deadline) >= new Date() && !a.submitted).map(a => ({
-          title: a.title,
-          subject: a.subject_name || 'Umum',
-          deadline: new Date(a.deadline).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-          urgent: new Date(a.deadline) < new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000)
-        })));
+        setAssignments(assignData.filter(a => {
+          const d = a.due_date || a.deadline;
+          if (!d || isNaN(new Date(d).getTime())) return true;
+          return new Date(d) >= new Date() && !a.submitted;
+        }).map(a => {
+          const d = a.due_date || a.deadline;
+          const isValid = d && !isNaN(new Date(d).getTime());
+          return {
+            title: a.title,
+            subject: a.subject_name || 'Umum',
+            deadline: isValid ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Belum ditentukan',
+            urgent: isValid ? new Date(d) < new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000) : false
+          };
+        }));
 
         const gradedAssignments = assignData.filter(a => a.score !== null).sort((a,b) => new Date(b.submitted_at) - new Date(a.submitted_at)).slice(0, 3);
         setGrades(gradedAssignments.map(g => ({

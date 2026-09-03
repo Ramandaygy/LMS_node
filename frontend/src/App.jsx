@@ -84,7 +84,7 @@ const SuperAdminBackup = lazy(() => import('./pages/dashboard/admin/SuperAdminBa
 // GURU SUB PAGES
 // ============================================
 // Lazy-loaded guru pages for code splitting (heavy components)
-const GuruCourses = lazy(() => import('./pages/dashboard/guru/GuruCourses'));
+const GuruClassroom = lazy(() => import('./pages/dashboard/guru/GuruClassroom'));
 const GuruAssignments = lazy(() => import('./pages/dashboard/guru/GuruAssignments'));
 const GuruMaterials = lazy(() => import('./pages/dashboard/guru/GuruMaterials'));
 const GuruAttendance = lazy(() => import('./pages/dashboard/guru/GuruAttendance'));
@@ -499,7 +499,7 @@ function App() {
           element={
             <ProtectedRoute allowedRole={['guru', 'super_admin', 'wakil_kurikulum', 'bk']}>
               <DashboardLayout role="guru">
-                <GuruCourses />
+                <GuruClassroom />
               </DashboardLayout>
             </ProtectedRoute>
           }

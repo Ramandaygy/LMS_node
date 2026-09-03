@@ -9,6 +9,8 @@ exports.getAll = async () => {
 exports.create = async (data) => {
   if (data.start_date === '') data.start_date = null;
   if (data.end_date === '') data.end_date = null;
+  if (data.grade_input_start_date === '') data.grade_input_start_date = null;
+  if (data.grade_input_end_date === '') data.grade_input_end_date = null;
 
   if (data.is_active) {
     await AcademicYear.updateMany(
@@ -23,6 +25,8 @@ exports.create = async (data) => {
 exports.update = async (id, data) => {
   if (data.start_date === '') data.start_date = null;
   if (data.end_date === '') data.end_date = null;
+  if (data.grade_input_start_date === '') data.grade_input_start_date = null;
+  if (data.grade_input_end_date === '') data.grade_input_end_date = null;
 
   if (data.is_active) {
     await AcademicYear.updateMany(

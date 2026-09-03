@@ -26,6 +26,12 @@ const academicYearSchema =
         type: Boolean,
         default: false,
       },
+      grade_input_start_date: {
+        type: Date,
+      },
+      grade_input_end_date: {
+        type: Date,
+      },
     },
     {
       timestamps: {

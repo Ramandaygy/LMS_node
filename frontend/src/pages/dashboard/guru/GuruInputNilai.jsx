@@ -25,6 +25,13 @@ const GuruInputNilai = () => {
   const [loadingRekap, setLoadingRekap] = useState(false);
   const [rekapSearch, setRekapSearch] = useState('');
 
+  // Deadline Info State
+  const [deadlineInfo, setDeadlineInfo] = useState({
+    isOpen: true,
+    message: '',
+    type: '' // 'info', 'warning', 'error'
+  });
+
   useEffect(() => {
     fetchClassesAndSubjects();
   }, []);
@@ -38,6 +45,61 @@ const GuruInputNilai = () => {
       }
     }
   }, [selectedClass, selectedSubject, examType, activeTab, selectedAcademicYear]);
+
+  useEffect(() => {
+    if (selectedAcademicYear && academicYears.length > 0) {
+      const year = academicYears.find(y => y._id === selectedAcademicYear);
+      if (year) {
+        checkDeadline(year);
+      }
+    }
+  }, [selectedAcademicYear, academicYears]);
+
+  const checkDeadline = (year) => {
+    if (!year.grade_input_start_date || !year.grade_input_end_date) {
+      setDeadlineInfo({
+        isOpen: true,
+        message: 'Jadwal input nilai belum diatur oleh Admin. Anda masih bisa menginput nilai.',
+        type: 'info'
+      });
+      return;
+    }
+
+    const now = new Date();
+    const start = new Date(year.grade_input_start_date);
+    const end = new Date(year.grade_input_end_date);
+    end.setHours(23, 59, 59, 999);
+
+    if (now < start) {
+      setDeadlineInfo({
+        isOpen: false,
+        message: `Periode input nilai belum dimulai. Akan dibuka pada ${start.toLocaleDateString('id-ID')}.`,
+        type: 'error'
+      });
+    } else if (now > end) {
+      setDeadlineInfo({
+        isOpen: false,
+        message: `Periode input nilai telah ditutup pada ${end.toLocaleDateString('id-ID')}. Silakan hubungi Admin.`,
+        type: 'error'
+      });
+    } else {
+      const diffTime = Math.abs(end - now);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+      if (diffDays <= 7) {
+        setDeadlineInfo({
+          isOpen: true,
+          message: `Tenggat waktu input nilai tinggal ${diffDays} hari lagi (berakhir pada ${end.toLocaleDateString('id-ID')}).`,
+          type: 'warning'
+        });
+      } else {
+        setDeadlineInfo({
+          isOpen: true,
+          message: `Periode input nilai sedang berlangsung (berakhir pada ${end.toLocaleDateString('id-ID')}).`,
+          type: 'info'
+        });
+      }
+    }
+  };
 
   const fetchClassesAndSubjects = async () => {
     try {
@@ -193,6 +255,28 @@ const GuruInputNilai = () => {
         </p>
       </div>
 
+      {/* Deadline Banner */}
+      {deadlineInfo.message && (
+        <div style={{
+          padding: '16px 20px',
+          borderRadius: '12px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          background: deadlineInfo.type === 'error' ? '#fef2f2' : deadlineInfo.type === 'warning' ? '#fffbeb' : '#f0fdf4',
+          border: `1px solid ${deadlineInfo.type === 'error' ? '#fecdd3' : deadlineInfo.type === 'warning' ? '#fde68a' : '#bbf7d0'}`,
+          color: deadlineInfo.type === 'error' ? '#991b1b' : deadlineInfo.type === 'warning' ? '#92400e' : '#166534',
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+            {deadlineInfo.type === 'error' ? 'error' : deadlineInfo.type === 'warning' ? 'warning' : 'info'}
+          </span>
+          <div style={{ fontWeight: '600', fontSize: '14px' }}>
+            {deadlineInfo.message}
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '2px solid #e2e8f0', marginBottom: '24px' }}>
         <button
@@ -300,7 +384,7 @@ const GuruInputNilai = () => {
         {activeTab === 'input' && (
           <button
             onClick={handleSaveAll}
-            disabled={saving || students.length === 0}
+            disabled={saving || students.length === 0 || !deadlineInfo.isOpen}
             style={{
               padding: '12px 24px',
               borderRadius: '12px',
@@ -309,11 +393,12 @@ const GuruInputNilai = () => {
               border: 'none',
               fontWeight: '700',
               fontSize: '14px',
-              cursor: 'pointer',
+              cursor: (saving || students.length === 0 || !deadlineInfo.isOpen) ? 'not-allowed' : 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              opacity: (saving || students.length === 0 || !deadlineInfo.isOpen) ? 0.6 : 1,
             }}
           >
             <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>save</span>
@@ -360,7 +445,8 @@ const GuruInputNilai = () => {
                         value={student.score}
                         onChange={(e) => handleScoreChange(idx, e.target.value)}
                         placeholder="Belum ada"
-                        style={{ width: '110px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: '700', fontSize: '14px', outline: 'none' }}
+                        disabled={!deadlineInfo.isOpen}
+                        style={{ width: '110px', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', textAlign: 'center', fontWeight: '700', fontSize: '14px', outline: 'none', background: !deadlineInfo.isOpen ? '#f1f5f9' : '#fff' }}
                       />
                     </td>
                     <td style={{ padding: '14px 20px' }}>
@@ -369,7 +455,8 @@ const GuruInputNilai = () => {
                         value={student.note}
                         onChange={(e) => handleNoteChange(idx, e.target.value)}
                         placeholder="Contoh: Sangat baik"
-                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+                        disabled={!deadlineInfo.isOpen}
+                        style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', background: !deadlineInfo.isOpen ? '#f1f5f9' : '#fff' }}
                       />
                     </td>
                   </tr>

@@ -50,7 +50,7 @@ const getMeetingDate = (day, sessionIdx) => {
   return meetingDate;
 };
 
-const GuruCourses = () => {
+const GuruClassroom = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1039,6 +1039,7 @@ const GuruCourses = () => {
                       <button
                         key={sessNum}
                         type="button"
+                        title={`Pertemuan ke-${sessNum}: ${getMeetingDate(sch.day, i).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
                         onClick={() => setActiveCourseDetail({ ...activeCourseDetail, activeSessionIdx: i })}
                         style={{
                           width: '36px',
@@ -1230,7 +1231,7 @@ const GuruCourses = () => {
                     <div key={task._id} style={{ padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <strong style={{ fontSize: '14px', color: '#0f172a', display: 'block' }}>{task.title}</strong>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(task.due_date).toLocaleDateString('id-ID')}</span>
+                        <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {(task.due_date || task.deadline) && !isNaN(new Date(task.due_date || task.deadline).getTime()) ? new Date(task.due_date || task.deadline).toLocaleDateString('id-ID') : 'Belum ditentukan'}</span>
                       </div>
                       <button 
                         onClick={() => navigate('/dashboard/guru/assignments')}
@@ -1378,7 +1379,7 @@ const GuruCourses = () => {
                   <div key={t._id} style={{ padding: '16px 20px', borderRadius: '14px', border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a', margin: '0 0 4px 0' }}>{t.title}</h4>
-                      <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Sesi Pertemuan ke-{t.session_number || 1} | Tenggat: {new Date(t.due_date).toLocaleDateString('id-ID')}</p>
+                      <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>Sesi Pertemuan ke-{t.session_number || 1} | Tenggat: {(t.due_date || t.deadline) && !isNaN(new Date(t.due_date || t.deadline).getTime()) ? new Date(t.due_date || t.deadline).toLocaleDateString('id-ID') : 'Belum ditentukan'}</p>
                     </div>
                     <button 
                       onClick={() => navigate('/dashboard/guru/assignments')}
@@ -1757,7 +1758,8 @@ const GuruCourses = () => {
                       setNewTaskForm(prev => ({
                         ...prev,
                         classId: cId ? cId.toString() : '',
-                        subjectId: sId ? sId.toString() : ''
+                        subjectId: sId ? sId.toString() : '',
+                        dueDate: getMeetingDate(sch.day, Math.max(0, (taskModal.targetSessionNum || 1) - 1)).toISOString().split('T')[0]
                       }));
                       setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
                       setTaskModal(null);
@@ -1814,7 +1816,7 @@ const GuruCourses = () => {
                           />
                           <div style={{ flex: 1 }}>
                             <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{task.title}</strong>
-                            <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(task.due_date).toLocaleDateString('id-ID')}</span>
+                            <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {(task.due_date || task.deadline) && !isNaN(new Date(task.due_date || task.deadline).getTime()) ? new Date(task.due_date || task.deadline).toLocaleDateString('id-ID') : 'Belum ditentukan'}</span>
                           </div>
                         </label>
                       ))}
@@ -2068,8 +2070,22 @@ const GuruCourses = () => {
             {displaySchedules.length > 0 ? (
               displaySchedules.map((sch, index) => {
                 const schId = sch.id || index;
-                const meetingNum = sch.pertemuan_ke || (7 + index);
-                const targetSessionIdx = Math.max(0, Math.min(15, meetingNum - 1));
+                
+                // Calculate which session corresponds to the closest date to today
+                const today = new Date();
+                let closestSessionIdx = 0;
+                let minDiff = Infinity;
+                for (let i = 0; i < 16; i++) {
+                  const mDate = getMeetingDate(sch.day || 'SENIN', i);
+                  const diff = Math.abs(today - mDate);
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    closestSessionIdx = i;
+                  }
+                }
+                
+                const meetingNum = closestSessionIdx + 1;
+                const targetSessionIdx = closestSessionIdx;
                 const planKey = `${sch.id}_session_${meetingNum}`;
                 const planData = sessionPlans[planKey];
 
@@ -2136,7 +2152,7 @@ const GuruCourses = () => {
                         }}
                         style={{ background: '#eff6ff', border: '1px solid #bfdbfe', color: '#1d4ed8', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <span className="material-symbols-outlined">library_books</span> Distribusikan Materi (Popup)
+                        <span className="material-symbols-outlined">library_books</span> Distribusikan Materi 
                       </button>
 
                       <button
@@ -2147,7 +2163,7 @@ const GuruCourses = () => {
                         }}
                         style={{ background: '#ffffff', border: '1px solid #cbd5e1', color: '#334155', padding: '8px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                       >
-                        <span className="material-symbols-outlined">assignment</span> Distribusikan Tugas (Popup)
+                        <span className="material-symbols-outlined">assignment</span> Distribusikan Tugas
                       </button>
 
                       <div className="dropdown-action-wrapper" style={{ position: 'relative' }}>
@@ -2568,7 +2584,8 @@ const GuruCourses = () => {
                     setNewTaskForm(prev => ({
                       ...prev,
                       classId: cId ? cId.toString() : '',
-                      subjectId: sId ? sId.toString() : ''
+                      subjectId: sId ? sId.toString() : '',
+                      dueDate: getMeetingDate(sch.day, Math.max(0, (taskModal.targetSessionNum || 1) - 1)).toISOString().split('T')[0]
                     }));
                     setCreateNewTaskModal({ targetSchedule: taskModal.targetSchedule, targetSessionNum: taskModal.targetSessionNum });
                     setTaskModal(null);
@@ -2624,7 +2641,7 @@ const GuruCourses = () => {
                         />
                         <div style={{ flex: 1 }}>
                           <strong style={{ fontSize: '13px', color: '#0f172a', display: 'block' }}>{task.title}</strong>
-                          <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {new Date(task.due_date).toLocaleDateString('id-ID')}</span>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>Tenggat: {task.due_date && !isNaN(new Date(task.due_date).getTime()) ? new Date(task.due_date).toLocaleDateString('id-ID') : 'Belum ditentukan'}</span>
                         </div>
                       </label>
                     ))}
@@ -2661,4 +2678,4 @@ const GuruCourses = () => {
   );
 };
 
-export default GuruCourses;
+export default GuruClassroom;
