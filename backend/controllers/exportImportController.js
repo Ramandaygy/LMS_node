@@ -545,10 +545,34 @@ exports.importTeachers = async (req, res) => {
 
         let class_ids = [];
         if (classes_str) {
+          const all_classes = await getCollection('classes').find({}).toArray();
           const cNames = classes_str.split(',').map(c => c.trim()).filter(Boolean);
+          
           for (let cn of cNames) {
-            const cls = await getCollection('classes').findOne({ name: cn });
-            if (cls) class_ids.push(cls._id); else errors.push(`Baris ${i}: Kelas '${cn}' tidak ditemukan`);
+            let searchName = cn.toUpperCase().replace(/\s+/g, '');
+            searchName = searchName.replace(/^VIII/, '8')
+                                   .replace(/^VII/, '7')
+                                   .replace(/^IX/, '9')
+                                   .replace(/^VI/, '6')
+                                   .replace(/^X/, '10');
+            
+            let matchedClass = all_classes.find(c => {
+              const dbName = c.name.toUpperCase().replace(/\s+/g, '');
+              const dbNameRoman = dbName.replace(/^8/, 'VIII')
+                                        .replace(/^7/, 'VII')
+                                        .replace(/^9/, 'IX')
+                                        .replace(/^6/, 'VI')
+                                        .replace(/^10/, 'X');
+              
+              const rawCn = cn.toUpperCase().replace(/\s+/g, '');
+              return dbName === searchName || dbNameRoman === rawCn || dbName === rawCn;
+            });
+            
+            if (matchedClass) {
+              class_ids.push(matchedClass._id);
+            } else {
+              errors.push(`Baris ${i}: Kelas '${cn}' tidak ditemukan`);
+            }
           }
         }
 
