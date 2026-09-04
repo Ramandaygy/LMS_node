@@ -258,16 +258,16 @@ exports.createUser = async (userData) => {
     case 'guru':
     case 'bk':
       collection = getCollection('users_guru');
-      if (userData.nip && !/^\d{9,18}$/.test(userData.nip)) {
-        throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
+      if (userData.nip && !/^[\d\s-]{9,25}$/.test(userData.nip)) {
+        throw new Error('NIP harus berupa angka sepanjang 9 sampai 25 karakter (termasuk spasi/-)');
       }
       break;
     case 'admin':
     case 'super_admin':
     case 'wakil_kurikulum':
       collection = getCollection('users_admin');
-      if (userData.role === 'wakil_kurikulum' && userData.nip && !/^\d{9,18}$/.test(userData.nip)) {
-        throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
+      if (userData.role === 'wakil_kurikulum' && userData.nip && !/^[\d\s-]{9,25}$/.test(userData.nip)) {
+        throw new Error('NIP harus berupa angka sepanjang 9 sampai 25 karakter (termasuk spasi/-)');
       }
       break;
     case 'ortu':
@@ -349,8 +349,8 @@ exports.updateUser = async (id, updateData) => {
   if (updateData.nip !== undefined && updateData.nip !== '') {
     const isGuru = await getCollection('users_guru').findOne({ _id: objectId });
     const isAdmin = await getCollection('users_admin').findOne({ _id: objectId });
-    if ((isGuru || (isAdmin && isAdmin.role === 'wakil_kurikulum')) && !/^\d{9,18}$/.test(updateData.nip)) {
-      throw new Error('NIP harus berupa angka sepanjang 9 sampai 18 digit');
+    if ((isGuru || (isAdmin && isAdmin.role === 'wakil_kurikulum')) && !/^[\d\s-]{9,25}$/.test(updateData.nip)) {
+      throw new Error('NIP harus berupa angka sepanjang 9 sampai 25 karakter (termasuk spasi/-)');
     }
   }
 
