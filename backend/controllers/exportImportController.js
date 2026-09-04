@@ -1523,16 +1523,31 @@ exports.importSchedules = async (req, res) => {
             continue;
           }
 
+          // Split if user wrote "KodeGuru - KodeMapel" or "KodeGuru / KodeMapel"
+          let teacherStr = codeVal;
+          let subjectStr = '';
+          const splitMatch = codeVal.match(/^(.*?)\s*[-/]\s*(.*)$/);
+          if (splitMatch) {
+            teacherStr = splitMatch[1].trim();
+            subjectStr = splitMatch[2].trim();
+          }
+
           // Cari guru dengan kode
-          let foundTeacher = findTeacherByCode(codeVal);
+          let foundTeacher = findTeacherByCode(teacherStr);
           
           if (!foundTeacher) {
-            errors.push(`Baris ${r}, Kolom ${colIndex}: Guru dengan kode '${codeVal}' tidak ditemukan`);
+            errors.push(`Baris ${r}, Kolom ${colIndex}: Guru dengan kode '${teacherStr}' tidak ditemukan`);
             continue;
           }
 
-          // Cari mapel - dari kode atau dari guru
-          let foundSubject = findSubjectByCode(codeVal);
+          // Cari mapel - dari string mapel eksplisit, kode asli, atau dari guru
+          let foundSubject = null;
+          if (subjectStr) {
+             foundSubject = findSubjectByCode(subjectStr);
+          }
+          if (!foundSubject) {
+             foundSubject = findSubjectByCode(codeVal);
+          }
           
           if (!foundSubject) {
             // Ambil mapel pertama dari guru
