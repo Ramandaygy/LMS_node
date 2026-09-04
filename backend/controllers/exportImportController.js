@@ -490,11 +490,16 @@ exports.importTeachers = async (req, res) => {
           final_role = 'wakil_kurikulum';
         }
 
-        if (!nip || !full_name || !email || !username) continue;
+        if (!full_name || !email || !username) {
+          errors.push(`Baris ${i}: full_name, email, atau username kosong`);
+          continue;
+        }
 
-        // Check duplicate in both collections
-        const duplicateNip = await getCollection('users_guru').findOne({ nip }) || await getCollection('users_admin').findOne({ nip });
-        if (duplicateNip) { errors.push(`Baris ${i}: NIP ${nip} sudah ada`); continue; }
+        // Check duplicate in both collections only if NIP is provided
+        if (nip) {
+          const duplicateNip = await getCollection('users_guru').findOne({ nip }) || await getCollection('users_admin').findOne({ nip });
+          if (duplicateNip) { errors.push(`Baris ${i}: NIP ${nip} sudah ada`); continue; }
+        }
 
         const duplicateEmail = await getCollection('users_guru').findOne({ email }) || await getCollection('users_admin').findOne({ email });
         if (duplicateEmail) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
