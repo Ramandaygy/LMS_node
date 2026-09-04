@@ -3,6 +3,20 @@ const path = require('path');
 
 const isVercel = process.env.VERCEL === '1';
 
+// Allowed file types
+const allowedExtensions = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|ppt|pptx|txt|csv|zip|rar/;
+
+const fileFilter = (req, file, cb) => {
+  const extname = allowedExtensions.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedExtensions.test(file.mimetype);
+
+  if (extname && mimetype) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Hanya file dokumen, gambar, dan arsip yang diperbolehkan!'));
+  }
+};
+
 // =====================================
 // VERCEL MODE
 // =====================================
@@ -12,16 +26,14 @@ if (isVercel) {
 
   const uploadSubmission = multer({
     storage: memoryStorage,
-    limits: {
-      fileSize: 10 * 1024 * 1024
-    }
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: fileFilter
   });
 
   const uploadMaterial = multer({
     storage: memoryStorage,
-    limits: {
-      fileSize: 10 * 1024 * 1024
-    }
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: fileFilter
   });
 
   module.exports = {
@@ -90,17 +102,15 @@ if (isVercel) {
   const uploadSubmission =
     multer({
       storage: submissionStorage,
-      limits: {
-        fileSize: 10 * 1024 * 1024
-      }
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: fileFilter
     });
 
   const uploadMaterial =
     multer({
       storage: materialStorage,
-      limits: {
-        fileSize: 10 * 1024 * 1024
-      }
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: fileFilter
     });
 
   module.exports = {

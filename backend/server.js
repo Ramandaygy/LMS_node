@@ -3,6 +3,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const connectDB = require('./config/db');
 
@@ -18,6 +21,12 @@ require('./jobs/cronJobs');
 // =====================================
 // MIDDLEWARE
 // =====================================
+// 1. Security Headers
+app.use(helmet({
+  crossOriginResourcePolicy: false, // allow images to be loaded
+}));
+
+// 2. CORS
 app.use(cors());
 app.options('*', cors());
 
@@ -29,6 +38,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// 3. Rate Limiting (Prevent Brute Force)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000, // Limit each IP to 1000 requests per windowMs (adjustable)
+  message: { success: false, message: 'Terlalu banyak request dari IP ini, coba lagi nanti.' }
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // Stricter limit for auth endpoints
+  message: { success: false, message: 'Terlalu banyak percobaan login, coba lagi setelah 15 menit.' }
+});
+app.use('/api/', apiLimiter);
+app.use('/api/auth/', authLimiter);
+
+// Database connection check
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -39,6 +63,7 @@ app.use(async (req, res, next) => {
   }
 });
 
+// 4. Body Parsers & Payload Limits
 app.use(express.json({ limit: '10mb' }));
 app.use(
   express.urlencoded({
@@ -46,6 +71,9 @@ app.use(
     extended: true,
   })
 );
+
+// 5. Data Sanitization against NoSQL Query Injection
+app.use(mongoSanitize());
 
 // =====================================
 // STATIC FILES

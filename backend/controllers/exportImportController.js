@@ -499,12 +499,47 @@ exports.importTeachers = async (req, res) => {
         const duplicateEmail = await getCollection('users_guru').findOne({ email }) || await getCollection('users_admin').findOne({ email });
         if (duplicateEmail) { errors.push(`Baris ${i}: Email ${email} sudah ada`); continue; }
 
+        const normalizeStr = str => str ? str.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+        const aliases = {
+          'mtk': 'matematika', 'mat': 'matematika', 'math': 'matematika', 'matematika': 'matematika',
+          'bind': 'bahasaindonesia', 'bindo': 'bahasaindonesia', 'bhsindo': 'bahasaindonesia', 'indo': 'bahasaindonesia', 'bahasaindonesia': 'bahasaindonesia',
+          'bing': 'bahasainggris', 'bhsing': 'bahasainggris', 'ing': 'bahasainggris', 'inggris': 'bahasainggris', 'bahasainggris': 'bahasainggris',
+          'pai': 'agama', 'agama': 'agama', 'pendidikanagama': 'agama',
+          'pkn': 'pancasila', 'ppkn': 'pancasila', 'pancasila': 'pancasila',
+          'ipa': 'alam', 'ips': 'sosial',
+          'pjok': 'jasmani', 'penjas': 'jasmani', 'or': 'jasmani', 'olahraga': 'jasmani', 'jasmani': 'jasmani',
+          'tik': 'informatika', 'inf': 'informatika', 'info': 'informatika', 'informatika': 'informatika',
+          'sbk': 'seni', 'senbud': 'seni', 'seni': 'seni', 'senibudaya': 'seni',
+          'prakarya': 'prakarya',
+          'bjs': 'jawa', 'bjw': 'jawa', 'jawa': 'jawa', 'bahasajawa': 'jawa',
+          'bk': 'bimbingan'
+        };
+
         let subject_ids = [];
         if (subjects_str) {
           const sNames = subjects_str.split(',').map(s => s.trim()).filter(Boolean);
           for (let sn of sNames) {
             let key = sn.toLowerCase();
-            if (subjectMap[key]) subject_ids.push(subjectMap[key]); else errors.push(`Baris ${i}: Mapel '${sn}' tidak ditemukan`);
+            let normSn = normalizeStr(sn);
+            let matchedSubject = null;
+
+            if (subjectMap[key]) {
+              matchedSubject = { _id: subjectMap[key] };
+            } else {
+              matchedSubject = all_subjects.find(s => {
+                const sName = normalizeStr(s.name);
+                const sCode = normalizeStr(s.code);
+                return sCode === normSn || sName === normSn || 
+                       (normSn.length > 3 && sName.includes(normSn)) || 
+                       (aliases[normSn] && sName.includes(aliases[normSn]));
+              });
+            }
+
+            if (matchedSubject) {
+              subject_ids.push(matchedSubject._id);
+            } else {
+              errors.push(`Baris ${i}: Mapel '${sn}' tidak ditemukan`);
+            }
           }
         }
 
@@ -1259,15 +1294,15 @@ exports.importSchedules = async (req, res) => {
     const findSubjectByCode = (code) => {
       if (!code) return null;
       const cleanCode = code.toString().trim();
+      const normalizedClean = normalize(cleanCode);
       
-      // 1. Cari berdasarkan kode mapel
+      // 1. Cari berdasarkan kode mapel (exact)
       let subject = subjects.find(s => 
         s.code && s.code.toLowerCase() === cleanCode.toLowerCase()
       );
       if (subject) return subject;
 
       // 2. Cari berdasarkan nama
-      const normalizedClean = normalize(cleanCode);
       subject = subjects.find(s => {
         if (!s.name) return false;
         const normalizedName = normalize(s.name);
@@ -1276,6 +1311,51 @@ exports.importSchedules = async (req, res) => {
                normalizedClean.includes(normalizedName);
       });
       if (subject) return subject;
+
+      // 3. Alias dictionary
+      const aliases = {
+        'mtk': 'matematika', 'mat': 'matematika', 'math': 'matematika', 'matematika': 'matematika',
+        'bind': 'bahasaindonesia', 'bindo': 'bahasaindonesia', 'bhsindo': 'bahasaindonesia', 'indo': 'bahasaindonesia', 'bahasaindonesia': 'bahasaindonesia',
+        'bing': 'bahasainggris', 'bhsing': 'bahasainggris', 'ing': 'bahasainggris', 'inggris': 'bahasainggris', 'bahasainggris': 'bahasainggris',
+        'pai': 'agama', 'agama': 'agama', 'pendidikanagama': 'agama',
+        'pkn': 'pancasila', 'ppkn': 'pancasila', 'pancasila': 'pancasila',
+        'ipa': 'alam', 'ips': 'sosial',
+        'pjok': 'jasmani', 'penjas': 'jasmani', 'or': 'jasmani', 'olahraga': 'jasmani', 'jasmani': 'jasmani',
+        'tik': 'informatika', 'inf': 'informatika', 'info': 'informatika', 'informatika': 'informatika',
+        'sbk': 'seni', 'senbud': 'seni', 'seni': 'seni', 'senibudaya': 'seni',
+        'prakarya': 'prakarya',
+        'bjs': 'jawa', 'bjw': 'jawa', 'jawa': 'jawa', 'bahasajawa': 'jawa',
+        'bk': 'bimbingan'
+      };
+
+      if (aliases[normalizedClean]) {
+        const keyword = aliases[normalizedClean];
+        const matched = subjects.find(s => s.name && normalize(s.name).includes(keyword));
+        if (matched) return matched;
+      }
+
+      // 4. Tokenisasi - pisahkan berdasarkan spasi, strip, garis miring, titik
+      const tokens = cleanCode.split(/[\s\-\/_,.]+/).filter(t => t.length > 0);
+      if (tokens.length > 1) {
+        for (const token of tokens) {
+          const normToken = normalize(token);
+          if (!normToken) continue;
+          
+          let tokenSubj = subjects.find(s => {
+             const nCode = s.code ? normalize(s.code) : '';
+             const nName = s.name ? normalize(s.name) : '';
+             return (nCode && nCode === normToken) || 
+                    (nName && (nName === normToken || (normToken.length > 3 && nName.includes(normToken))));
+          });
+          
+          if (!tokenSubj && aliases[normToken]) {
+             const keyword = aliases[normToken];
+             tokenSubj = subjects.find(s => s.name && normalize(s.name).includes(keyword));
+          }
+          
+          if (tokenSubj) return tokenSubj;
+        }
+      }
 
       return null;
     };
@@ -1406,9 +1486,11 @@ exports.importSchedules = async (req, res) => {
           }
 
           const cleanCode = codeVal.toUpperCase();
-          if (cleanCode.includes('ISTIRAHAT') || cleanCode.includes('UPACARA') || 
-              cleanCode.includes('TADARUS') || cleanCode.includes('SHOLAT') || 
-              cleanCode.includes('BERSIH') || cleanCode.includes('SEHAT')) {
+          const noSpaceCode = cleanCode.replace(/\s+/g, '');
+          
+          if (noSpaceCode.includes('ISTIRAHAT') || noSpaceCode.includes('UPACARA') || 
+              noSpaceCode.includes('TADARUS') || noSpaceCode.includes('SHOLAT') || 
+              noSpaceCode.includes('BERSIH') || noSpaceCode.includes('SEHAT')) {
             continue;
           }
 
