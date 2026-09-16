@@ -797,6 +797,9 @@ const GuruCbt = () => {
               </button>
             </div>
 
+            {error && <div className="alert-box error" style={{ margin: '0 24px 16px 24px' }}>{error}</div>}
+            {success && <div className="alert-box success" style={{ margin: '0 24px 16px 24px' }}>{success}</div>}
+
             <form onSubmit={handleSaveExam} className="cbt-form">
               <div className="form-row-grid">
                 <div className="form-group">
@@ -998,14 +1001,17 @@ const GuruCbt = () => {
                               setQuestions(updated);
                             }} style={{ background: '#e2e8f0', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>+ Pasangan</button>
                           </div>
+                          <p style={{ fontSize: '12px', color: '#64748b', marginTop: '-4px', marginBottom: '12px' }}>
+                            Tuliskan pasangan yang benar secara berurutan. Sistem akan <strong>mengacak</strong> pilihan Kanan saat ujian berlangsung.
+                          </p>
                           {(q.matching_pairs || []).map((pair, pIdx) => (
                             <div key={pIdx} style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
-                              <input type="text" placeholder="Premis Kiri" value={pair.left} onChange={e => {
+                              <input type="text" placeholder="Premis (cth: Ibukota Indonesia)" value={pair.left} onChange={e => {
                                 const updated = [...questions];
                                 updated[qIdx].matching_pairs[pIdx].left = e.target.value;
                                 setQuestions(updated);
                               }} className="form-input" style={{ flex: 1 }} />
-                              <input type="text" placeholder="Jawaban Kanan" value={pair.right} onChange={e => {
+                              <input type="text" placeholder="Jawaban (cth: Jakarta)" value={pair.right} onChange={e => {
                                 const updated = [...questions];
                                 updated[qIdx].matching_pairs[pIdx].right = e.target.value;
                                 setQuestions(updated);

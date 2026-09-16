@@ -339,6 +339,15 @@ exports.inputGrade = async (req, res) => {
     const teacherId = req.user.id;
     const { student_id, subject_id, type, score, note } = req.body;
 
+    const gradeInputPeriodController = require('./gradeInputPeriodController');
+    const statusData = await gradeInputPeriodController.checkGradeInputStatusHelper(type, teacherId);
+    if (!statusData.isOpen) {
+      return res.status(403).json({
+        success: false,
+        message: statusData.reason
+      });
+    }
+
     if (!student_id || !subject_id || !type || score === undefined) {
       return res.status(400).json({
         success: false,
@@ -526,6 +535,15 @@ exports.saveClassGrades = async (req, res) => {
     const teacherId = req.user.id;
     const role = req.user.role;
     const { classId, subjectId, type, grades } = req.body; // grades is array: [{ student_id, score, note }]
+
+    const gradeInputPeriodController = require('./gradeInputPeriodController');
+    const statusData = await gradeInputPeriodController.checkGradeInputStatusHelper(type, teacherId);
+    if (!statusData.isOpen) {
+      return res.status(403).json({
+        success: false,
+        message: statusData.reason
+      });
+    }
     if (!classId || !subjectId || !type || !Array.isArray(grades)) {
       return res.status(400).json({ success: false, message: 'Payload tidak valid' });
     }
@@ -734,6 +752,22 @@ exports.getWaliKelasOverview = async (req, res) => {
   } catch (err) {
     console.error('WALI KELAS OVERVIEW ERROR:', err);
     return res.status(500).json({ success: false, message: 'Gagal memuat data Wali Kelas' });
+  }
+};
+
+// ======================================
+// GRADE INPUT STATUS (Buka/Tutup Nilai)
+// ======================================
+exports.getGradeInputStatus = async (req, res) => {
+  try {
+    const { type = 'tugas' } = req.query;
+    const teacherId = req.user.id;
+    const gradeInputPeriodController = require('./gradeInputPeriodController');
+    const data = await gradeInputPeriodController.checkGradeInputStatusHelper(type, teacherId);
+    return res.status(200).json({ success: true, data });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: 'Gagal mengecek status penginputan nilai' });
   }
 };
 

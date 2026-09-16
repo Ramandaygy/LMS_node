@@ -8,6 +8,7 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   const location = useLocation();
   const [user, setUser] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [expandedMenu, setExpandedMenu] = useState('');
 
   const localUserObj = (() => {
     try {
@@ -114,7 +115,16 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'students', label: 'Data Siswa', icon: 'school', path: '/dashboard/admin/students' },
       { key: 'teachers', label: 'Data Guru', icon: 'record_voice_over', path: '/dashboard/admin/teachers' },
       { key: 'parents', label: 'Data Ortu', icon: 'family_restroom', path: '/dashboard/admin/parents' },
-      { key: 'settings', label: 'Pengaturan', icon: 'settings', path: '/dashboard/admin/settings' },
+      { 
+        key: 'grade_group', 
+        label: 'Pengaturan Penilaian', 
+        icon: 'rule', 
+        subMenus: [
+          { key: 'grade_settings', label: 'Konfigurasi Penilaian', path: '/dashboard/admin/grade-settings' },
+          { key: 'grade_input_periods', label: 'Periode Penginputan Nilai', path: '/dashboard/admin/grade-input-periods' }
+        ]
+      },
+      { key: 'settings', label: 'Pengaturan TU', icon: 'settings', path: '/dashboard/admin/settings' },
       { key: 'calendar', label: 'Kalender', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     super_admin: [
@@ -122,20 +132,42 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       { key: 'students', label: 'Data Siswa', icon: 'school', path: '/dashboard/admin/students' },
       { key: 'teachers', label: 'Data Guru', icon: 'record_voice_over', path: '/dashboard/admin/teachers' },
       { key: 'parents', label: 'Data Ortu', icon: 'family_restroom', path: '/dashboard/admin/parents' },
+      { key: 'classes', label: 'Data Kelas', icon: 'meeting_room', path: '/dashboard/admin/classes' },
+      { key: 'subjects', label: 'Mata Pelajaran', icon: 'menu_book', path: '/dashboard/admin/subjects' },
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Jadwal', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
+      { 
+        key: 'grade_group', 
+        label: 'Pengaturan Penilaian', 
+        icon: 'rule', 
+        subMenus: [
+          { key: 'grade_settings', label: 'Konfigurasi Penilaian', path: '/dashboard/admin/grade-settings' },
+          { key: 'grade_input_periods', label: 'Periode Penginputan Nilai', path: '/dashboard/admin/grade-input-periods' }
+        ]
+      },
       { key: 'accounts', label: 'Manajemen Akun', icon: 'manage_accounts', path: '/dashboard/superadmin/accounts' },
-      { key: 'roles', label: 'Hak Akses', icon: 'rule', path: '/dashboard/superadmin/roles' },
+      { key: 'roles', label: 'Hak Akses', icon: 'admin_panel_settings', path: '/dashboard/superadmin/roles' },
       { key: 'activity-logs', label: 'Aktivitas', icon: 'history', path: '/dashboard/superadmin/activity-logs' },
       { key: 'backup', label: 'Backup', icon: 'backup', path: '/dashboard/superadmin/backup' },
-      { key: 'settings', label: 'Pengaturan', icon: 'settings', path: '/dashboard/superadmin/settings' },
+      { key: 'settings', label: 'Pengaturan Sistem', icon: 'settings', path: '/dashboard/superadmin/settings' },
       { key: 'calendar', label: 'Kalender', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
     wakil_kurikulum: [
       { key: 'dashboard', label: 'Beranda', icon: 'dashboard', path: '/dashboard/admin' },
+      { key: 'classes', label: 'Data Kelas', icon: 'meeting_room', path: '/dashboard/admin/classes' },
+      { key: 'subjects', label: 'Mata Pelajaran', icon: 'menu_book', path: '/dashboard/admin/subjects' },
       { key: 'academic-year', label: 'Tahun Ajaran', icon: 'calendar_month', path: '/dashboard/admin/academic-year' },
       { key: 'assignments', label: 'Jadwal', icon: 'assignment_ind', path: '/dashboard/admin/schedule' },
+      { 
+        key: 'grade_group', 
+        label: 'Pengaturan Penilaian', 
+        icon: 'rule', 
+        subMenus: [
+          { key: 'grade_settings', label: 'Konfigurasi Penilaian', path: '/dashboard/admin/grade-settings' },
+          { key: 'grade_input_periods', label: 'Periode Penginputan Nilai', path: '/dashboard/admin/grade-input-periods' }
+        ]
+      },
       { key: 'reports', label: 'Laporan', icon: 'analytics', path: '/dashboard/admin/reports' },
       { key: 'calendar', label: 'Kalender', icon: 'event', path: '/dashboard/admin/calendar' },
     ],
@@ -215,9 +247,15 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
       '/dashboard/ortu',
     ]);
     for (const menu of currentMenus) {
-      if (currentPath === menu.path) return menu.key;
-      // Memastikan active state tetap berada di menu yang tepat untuk child routes
-      if (currentPath.startsWith(menu.path) && menu.path !== '/dashboard/admin' && menu.path !== '/dashboard/guru' && menu.path !== '/dashboard/siswa' && menu.path !== '/dashboard/ortu' && menu.path !== '/dashboard/bk') return menu.key;
+      if (menu.subMenus) {
+        for (const sub of menu.subMenus) {
+          if (currentPath === sub.path) return sub.key;
+        }
+      } else {
+        if (currentPath === menu.path) return menu.key;
+        // Memastikan active state tetap berada di menu yang tepat untuk child routes
+        if (currentPath.startsWith(menu.path) && menu.path !== '/dashboard/admin' && menu.path !== '/dashboard/guru' && menu.path !== '/dashboard/siswa' && menu.path !== '/dashboard/ortu' && menu.path !== '/dashboard/bk') return menu.key;
+      }
     }
     if (currentPath.startsWith('/dashboard/admin')) return 'dashboard';
     if (currentPath.startsWith('/dashboard/guru')) return 'dashboard';
@@ -230,11 +268,23 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
   useEffect(() => {
     const newActiveKey = getActiveKeyFromPath();
     if (newActiveKey !== activeMenu) onMenuChange(newActiveKey);
+
+    // Expand submenu if a subitem is active
+    currentMenus.forEach(menu => {
+      if (menu.subMenus && menu.subMenus.some(sub => sub.key === newActiveKey || location.pathname.startsWith(sub.path))) {
+        setExpandedMenu(menu.key);
+      }
+    });
   }, [location.pathname]);
 
   const activeKey = getActiveKeyFromPath();
 
   const handleMenuClick = (menu) => {
+    if (menu.subMenus) {
+      setExpandedMenu(expandedMenu === menu.key ? '' : menu.key);
+      return;
+    }
+    
     onMenuChange(menu.key);
     navigate(menu.path);
     if (onClose) onClose(); // tutup sidebar setelah klik menu (di mobile)
@@ -297,14 +347,49 @@ const Sidebar = ({ role, activeMenu, onMenuChange, isOpen, onClose }) => {
 
         <nav className="sidebar-nav">
           {currentMenus.map(menu => (
-            <a
-              key={menu.key}
-              className={`sidebar-nav-item ${activeKey === menu.key ? 'active' : ''}`}
-              onClick={() => handleMenuClick(menu)}
-            >
-              <span className="material-symbols-outlined">{menu.icon}</span>
-              <span>{menu.label}</span>
-            </a>
+            <React.Fragment key={menu.key}>
+              <a
+                className={`sidebar-nav-item ${activeKey === menu.key ? 'active' : ''} ${menu.subMenus && expandedMenu === menu.key ? 'expanded' : ''}`}
+                onClick={() => handleMenuClick(menu)}
+                style={{ justifyContent: 'space-between' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span className="material-symbols-outlined">{menu.icon}</span>
+                  <span>{menu.label}</span>
+                </div>
+                {menu.subMenus && !isCollapsed && (
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px', transition: 'transform 0.2s', transform: expandedMenu === menu.key ? 'rotate(180deg)' : 'rotate(0)' }}>
+                    expand_more
+                  </span>
+                )}
+              </a>
+              {menu.subMenus && expandedMenu === menu.key && !isCollapsed && (
+                <div className="sidebar-submenu" style={{ display: 'flex', flexDirection: 'column', paddingLeft: '24px', marginBottom: '8px' }}>
+                  {menu.subMenus.map(sub => {
+                    const isSubActive = activeKey === sub.key || location.pathname.startsWith(sub.path);
+                    return (
+                      <a
+                        key={sub.key}
+                        className={`sidebar-nav-item submenu-item ${isSubActive ? 'active' : ''}`}
+                        onClick={() => handleMenuClick(sub)}
+                        style={{ padding: '8px 16px', fontSize: '13px', minHeight: '36px', opacity: isSubActive ? 1 : 0.8 }}
+                      >
+                        <span style={{ 
+                          width: '6px', 
+                          height: '6px', 
+                          borderRadius: '50%', 
+                          background: isSubActive ? 'currentColor' : 'transparent',
+                          border: isSubActive ? 'none' : '1px solid currentColor',
+                          marginRight: '8px',
+                          display: 'inline-block'
+                        }}></span>
+                        <span>{sub.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </React.Fragment>
           ))}
         </nav>
 

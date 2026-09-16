@@ -163,6 +163,12 @@ app.use(
   require('./routes/gradeRoutes')
 );
 
+// GRADE INPUT PERIODS
+app.use(
+  '/api/grade-input-periods',
+  require('./routes/gradeInputPeriodRoutes')
+);
+
 app.use(
   '/api/academic-years',
   require('./routes/academicYearRoutes')

@@ -71,8 +71,11 @@ const AdminSubjects = lazy(() => import('./pages/dashboard/admin/AdminMapel'));
 const AdminAcademicYear = lazy(() => import('./pages/dashboard/admin/AdminAcademic'));
 const AdminSchedule = lazy(() => import('./pages/dashboard/admin/AdminSchedule'));
 const AdminMonitoring = lazy(() => import('./pages/dashboard/admin/AdminMonitoring'));
-const AdminStudentDetail = lazy(() => import('./pages/dashboard/admin/AdminStudentDetail'));
 const AdminSettings = lazy(() => import('./pages/dashboard/admin/AdminSettings'));
+const AdminGradeSettings = lazy(() => import('./pages/dashboard/admin/AdminGradeSettings'));
+const AdminGradeInputPeriods = lazy(() => import('./pages/dashboard/admin/GradeInputPeriods'));
+const AdminGradeInputPeriodDetail = lazy(() => import('./pages/dashboard/admin/GradeInputPeriodDetail'));
+const AdminStudentDetail = lazy(() => import('./pages/dashboard/admin/AdminStudentDetail'));
 const SuperAdminAccounts = lazy(() => import('./pages/dashboard/admin/SuperAdminAccounts'));
 const SuperAdminRoles = lazy(() => import('./pages/dashboard/admin/SuperAdminRoles'));
 const SuperAdminSettings = lazy(() => import('./pages/dashboard/admin/SuperAdminSettings'));
@@ -723,6 +726,17 @@ function App() {
         />
 
         <Route
+          path="/dashboard/admin/grade-settings"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
+              <DashboardLayout role="admin">
+                <AdminGradeSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/dashboard/admin/classes"
           element={
             <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
@@ -803,6 +817,39 @@ function App() {
             <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
               <DashboardLayout role="admin">
                 <AdminSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/grade-settings"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
+              <DashboardLayout role="admin">
+                <AdminGradeSettings />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/grade-input-periods"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
+              <DashboardLayout role="admin">
+                <AdminGradeInputPeriods />
+              </DashboardLayout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/dashboard/admin/grade-input-periods/:id"
+          element={
+            <ProtectedRoute allowedRole={['admin', 'super_admin', 'wakil_kurikulum']}>
+              <DashboardLayout role="admin">
+                <AdminGradeInputPeriodDetail />
               </DashboardLayout>
             </ProtectedRoute>
           }

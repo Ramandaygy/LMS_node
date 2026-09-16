@@ -55,49 +55,33 @@ const GuruInputNilai = () => {
     }
   }, [selectedAcademicYear, academicYears]);
 
-  const checkDeadline = (year) => {
-    if (!year.grade_input_start_date || !year.grade_input_end_date) {
-      setDeadlineInfo({
-        isOpen: true,
-        message: 'Jadwal input nilai belum diatur oleh Admin. Anda masih bisa menginput nilai.',
-        type: 'info'
-      });
-      return;
-    }
-
-    const now = new Date();
-    const start = new Date(year.grade_input_start_date);
-    const end = new Date(year.grade_input_end_date);
-    end.setHours(23, 59, 59, 999);
-
-    if (now < start) {
-      setDeadlineInfo({
-        isOpen: false,
-        message: `Periode input nilai belum dimulai. Akan dibuka pada ${start.toLocaleDateString('id-ID')}.`,
-        type: 'error'
-      });
-    } else if (now > end) {
-      setDeadlineInfo({
-        isOpen: false,
-        message: `Periode input nilai telah ditutup pada ${end.toLocaleDateString('id-ID')}. Silakan hubungi Admin.`,
-        type: 'error'
-      });
-    } else {
-      const diffTime = Math.abs(end - now);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-      if (diffDays <= 7) {
-        setDeadlineInfo({
-          isOpen: true,
-          message: `Tenggat waktu input nilai tinggal ${diffDays} hari lagi (berakhir pada ${end.toLocaleDateString('id-ID')}).`,
-          type: 'warning'
-        });
-      } else {
-        setDeadlineInfo({
-          isOpen: true,
-          message: `Periode input nilai sedang berlangsung (berakhir pada ${end.toLocaleDateString('id-ID')}).`,
-          type: 'info'
-        });
+  const checkDeadline = async (year) => {
+    try {
+      const res = await api.get('/guru/grade-input-status');
+      if (res.data.success && res.data.data) {
+        const status = res.data.data;
+        if (status.isOpen) {
+          setDeadlineInfo({
+            isOpen: true,
+            message: status.reason,
+            type: status.reason.includes('paksa') ? 'warning' : 'info'
+          });
+        } else {
+          setDeadlineInfo({
+            isOpen: false,
+            message: status.reason,
+            type: 'error'
+          });
+        }
       }
+    } catch (err) {
+      console.error('Error fetching grade input status:', err);
+      // Fallback
+      setDeadlineInfo({
+        isOpen: false,
+        message: 'Gagal mengecek status penginputan nilai. Silakan muat ulang.',
+        type: 'error'
+      });
     }
   };
 

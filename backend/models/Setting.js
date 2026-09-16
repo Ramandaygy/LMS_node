@@ -82,6 +82,13 @@ const settingSchema = new mongoose.Schema(
       type: Number,
       default: 30,
     },
+    
+    // Status Penginputan Nilai (Kunci Nilai)
+    grade_input_status: {
+      type: String,
+      enum: ['auto', 'open', 'closed'],
+      default: 'auto',
+    },
   },
   {
     timestamps: true,

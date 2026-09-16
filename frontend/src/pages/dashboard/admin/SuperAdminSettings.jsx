@@ -8,10 +8,6 @@ const SuperAdminSettings = () => {
     session_timeout: '12',
     allow_reset_pwd: true,
     gemini_api_key: '',
-    kkm_score: 75,
-    weight_nh: 40,
-    weight_uts: 30,
-    weight_uas: 30,
   });
 
   const [loading, setLoading] = useState(true);
@@ -47,15 +43,6 @@ const SuperAdminSettings = () => {
     e.preventDefault();
     setSuccessMsg('');
     setErrorMsg('');
-    
-    // Validasi Bobot
-    const wNH = Number(sysSettings.weight_nh);
-    const wUTS = Number(sysSettings.weight_uts);
-    const wUAS = Number(sysSettings.weight_uas);
-    if (wNH + wUTS + wUAS !== 100) {
-      setErrorMsg('Total Bobot Nilai (NH + PTS + PTA) harus tepat 100%.');
-      return;
-    }
 
     try {
       const res = await api.put('/settings', sysSettings);
@@ -145,60 +132,6 @@ const SuperAdminSettings = () => {
               onChange={handleChange}
               style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', fontFamily: 'monospace' }}
             />
-          </div>
-
-          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
-            <h3 style={{ fontSize: '15px', color: '#0f172a', fontWeight: '800', margin: '0 0 12px 0' }}>Parameter Penilaian Akademik</h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Batas Nilai KKM (Early Warning System)</label>
-                <input
-                  type="number"
-                  name="kkm_score"
-                  value={sysSettings.kkm_score}
-                  onChange={handleChange}
-                  min="0" max="100"
-                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot Nilai Harian (%)</label>
-                <input
-                  type="number"
-                  name="weight_nh"
-                  value={sysSettings.weight_nh}
-                  onChange={handleChange}
-                  min="0" max="100"
-                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot PTS (%)</label>
-                <input
-                  type="number"
-                  name="weight_uts"
-                  value={sysSettings.weight_uts}
-                  onChange={handleChange}
-                  min="0" max="100"
-                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155' }}>Bobot PTA (%)</label>
-                <input
-                  type="number"
-                  name="weight_uas"
-                  value={sysSettings.weight_uas}
-                  onChange={handleChange}
-                  min="0" max="100"
-                  style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
-                />
-              </div>
-            </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '20px' }}>
