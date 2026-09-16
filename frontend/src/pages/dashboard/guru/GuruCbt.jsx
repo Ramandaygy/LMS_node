@@ -378,6 +378,8 @@ const GuruCbt = () => {
   };
 
   const handleOpenCreate = () => {
+    setError('');
+    setSuccess('');
     setIsEditing(false);
     setEditingExamId(null);
     setTitle('');
@@ -393,6 +395,8 @@ const GuruCbt = () => {
   };
 
   const handleOpenEdit = (exam) => {
+    setError('');
+    setSuccess('');
     setIsEditing(true);
     setEditingExamId(exam._id);
     setTitle(exam.title);
@@ -421,14 +425,26 @@ const GuruCbt = () => {
 
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
-      if (!q.question_text.trim()) {
+      if (!q.question_text || !q.question_text.trim()) {
         setError(`Teks soal nomor ${i + 1} belum diisi.`);
         return;
       }
-      if (q.type !== 'essay') {
+      if (q.type === 'pg') {
         for (let j = 0; j < 4; j++) {
           if (!q.options || !q.options[j] || !q.options[j].trim()) {
             setError(`Pilihan jawaban ${String.fromCharCode(65 + j)} pada soal nomor ${i + 1} belum diisi.`);
+            return;
+          }
+        }
+      } else if (q.type === 'menjodohkan') {
+        if (!q.matching_pairs || q.matching_pairs.length === 0) {
+          setError(`Soal nomor ${i + 1} (Menjodohkan) wajib memiliki minimal 1 pasang jawaban.`);
+          return;
+        }
+        for (let j = 0; j < q.matching_pairs.length; j++) {
+          const pair = q.matching_pairs[j];
+          if (!pair.premise || !pair.premise.trim() || !pair.answer || !pair.answer.trim()) {
+            setError(`Pasangan ke-${j + 1} pada soal nomor ${i + 1} (Menjodohkan) belum diisi lengkap.`);
             return;
           }
         }
@@ -643,8 +659,8 @@ const GuruCbt = () => {
         </div>
       </div>
 
-      {error && <div className="alert-box error">{error}</div>}
-      {success && <div className="alert-box success">{success}</div>}
+      {!showCreateModal && error && <div className="alert-box error">{error}</div>}
+      {!showCreateModal && success && <div className="alert-box success">{success}</div>}
 
       {/* TABS SEPARATION */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid #cbd5e1', marginBottom: '20px' }}>
