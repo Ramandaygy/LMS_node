@@ -47,17 +47,21 @@ const GuruInputNilai = () => {
   }, [selectedClass, selectedSubject, examType, activeTab, selectedAcademicYear]);
 
   useEffect(() => {
-    if (selectedAcademicYear && academicYears.length > 0) {
-      const year = academicYears.find(y => y._id === selectedAcademicYear);
-      if (year) {
-        checkDeadline(year);
-      }
+    if (selectedAcademicYear) {
+      checkDeadline(selectedAcademicYear, examType);
     }
-  }, [selectedAcademicYear, academicYears]);
+  }, [selectedAcademicYear, examType]);
 
-  const checkDeadline = async (year) => {
+  const checkDeadline = async (yearId, typeVal) => {
     try {
-      const res = await api.get('/guru/grade-input-status');
+      const currentYear = yearId || selectedAcademicYear;
+      const currentType = typeVal || examType || 'uts';
+      const res = await api.get('/guru/grade-input-status', {
+        params: {
+          type: currentType,
+          academic_year_id: currentYear
+        }
+      });
       if (res.data.success && res.data.data) {
         const status = res.data.data;
         if (status.isOpen) {
@@ -76,7 +80,6 @@ const GuruInputNilai = () => {
       }
     } catch (err) {
       console.error('Error fetching grade input status:', err);
-      // Fallback
       setDeadlineInfo({
         isOpen: false,
         message: 'Gagal mengecek status penginputan nilai. Silakan muat ulang.',

@@ -164,7 +164,7 @@ exports.revokeAccess = async (req, res) => {
 };
 
 // Helper yang bisa dipanggil dari controller lain (seperti guruController)
-exports.checkGradeInputStatusHelper = async (type, teacherId) => {
+exports.checkGradeInputStatusHelper = async (type, teacherId, academicYearId) => {
   const Setting = require('../models/Setting');
   const settings = await Setting.findOne();
   if (settings && settings.grade_input_status === 'closed') {
@@ -174,24 +174,29 @@ exports.checkGradeInputStatusHelper = async (type, teacherId) => {
     return { isOpen: true, reason: 'Buka Paksa Aktif' };
   }
 
-  const activeYear = await AcademicYear.findOne({ is_active: true });
-  if (!activeYear) return { isOpen: false, reason: 'Tidak ada tahun ajaran aktif' };
+  let yearId = academicYearId;
+  if (!yearId) {
+    const activeYear = await AcademicYear.findOne({ is_active: true });
+    if (activeYear) yearId = activeYear._id;
+  }
 
-  const period = await GradeInputPeriod.findOne({ academic_year_id: activeYear._id, type });
+  if (!yearId) return { isOpen: false, reason: 'Tidak ada tahun ajaran aktif' };
+
+  const period = await GradeInputPeriod.findOne({ academic_year_id: yearId, type });
   
   if (period) {
     if (period.is_open) {
-      return { isOpen: true, reason: `Periode penginputan ${period.label} sedang aktif (sampai ${new Date(period.end_date).toLocaleDateString()})` };
+      return { isOpen: true, reason: `Periode penginputan ${period.label} sedang aktif (sampai ${new Date(period.end_date).toLocaleDateString('id-ID')})` };
     }
 
     const access = await GradeInputAccess.findOne({ period_id: period._id, teacher_id: teacherId })
       .sort({ access_until: -1 });
 
     if (access && access.is_active) {
-      return { isOpen: true, reason: `Akses khusus aktif sampai ${new Date(access.access_until).toLocaleString()}` };
+      return { isOpen: true, reason: `Akses khusus aktif sampai ${new Date(access.access_until).toLocaleString('id-ID')}` };
     }
     
-    return { isOpen: false, reason: `Periode penginputan ${period.label} telah ditutup pada ${new Date(period.end_date).toLocaleString()}` };
+    return { isOpen: false, reason: `Periode penginputan ${period.label} telah ditutup pada ${new Date(period.end_date).toLocaleDateString('id-ID')}` };
   }
 
   return { isOpen: true, reason: 'Belum ada periode yang dikonfigurasi (Default Open)' };
@@ -200,10 +205,10 @@ exports.checkGradeInputStatusHelper = async (type, teacherId) => {
 // GET /api/grade-input-periods/check-status
 exports.checkStatus = async (req, res) => {
   try {
-    const { type = 'tugas' } = req.query;
+    const { type = 'tugas', academic_year_id } = req.query;
     const teacherId = req.user.id;
     
-    const data = await exports.checkGradeInputStatusHelper(type, teacherId);
+    const data = await exports.checkGradeInputStatusHelper(type, teacherId, academic_year_id);
     return res.json({ success: true, data });
   } catch (err) {
     console.error(err);

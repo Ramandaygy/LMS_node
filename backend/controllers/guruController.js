@@ -760,10 +760,10 @@ exports.getWaliKelasOverview = async (req, res) => {
 // ======================================
 exports.getGradeInputStatus = async (req, res) => {
   try {
-    const { type = 'tugas' } = req.query;
+    const { type = 'tugas', academic_year_id } = req.query;
     const teacherId = req.user.id;
     const gradeInputPeriodController = require('./gradeInputPeriodController');
-    const data = await gradeInputPeriodController.checkGradeInputStatusHelper(type, teacherId);
+    const data = await gradeInputPeriodController.checkGradeInputStatusHelper(type, teacherId, academic_year_id);
     return res.status(200).json({ success: true, data });
   } catch (err) {
     console.error(err);
