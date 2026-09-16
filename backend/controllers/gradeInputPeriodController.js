@@ -127,10 +127,10 @@ exports.grantAccess = async (req, res) => {
     const access = new GradeInputAccess({
       period_id: period._id,
       teacher_id,
-      subject_id,
-      class_id,
+      subject_id: (subject_id && subject_id.trim()) ? subject_id : undefined,
+      class_id: (class_id && class_id.trim()) ? class_id : undefined,
       access_until,
-      reason,
+      reason: reason || '',
       granted_by: req.user.id
     });
 
@@ -144,8 +144,8 @@ exports.grantAccess = async (req, res) => {
 
     res.json({ success: true, data: populated, message: 'Akses khusus berhasil diberikan' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Error granting access:', err);
+    res.status(500).json({ success: false, message: err.message || 'Server error' });
   }
 };
 

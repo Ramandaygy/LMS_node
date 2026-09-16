@@ -5,6 +5,7 @@ exports.getAll = async (req, res) => {
   const data = await service.getAll();
   res.json({
     success: true,
+    data: data,
     academic_years: data
   });
 };

@@ -32,29 +32,32 @@ const GradeInputPeriods = () => {
   const fetchAcademicYears = async () => {
     try {
       const res = await api.get('/academic-years');
-      if (res.data.success) {
-        setAcademicYears(res.data.data);
-        const activeYear = res.data.data.find(y => y.is_active);
-        if (activeYear && !selectedYear) {
-          setSelectedYear(activeYear._id);
-          setFormData(prev => ({ ...prev, academic_year_id: activeYear._id }));
-        }
+      const rawData = res.data?.data || res.data?.academic_years || res.data || [];
+      const dataList = Array.isArray(rawData) ? rawData : [];
+      setAcademicYears(dataList);
+      
+      const activeYear = dataList.find(y => y.is_active) || dataList[0];
+      if (activeYear) {
+        setSelectedYear(prev => prev || activeYear._id);
+        setFormData(prev => ({ ...prev, academic_year_id: prev.academic_year_id || activeYear._id }));
       }
     } catch (err) {
       console.error(err);
+      setAcademicYears([]);
     }
   };
 
   const fetchPeriods = async () => {
     try {
       setLoading(true);
+      setErrorMsg('');
       const res = await api.get(`/grade-input-periods?academic_year_id=${selectedYear}`);
-      if (res.data.success) {
-        setPeriods(res.data.data);
-      }
+      const rawData = res.data?.data || res.data || [];
+      setPeriods(Array.isArray(rawData) ? rawData : []);
     } catch (err) {
       console.error(err);
       setErrorMsg('Gagal memuat periode penginputan nilai.');
+      setPeriods([]);
     } finally {
       setLoading(false);
     }
@@ -114,7 +117,7 @@ const GradeInputPeriods = () => {
             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none' }}
           >
             <option value="">Semua Tahun Ajaran</option>
-            {academicYears.map(ay => (
+            {(academicYears || []).map(ay => (
               <option key={ay._id} value={ay._id}>{ay.year} - {ay.semester === 'odd' ? 'Ganjil' : 'Genap'} {ay.is_active ? '(Aktif)' : ''}</option>
             ))}
           </select>
@@ -124,7 +127,7 @@ const GradeInputPeriods = () => {
           <div style={{ textAlign: 'center', padding: '40px' }}>Loading...</div>
         ) : errorMsg ? (
           <div style={{ color: 'red', textAlign: 'center' }}>{errorMsg}</div>
-        ) : periods.length === 0 ? (
+        ) : (!periods || periods.length === 0) ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>Belum ada periode penginputan nilai untuk tahun ajaran ini.</div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -138,7 +141,7 @@ const GradeInputPeriods = () => {
               </tr>
             </thead>
             <tbody>
-              {periods.map(p => (
+              {(periods || []).map(p => (
                 <tr key={p._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '12px 16px', fontWeight: '600' }}>{p.label} <br/><span style={{fontSize: '11px', color: '#64748b'}}>{p.type.toUpperCase()}</span></td>
                   <td style={{ padding: '12px 16px', fontSize: '14px' }}>{new Date(p.start_date).toLocaleDateString()}</td>

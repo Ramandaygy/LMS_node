@@ -150,29 +150,21 @@ const AdminClasses = () => {
   // FETCH ACADEMIC YEARS
   // ==========================================
   const fetchAcademicYears = async () => {
-
     try {
+      const response = await api.get('/academic-years');
+      const raw = response.data?.data || response.data?.academic_years || response.data || [];
+      const list = Array.isArray(raw) ? raw : [];
+      setAcademicYears(list);
 
-      const response = await api.get(
-        '/academic-years'
-      );
-
-      console.log(
-        'ACADEMIC YEARS:',
-        response.data
-      );
-
-      setAcademicYears(
-        response.data.data || []
-      );
-
+      const active = list.find(y => y.is_active) || list[0];
+      if (active) {
+        setFormData(prev => ({
+          ...prev,
+          academic_year_id: prev.academic_year_id || active._id
+        }));
+      }
     } catch (error) {
-
-      console.error(
-        'Error fetching academic years:',
-        error
-      );
-
+      console.error('Error fetching academic years:', error);
       setAcademicYears([]);
     }
   };
@@ -238,11 +230,12 @@ const AdminClasses = () => {
 
       setEditingClass(null);
 
+      const active = academicYears.find(y => y.is_active) || academicYears[0];
       setFormData({
         name: '',
         grade_level: '',
         homeroom_teacher: '',
-        academic_year_id: '',
+        academic_year_id: active ? active._id : '',
         is_active: true
       });
 
@@ -267,21 +260,17 @@ const AdminClasses = () => {
   // EDIT
   // ==========================================
   const handleEdit = (cls) => {
+    const active = academicYears.find(y => y.is_active) || academicYears[0];
+    const yearId = typeof cls.academic_year_id === 'object' ? cls.academic_year_id?._id : cls.academic_year_id;
 
     setEditingClass(cls);
 
     setFormData({
       name: cls.name || '',
-      grade_level:
-        cls.grade_level || '',
-      homeroom_teacher:
-        cls.homeroom_teacher || '',
-      academic_year_id:
-        cls.academic_year_id || '',
-      is_active:
-        cls.is_active !== undefined
-          ? cls.is_active
-          : true
+      grade_level: cls.grade_level || '',
+      homeroom_teacher: typeof cls.homeroom_teacher === 'object' ? cls.homeroom_teacher?._id : (cls.homeroom_teacher || ''),
+      academic_year_id: yearId || (active ? active._id : ''),
+      is_active: cls.is_active !== undefined ? cls.is_active : true
     });
 
     setShowModal(true);
@@ -596,9 +585,18 @@ const AdminClasses = () => {
 
           <button
             className="btn-add"
-            onClick={() =>
-              setShowModal(true)
-            }
+            onClick={() => {
+              const active = academicYears.find(y => y.is_active) || academicYears[0];
+              setEditingClass(null);
+              setFormData({
+                name: '',
+                grade_level: '',
+                homeroom_teacher: '',
+                academic_year_id: active ? active._id : '',
+                is_active: true
+              });
+              setShowModal(true);
+            }}
           >
             <span className="material-symbols-outlined">add</span> Tambah Kelas
           </button>
@@ -841,13 +839,13 @@ const AdminClasses = () => {
                     Pilih Tahun Ajaran
                   </option>
 
-                  {academicYears.map(
+                  {(academicYears || []).map(
                     (ta) => (
                       <option
                         key={ta._id}
                         value={ta._id}
                       >
-                        {ta.name}
+                        {ta.name || `${ta.year} - ${ta.semester === 'odd' || ta.semester === 'Ganjil' ? 'Ganjil' : 'Genap'} ${ta.is_active ? '(Aktif)' : ''}`}
                       </option>
                     )
                   )}

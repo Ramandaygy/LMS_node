@@ -114,12 +114,17 @@ const SiswaCbt = () => {
   const handleSelectMatchingOption = (qIdx, leftVal, rightVal) => {
     setUserAnswers((prev) => {
       const currentAns = prev[qIdx] || { matched_pairs: [], flagged: false };
-      const pairs = [...(currentAns.matched_pairs || [])];
+      let pairs = [...(currentAns.matched_pairs || [])];
       
       const existingIdx = pairs.findIndex(p => p.left === leftVal);
       if (existingIdx !== -1) {
-        pairs[existingIdx].right = rightVal;
-      } else {
+        if (!rightVal || pairs[existingIdx].right === rightVal) {
+          // Toggle off if same rightVal clicked or empty
+          pairs.splice(existingIdx, 1);
+        } else {
+          pairs[existingIdx].right = rightVal;
+        }
+      } else if (rightVal) {
         pairs.push({ left: leftVal, right: rightVal });
       }
       
@@ -325,35 +330,68 @@ const SiswaCbt = () => {
                 <p style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', margin: '0 0 12px 0' }}>{q.question_text}</p>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {q.options.map((opt, oIdx) => {
-                    const isSelectedByStudent = selectedOpt === oIdx;
-                    const isRightOption = q.correct_option === oIdx;
+                  {(q.type === 'matching' || q.type === 'menjodohkan') ? (
+                    (() => {
+                      const matchedList = resultAns?.matched_pairs || [];
+                      const rawPairs = q.matching_pairs || [];
+                      return rawPairs.map((pair, pIdx) => {
+                        const leftVal = pair.premise || pair.left;
+                        const correctRight = pair.answer || pair.right;
+                        const studentRight = matchedList.find(m => m.left === leftVal)?.right || 'Belum dijawab';
+                        const isPairCorrect = studentRight === correctRight;
 
-                    let bg = '#ffffff';
-                    let border = '1px solid #cbd5e1';
-                    let color = '#334155';
+                        return (
+                          <div key={pIdx} style={{ background: isPairCorrect ? '#f0fdf4' : '#fef2f2', border: isPairCorrect ? '1px solid #bbf7d0' : '1px solid #fecaca', padding: '10px 14px', borderRadius: '10px', fontSize: '13px' }}>
+                            <div style={{ fontWeight: '800', color: '#0f172a', marginBottom: '4px' }}>Item #{pIdx + 1}: {leftVal}</div>
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', flexWrap: 'wrap' }}>
+                              <span style={{ color: isPairCorrect ? '#16a34a' : '#dc2626', fontWeight: '700' }}>
+                                Jawaban Anda: <strong>{studentRight}</strong>
+                              </span>
+                              {!reviewExam.hide_correct_answers && (
+                                <span style={{ color: '#16a34a', fontWeight: '700' }}>
+                                  Kunci: <strong>{correctRight}</strong>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()
+                  ) : q.options && q.options.length > 0 ? (
+                    q.options.map((opt, oIdx) => {
+                      const isSelectedByStudent = selectedOpt === oIdx;
+                      const isRightOption = q.correct_option === oIdx;
 
-                    if (isSelectedByStudent) {
-                      bg = isCorrect ? '#f0f9ff' : '#fef2f2';
-                      border = isCorrect ? '2px solid #0284c7' : '2px solid #dc2626';
-                      color = isCorrect ? '#0284c7' : '#dc2626';
-                    }
-                    if (isRightOption && !reviewExam.hide_correct_answers) {
-                      bg = '#f0f9ff';
-                      border = '2px solid #16a34a';
-                      color = '#16a34a';
-                    }
+                      let bg = '#ffffff';
+                      let border = '1px solid #cbd5e1';
+                      let color = '#334155';
 
-                    return (
-                      <div key={oIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: bg, border: border, color: color, fontSize: '13px' }}>
-                        <span>{String.fromCharCode(65 + oIdx)}. {opt}</span>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          {isSelectedByStudent && <span style={{ fontSize: '10px', fontWeight: '800', background: isCorrect ? '#0284c7' : '#dc2626', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>Pilihan Anda</span>}
-                          {isRightOption && !reviewExam.hide_correct_answers && <span style={{ fontSize: '10px', fontWeight: '800', background: '#16a34a', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>Kunci Jawaban</span>}
+                      if (isSelectedByStudent) {
+                        bg = isCorrect ? '#f0f9ff' : '#fef2f2';
+                        border = isCorrect ? '2px solid #0284c7' : '2px solid #dc2626';
+                        color = isCorrect ? '#0284c7' : '#dc2626';
+                      }
+                      if (isRightOption && !reviewExam.hide_correct_answers) {
+                        bg = '#f0f9ff';
+                        border = '2px solid #16a34a';
+                        color = '#16a34a';
+                      }
+
+                      return (
+                        <div key={oIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: bg, border: border, color: color, fontSize: '13px' }}>
+                          <span>{String.fromCharCode(65 + oIdx)}. {opt}</span>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {isSelectedByStudent && <span style={{ fontSize: '10px', fontWeight: '800', background: isCorrect ? '#0284c7' : '#dc2626', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>Pilihan Anda</span>}
+                            {isRightOption && !reviewExam.hide_correct_answers && <span style={{ fontSize: '10px', fontWeight: '800', background: '#16a34a', color: '#ffffff', padding: '2px 6px', borderRadius: '4px' }}>Kunci Jawaban</span>}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div style={{ fontSize: '13px', color: '#475569', background: '#f8fafc', padding: '10px', borderRadius: '8px' }}>
+                      Jawaban Uraian/Essay Anda: <strong>{resultAns?.essay_answer || 'Tidak diisi'}</strong>
+                    </div>
+                  )}
                 </div>
 
                 {reviewExam.hide_correct_answers ? (
@@ -460,32 +498,97 @@ const SiswaCbt = () => {
                   Salah
                 </button>
               </div>
-            ) : currentQ?.type === 'matching' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px' }}>Pilih pasangan yang tepat untuk setiap item di sebelah kiri:</div>
-                {(currentQ.matching_pairs || []).map((pair, pIdx) => {
-                  const selectedRight = (currentAns.matched_pairs || []).find(p => p.left === pair.left)?.right || '';
-                  
-                  // Get all possible right answers
-                  const allRightOptions = Array.from(new Set((currentQ.matching_pairs || []).map(p => p.right))).sort();
+            ) : (currentQ?.type === 'matching' || currentQ?.type === 'menjodohkan') ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd', color: '#0369a1', fontSize: '13px', fontWeight: '700' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>touch_app</span>
+                  <span>Klik pada pilihan jawaban untuk memasangkannya dengan pertanyaan/premis di sebelah kiri:</span>
+                </div>
 
-                  return (
-                    <div key={pIdx} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                      <div style={{ flex: 1, fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{pair.left}</div>
-                      <div style={{ fontWeight: '800', color: '#94a3b8' }}>&rarr;</div>
-                      <select
-                        value={selectedRight}
-                        onChange={(e) => handleSelectMatchingOption(currentQuestionIdx, pair.left, e.target.value)}
-                        style={{ flex: 1, padding: '10px', border: '1px solid #0284c7', borderRadius: '8px', outline: 'none', fontSize: '13px', background: '#ffffff' }}
+                {(() => {
+                  const rawPairs = currentQ.matching_pairs || [];
+                  const normalizedPairs = rawPairs.map(p => ({
+                    left: p.premise || p.left || '',
+                    right: p.answer || p.right || ''
+                  }));
+                  const allRightOptions = Array.from(new Set(normalizedPairs.map(p => p.right))).filter(Boolean).sort();
+
+                  return normalizedPairs.map((pair, pIdx) => {
+                    const selectedRight = (currentAns.matched_pairs || []).find(p => p.left === pair.left)?.right || '';
+
+                    return (
+                      <div
+                        key={pIdx}
+                        style={{
+                          background: selectedRight ? '#f0f9ff' : '#ffffff',
+                          borderRadius: '14px',
+                          border: selectedRight ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                          padding: '16px',
+                          boxShadow: selectedRight ? '0 4px 12px rgba(2, 132, 199, 0.1)' : '0 2px 4px rgba(0,0,0,0.02)',
+                          transition: 'all 0.2s ease'
+                        }}
                       >
-                        <option value="">-- Pilih Jawaban --</option>
-                        {allRightOptions.map((opt, oIdx) => (
-                          <option key={oIdx} value={opt}>{opt}</option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                })}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span style={{
+                              background: selectedRight ? '#0284c7' : '#e2e8f0',
+                              color: selectedRight ? '#ffffff' : '#475569',
+                              borderRadius: '8px',
+                              padding: '4px 10px',
+                              fontSize: '12px',
+                              fontWeight: '900'
+                            }}>
+                              Item #{pIdx + 1}
+                            </span>
+                            <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>{pair.left}</span>
+                          </div>
+
+                          {selectedRight ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '800', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '20px' }}>
+                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>link</span>
+                              Terpasang
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Belum dipasangkan</span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
+                          {allRightOptions.map((opt, oIdx) => {
+                            const isSelected = selectedRight === opt;
+                            return (
+                              <button
+                                key={oIdx}
+                                type="button"
+                                onClick={() => handleSelectMatchingOption(currentQuestionIdx, pair.left, isSelected ? '' : opt)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '8px 14px',
+                                  borderRadius: '10px',
+                                  border: isSelected ? '2px solid #0284c7' : '1px solid #cbd5e1',
+                                  background: isSelected ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#ffffff',
+                                  color: isSelected ? '#ffffff' : '#334155',
+                                  fontWeight: isSelected ? '800' : '600',
+                                  fontSize: '13px',
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease',
+                                  boxShadow: isSelected ? '0 3px 8px rgba(2, 132, 199, 0.25)' : 'none'
+                                }}
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
+                                  {isSelected ? 'check_circle' : 'radio_button_unchecked'}
+                                </span>
+                                <span>{opt}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>

@@ -41,17 +41,20 @@ const GradeInputPeriodDetail = () => {
     try {
       setLoading(true);
       const res = await api.get(`/grade-input-periods/${id}`);
-      if (res.data.success) {
-        setPeriod(res.data.data.period);
-        setAccesses(res.data.data.accesses);
+      if (res.data.success && res.data.data) {
+        setPeriod(res.data.data.period || null);
+        const accList = res.data.data.accesses || [];
+        setAccesses(Array.isArray(accList) ? accList : []);
         
         // init edit form
         const p = res.data.data.period;
-        setFormData({
-          label: p.label,
-          start_date: p.start_date.split('T')[0],
-          end_date: p.end_date.split('T')[0]
-        });
+        if (p) {
+          setFormData({
+            label: p.label || '',
+            start_date: p.start_date ? p.start_date.split('T')[0] : '',
+            end_date: p.end_date ? p.end_date.split('T')[0] : ''
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -65,8 +68,13 @@ const GradeInputPeriodDetail = () => {
   const fetchTeachers = async () => {
     try {
       const res = await api.get('/users?role=guru');
-      if (res.data.success) setTeachers(res.data.data);
-    } catch (err) {}
+      const raw = res.data?.data || res.data?.users || res.data || [];
+      const list = Array.isArray(raw) ? raw : [];
+      setTeachers(list.filter(u => !u.role || u.role === 'guru'));
+    } catch (err) {
+      console.error(err);
+      setTeachers([]);
+    }
   };
 
   const handleUpdatePeriod = async (e) => {
@@ -108,7 +116,7 @@ const GradeInputPeriodDetail = () => {
         fetchDetail();
       }
     } catch (err) {
-      alert('Gagal memberikan akses khusus');
+      alert(err.response?.data?.message || 'Gagal memberikan akses khusus');
     } finally {
       setSavingAccess(false);
     }
@@ -219,13 +227,13 @@ const GradeInputPeriodDetail = () => {
             Bila ada guru yang tertinggal mengisi nilai karena alasan mendesak, Anda dapat memberikan perpanjangan waktu khusus untuk guru tersebut tanpa perlu membuka jadwal untuk seluruh sekolah.
           </p>
 
-          {accesses.length === 0 ? (
+          {(!accesses || accesses.length === 0) ? (
             <div style={{ padding: '30px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', color: '#94a3b8', fontSize: '14px' }}>
               Belum ada hak akses khusus yang diberikan.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {accesses.map(acc => (
+              {(accesses || []).map(acc => (
                 <div key={acc._id} style={{ padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: acc.is_active ? '#fff' : '#f8fafc' }}>
                   <div>
                     <h4 style={{ margin: '0 0 4px 0', fontSize: '15px' }}>{acc.teacher_id?.full_name}</h4>
@@ -263,7 +271,7 @@ const GradeInputPeriodDetail = () => {
                   style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 >
                   <option value="">-- Pilih Guru --</option>
-                  {teachers.map(t => (
+                  {(teachers || []).map(t => (
                     <option key={t._id} value={t._id}>{t.full_name} ({t.nip || '-'})</option>
                   ))}
                 </select>
