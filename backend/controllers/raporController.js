@@ -81,6 +81,8 @@ exports.saveRapor = async (req, res) => {
       teacher_nip,
       place_date,
       semester,
+      competencies,
+      na_grades,
       is_published
     } = req.body;
 
@@ -90,6 +92,8 @@ exports.saveRapor = async (req, res) => {
         student_id: objStudentId,
         class_id: student.class_id,
         semester: semester || 'Genap',
+        competencies: competencies || {},
+        na_grades: na_grades || {},
         extracurriculars,
         attendance,
         note,
@@ -103,9 +107,12 @@ exports.saveRapor = async (req, res) => {
         teacher_name,
         teacher_nip,
         place_date,
-        is_published: is_published !== undefined ? is_published : false
+        is_published: is_published !== undefined ? is_published : false,
+        published_at: is_published ? new Date() : null
       });
     } else {
+      if (competencies !== undefined) rapor.competencies = competencies;
+      if (na_grades !== undefined) rapor.na_grades = na_grades;
       if (extracurriculars !== undefined) rapor.extracurriculars = extracurriculars;
       if (attendance !== undefined) rapor.attendance = attendance;
       if (note !== undefined) rapor.note = note;
@@ -120,7 +127,12 @@ exports.saveRapor = async (req, res) => {
       if (teacher_nip !== undefined) rapor.teacher_nip = teacher_nip;
       if (place_date !== undefined) rapor.place_date = place_date;
       if (semester !== undefined) rapor.semester = semester;
-      if (is_published !== undefined) rapor.is_published = is_published;
+      if (is_published !== undefined) {
+        rapor.is_published = is_published;
+        if (is_published) {
+          rapor.published_at = new Date();
+        }
+      }
     }
 
     const savedRapor = await rapor.save();

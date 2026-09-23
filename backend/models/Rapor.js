@@ -10,7 +10,7 @@ const raporSchema = new mongoose.Schema(
     class_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Class',
-      required: true
+      required: false
     },
     academic_year_id: {
       type: mongoose.Schema.Types.ObjectId,
@@ -20,6 +20,14 @@ const raporSchema = new mongoose.Schema(
     semester: {
       type: String,
       default: 'Genap'
+    },
+    competencies: {
+      type: Object,
+      default: {}
+    },
+    na_grades: {
+      type: Object,
+      default: {}
     },
     extracurriculars: [
       {
@@ -80,6 +88,10 @@ const raporSchema = new mongoose.Schema(
     is_published: {
       type: Boolean,
       default: false
+    },
+    published_at: {
+      type: Date,
+      default: null
     }
   },
   {
@@ -88,3 +100,4 @@ const raporSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model('Rapor', raporSchema);
+

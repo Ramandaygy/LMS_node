@@ -100,7 +100,7 @@ const OrtuReports = () => {
         setParentFeedback('');
       }
 
-      // Assignments
+      // Assignments & subject map
       const assignments = assignRes.data?.data || [];
       const subjectMap = {};
       assignments.forEach(a => {
@@ -122,15 +122,26 @@ const OrtuReports = () => {
         }
       });
 
-      // Combine master subjects and assignment subjects
-      const allSubjectNamesSet = new Set();
-      masterSubjects.forEach(s => {
-        if (s.name) allSubjectNamesSet.add(s.name);
-      });
-      Object.keys(subjectMap).forEach(subj => allSubjectNamesSet.add(subj));
+      // Map master subjects & assignment subjects
+      const allSubjectsList = [];
+      const addedNamesSet = new Set();
 
-      // Fallback default subjects if both are empty
-      if (allSubjectNamesSet.size === 0) {
+      masterSubjects.forEach(s => {
+        if (s.name && !addedNamesSet.has(s.name.toLowerCase().trim())) {
+          addedNamesSet.add(s.name.toLowerCase().trim());
+          allSubjectsList.push(s);
+        }
+      });
+
+      Object.keys(subjectMap).forEach(subjName => {
+        if (subjName && !addedNamesSet.has(subjName.toLowerCase().trim())) {
+          addedNamesSet.add(subjName.toLowerCase().trim());
+          allSubjectsList.push({ name: subjName });
+        }
+      });
+
+      // Fallback default subjects list matching Kurikulum Merdeka if empty
+      if (allSubjectsList.length === 0) {
         [
           'Pendidikan Agama Islam dan Budi Pekerti',
           'Pendidikan Pancasila dan Kewarganegaraan',
@@ -144,23 +155,61 @@ const OrtuReports = () => {
           'Informatika',
           'Bimbingan dan Konseling',
           'Muatan Lokal Bahasa Daerah'
-        ].forEach(s => allSubjectNamesSet.add(s));
+        ].forEach(s => allSubjectsList.push({ name: s }));
       }
 
-      const gradesList = Array.from(allSubjectNamesSet).map(subj => {
-        const data = subjectMap[subj];
-        let calculatedNA = null;
-        if (data && data.count > 0) {
-          calculatedNA = Math.round(data.totalScore / data.count);
+      // Helper function to resolve subject score across all sources
+      const findSubjectScore = (subjectObj, subjectName) => {
+        const sNameLower = (subjectName || '').toLowerCase().trim();
+
+        // 1. Saved na_grades in Rapor
+        if (rData?.na_grades) {
+          if (subjectObj?._id && rData.na_grades[subjectObj._id.toString()] !== undefined) {
+            const val = rData.na_grades[subjectObj._id.toString()];
+            if (typeof val === 'number' && !isNaN(val)) return Math.round(val);
+          }
+          if (rData.na_grades[subjectName] !== undefined) {
+            const val = rData.na_grades[subjectName];
+            if (typeof val === 'number' && !isNaN(val)) return Math.round(val);
+          }
+          for (const [k, v] of Object.entries(rData.na_grades)) {
+            if (k.toLowerCase().trim() === sNameLower && typeof v === 'number' && !isNaN(v)) {
+              return Math.round(v);
+            }
+          }
         }
 
-        const compText = rData?.competencies?.[subj] || generateCapaianKompetensi(calculatedNA, subj);
+        // 2. Progress subject_breakdown
+        const breakdown = progData?.subject_breakdown || progData?.subjectBreakdown || [];
+        if (Array.isArray(breakdown)) {
+          const match = breakdown.find(item => {
+            const itemName = (item.subject_name || item.name || '').toLowerCase().trim();
+            return itemName === sNameLower || (sNameLower.length > 3 && (itemName.includes(sNameLower) || sNameLower.includes(itemName)));
+          });
+          if (match && typeof match.avg_score === 'number' && !isNaN(match.avg_score)) {
+            return Math.round(match.avg_score);
+          }
+        }
+
+        // 3. Assignment map
+        const data = subjectMap[subjectName];
+        if (data && data.count > 0 && typeof data.totalScore === 'number') {
+          return Math.round(data.totalScore / data.count);
+        }
+
+        return null;
+      };
+
+      const gradesList = allSubjectsList.map(subjObj => {
+        const subjName = subjObj.name || 'Mata Pelajaran';
+        const score = findSubjectScore(subjObj, subjName);
+        const compText = rData?.competencies?.[subjName] || (subjObj._id && rData?.competencies?.[subjObj._id]) || generateCapaianKompetensi(score, subjName);
 
         return {
-          subject: subj,
-          na: calculatedNA,
+          subject: subjName,
+          na: score,
           competency: compText,
-          hasScore: calculatedNA !== null
+          hasScore: score !== null
         };
       });
 
@@ -352,7 +401,7 @@ const OrtuReports = () => {
             {/* RAPOR HEADER / KOP */}
             <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>
               <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                RAPOR HASIL BELAJAR SISWA {(!raporData || !raporData.is_published) ? '' : ''}
+                RAPOR HASIL BELAJAR SISWA {(!raporData || !raporData.is_published) ? '(DRAFT)' : ''}
               </h2>
               <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{displaySchoolName}</div>
             </div>

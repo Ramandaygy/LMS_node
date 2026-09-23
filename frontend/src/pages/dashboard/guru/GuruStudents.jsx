@@ -152,6 +152,8 @@ const GuruStudents = () => {
     return `Belum ada nilai akhir yang diinputkan untuk mata pelajaran ${subjectName}.`;
   };
 
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const handleDetailClick = async (student) => {
     setSelectedStudent(student);
 
@@ -166,6 +168,7 @@ const GuruStudents = () => {
 
     setCustomCompetencies(initialComp);
     setCustomPredikats(initialPred);
+    setHasUnsavedChanges(false);
     
     // Fetch persistent Rapor from backend
     try {
@@ -177,6 +180,9 @@ const GuruStudents = () => {
         if (rData.semester) setRaporSemester(rData.semester);
         if (rData.academic_year_id) setRaporAcademicYear(rData.academic_year_id);
         setRaporPhase(rData.phase || 'D');
+        if (rData.competencies && Object.keys(rData.competencies).length > 0) {
+          setCustomCompetencies(rData.competencies);
+        }
         if (rData.extracurriculars && rData.extracurriculars.length > 0) {
           setEkstraList(rData.extracurriculars);
         }
@@ -206,6 +212,8 @@ const GuruStudents = () => {
         school_name: raporSchoolName,
         school_address: raporSchoolAddress,
         semester: raporSemester,
+        competencies: customCompetencies,
+        na_grades: selectedStudent?.na_grades,
         extracurriculars: ekstraList,
         note: homeroomNote,
         kokurikuler_note: kokurikulerNote,
@@ -218,6 +226,7 @@ const GuruStudents = () => {
       };
       const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
       if (res.data.success) {
+        setHasUnsavedChanges(false);
         alert('Rapor siswa berhasil disimpan ke database!');
       }
     } catch (err) {
@@ -226,14 +235,15 @@ const GuruStudents = () => {
     }
   };
 
-  const handleTogglePublishRapor = async () => {
+  const handlePublishRapor = async () => {
     if (!selectedStudent) return;
-    const newStatus = !isRaporPublished;
     try {
       const payload = {
         school_name: raporSchoolName,
         school_address: raporSchoolAddress,
         semester: raporSemester,
+        competencies: customCompetencies,
+        na_grades: selectedStudent?.na_grades,
         extracurriculars: ekstraList,
         note: homeroomNote,
         kokurikuler_note: kokurikulerNote,
@@ -242,16 +252,35 @@ const GuruStudents = () => {
         teacher_name: teacherName,
         teacher_nip: teacherNip,
         place_date: placeDate,
-        is_published: newStatus
+        is_published: true
       };
       const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
       if (res.data.success) {
-        setIsRaporPublished(newStatus);
-        alert(newStatus ? 'Rapor berhasil dibagikan ke Orang Tua!' : 'Rapor berhasil ditarik dari Orang Tua!');
+        setIsRaporPublished(true);
+        setHasUnsavedChanges(false);
+        alert(isRaporPublished ? 'Pembaruan rapor berhasil dibagikan ke Orang Tua!' : 'Rapor berhasil dibagikan ke Orang Tua!');
       }
     } catch (err) {
       console.error(err);
-      alert('Gagal mengubah status publikasi rapor.');
+      alert('Gagal membagikan rapor.');
+    }
+  };
+
+  const handleUnpublishRapor = async () => {
+    if (!selectedStudent) return;
+    if (!window.confirm('Apakah Anda yakin ingin menarik/membatalkan publikasi rapor ini dari orang tua?')) return;
+    try {
+      const payload = {
+        is_published: false
+      };
+      const res = await api.post(`/rapor/student/${selectedStudent._id}`, payload);
+      if (res.data.success) {
+        setIsRaporPublished(false);
+        alert('Rapor berhasil ditarik dari Orang Tua!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menarik rapor.');
     }
   };
 
@@ -260,6 +289,7 @@ const GuruStudents = () => {
       ...prev,
       [subId]: value,
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handlePredikatChange = (subId, value) => {
@@ -267,12 +297,14 @@ const GuruStudents = () => {
       ...prev,
       [subId]: value,
     }));
+    setHasUnsavedChanges(true);
   };
 
   const handleEkstraChange = (idx, field, value) => {
     const updated = [...ekstraList];
     updated[idx][field] = value;
     setEkstraList(updated);
+    setHasUnsavedChanges(true);
   };
 
   const handlePrintRapor = () => {
@@ -584,28 +616,89 @@ const GuruStudents = () => {
                   Format Resmi Rapor Kurikulum Merdeka (Formula: NA = Nilai Rata-rata Sesuai Bobot Pengaturan Sistem)
                 </span>
               </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={handleTogglePublishRapor}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '10px',
-                    background: isRaporPublished ? '#fef2f2' : '#f0fdf4',
-                    color: isRaporPublished ? '#ef4444' : '#16a34a',
-                    border: `1px solid ${isRaporPublished ? '#fca5a5' : '#86efac'}`,
-                    fontWeight: '800',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                    {isRaporPublished ? 'visibility_off' : 'send'}
-                  </span>
-                  {isRaporPublished ? 'Tarik Rapor' : 'Bagikan ke Ortu'}
-                </button>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                {!isRaporPublished ? (
+                  <button
+                    onClick={handlePublishRapor}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>send</span>
+                    Bagikan ke Ortu
+                  </button>
+                ) : hasUnsavedChanges ? (
+                  <button
+                    onClick={handlePublishRapor}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      background: '#16a34a',
+                      color: '#ffffff',
+                      border: 'none',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sync</span>
+                    Update Share Rapor
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    title="Rapor telah dibagikan ke Orang Tua. Tombol akan aktif hijau kembali jika ada perubahan nilai baru."
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '10px',
+                      background: '#f1f5f9',
+                      color: '#64748b',
+                      border: '1px solid #cbd5e1',
+                      fontWeight: '800',
+                      fontSize: '14px',
+                      cursor: 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#16a34a' }}>lock</span>
+                    Sudah Dibagikan
+                  </button>
+                )}
+
+                {isRaporPublished && (
+                  <button
+                    onClick={handleUnpublishRapor}
+                    title="Tarik publikasi rapor dari orang tua"
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      background: '#fef2f2',
+                      color: '#dc2626',
+                      border: '1px solid #fca5a5',
+                      fontWeight: '700',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tarik Rapor
+                  </button>
+                )}
+
                 <button
                   onClick={handleSaveRapor}
                   style={{ padding: '8px 18px', borderRadius: '10px', background: '#0284c7', color: '#fff', border: 'none', fontWeight: '700', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
