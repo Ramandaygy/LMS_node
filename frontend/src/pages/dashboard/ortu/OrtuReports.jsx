@@ -7,6 +7,8 @@ const OrtuReports = () => {
   const [progress, setProgress] = useState(null);
   const [subjectGrades, setSubjectGrades] = useState([]);
   const [raporData, setRaporData] = useState(null);
+  const [systemSettings, setSystemSettings] = useState(null);
+  const [academicYear, setAcademicYear] = useState(null);
   const [loading, setLoading] = useState(true);
   const [parentFeedback, setParentFeedback] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -14,6 +16,21 @@ const OrtuReports = () => {
   const isMulokSubject = (name) => {
     const n = (name || '').toLowerCase();
     return n.includes('muatan lokal') || n.includes('mulok') || n.includes('bahasa jawa') || n.includes('bahasa daerah');
+  };
+
+  const generateCapaianKompetensi = (na, subjectName) => {
+    if (typeof na === 'number' && !isNaN(na)) {
+      if (na >= 88) {
+        return `Sangat baik dalam memahami materi ${subjectName}. Mampu menguasai seluruh indikator Tujuan Pembelajaran (TP) dengan hasil optimal.`;
+      } else if (na >= 78) {
+        return `Menunjukkan penguasaan yang baik dalam memahami konsep dasar ${subjectName}. Perlu sedikit penguatan pada latihan soal mandiri.`;
+      } else if (na >= 75) {
+        return `Cukup menguasai materi ${subjectName}. Memerlukan pendampingan lebih lanjut untuk meningkatkan konsistensi belajar.`;
+      } else {
+        return `Perlu pendampingan dan bimbingan khusus dalam memahami kompetensi dasar ${subjectName}.`;
+      }
+    }
+    return `Belum ada nilai akhir yang diinputkan untuk mata pelajaran ${subjectName}.`;
   };
 
   useEffect(() => {
@@ -42,49 +59,54 @@ const OrtuReports = () => {
     try {
       setLoading(true);
       let newestDate = null;
-      
-      // Fetch progress
-      const progRes = await api.get(`/progress/ortu/children/${childId}`);
-      setProgress(progRes.data.data);
 
-      // Fetch master subjects list so all subjects show up even if grades aren't uploaded yet
-      let masterSubjects = [];
-      try {
-        const subjRes = await api.get('/subjects');
-        masterSubjects = subjRes.data.data || subjRes.data.subjects || subjRes.data || [];
-      } catch (subjErr) {
-        console.warn('Gagal memuat master mata pelajaran, menggunakan data tugas:', subjErr);
-      }
+      // Parallel fetch settings, academic years, progress, master subjects, official rapor, assignments
+      const [settingsRes, ayRes, progRes, subjRes, rapRes, assignRes] = await Promise.all([
+        api.get('/settings').catch(() => ({ data: { data: {} } })),
+        api.get('/academic-years').catch(() => ({ data: [] })),
+        api.get(`/progress/ortu/children/${childId}`).catch(() => ({ data: {} })),
+        api.get('/subjects').catch(() => ({ data: [] })),
+        api.get(`/rapor/student/${childId}`).catch(() => ({ data: { success: false } })),
+        api.get(`/assignments/ortu/children/${childId}`).catch(() => ({ data: { data: [] } }))
+      ]);
 
-      // Fetch official Rapor
-      try {
-        const rapRes = await api.get(`/rapor/student/${childId}`);
-        if (rapRes.data.success && rapRes.data.data) {
-          setRaporData(rapRes.data.data);
-          setParentFeedback(rapRes.data.data.parent_feedback || '');
-          if (rapRes.data.data.updatedAt) {
-            newestDate = new Date(rapRes.data.data.updatedAt);
-          }
-        } else {
-          setRaporData(null);
-          setParentFeedback('');
+      // System settings
+      const settingsObj = settingsRes.data?.data || settingsRes.data || {};
+      setSystemSettings(settingsObj);
+
+      // Active Academic Year
+      const ayList = ayRes.data?.academic_years || ayRes.data?.data || ayRes.data || [];
+      const activeAy = Array.isArray(ayList) ? ayList.find(a => a.is_active) : null;
+      setAcademicYear(activeAy);
+
+      // Progress
+      const progData = progRes.data?.data || progRes.data || null;
+      setProgress(progData);
+
+      // Master Subjects
+      const masterSubjects = subjRes.data?.data || subjRes.data?.subjects || subjRes.data || [];
+
+      // Official Rapor Data
+      let rData = null;
+      if (rapRes.data?.success && rapRes.data?.data) {
+        rData = rapRes.data.data;
+        setRaporData(rData);
+        setParentFeedback(rData.parent_feedback || '');
+        if (rData.updatedAt || rData.updated_at) {
+          newestDate = new Date(rData.updatedAt || rData.updated_at);
         }
-      } catch (rapErr) {
-        console.warn('Rapor resmi tidak ditemukan, menggunakan kalkulasi otomatis:', rapErr);
+      } else {
         setRaporData(null);
         setParentFeedback('');
       }
 
-      // Fetch assignments & grades
-      const assignRes = await api.get(`/assignments/ortu/children/${childId}`);
-      const assignments = assignRes.data.data || [];
-      
-      // Group assignments by subject & track latest date
+      // Assignments
+      const assignments = assignRes.data?.data || [];
       const subjectMap = {};
       assignments.forEach(a => {
         const subj = a.subject_name || a.subject?.name || 'Lainnya';
         if (!subjectMap[subj]) {
-          subjectMap[subj] = { totalScore: 0, count: 0, latestDate: null };
+          subjectMap[subj] = { totalScore: 0, count: 0 };
         }
         if (a.score !== null && a.score !== undefined) {
           subjectMap[subj].totalScore += a.score;
@@ -110,48 +132,36 @@ const OrtuReports = () => {
       // Fallback default subjects if both are empty
       if (allSubjectNamesSet.size === 0) {
         [
-          'Pendidikan Agama Islam', 'Pancasila', 'Bahasa Indonesia', 'Matematika', 
-          'Ilmu Pengetahuan Alam', 'Ilmu Pengetahuan Sosial', 'Bahasa Inggris', 
-          'Pendidikan Jasmani, Olahraga & Kesehatan', 'Informatika', 'Seni Budaya', 'Muatan Lokal Bahasa Daerah'
+          'Pendidikan Agama Islam dan Budi Pekerti',
+          'Pendidikan Pancasila dan Kewarganegaraan',
+          'Bahasa Indonesia',
+          'Bahasa Inggris',
+          'Matematika',
+          'Ilmu Pengetahuan Alam',
+          'Ilmu Pengetahuan Sosial',
+          'Seni Tari',
+          'Pendidikan Jasmani, Olahraga dan Kesehatan',
+          'Informatika',
+          'Bimbingan dan Konseling',
+          'Muatan Lokal Bahasa Daerah'
         ].forEach(s => allSubjectNamesSet.add(s));
       }
 
       const gradesList = Array.from(allSubjectNamesSet).map(subj => {
         const data = subjectMap[subj];
+        let calculatedNA = null;
         if (data && data.count > 0) {
-          const { totalScore, count } = data;
-          const avg = totalScore / count;
-          let gradeLetter = 'E';
-          if (avg >= 85) gradeLetter = 'A';
-          else if (avg >= 70) gradeLetter = 'B';
-          else if (avg >= 55) gradeLetter = 'C';
-          else if (avg >= 40) gradeLetter = 'D';
-
-          let desc = 'Sangat Baik';
-          if (gradeLetter === 'B') desc = 'Baik';
-          else if (gradeLetter === 'C') desc = 'Cukup';
-          else if (gradeLetter === 'D') desc = 'Kurang';
-          else if (gradeLetter === 'E') desc = 'Sangat Kurang';
-
-          return {
-            subject: subj,
-            taskCount: count,
-            average: avg,
-            gradeLetter,
-            description: desc,
-            hasScore: true
-          };
-        } else {
-          // Empty / Pending Grade from Teacher
-          return {
-            subject: subj,
-            taskCount: 0,
-            average: null,
-            gradeLetter: '-',
-            description: 'Menunggu upload nilai dari guru',
-            hasScore: false
-          };
+          calculatedNA = Math.round(data.totalScore / data.count);
         }
+
+        const compText = rData?.competencies?.[subj] || generateCapaianKompetensi(calculatedNA, subj);
+
+        return {
+          subject: subj,
+          na: calculatedNA,
+          competency: compText,
+          hasScore: calculatedNA !== null
+        };
       });
 
       setSubjectGrades(gradesList);
@@ -202,7 +212,8 @@ const OrtuReports = () => {
       return d.toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'long',
-        year: 'numeric',
+        year: 'numeric'
+      }) + ' pukul ' + d.toLocaleTimeString('id-ID', {
         hour: '2-digit',
         minute: '2-digit'
       }) + ' WIB';
@@ -210,6 +221,19 @@ const OrtuReports = () => {
       return '-';
     }
   };
+
+  // Dynamic values priority: Official Rapor Data > Dynamic System Settings / Academic Year > Fallbacks
+  const displaySchoolName = raporData?.school_name || systemSettings?.school_name || 'SMP NEGERI 1 SURADADI';
+  const displaySchoolAddress = raporData?.school_address || systemSettings?.school_address || 'Jl. Raya Purwahamba No. 76, Suradadi, Kab. Tegal 52182';
+  const displaySemester = raporData?.semester || academicYear?.semester || progress?.semester || '2 (Genap)';
+  const displayAcademicYear = raporData?.academic_year_id || academicYear?.name || progress?.academic_year || '2025/2026';
+  const displayPhase = raporData?.phase || 'D';
+  const displayHeadmasterName = raporData?.headmaster_name || systemSettings?.headmaster_name || 'Drs. H. Ahmad Sudrajat, M.Pd';
+  const displayHeadmasterNip = raporData?.headmaster_nip || systemSettings?.headmaster_nip || '19680315 199403 1 005';
+  const displayTeacherName = raporData?.teacher_name || selectedChild?.teacher_name || 'Wali Kelas';
+  const displayTeacherNip = raporData?.teacher_nip || selectedChild?.teacher_nip || '';
+  const displayPlaceDate = raporData?.place_date || (systemSettings?.signature_date ? `Tegal, ${systemSettings.signature_date}` : 'Tegal, 19 Juni 2026');
+  const displayNisn = selectedChild?.nisn || raporData?.student_id?.nisn || '-';
 
   return (
     <div className="ortu-reports-container" style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'Inter, sans-serif', width: '100%', boxSizing: 'border-box' }}>
@@ -278,14 +302,15 @@ const OrtuReports = () => {
         `}
       </style>
 
+      {/* HEADER ACTION BAR & SINGLE CLEAN LAST DATE UPDATE BADGE */}
       <div className="no-print header-action-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h2 style={{ fontSize: '28px', color: '#0f172a', fontWeight: 'bold', margin: '0 0 8px 0' }}>Laporan Akademik</h2>
           <p style={{ margin: 0, color: '#64748b' }}>Lihat dan cetak laporan hasil belajar anak Anda</p>
           {lastUpdated && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#0369a1', background: '#e0f2fe', padding: '4px 10px', borderRadius: '16px', marginTop: '8px', fontWeight: '500' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>update</span>
-              <span>Terakhir diperbarui: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#0369a1', background: '#e0f2fe', border: '1px solid #bae6fd', padding: '6px 14px', borderRadius: '20px', marginTop: '10px', fontWeight: '600' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '17px', color: '#0284c7' }}>schedule</span>
+              <span>Terakhir Diperbarui: <strong>{formatLastUpdated(lastUpdated)}</strong></span>
             </div>
           )}
         </div>
@@ -324,412 +349,333 @@ const OrtuReports = () => {
           {/* PRINTABLE AREA */}
           <div className="print-area" style={{ background: 'white', padding: '28px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', boxSizing: 'border-box' }}>
             
-            {raporData && raporData.is_published ? (
-              // OFFICIAL RAPOR FROM HOMEROOM TEACHER
-              <div>
-                {/* RAPOR HEADER / KOP */}
-                <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>
-                  <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>
-                    RAPOR Hasil Belajar SISWA
-                  </h2>
-                  <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{raporData.school_name || 'SMP NEGERI 1 SURADADI'}</div>
-                  {lastUpdated && (
-                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '6px' }}>
-                      Status Data: Terakhir diperbarui pada {formatLastUpdated(lastUpdated)}
-                    </div>
-                  )}
-                </div>
+            {/* RAPOR HEADER / KOP */}
+            <div style={{ textAlign: 'center', marginBottom: '24px', borderBottom: '3px double #000', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                RAPOR HASIL BELAJAR SISWA {(!raporData || !raporData.is_published) ? '' : ''}
+              </h2>
+              <div style={{ fontSize: '14px', fontWeight: '700', marginTop: '4px' }}>{displaySchoolName}</div>
+            </div>
 
-                {/* IDENTITY HEADER GRID */}
-                <div className="identity-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '13px', marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                  <div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <tbody>
-                        <tr><td style={{ width: '120px', padding: '3px 0' }}>Nama Sekolah</td><td>: {raporData.school_name || 'SMP NEGERI 1 SURADADI'}</td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>Alamat</td><td>: {raporData.school_address || 'Jl. Raya Purwahamba No. 76, Suradadi, Kab. Tegal 52182'}</td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>Nama Siswa</td><td>: <strong>{selectedChild?.full_name}</strong></td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>NIS / NISN</td><td>: {selectedChild?.nis || '-'} / {raporData.student_id?.nisn || '-'}</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                  <div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <tbody>
-                        <tr><td style={{ width: '120px', padding: '3px 0' }}>Kelas</td><td>: <strong>{selectedChild?.class_name || '-'}</strong></td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>Fase</td><td>: {raporData.phase || 'D'}</td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>Semester</td><td>: {raporData.semester || '2 (Genap)'}</td></tr>
-                        <tr><td style={{ padding: '3px 0' }}>Tahun Pelajaran</td><td>: {progress?.academic_year || '2025/2026'}</td></tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* SECTION 1: LAPORAN HASIL BELAJAR (AKADEMIK) */}
-                <h3 style={{ fontSize: '15px', fontWeight: '800', marginBottom: '10px', textTransform: 'uppercase', textAlign: 'center' }}>
-                  LAPORAN HASIL BELAJAR
-                </h3>
-
-                {/* Mata Pelajaran Wajib Table */}
-                <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>MATA PELAJARAN WAJIB</h4>
-                <div className="report-table-wrapper">
-                  <table style={{ border: '1px solid #000' }}>
-                    <thead>
-                      <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px' }}>Nilai Akhir (NA)</th>
-                        <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subjectGrades.filter(sg => !isMulokSubject(sg.subject)).length > 0 ? (
-                        subjectGrades.filter(sg => !isMulokSubject(sg.subject)).map((sg, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sg.subject}</td>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: sg.hasScore ? '800' : 'normal', color: sg.hasScore ? '#000' : '#94a3b8' }}>
-                              {sg.hasScore ? Math.round(sg.average) : '-'}
-                            </td>
-                            <td style={{ padding: '8px', fontSize: '11px', lineHeight: '1.4' }}>
-                              {sg.hasScore 
-                                ? (raporData.competencies?.[sg.subject] || `Mencapai Kompetensi dengan sangat baik dalam materi ajar ${sg.subject}.`)
-                                : <span style={{ color: '#64748b', fontStyle: 'italic' }}>Belum ada nilai yang diunggah oleh guru mata pelajaran.</span>}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>Belum ada data nilai pelajaran wajib.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Muatan Lokal Table */}
-                <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>MUATAN LOKAL</h4>
-                <div className="report-table-wrapper">
-                  <table style={{ border: '1px solid #000' }}>
-                    <thead>
-                      <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
-                        <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px' }}>Nilai Akhir (NA)</th>
-                        <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subjectGrades.filter(sg => isMulokSubject(sg.subject)).length > 0 ? (
-                        subjectGrades.filter(sg => isMulokSubject(sg.subject)).map((sg, idx) => (
-                          <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sg.subject}</td>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: sg.hasScore ? '800' : 'normal', color: sg.hasScore ? '#000' : '#94a3b8' }}>
-                              {sg.hasScore ? Math.round(sg.average) : '-'}
-                            </td>
-                            <td style={{ padding: '8px', fontSize: '11px', lineHeight: '1.4' }}>
-                              {sg.hasScore 
-                                ? (raporData.competencies?.[sg.subject] || `Mencapai Kompetensi dengan sangat baik dalam materi ajar ${sg.subject}.`)
-                                : <span style={{ color: '#64748b', fontStyle: 'italic' }}>Belum ada nilai yang diunggah oleh guru mata pelajaran.</span>}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr style={{ borderBottom: '1px solid #000' }}>
-                          <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>Muatan Lokal Bahasa Daerah</td>
-                          <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', color: '#94a3b8' }}>-</td>
-                          <td style={{ padding: '8px', fontStyle: 'italic', color: '#64748b', fontSize: '11px' }}>
-                            Belum ada nilai yang diunggah oleh guru mata pelajaran.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* KOKURIKULER / P5 SECTION */}
-                <div style={{ marginBottom: '24px' }}>
-                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>KOKURIKULER (PROJEK P5)</h4>
-                  <div style={{ padding: '12px', border: '1px solid #000', fontSize: '11px', lineHeight: '1.5', background: '#fafafa' }}>
-                    {raporData.kokurikuler_note || 'Pada semester ini, ananda menunjukkan capaian yang cukup baik dalam pelaksanaan projek kokurikuler Penguatan Profil Pelajar Pancasila.'}
-                  </div>
-                </div>
-
-                {/* SECTION 2: EKSTRAKURIKULER, KEHADIRAN & CATATAN WALI KELAS */}
-                <div style={{ marginTop: '20px' }}>
-                  {/* Table Ekstrakurikuler */}
-                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>EKSTRAKURIKULER</h4>
-                  <div className="report-table-wrapper">
-                    <table style={{ border: '1px solid #000' }}>
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000' }}>
-                          <th style={{ padding: '8px', borderRight: '1px solid #000', width: '40px', textAlign: 'center' }}>No</th>
-                          <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Kegiatan Ekstrakurikuler</th>
-                          <th style={{ padding: '8px', textAlign: 'left' }}>Keterangan</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {raporData.extracurriculars && raporData.extracurriculars.length > 0 ? (
-                          raporData.extracurriculars.map((ex, idx) => (
-                            <tr key={idx} style={{ borderBottom: idx < raporData.extracurriculars.length - 1 ? '1px solid #000' : 'none' }}>
-                              <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
-                              <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>{ex.name}</td>
-                              <td style={{ padding: '8px' }}>{ex.note || ex.keterangan || '-'}</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>Pramuka Putra</td>
-                            <td style={{ padding: '8px' }}>Memiliki kedisiplinan tinggi, aktif, dan mau bekerja sama dalam berbagai kegiatan lapangan.</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Table Kehadiran & Catatan Wali Kelas */}
-                  <div className="identity-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                    <div>
-                      <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>KETIDAKHADIRAN</h4>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', border: '1px solid #000' }}>
-                        <thead>
-                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
-                            <th style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'left' }}>Keadaan</th>
-                            <th style={{ padding: '8px', textAlign: 'center' }}>Lamanya</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr style={{ borderBottom: '1px solid #000' }}>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Sakit</td>
-                            <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData.attendance?.sick || 0} hari</td>
-                          </tr>
-                          <tr style={{ borderBottom: '1px solid #000' }}>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Izin</td>
-                            <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData.attendance?.permit || 0} hari</td>
-                          </tr>
-                          <tr>
-                            <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Tanpa Keterangan</td>
-                            <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData.attendance?.absent || 0} hari</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div>
-                      <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>CATATAN WALI KELAS</h4>
-                      <div style={{
-                        width: '100%',
-                        border: '1px dashed #000',
-                        padding: '10px',
-                        fontSize: '12px',
-                        lineHeight: '1.5',
-                        fontStyle: 'italic',
-                        background: '#fafafa',
-                        borderRadius: '4px',
-                        boxSizing: 'border-box'
-                      }}>
-                        {raporData.note || 'Ananda memiliki perkembangan belajar yang baik.'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PARENT FEEDBACK SECTION (TANGGAPAN ORANG TUA) */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>forum</span>
-                      TANGGAPAN ORANG TUA / WALI MURID
-                    </h4>
-                    <div style={{ border: '1px solid #bbf7d0', padding: '12px', background: '#f0fdf4', borderRadius: '8px' }}>
-                      {/* For Editing */}
-                      <div className="no-print">
-                        <textarea
-                          rows={3}
-                          placeholder="Masukkan tanggapan Anda sebagai orang tua di sini..."
-                          value={parentFeedback}
-                          onChange={(e) => setParentFeedback(e.target.value)}
-                          style={{
-                            width: '100%',
-                            border: '1px dashed #4ade80',
-                            padding: '8px',
-                            fontSize: '12px',
-                            fontFamily: 'inherit',
-                            outline: 'none',
-                            boxSizing: 'border-box',
-                            marginBottom: '8px',
-                            background: '#fff'
-                          }}
-                        />
-                        <button
-                          onClick={handleSaveParentFeedback}
-                          style={{
-                            background: '#16a34a',
-                            color: 'white',
-                            border: 'none',
-                            padding: '6px 12px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: '700',
-                            cursor: 'pointer',
-                            marginBottom: '8px'
-                          }}
-                        >
-                          Simpan Tanggapan
-                        </button>
-                      </div>
-                      
-                      {/* For Print / Read Only View */}
-                      <div style={{ padding: '8px', fontStyle: 'italic', fontSize: '12px', color: '#14532d' }}>
-                        {raporData.parent_feedback ? `"${raporData.parent_feedback}"` : "Belum ada tanggapan yang disimpan."}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* SIGNATURE BLOCK */}
-                  <div className="signature-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center', fontSize: '12px', marginTop: '36px' }}>
-                    <div>
-                      <div>Mengetahui,</div>
-                      <div>Orang Tua / Wali</div>
-                      <div style={{ height: '60px' }}></div>
-                      <div style={{ fontWeight: '700', textDecoration: 'underline' }}>( {raporData.parent_feedback ? 'Orang Tua Siswa' : '....................................'} )</div>
-                    </div>
-
-                    <div>
-                      <div>{raporData.place_date || 'Tegal, 19 Juni 2026'}</div>
-                      <div>Wali Kelas</div>
-                      <div style={{ height: '50px' }}></div>
-                      <div style={{ fontWeight: '700', textDecoration: 'underline' }}>{raporData.teacher_name || 'Wali Kelas'}</div>
-                      <div>{raporData.teacher_nip || ''}</div>
-                    </div>
-
-                    <div>
-                      <div>Mengetahui,</div>
-                      <div>Kepala Sekolah</div>
-                      <div style={{ height: '50px' }}></div>
-                      <div style={{ fontWeight: '700', textDecoration: 'underline' }}>{raporData.headmaster_name || 'Kepala Sekolah'}</div>
-                      <div>{raporData.headmaster_nip || ''}</div>
-                    </div>
-                  </div>
-                </div>
+            {(!raporData || !raporData.is_published) && (
+              <div style={{ textAlign: 'center', marginBottom: '24px', padding: '14px 20px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '28px', color: '#d97706', marginBottom: '4px' }}>warning</span>
+                <h3 style={{ margin: '0 0 4px 0', color: '#92400e', fontSize: '16px' }}>Rapor Resmi Belum Dibagikan</h3>
+                <p style={{ margin: 0, color: '#b45309', fontSize: '13px', lineHeight: '1.4' }}>
+                  Wali Kelas belum mempublikasikan rapor resmi untuk semester ini. Laporan di bawah ini adalah rekapan nilai sementara dari sistem.
+                </p>
               </div>
-            ) : (
-              // UNOFFICIAL / AUTO CALCULATED PREVIEW OR WARNING
+            )}
+
+            {/* IDENTITY HEADER GRID */}
+            <div className="identity-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', fontSize: '13px', marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
               <div>
-                <div style={{ textAlign: 'center', marginBottom: '24px', padding: '16px 20px', background: '#fffbeb', borderRadius: '12px', border: '1px solid #fde68a' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px', color: '#d97706', marginBottom: '6px' }}>warning</span>
-                  <h3 style={{ margin: '0 0 6px 0', color: '#92400e', fontSize: '18px' }}>Rapor Resmi Belum Dibagikan</h3>
-                  <p style={{ margin: 0, color: '#b45309', fontSize: '13px', lineHeight: '1.4' }}>
-                    Wali Kelas belum mempublikasikan rapor resmi untuk semester ini. Laporan di bawah ini adalah rekapan nilai otomatis dari sistem.
-                  </p>
-                </div>
-                
-                <div className="print-header" style={{ marginBottom: '24px', textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '16px' }}>
-                  <h1 style={{ fontSize: '22px', margin: '0 0 10px 0', color: '#0f172a', textTransform: 'uppercase', lineHeight: '1.3' }}>Laporan Hasil Belajar Siswa (Draft)</h1>
-                  
-                  <div className="identity-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '16px', textAlign: 'left', fontSize: '13px', color: '#334155' }}>
-                    <div>
-                      <p style={{ margin: '4px 0' }}><strong>Nama Siswa:</strong> {selectedChild?.full_name}</p>
-                      <p style={{ margin: '4px 0' }}><strong>NIS:</strong> {selectedChild?.nis || '-'}</p>
-                    </div>
-                    <div>
-                      <p style={{ margin: '4px 0' }}><strong>Kelas:</strong> {selectedChild?.class_name || '-'}</p>
-                      <p style={{ margin: '4px 0' }}><strong>Tanggal Dicetak:</strong> {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                      {lastUpdated && (
-                        <p style={{ margin: '4px 0', color: '#0369a1' }}>
-                          <strong>Terakhir Diperbarui:</strong> {formatLastUpdated(lastUpdated)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr><td style={{ width: '130px', padding: '3px 0' }}>Nama Sekolah</td><td>: {displaySchoolName}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Alamat</td><td>: {displaySchoolAddress}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Nama Siswa</td><td>: <strong>{selectedChild?.full_name}</strong></td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>NIS / NISN</td><td>: {selectedChild?.nis || '-'} / {displayNisn}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr><td style={{ width: '130px', padding: '3px 0' }}>Kelas</td><td>: <strong>{selectedChild?.class_name || '-'}</strong></td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Fase</td><td>: {displayPhase}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Semester</td><td>: {displaySemester}</td></tr>
+                    <tr><td style={{ padding: '3px 0' }}>Tahun Pelajaran</td><td>: {displayAcademicYear}</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                {progress && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '700' }}>A. Ringkasan Akademik</h3>
-                    <div className="summary-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', textAlign: 'center' }}>
-                      <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Rata-rata Keseluruhan</div>
-                        <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2563eb', marginTop: '6px' }}>{progress.avgScore?.toFixed(1) || 0}</div>
-                      </div>
-                      <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Kehadiran</div>
-                        <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginTop: '6px' }}>{progress.attendanceRate?.toFixed(1) || 100}%</div>
-                      </div>
-                      <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Penyelesaian Materi</div>
-                        <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#9333ea', marginTop: '6px' }}>{progress.materialCompletionRate?.toFixed(1) || 0}%</div>
-                      </div>
-                      <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Status Risiko</div>
-                        <div style={{ fontSize: '15px', fontWeight: 'bold', color: progress.risk === 'High' ? '#dc2626' : progress.risk === 'Medium' ? '#d97706' : '#16a34a', marginTop: '10px' }}>
-                          {progress.risk === 'Low' ? 'Aman' : progress.risk === 'Medium' ? 'Perlu Perhatian' : 'Kritis'}
-                        </div>
-                      </div>
+            {/* SECTION A: RINGKASAN AKADEMIK */}
+            {progress && (
+              <div style={{ marginBottom: '28px' }}>
+                <h3 style={{ borderBottom: '2px solid #cbd5e1', paddingBottom: '6px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '800' }}>
+                  A. Ringkasan Akademik
+                </h3>
+                <div className="summary-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px', textAlign: 'center' }}>
+                  <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Rata-rata Keseluruhan</div>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#2563eb', marginTop: '6px' }}>{progress.avgScore?.toFixed(1) || 0}</div>
+                  </div>
+                  <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Kehadiran</div>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#16a34a', marginTop: '6px' }}>{progress.attendanceRate?.toFixed(1) || 100}%</div>
+                  </div>
+                  <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Penyelesaian Materi</div>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold', color: '#9333ea', marginTop: '6px' }}>{progress.materialCompletionRate?.toFixed(1) || 0}%</div>
+                  </div>
+                  <div style={{ padding: '14px 10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold' }}>Status Risiko</div>
+                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: progress.risk === 'High' ? '#dc2626' : progress.risk === 'Medium' ? '#d97706' : '#16a34a', marginTop: '10px' }}>
+                      {progress.risk === 'Low' ? 'Aman' : progress.risk === 'Medium' ? 'Perlu Perhatian' : 'Kritis'}
                     </div>
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '700' }}>B. Nilai Mata Pelajaran</h3>
-                  
-                  <div className="report-table-wrapper">
-                    <table>
-                      <thead>
-                        <tr style={{ background: '#f1f5f9', color: '#334155' }}>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', width: '45px' }}>No</th>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'left', minWidth: '160px' }}>Mata Pelajaran</th>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', width: '100px' }}>Tugas Terkumpul</th>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', width: '110px' }}>Rata-rata Nilai</th>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', width: '80px' }}>Predikat</th>
-                          <th style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'left' }}>Keterangan</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {subjectGrades.map((sg, idx) => (
-                          <tr key={idx} style={{ background: sg.hasScore ? '#ffffff' : '#fafafa' }}>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center' }}>{idx + 1}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px', fontWeight: sg.hasScore ? '600' : 'normal' }}>{sg.subject}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center' }}>{sg.taskCount}</td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', fontWeight: 'bold', color: sg.hasScore ? '#0f172a' : '#94a3b8' }}>
-                              {sg.hasScore ? sg.average.toFixed(1) : '-'}
-                            </td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px', textAlign: 'center', fontWeight: 'bold', color: sg.hasScore ? '#2563eb' : '#94a3b8' }}>
-                              {sg.gradeLetter}
-                            </td>
-                            <td style={{ border: '1px solid #cbd5e1', padding: '10px' }}>
-                              {sg.hasScore ? (
-                                sg.description
-                              ) : (
-                                <span style={{ color: '#64748b', fontStyle: 'italic', fontSize: '13px' }}>
-                                  Menunggu upload nilai dari guru
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {progress?.message && (
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '700' }}>C. Catatan Sistem</h3>
-                    <div style={{ padding: '14px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', lineHeight: '1.5', fontSize: '14px' }}>
-                      {progress.message}
-                    </div>
-                  </div>
-                )}
-                
-                <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'flex-end', paddingRight: '20px' }}>
-                  <div style={{ textAlign: 'center', width: '200px' }}>
-                    <p style={{ marginBottom: '70px', fontSize: '14px' }}>Mengetahui,</p>
-                    <p style={{ borderTop: '1px solid #000', paddingTop: '8px', fontSize: '14px' }}><strong>Orang Tua / Wali</strong></p>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* SECTION B: LAPORAN HASIL BELAJAR (AKADEMIK) */}
+            <h3 style={{ borderBottom: '2px solid #cbd5e1', paddingBottom: '6px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '800' }}>
+              B. Laporan Hasil Belajar
+            </h3>
+
+            {/* Mata Pelajaran Wajib Table */}
+            <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>MATA PELAJARAN WAJIB</h4>
+            <div className="report-table-wrapper">
+              <table style={{ border: '1px solid #000' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px' }}>Nilai Akhir (NA)</th>
+                    <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectGrades.filter(sg => !isMulokSubject(sg.subject)).length > 0 ? (
+                    subjectGrades.filter(sg => !isMulokSubject(sg.subject)).map((sg, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #000', background: sg.hasScore ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sg.subject}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: sg.hasScore ? '800' : 'normal', color: sg.hasScore ? '#000' : '#64748b' }}>
+                          {sg.hasScore ? sg.na : '-'}
+                        </td>
+                        <td style={{ padding: '8px', fontSize: '11px', lineHeight: '1.4', color: sg.hasScore ? '#0f172a' : '#475569' }}>
+                          {sg.competency}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: '#64748b' }}>Belum ada data nilai pelajaran wajib.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Muatan Lokal Table */}
+            <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>MUATAN LOKAL</h4>
+            <div className="report-table-wrapper">
+              <table style={{ border: '1px solid #000' }}>
+                <thead>
+                  <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000', textAlign: 'center' }}>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '35px' }}>No</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Mata Pelajaran</th>
+                    <th style={{ padding: '8px', borderRight: '1px solid #000', width: '110px' }}>Nilai Akhir (NA)</th>
+                    <th style={{ padding: '8px', textAlign: 'left' }}>Capaian Kompetensi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {subjectGrades.filter(sg => isMulokSubject(sg.subject)).length > 0 ? (
+                    subjectGrades.filter(sg => isMulokSubject(sg.subject)).map((sg, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #000', background: sg.hasScore ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>{sg.subject}</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', fontWeight: sg.hasScore ? '800' : 'normal', color: sg.hasScore ? '#000' : '#64748b' }}>
+                          {sg.hasScore ? sg.na : '-'}
+                        </td>
+                        <td style={{ padding: '8px', fontSize: '11px', lineHeight: '1.4', color: sg.hasScore ? '#0f172a' : '#475569' }}>
+                          {sg.competency}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr style={{ borderBottom: '1px solid #000' }}>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '700' }}>Muatan Lokal Bahasa Daerah</td>
+                      <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center', color: '#64748b' }}>-</td>
+                      <td style={{ padding: '8px', color: '#475569', fontSize: '11px' }}>
+                        Belum ada nilai akhir yang diinputkan untuk mata pelajaran Muatan Lokal Bahasa Daerah.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* KOKURIKULER / P5 SECTION */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>KOKURIKULER (PROJEK P5)</h4>
+              <div style={{ padding: '12px', border: '1px solid #000', fontSize: '11px', lineHeight: '1.5', background: '#fafafa' }}>
+                {raporData?.kokurikuler_note || 'Pada semester ini, ananda menunjukkan capaian yang cukup baik dalam pelaksanaan projek kokurikuler Penguatan Profil Pelajar Pancasila.'}
+              </div>
+            </div>
+
+            {/* SECTION 2: EKSTRAKURIKULER, KEHADIRAN & CATATAN WALI KELAS */}
+            <div style={{ marginTop: '20px' }}>
+              {/* Table Ekstrakurikuler */}
+              <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>EKSTRAKURIKULER</h4>
+              <div className="report-table-wrapper">
+                <table style={{ border: '1px solid #000' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #000' }}>
+                      <th style={{ padding: '8px', borderRight: '1px solid #000', width: '40px', textAlign: 'center' }}>No</th>
+                      <th style={{ padding: '8px', borderRight: '1px solid #000', width: '220px', textAlign: 'left' }}>Kegiatan Ekstrakurikuler</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>Keterangan</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {raporData?.extracurriculars && raporData.extracurriculars.length > 0 ? (
+                      raporData.extracurriculars.map((ex, idx) => (
+                        <tr key={idx} style={{ borderBottom: idx < raporData.extracurriculars.length - 1 ? '1px solid #000' : 'none' }}>
+                          <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>{idx + 1}</td>
+                          <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>{ex.name}</td>
+                          <td style={{ padding: '8px' }}>{ex.note || ex.keterangan || '-'}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'center' }}>1</td>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000', fontWeight: '600' }}>Pramuka Putra</td>
+                        <td style={{ padding: '8px' }}>Memiliki kedisiplinan tinggi, aktif, dan mau bekerja sama dalam berbagai kegiatan lapangan.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Table Kehadiran & Catatan Wali Kelas */}
+              <div className="identity-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>KETIDAKHADIRAN</h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', border: '1px solid #000' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
+                        <th style={{ padding: '8px', borderRight: '1px solid #000', textAlign: 'left' }}>Keadaan</th>
+                        <th style={{ padding: '8px', textAlign: 'center' }}>Lamanya</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #000' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Sakit</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData?.attendance?.sick || 0} hari</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #000' }}>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Izin</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData?.attendance?.permit || 0} hari</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '8px', borderRight: '1px solid #000' }}>Tanpa Keterangan</td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '700' }}>{raporData?.attendance?.absent || 0} hari</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', textTransform: 'uppercase' }}>CATATAN WALI KELAS</h4>
+                  <div style={{
+                    width: '100%',
+                    border: '1px dashed #000',
+                    padding: '10px',
+                    fontSize: '12px',
+                    lineHeight: '1.5',
+                    fontStyle: 'italic',
+                    background: '#fafafa',
+                    borderRadius: '4px',
+                    boxSizing: 'border-box'
+                  }}>
+                    {raporData?.note || 'Ananda memiliki perkembangan belajar yang baik.'}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION C: CATATAN SISTEM */}
+              {progress?.message && (
+                <div style={{ marginBottom: '24px' }}>
+                  <h3 style={{ borderBottom: '2px solid #cbd5e1', paddingBottom: '6px', marginBottom: '14px', color: '#0f172a', fontSize: '16px', fontWeight: '800' }}>
+                    C. Catatan Sistem
+                  </h3>
+                  <div style={{ padding: '14px 16px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1', color: '#334155', lineHeight: '1.5', fontSize: '13px' }}>
+                    {progress.message}
+                  </div>
+                </div>
+              )}
+
+              {/* PARENT FEEDBACK SECTION (TANGGAPAN ORANG TUA) */}
+              <div style={{ marginBottom: '24px' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '800', marginBottom: '8px', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>forum</span>
+                  TANGGAPAN ORANG TUA / WALI MURID
+                </h4>
+                <div style={{ border: '1px solid #bbf7d0', padding: '12px', background: '#f0fdf4', borderRadius: '8px' }}>
+                  {/* For Editing */}
+                  <div className="no-print">
+                    <textarea
+                      rows={3}
+                      placeholder="Masukkan tanggapan Anda sebagai orang tua di sini..."
+                      value={parentFeedback}
+                      onChange={(e) => setParentFeedback(e.target.value)}
+                      style={{
+                        width: '100%',
+                        border: '1px dashed #4ade80',
+                        padding: '8px',
+                        fontSize: '12px',
+                        fontFamily: 'inherit',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        marginBottom: '8px',
+                        background: '#fff'
+                      }}
+                    />
+                    <button
+                      onClick={handleSaveParentFeedback}
+                      style={{
+                        background: '#16a34a',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        marginBottom: '8px'
+                      }}
+                    >
+                      Simpan Tanggapan
+                    </button>
+                  </div>
+                  
+                  {/* For Print / Read Only View */}
+                  <div style={{ padding: '8px', fontStyle: 'italic', fontSize: '12px', color: '#14532d' }}>
+                    {raporData?.parent_feedback ? `"${raporData.parent_feedback}"` : "Belum ada tanggapan yang disimpan."}
+                  </div>
+                </div>
+              </div>
+
+              {/* SIGNATURE BLOCK */}
+              <div className="signature-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', textAlign: 'center', fontSize: '12px', marginTop: '36px' }}>
+                <div>
+                  <div>Mengetahui,</div>
+                  <div>Orang Tua / Wali</div>
+                  <div style={{ height: '60px' }}></div>
+                  <div style={{ fontWeight: '700', textDecoration: 'underline' }}>( {raporData?.parent_feedback ? 'Orang Tua Siswa' : '....................................'} )</div>
+                </div>
+
+                <div>
+                  <div>{displayPlaceDate}</div>
+                  <div>Wali Kelas</div>
+                  <div style={{ height: '50px' }}></div>
+                  <div style={{ fontWeight: '700', textDecoration: 'underline' }}>{displayTeacherName}</div>
+                  <div>{displayTeacherNip}</div>
+                </div>
+
+                <div>
+                  <div>Mengetahui,</div>
+                  <div>Kepala Sekolah</div>
+                  <div style={{ height: '50px' }}></div>
+                  <div style={{ fontWeight: '700', textDecoration: 'underline' }}>{displayHeadmasterName}</div>
+                  <div>{displayHeadmasterNip}</div>
+                </div>
+              </div>
+            </div>
 
           </div>
         </>
@@ -739,4 +685,3 @@ const OrtuReports = () => {
 };
 
 export default OrtuReports;
-
