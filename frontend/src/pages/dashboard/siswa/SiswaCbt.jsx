@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../services/api';
 import '../../../styles/dashboard/siswa/siswa-cbt.css';
+import MatchingQuestionConnector from '../../../components/Cbt/MatchingQuestionConnector';
 
 const SiswaCbt = () => {
   const [activeMainTab, setActiveMainTab] = useState('active_exams'); // 'active_exams' | 'history'
@@ -499,96 +500,12 @@ const SiswaCbt = () => {
                 </button>
               </div>
             ) : (currentQ?.type === 'matching' || currentQ?.type === 'menjodohkan') ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0f9ff', padding: '10px 14px', borderRadius: '10px', border: '1px solid #bae6fd', color: '#0369a1', fontSize: '13px', fontWeight: '700' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>touch_app</span>
-                  <span>Klik pada pilihan jawaban untuk memasangkannya dengan pertanyaan/premis di sebelah kiri:</span>
-                </div>
-
-                {(() => {
-                  const rawPairs = currentQ.matching_pairs || [];
-                  const normalizedPairs = rawPairs.map(p => ({
-                    left: p.premise || p.left || '',
-                    right: p.answer || p.right || ''
-                  }));
-                  const allRightOptions = Array.from(new Set(normalizedPairs.map(p => p.right))).filter(Boolean).sort();
-
-                  return normalizedPairs.map((pair, pIdx) => {
-                    const selectedRight = (currentAns.matched_pairs || []).find(p => p.left === pair.left)?.right || '';
-
-                    return (
-                      <div
-                        key={pIdx}
-                        style={{
-                          background: selectedRight ? '#f0f9ff' : '#ffffff',
-                          borderRadius: '14px',
-                          border: selectedRight ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                          padding: '16px',
-                          boxShadow: selectedRight ? '0 4px 12px rgba(2, 132, 199, 0.1)' : '0 2px 4px rgba(0,0,0,0.02)',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{
-                              background: selectedRight ? '#0284c7' : '#e2e8f0',
-                              color: selectedRight ? '#ffffff' : '#475569',
-                              borderRadius: '8px',
-                              padding: '4px 10px',
-                              fontSize: '12px',
-                              fontWeight: '900'
-                            }}>
-                              Item #{pIdx + 1}
-                            </span>
-                            <span style={{ fontSize: '15px', fontWeight: '800', color: '#0f172a' }}>{pair.left}</span>
-                          </div>
-
-                          {selectedRight ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: '800', background: '#e0f2fe', color: '#0369a1', padding: '4px 10px', borderRadius: '20px' }}>
-                              <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>link</span>
-                              Terpasang
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Belum dipasangkan</span>
-                          )}
-                        </div>
-
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', paddingTop: '4px' }}>
-                          {allRightOptions.map((opt, oIdx) => {
-                            const isSelected = selectedRight === opt;
-                            return (
-                              <button
-                                key={oIdx}
-                                type="button"
-                                onClick={() => handleSelectMatchingOption(currentQuestionIdx, pair.left, isSelected ? '' : opt)}
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '8px 14px',
-                                  borderRadius: '10px',
-                                  border: isSelected ? '2px solid #0284c7' : '1px solid #cbd5e1',
-                                  background: isSelected ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : '#ffffff',
-                                  color: isSelected ? '#ffffff' : '#334155',
-                                  fontWeight: isSelected ? '800' : '600',
-                                  fontSize: '13px',
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease',
-                                  boxShadow: isSelected ? '0 3px 8px rgba(2, 132, 199, 0.25)' : 'none'
-                                }}
-                              >
-                                <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>
-                                  {isSelected ? 'check_circle' : 'radio_button_unchecked'}
-                                </span>
-                                <span>{opt}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
+              <div style={{ marginBottom: '24px' }}>
+                <MatchingQuestionConnector
+                  matchingPairs={currentQ.matching_pairs || []}
+                  selectedPairs={currentAns.matched_pairs || []}
+                  onMatchChange={(leftVal, rightVal) => handleSelectMatchingOption(currentQuestionIdx, leftVal, rightVal)}
+                />
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
